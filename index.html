@@ -395,6 +395,11 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .manager-workload-count{font-size:1.65rem;font-weight:950;line-height:1.15;margin:5px 0;color:#173f52}
 .manager-workload-breakdown{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
 .manager-workload-breakdown span{font-size:.68rem;font-weight:900;background:#eef5f8;border-radius:999px;padding:4px 7px}
+.handoff-card{border:1px solid #e2ca80;border-left:6px solid #d1a329;background:#fffdf5;border-radius:13px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+.handoff-card.urgent{border-color:#e2aaaa;border-left-color:#c95b5b;background:#fff8f8}
+.handoff-card .handoff-main{min-width:0}
+.handoff-card b{display:block;color:#4f3d14}
+.handoff-unread{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;background:#b33e3e;color:#fff;font-size:.7rem;font-weight:950;padding:0 7px}
 @media(max-width:850px){.manager-workload-grid{grid-template-columns:1fr 1fr}
 .safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
@@ -414,6 +419,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力すると候補を表示します。</div></div>
 </div>
 <div id="homePriority" class="home-priority-grid general-restricted"></div>
+<div id="homeHandoffCard" class="card general-restricted" style="display:none;margin-bottom:12px"><div class="list-summary"><div><h3 style="margin:0">新しい引継ぎ</h3><div class="mini">自分に担当変更された案件です。内容を確認して「確認済み」にしてください。</div></div><span id="homeHandoffCount" class="handoff-unread">0</span></div><div id="homeHandoffRows"></div></div>
 <div class="card general-restricted home-today-card"><h3>今日の要確認</h3><div id="today" class="notice-list"></div></div>
 <div class="metrics general-restricted"><div class="card metric" onclick="go('emp')"><small>在籍社員</small><b id="mEmp">0</b><span>社員一覧</span></div><div class="card metric danger" onclick="openSafetyCenter()"><small>乗務・安全 要確認</small><b id="mSafety">0</b><span>期限切れ・要確認</span></div><div class="card metric warn" onclick="go('work')"><small>安全指導 未完了</small><b id="mTrain">0</b><span>安全確認</span></div><div class="card metric danger" onclick="go('safe')"><small>事故 未完了</small><b id="mAcc">0</b><span>事故対応</span></div><div class="card metric warn" onclick="go('vehicles')"><small>車検 60日以内</small><b id="mVeh">0</b><span>車両期限</span></div><div class="card metric warn" onclick="go('work')"><small>貸与品 未返却</small><b id="mAsset">0</b><span>返却確認</span></div></div>
 <div class="card general-restricted"><h3>よく使う操作</h3><div class="home-actions"><button class="btn soft" onclick="go('emp')">社員一覧</button><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn soft" onclick="go('safe');openAccidentForm()">＋ 事故登録</button><button class="btn soft" onclick="go('vehicles');openVehicleForm()">＋ 車両登録</button><button id="homeEmployeeCreateBtn" class="btn primary" onclick="go('emp');openEmployeeForm()">＋ 社員登録</button></div></div>
@@ -882,6 +888,7 @@ function metadataCoverage(){
  coreRecordCollections().forEach(([,list])=>list.forEach(x=>{total++;if(x._meta)meta++;if(x._meta?.updated_at)updated++}));
  return {total,meta,updated}
 }
+let HANDOFFS=JSON.parse(localStorage.getItem('v68HANDOFFS')||'[]');
 let APPLICATIONS=JSON.parse(localStorage.getItem('v65APPLICATIONS')||'null')||[
  {id:'APP-001',employee_no:'1001',type:'住所変更申請',status:'一次承認待ち',date:'2026-09-17',detail:'住所変更の確認申請（架空）'},
  {id:'APP-002',employee_no:'1008',type:'本人情報確認',status:'本人回答待ち',date:'2026-09-16',detail:'本人情報の確認依頼（架空）'}
@@ -1326,7 +1333,7 @@ function printDetail(){
 }
 
 
-function save(){localStorage.setItem('v45E',JSON.stringify(E));localStorage.setItem('v23E',JSON.stringify(E));localStorage.setItem('v23A',JSON.stringify(A));localStorage.setItem('v23V',JSON.stringify(V));localStorage.setItem('v46NEAR',JSON.stringify(N));localStorage.setItem('v46COMPLAINT',JSON.stringify(C));localStorage.setItem('v23TR',JSON.stringify(TR));localStorage.setItem('v23AS',JSON.stringify(AS));localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v24NS',JSON.stringify(NS));localStorage.setItem('v30FAVORITES',JSON.stringify(FAVORITES));localStorage.setItem('v30GUIDANCE',JSON.stringify(GUIDANCE));localStorage.setItem('v30DOCS',JSON.stringify(DOCS));localStorage.setItem('v30PROCEDURES',JSON.stringify(PROCEDURES));localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS));}
+function save(){localStorage.setItem('v45E',JSON.stringify(E));localStorage.setItem('v23E',JSON.stringify(E));localStorage.setItem('v23A',JSON.stringify(A));localStorage.setItem('v23V',JSON.stringify(V));localStorage.setItem('v46NEAR',JSON.stringify(N));localStorage.setItem('v46COMPLAINT',JSON.stringify(C));localStorage.setItem('v23TR',JSON.stringify(TR));localStorage.setItem('v23AS',JSON.stringify(AS));localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v24NS',JSON.stringify(NS));localStorage.setItem('v30FAVORITES',JSON.stringify(FAVORITES));localStorage.setItem('v30GUIDANCE',JSON.stringify(GUIDANCE));localStorage.setItem('v30DOCS',JSON.stringify(DOCS));localStorage.setItem('v30PROCEDURES',JSON.stringify(PROCEDURES));localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS));localStorage.setItem('v68HANDOFFS',JSON.stringify(HANDOFFS));}
 
 
 let ADMIN_OFFICE_SCOPE=localStorage.getItem('v45ADMIN_OFFICE')||'';
@@ -1781,6 +1788,67 @@ function workloadCaseRecord(kind,id){
  return null
 }
 function workloadEntityType(kind){return kind==='事故'?'accident':kind==='苦情'?'complaint':'near_miss'}
+function createHandoffNotice(kind,rec,fromOwner,toManager,note=''){
+ if(!rec||!toManager)return;
+ HANDOFFS.forEach(h=>{if(h.kind===kind&&h.caseId===rec.id&&h.status==='未確認'){h.status='取消';h.cancelledAt=new Date().toISOString()}});
+ let actor=currentActorIdentity();
+ HANDOFFS.unshift({
+  id:'HO-'+Date.now()+'-'+(HANDOFFS.length+1),kind,caseId:rec.id,employee_no:rec.employee_no,
+  fromOwner:String(fromOwner||'未設定'),toOwner:toManager.name,toManagerId:toManager.id,
+  note:String(note||'担当変更').trim()||'担当変更',status:'未確認',createdAt:new Date().toISOString(),createdDate:TODAY,
+  changedById:actor.id,changedByName:actor.name,confirmedAt:'',confirmedById:'',confirmedByName:''
+ });
+ HANDOFFS=HANDOFFS.slice(0,300)
+}
+function handoffCurrentRecord(h){return h?workloadCaseRecord(h.kind,h.caseId):null}
+function pendingHandoffsForCurrentManager(){
+ if(PREVIEW_ROLE!=='管理者')return [];
+ let actor=currentActorIdentity(),manager=currentPreviewUser();
+ return HANDOFFS.filter(h=>{
+  if(h.status!=='未確認'||String(h.toManagerId)!==String(actor.id))return false;
+  let rec=handoffCurrentRecord(h);
+  return !!rec&&String(rec.ownerId||'')===String(actor.id)&&managerCanCoverEmployee(manager,rec.employee_no)
+ }).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))
+}
+function renderHomeHandoffs(){
+ let card=document.getElementById('homeHandoffCard'),rowsEl=document.getElementById('homeHandoffRows'),countEl=document.getElementById('homeHandoffCount');
+ if(!card||!rowsEl||!countEl)return;
+ let rows=pendingHandoffsForCurrentManager();
+ card.style.display=PREVIEW_ROLE==='管理者'&&rows.length?'':'none';countEl.textContent=rows.length;
+ rowsEl.innerHTML=rows.slice(0,5).map(h=>{
+  let rec=handoffCurrentRecord(h),e=emp(h.employee_no),urgent=(h.kind==='事故'&&accidentDeadlineState(rec)==='over')||(h.kind==='苦情'&&complaintState(rec)==='over');
+  return '<div class="handoff-card '+(urgent?'urgent':'')+'"><div class="handoff-main"><b>'+esc(h.kind)+' '+esc(h.caseId)+' / '+esc(e?.name||h.employee_no)+'</b><div class="mini">'+esc(h.fromOwner)+' → '+esc(h.toOwner)+' / '+esc(h.createdDate||'')+'</div><div class="mini">引継ぎ：'+esc(h.note||'担当変更')+'</div></div><button class="btn primary" onclick="openHandoffNotice(\''+esc(h.id)+'\')">確認する</button></div>'
+ }).join('')+(rows.length>5?'<div class="mini">ほか '+(rows.length-5)+'件の未確認引継ぎがあります。</div>':'')
+}
+function openHandoffNotice(id){
+ let h=HANDOFFS.find(x=>x.id===id),actor=currentActorIdentity();
+ if(!h||PREVIEW_ROLE!=='管理者'||String(h.toManagerId)!==String(actor.id))return alert('この引継ぎ通知は表示できません');
+ let rec=handoffCurrentRecord(h),e=emp(h.employee_no);if(!rec||!managerCanCoverEmployee(currentPreviewUser(),h.employee_no))return alert('この引継ぎ案件は表示できません');
+ dttl.textContent='引継ぎ確認 '+h.kind+' '+h.caseId;
+ let confirmAction=h.status==='未確認'?'<button class="btn primary" onclick="confirmHandoffNotice(\''+esc(h.id)+'\')">内容を確認済みにする</button>':'<span class="badge ok">確認済み</span>';
+ dbody.innerHTML='<div class="detail-alert warn">新しく担当になった案件です。内容を確認してから「確認済み」にしてください。</div>'+
+  '<div class="complaint-detail-grid"><div class="complaint-box"><label>案件</label><b>'+esc(h.kind)+' '+esc(h.caseId)+'</b></div>'+
+  '<div class="complaint-box"><label>対象社員</label><b>'+esc(e?.no||h.employee_no)+' '+esc(e?.name||'')+'</b></div>'+
+  '<div class="complaint-box"><label>前担当</label><b>'+esc(h.fromOwner||'未設定')+'</b></div>'+
+  '<div class="complaint-box"><label>新担当</label><b>'+esc(h.toOwner||'')+'</b></div>'+
+  '<div class="complaint-box"><label>引継ぎ日</label><b>'+esc(h.createdDate||'')+'</b></div>'+
+  '<div class="complaint-box"><label>変更者</label><b>'+esc(h.changedByName||'')+'</b></div></div>'+
+  '<div class="section"><h3>引継ぎメモ</h3><div class="acc-v50-text">'+esc(h.note||'担当変更')+'</div></div>'+
+  '<div class="detail-actions"><button class="btn soft" onclick="openHandoffCase(\''+esc(h.id)+'\')">案件詳細を見る</button>'+confirmAction+'</div>';
+ showDetailModal()
+}
+function openHandoffCase(id){
+ let h=HANDOFFS.find(x=>x.id===id);if(!h)return;
+ if(h.kind==='事故')return accidentDetail(h.caseId);if(h.kind==='苦情')return complaintDetail(h.caseId);if(h.kind==='ヒヤリ')return nearDetail(h.caseId)
+}
+function confirmHandoffNotice(id){
+ let h=HANDOFFS.find(x=>x.id===id),actor=currentActorIdentity();
+ if(!h||h.status!=='未確認'||String(h.toManagerId)!==String(actor.id))return alert('確認できる引継ぎ通知ではありません');
+ let rec=handoffCurrentRecord(h);if(!rec||String(rec.ownerId||'')!==String(actor.id))return alert('この案件はすでに別担当へ変更されています');
+ h.status='確認済み';h.confirmedAt=new Date().toISOString();h.confirmedById=actor.id;h.confirmedByName=actor.name;
+ audit('引継ぎ確認',h.kind+' '+h.caseId+' / '+h.fromOwner+'→'+h.toOwner,{employee_no:h.employee_no,entity_type:workloadEntityType(h.kind),entity_id:h.caseId});
+ save();renderAll();closeDetail()
+}
 function showManagerWorkload(managerId){
  if(PREVIEW_ROLE!=='管理者')return;
  let data=managerId==='UNASSIGNED'?managerWorkloadUnassigned():managerWorkloadData(activeManagers().find(x=>x.id===managerId));
@@ -1808,6 +1876,7 @@ function openCaseReassign(kind,id,backManagerId=''){
   let previous=rec.owner||'未設定';if(rec.ownerId===next.id){closeForm();return}
   rec.ownerId=next.id;rec.owner=next.name;touchRecord(rec,workloadEntityType(kind),false);
   let note=(caseHandoffNote.value||'').trim();
+  createHandoffNotice(kind,rec,previous,next,note);
   audit('担当変更',kind+' '+id+' / '+previous+'→'+next.name+(note?' / 引継ぎ '+note:''),{employee_no:rec.employee_no,entity_type:workloadEntityType(kind),entity_id:id});
   save();closeForm();renderAll();showManagerWorkload(backManagerId||next.id)
  };
@@ -1834,6 +1903,7 @@ function openBulkManagerHandoff(managerId){
    let kind=A.includes(rec)?'事故':C.includes(rec)?'苦情':'ヒヤリ',old=rec.owner||'未設定';
    if(rec.ownerId===next.id)return;
    rec.ownerId=next.id;rec.owner=next.name;touchRecord(rec,workloadEntityType(kind),false);
+   createHandoffNotice(kind,rec,old,next,note);
    audit('一括担当変更',kind+' '+rec.id+' / '+old+'→'+next.name+' / '+note,{employee_no:rec.employee_no,entity_type:workloadEntityType(kind),entity_id:rec.id});
    changed++
   });
@@ -1890,7 +1960,8 @@ function actionQueueItems(){
  if(PREVIEW_ROLE==='管理者'){
   scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
   scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
-  scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}))
+  scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
+  pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+h.note,key:h.id,owner:h.toOwner,ownerId:h.toManagerId,urgency:'warn'}))
  }
  if(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'){
   items=items.filter(x=>{
@@ -1898,6 +1969,7 @@ function actionQueueItems(){
    if(x.kind==='complaint')return recordAssignedToCurrentManager(C.find(r=>r.id===x.key)||x);
    if(x.kind==='near')return recordAssignedToCurrentManager(N.find(n=>n.id===x.key)||x);
    if(x.kind==='deadline')return deadlineAssignedToCurrentManager({type:x.type,key:x.key,no:x.no,owner:x.owner,ownerId:x.ownerId});
+   if(x.kind==='handoff')return true;
    return false
   })
  }
@@ -1913,6 +1985,7 @@ function actionQueueOpen(idOrIndex=0){
  if(item.kind==='accident'){accidentDetail(item.key);return}
  if(item.kind==='complaint'){complaintDetail(item.key);return}
  if(item.kind==='near'){nearDetail(item.key);return}
+ if(item.kind==='handoff'){openHandoffNotice(item.key);return}
 }
 function actionQueueNext(){
  let items=actionQueueItems();
@@ -1955,7 +2028,8 @@ function renderHome(){
  let queue=actionQueueItems(),shownQueue=queue.slice(0,6);
  today.innerHTML=`<div class="list-summary"><div><b>今日の処理キュー</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・本日期限・期限未設定の安全案件を優先'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<span class="badge ${queue.length?'warn':'ok'}">${queue.length}件</span><button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理する</button><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div></div><div class="action-queue-list">`+
  (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main"><b>${esc(x.label)}</b><div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">乗務安全・期限・事故・苦情・ヒヤリの要対応を確認済みです。</div></div></div>')+
- `</div>`
+ `</div>`;
+ renderHomeHandoffs()
 }
 function openSafetyCenter(){
  let rows=scopedEmployees().filter(e=>e.status==='在籍'&&((e.safetyState&&e.safetyState!=='正常')||['要確認','不可（更新確認まで）'].includes(e.eligibility)));
@@ -3184,7 +3258,7 @@ detail.addEventListener('click',e=>{
    if(!text.includes('社員詳細へ戻る')&&DETAIL_HISTORY.length)DETAIL_HISTORY.pop();
    return
  }
- if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showManagerWorkload|openCaseReassign|openBulkManagerHandoff|showQualityDetails|showUsers|showImportSpec/.test(code)){
+ if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showManagerWorkload|openCaseReassign|openBulkManagerHandoff|openHandoffNotice|openHandoffCase|showQualityDetails|showUsers|showImportSpec/.test(code)){
    saveDetailState()
  }
 },true);
