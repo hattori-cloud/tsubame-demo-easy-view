@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v64</title>
+<title>つばめ交通株式会社 社員一元管理システム v65</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -349,9 +349,16 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .vehicle-kpi.danger{border-left:6px solid #ca5f5f;background:#fff8f8}.vehicle-kpi.warn{border-left:6px solid #d4aa26;background:#fffdf3}
 .vehicle-history{display:grid;gap:7px}.vehicle-history-item{border-left:4px solid #c8d8e0;padding:7px 10px;background:#f8fbfc;border-radius:8px}
 @media(max-width:700px){.vehicle-kpis{grid-template-columns:1fr 1fr}}
+
+/* v65 communications foundation */
+.comms-stat{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.comms-stat span{font-size:.7rem;border:1px solid var(--line);border-radius:999px;padding:2px 7px;background:#f7fafb}
+.board-card.unread{border-left:6px solid #d4aa26}
+.board-card.important{border-left:6px solid #ca5f5f}
+.application-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 </style>
 </head><body>
-<div class="demo">共有デモ v64｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
+<div class="demo">共有デモ v65｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -400,7 +407,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v64：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v65：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -481,12 +488,16 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 
-<section class="page" id="comms"><div class="page-title"><div><h2>掲示・申請</h2><p>掲示板、一斉確認、本人情報変更申請、電子申請をまとめます。</p></div></div>
-<div class="grid2">
- <div class="card"><h3>掲示板</h3><div class="board-card important"><b>安全運転重点期間のお知らせ（架空）</b><div class="mini">対象：全社 / 期限：2026-09-30 / 未読 6名</div><button class="btn soft" style="margin-top:8px" onclick="showBoard('notice')">開く</button></div><div class="board-card"><b>健康診断予定の確認（架空）</b><div class="mini">対象：夜間従事者 / 未読 2名</div></div></div>
- <div class="card"><h3>一斉確認</h3><div class="board-card"><b>制服サイズ確認（架空）</b><div class="mini">対象 8名 / 未回答 3名</div><button class="btn soft" style="margin-top:8px" onclick="showBoard('confirm')">回答状況</button></div><div class="board-card"><b>緊急連絡先変更有無（架空）</b><div class="mini">対象 12名 / 未回答 4名</div></div></div>
+<section class="page" id="comms"><div class="page-title"><div><h2>掲示・申請</h2><p>掲示の既読、一斉確認の回答、本人申請の進捗をまとめて管理します。</p></div><div class="toolbar"><button class="btn primary self-only" onclick="openApplicationForm()">＋ 変更申請</button></div></div>
+<div class="spec-note">一般社員は本人宛ての情報だけ操作します。管理者は現在の担当事業所 × 部署の範囲で未読・未回答・申請状況を確認します。</div>
+<div class="grid2" style="margin-top:12px">
+ <div class="card"><h3>掲示板</h3><div id="noticeRows"></div></div>
+ <div class="card"><h3>一斉確認</h3><div id="confirmationRows"></div></div>
 </div>
-<div class="grid2" style="margin-top:12px"><div class="card"><h3>本人情報変更申請</h3><div class="scope-note">一般社員は自分の情報だけ確認し、誤りがあれば変更申請へ進む想定です。事故詳細・健康情報などは一般社員へ公開しません。</div><div id="changeApplications" class="list" style="margin-top:9px"></div></div><div class="card"><h3>電子申請・承認</h3><div id="applicationRows" class="list"></div></div></div></section>
+<div class="grid2" style="margin-top:12px">
+ <div class="card"><h3>本人情報変更申請</h3><div class="scope-note">一般社員は自分の申請だけ確認できます。</div><div id="changeApplications" class="list" style="margin-top:9px"></div></div>
+ <div class="card"><h3>電子申請・承認</h3><div id="applicationRows" class="list"></div></div>
+</div></section>
 
 
 <section class="page" id="manage"><div class="page-title"><div><h2>管理</h2><p>会社固有設定、利用者・権限、導入前確認、取込・監査をまとめます。</p></div></div>
@@ -757,7 +768,7 @@ function ensureCoreRecordIds(){
 function coreRecordCollections(){
  return [
   ['employee',E],['accident',A],['vehicle',V],['near_miss',N],['complaint',C],
-  ['training',TR],['asset',AS],['qualification',QUAL],['guidance',GUIDANCE],['document',DOCS]
+  ['training',TR],['asset',AS],['qualification',QUAL],['guidance',GUIDANCE],['document',DOCS],['application',APPLICATIONS],['notice',NOTICES],['confirmation',CONFIRMATIONS]
  ]
 }
 function ensureRecordMetadata(){
@@ -778,7 +789,29 @@ function metadataCoverage(){
  coreRecordCollections().forEach(([,list])=>list.forEach(x=>{total++;if(x._meta)meta++;if(x._meta?.updated_at)updated++}));
  return {total,meta,updated}
 }
-const APPLICATIONS=[{id:'APP-001',employee_no:'1001',type:'住所変更申請',status:'一次承認待ち',date:'2026-09-17'},{id:'APP-002',employee_no:'1008',type:'本人情報確認',status:'本人回答待ち',date:'2026-09-16'}];
+let APPLICATIONS=JSON.parse(localStorage.getItem('v65APPLICATIONS')||'null')||[
+ {id:'APP-001',employee_no:'1001',type:'住所変更申請',status:'一次承認待ち',date:'2026-09-17',detail:'住所変更の確認申請（架空）'},
+ {id:'APP-002',employee_no:'1008',type:'本人情報確認',status:'本人回答待ち',date:'2026-09-16',detail:'本人情報の確認依頼（架空）'}
+];
+let NOTICES=JSON.parse(localStorage.getItem('v65NOTICES')||'null')||[
+ {id:'N-001',title:'安全運転重点期間のお知らせ（架空）',body:'安全確認を重点的に行う期間のお知らせです。',date:'2026-09-18',due:'2026-09-30',targetType:'all',targetValue:'',important:true,readBy:[]},
+ {id:'N-002',title:'健康診断予定の確認（架空）',body:'夜間従事者の健康診断予定を確認してください。',date:'2026-09-17',due:'',targetType:'workPattern',targetValue:'夜勤',important:false,readBy:[]}
+];
+let CONFIRMATIONS=JSON.parse(localStorage.getItem('v65CONFIRMATIONS')||'null')||[
+ {id:'CF-001',title:'制服サイズ確認（架空）',date:'2026-09-18',due:'2026-09-26',targetType:'dept',targetValue:'タクシー課',responses:{}},
+ {id:'CF-002',title:'緊急連絡先変更有無（架空）',date:'2026-09-17',due:'2026-09-25',targetType:'all',targetValue:'',responses:{}}
+];
+function ensureCommsFields(){
+ let changed=false;
+ APPLICATIONS.forEach(a=>{
+  if(a.detail===undefined){a.detail='';changed=true}
+  if(a.updatedDate===undefined){a.updatedDate='';changed=true}
+  if(a.reviewedBy===undefined){a.reviewedBy='';changed=true}
+ });
+ NOTICES.forEach(n=>{if(!Array.isArray(n.readBy)){n.readBy=[];changed=true}});
+ CONFIRMATIONS.forEach(c=>{if(!c.responses||typeof c.responses!=='object'){c.responses={};changed=true}});
+ if(changed){localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS))}
+}
 let ATT_PRECHECK=false;
 function ensureHandoffFields(){
  E.forEach((e,i)=>{
@@ -956,7 +989,7 @@ function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一�
 function exportAccidentsCsv(){let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));downloadCsv('事故一覧_共有デモ.csv',[['事故番号','発生日','社員番号','システム連携ID','乗務員','区分','車両','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'],...rows.map(a=>[a.id,a.date,a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||''])]);audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)}
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_共有デモ_v64.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_共有デモ_v65.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
@@ -1040,7 +1073,7 @@ function openDeadlineCenter(filter='all'){
 }
 function exportDeadlinesCsv(){
  let rows=collectDeadlines();
- downloadCsv('期限一覧_共有デモ_v64.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
+ downloadCsv('期限一覧_共有デモ_v65.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
  audit('CSV出力',`期限一覧 v62 / ${rows.length}件`)
 }
 function qualityIssues(){
@@ -1194,12 +1227,12 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v64 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v65 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
 
-function save(){localStorage.setItem('v45E',JSON.stringify(E));localStorage.setItem('v23E',JSON.stringify(E));localStorage.setItem('v23A',JSON.stringify(A));localStorage.setItem('v23V',JSON.stringify(V));localStorage.setItem('v46NEAR',JSON.stringify(N));localStorage.setItem('v46COMPLAINT',JSON.stringify(C));localStorage.setItem('v23TR',JSON.stringify(TR));localStorage.setItem('v23AS',JSON.stringify(AS));localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v24NS',JSON.stringify(NS));localStorage.setItem('v30FAVORITES',JSON.stringify(FAVORITES));localStorage.setItem('v30GUIDANCE',JSON.stringify(GUIDANCE));localStorage.setItem('v30DOCS',JSON.stringify(DOCS));localStorage.setItem('v30PROCEDURES',JSON.stringify(PROCEDURES));}
+function save(){localStorage.setItem('v45E',JSON.stringify(E));localStorage.setItem('v23E',JSON.stringify(E));localStorage.setItem('v23A',JSON.stringify(A));localStorage.setItem('v23V',JSON.stringify(V));localStorage.setItem('v46NEAR',JSON.stringify(N));localStorage.setItem('v46COMPLAINT',JSON.stringify(C));localStorage.setItem('v23TR',JSON.stringify(TR));localStorage.setItem('v23AS',JSON.stringify(AS));localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v24NS',JSON.stringify(NS));localStorage.setItem('v30FAVORITES',JSON.stringify(FAVORITES));localStorage.setItem('v30GUIDANCE',JSON.stringify(GUIDANCE));localStorage.setItem('v30DOCS',JSON.stringify(DOCS));localStorage.setItem('v30PROCEDURES',JSON.stringify(PROCEDURES));localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS));}
 
 
 let ADMIN_OFFICE_SCOPE=localStorage.getItem('v45ADMIN_OFFICE')||'';
@@ -1410,11 +1443,104 @@ function renderWork(){
 function attendanceSelected(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}ATT_PRECHECK=false;attImportBtn.disabled=true;attPreBtn.disabled=!attendanceFile.files.length;attFileName.textContent=attendanceFile.files[0]?.name||'未選択';attResult.textContent=''}
 function attendancePreflight(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}if(!attendanceFile.files.length)return;ATT_PRECHECK=true;attImportBtn.disabled=false;attResult.textContent='DRY_RUN：対象月 2026年8月 / 照合 28名 / 未照合 0名 / 最終計上日 2026-09-15（架空）';audit('拘束時間取込前チェック',attendanceFile.files[0].name)}
 function attendanceImportDry(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}if(!ATT_PRECHECK)return;attResult.textContent='共有デモのため実取込はしません。本番では同一ファイル・同一確認結果のみ確定できます。';audit('拘束時間取込DRY_RUN',attendanceFile.files[0]?.name||'')}
-function renderComms(){
- changeApplications.innerHTML=scopedApplications().filter(a=>a.type.includes('情報')||a.type.includes('住所')).map(a=>{let e=emp(a.employee_no);return `<div class="row"><div><b>${a.id} ${esc(a.type)}</b><div class="mini">${e?esc(e.name):a.employee_no} / ${a.date}</div></div>${badge(a.status)}</div>`}).join('');
- applicationRows.innerHTML=scopedApplications().map(a=>{let e=emp(a.employee_no);return `<div class="row"><div><b>${a.id} ${esc(a.type)}</b><div class="mini">${e?esc(e.name):a.employee_no} / ${a.date}</div></div>${badge(a.status)}</div>`}).join('')
+function commsTargetEmployees(item){
+ let list=E.filter(e=>e.status!=='退職');
+ if(item.targetType==='office')list=list.filter(e=>e.branch===item.targetValue);
+ else if(item.targetType==='dept')list=list.filter(e=>e.dept===item.targetValue);
+ else if(item.targetType==='workPattern')list=list.filter(e=>e.workPattern===item.targetValue);
+ return list
 }
-function showBoard(type){dttl.textContent=type==='notice'?'掲示詳細':'一斉確認の回答状況';dbody.innerHTML=type==='notice'?`<div class="section"><h3>安全運転重点期間のお知らせ（架空）</h3><div>対象：全社<br>公開前に対象人数・事業所別・部署別の内訳を確認する想定です。</div></div>`:`<div class="section"><h3>制服サイズ確認（架空）</h3><div>対象 8名 / 回答済 5名 / 未回答 3名</div></div>`;showDetailModal()}
+function commsTargetLabel(item){
+ if(item.targetType==='all')return '全社';
+ if(item.targetType==='office')return '事業所：'+item.targetValue;
+ if(item.targetType==='dept')return '部署：'+item.targetValue;
+ if(item.targetType==='workPattern')return '勤務形態：'+item.targetValue;
+ return '対象未設定'
+}
+function commsVisibleToSelf(item){
+ let no=currentSelfNo();
+ return commsTargetEmployees(item).some(e=>e.no===String(no))
+}
+function commsScopedTarget(item){
+ let scope=new Set(scopedEmployees().map(e=>e.no));
+ return commsTargetEmployees(item).filter(e=>scope.has(e.no))
+}
+function visibleNotices(){
+ return NOTICES.filter(n=>PREVIEW_ROLE==='一般社員'?commsVisibleToSelf(n):commsScopedTarget(n).length>0).sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+}
+function visibleConfirmations(){
+ return CONFIRMATIONS.filter(c=>PREVIEW_ROLE==='一般社員'?commsVisibleToSelf(c):commsScopedTarget(c).length>0).sort((a,b)=>String(b.date).localeCompare(String(a.date)))
+}
+function renderComms(){
+ let selfNo=currentSelfNo();
+ noticeRows.innerHTML=visibleNotices().map(n=>{
+  let targets=PREVIEW_ROLE==='一般社員'?commsTargetEmployees(n):commsScopedTarget(n),read=targets.filter(e=>n.readBy.includes(e.no)).length,unread=targets.length-read,selfRead=n.readBy.includes(selfNo);
+  return `<div class="board-card ${n.important?'important':''} ${PREVIEW_ROLE==='一般社員'&&!selfRead?'unread':''}"><b>${esc(n.title)}</b><div class="mini">${esc(commsTargetLabel(n))}${n.due?' / 期限 '+esc(n.due):''}</div><div class="comms-stat"><span>対象 ${targets.length}名</span><span>既読 ${read}名</span><span>未読 ${unread}名</span></div><button class="btn soft" style="margin-top:8px" onclick="noticeDetail('${n.id}')">開く</button></div>`
+ }).join('')||'<div class="mini">表示対象の掲示はありません。</div>';
+ confirmationRows.innerHTML=visibleConfirmations().map(c=>{
+  let targets=PREVIEW_ROLE==='一般社員'?commsTargetEmployees(c):commsScopedTarget(c),answered=targets.filter(e=>c.responses[e.no]).length,remaining=targets.length-answered,selfAnswer=c.responses[selfNo];
+  return `<div class="board-card ${PREVIEW_ROLE==='一般社員'&&!selfAnswer?'unread':''}"><b>${esc(c.title)}</b><div class="mini">${esc(commsTargetLabel(c))}${c.due?' / 期限 '+esc(c.due):''}</div><div class="comms-stat"><span>対象 ${targets.length}名</span><span>回答済 ${answered}名</span><span>未回答 ${remaining}名</span></div><button class="btn soft" style="margin-top:8px" onclick="confirmationDetail('${c.id}')">${PREVIEW_ROLE==='一般社員'?(selfAnswer?'回答確認':'回答する'):'回答状況'}</button></div>`
+ }).join('')||'<div class="mini">表示対象の一斉確認はありません。</div>';
+ let apps=scopedApplications().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ changeApplications.innerHTML=apps.filter(a=>a.type.includes('情報')||a.type.includes('住所')||PREVIEW_ROLE==='一般社員').map(a=>{let e=emp(a.employee_no);return `<div class="row"><div><b>${esc(a.id)} ${esc(a.type)}</b><div class="mini">${e?esc(e.name):a.employee_no} / ${a.date}</div></div><button class="btn soft" onclick="applicationDetail('${a.id}')">${esc(a.status)}</button></div>`}).join('')||'<div class="mini">申請はありません。</div>';
+ applicationRows.innerHTML=apps.map(a=>{let e=emp(a.employee_no);return `<div class="row"><div><b>${esc(a.id)} ${esc(a.type)}</b><div class="mini">${e?esc(e.name):a.employee_no} / ${a.date}</div></div><button class="btn soft" onclick="applicationDetail('${a.id}')">${esc(a.status)}</button></div>`}).join('')||'<div class="mini">申請はありません。</div>'
+}
+function noticeDetail(id){
+ let n=NOTICES.find(x=>x.id===id);if(!n)return;
+ if(PREVIEW_ROLE==='一般社員'&&!commsVisibleToSelf(n)){alert('この掲示は表示対象外です');return}
+ if(PREVIEW_ROLE==='管理者'&&!commsScopedTarget(n).length){alert('現在の担当範囲では表示できません');return}
+ let selfNo=currentSelfNo(),targets=PREVIEW_ROLE==='管理者'?commsScopedTarget(n):commsTargetEmployees(n),read=targets.filter(e=>n.readBy.includes(e.no)).length;
+ dttl.textContent='掲示詳細';
+ dbody.innerHTML=`<div class="section"><h3>${esc(n.title)}</h3><div class="mini">${esc(n.date)} / ${esc(commsTargetLabel(n))}${n.due?' / 期限 '+esc(n.due):''}</div><div style="margin-top:12px">${esc(n.body||'')}</div></div><div class="list-summary"><div><b>既読 ${read}/${targets.length}</b><div class="mini">未読 ${targets.length-read}名</div></div>${PREVIEW_ROLE==='一般社員'&&!n.readBy.includes(selfNo)?`<button class="btn primary" onclick="markNoticeRead('${n.id}')">既読にする</button>`:''}</div>`;
+ showDetailModal()
+}
+function markNoticeRead(id){
+ if(PREVIEW_ROLE!=='一般社員')return;
+ let n=NOTICES.find(x=>x.id===id),no=currentSelfNo();if(!n||!commsVisibleToSelf(n))return;
+ if(!n.readBy.includes(no)){n.readBy.push(no);save();audit('掲示既読',id,{employee_no:no,entity_type:'notice',entity_id:id})}
+ renderComms();noticeDetail(id)
+}
+function confirmationDetail(id){
+ let c=CONFIRMATIONS.find(x=>x.id===id);if(!c)return;
+ if(PREVIEW_ROLE==='一般社員'&&!commsVisibleToSelf(c)){alert('この確認は表示対象外です');return}
+ let targets=PREVIEW_ROLE==='管理者'?commsScopedTarget(c):commsTargetEmployees(c),answered=targets.filter(e=>c.responses[e.no]).length,selfNo=currentSelfNo();
+ dttl.textContent='一斉確認';
+ dbody.innerHTML=`<div class="section"><h3>${esc(c.title)}</h3><div class="mini">${esc(c.date)} / ${esc(commsTargetLabel(c))}${c.due?' / 期限 '+esc(c.due):''}</div></div><div class="list-summary"><div><b>回答済 ${answered}/${targets.length}</b><div class="mini">未回答 ${targets.length-answered}名</div></div>${PREVIEW_ROLE==='一般社員'&&!c.responses[selfNo]?`<button class="btn primary" onclick="answerConfirmation('${c.id}')">確認済みにする</button>`:''}</div>`+
+ (PREVIEW_ROLE==='管理者'?targets.map(e=>`<div class="row"><div><b>${esc(e.no)} ${esc(e.name)}</b><div class="mini">${esc(e.branch)} / ${esc(e.dept)}</div></div>${badge(c.responses[e.no]?'回答済':'未回答')}</div>`).join(''):'');
+ showDetailModal()
+}
+function answerConfirmation(id){
+ if(PREVIEW_ROLE!=='一般社員')return;
+ let c=CONFIRMATIONS.find(x=>x.id===id),no=currentSelfNo();if(!c||!commsVisibleToSelf(c))return;
+ c.responses[no]={date:TODAY,answer:'確認済み'};save();audit('一斉確認回答',id,{employee_no:no,entity_type:'confirmation',entity_id:id});renderComms();confirmationDetail(id)
+}
+function openApplicationForm(){
+ if(PREVIEW_ROLE!=='一般社員'){alert('本人変更申請は一般社員の本人画面から行います');return}
+ let no=currentSelfNo(),e=emp(no);if(!e)return;
+ fttl.textContent='本人情報変更申請';
+ fbody.innerHTML=`<div class="formnote">${esc(e.name)} / 社員番号 ${esc(no)}<br>共有デモでは実住所・実連絡先などを入力しないでください。</div><div class="formgrid"><div class="field"><label>申請区分</label><select id="fapptype"><option>住所変更申請</option><option>連絡先変更申請</option><option>本人情報訂正申請</option><option>制服サイズ変更申請</option><option>その他申請</option></select></div><div class="field wide"><label>申請内容（架空）</label><textarea id="fappdetail" placeholder="変更したい内容を入力"></textarea></div></div>`;
+ fsave.onclick=()=>{
+  if(!fappdetail.value.trim())return alert('申請内容を入力してください');
+  let id=nextRecordId('APP',APPLICATIONS),rec={id,employee_no:no,type:fapptype.value,status:'申請中',date:TODAY,detail:fappdetail.value.trim(),updatedDate:TODAY,reviewedBy:''};
+  touchRecord(rec,'application',true);APPLICATIONS.push(rec);save();audit('本人申請登録',id+' '+rec.type,{employee_no:no,entity_type:'application',entity_id:id});closeForm();renderAll();applicationDetail(id)
+ };
+ form.classList.add('show')
+}
+function applicationDetail(id){
+ let a=APPLICATIONS.find(x=>x.id===id);if(!a)return;
+ if(PREVIEW_ROLE==='一般社員'&&String(a.employee_no)!==String(currentSelfNo())){alert('本人の申請だけ確認できます');return}
+ if(PREVIEW_ROLE==='管理者'&&!inCurrentEmployeeScope(a.employee_no)){alert('現在の担当範囲ではこの申請を確認できません');return}
+ let e=emp(a.employee_no);
+ dttl.textContent='申請詳細 '+a.id;
+ dbody.innerHTML=`<div class="section"><h3>${esc(a.type)}</h3><div class="infogrid"><div class="info"><label>申請者</label><b>${e?esc(e.no+' '+e.name):esc(a.employee_no)}</b></div><div class="info"><label>申請日</label><b>${esc(a.date)}</b></div><div class="info"><label>状態</label>${badge(a.status)}</div><div class="info"><label>最終確認者</label><b>${esc(a.reviewedBy||'-')}</b></div></div></div><div class="section"><h3>申請内容</h3><div class="acc-v50-text">${esc(a.detail||'内容未登録')}</div></div>`+
+ (PREVIEW_ROLE==='管理者'&&!['承認','差戻し'].includes(a.status)?`<div class="application-actions"><button class="btn primary" onclick="updateApplicationStatus('${a.id}','承認')">承認</button><button class="btn danger" onclick="updateApplicationStatus('${a.id}','差戻し')">差戻し</button></div>`:'');
+ showDetailModal()
+}
+function updateApplicationStatus(id,status){
+ if(PREVIEW_ROLE!=='管理者')return;
+ let a=APPLICATIONS.find(x=>x.id===id);if(!a||!inCurrentEmployeeScope(a.employee_no))return;
+ let actor=currentActorIdentity();a.status=status;a.updatedDate=TODAY;a.reviewedBy=actor.name;touchRecord(a,'application',false);save();audit('申請状態更新',id+' '+status,{employee_no:a.employee_no,entity_type:'application',entity_id:id});renderComms();applicationDetail(id)
+}
 function renderCompanySpec(){
  companySpec.innerHTML=`<div class="company-item"><span class="mini">社員構成</span><b>120名</b><div class="mini">既存30名＋追加90名</div></div><div class="company-item"><span class="mini">タクシー</span><b>72名（60%）</b></div><div class="company-item"><span class="mini">バス課</span><b>5名（約4%）</b><div class="mini">本社2 / 馬木3 / 府中0</div></div><div class="company-item"><span class="mini">事業所</span><b>本社77・府中40・馬木3</b></div><div class="company-item"><span class="mini">管理者担当範囲</span><b>事業所＋部署の両方で指定</b><div class="mini">例：本社 × 運行管理課</div></div><div class="company-item"><span class="mini">区分原則</span><b>事業所と部署は別管理</b></div><div class="company-item"><span class="mini">安全原則</span><b>免許期限切れは乗務不可</b></div><div class="company-item"><span class="mini">社員コード</span><b>既存1001～ / 追加6001～6090</b></div><div class="company-item"><span class="mini">マイナンバー</span><b>保存しない</b></div>`;
  userSummary.innerHTML=`<div class="row"><div><b>2権限</b><div class="mini">管理者 / 一般社員（本人のみ）</div></div><span class="badge ok">仕様確認</span></div><div class="row"><div><b>管理者の表示範囲</b><div class="mini">担当事業所 × 担当部署で制御。両方「全て」の場合は全社管理者。</div></div><span class="badge ok">範囲制御</span></div>`;
@@ -2098,6 +2224,9 @@ function searchAll(){
  training.forEach(x=>results.push({label:'安全指導',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.course}`,sub:`${x.status} / 期限 ${x.due||'未設定'}`,open:`go('emp');setTimeout(()=>employeeTraining('${x.employee_no}'),40)`}));
  let docs=DOCS.filter(d=>canViewDocumentRecord(d)&&[d.id,d.name,d.category,d.status,d.expiry,emp(d.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4);
  docs.forEach(d=>results.push({label:'書類',title:`${emp(d.employee_no)?.name||d.employee_no} / ${d.name}`,sub:`${d.category} / ${d.status||'確認待ち'}`,open:`go('emp');setTimeout(()=>employeeDocuments('${d.employee_no}'),40)`}));
+  let apps=scopedApplications().filter(a=>[a.id,a.type,a.status,a.date,a.detail,emp(a.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4);
+ apps.forEach(a=>results.push({label:'申請',title:`${a.id} / ${a.type}`,sub:`${emp(a.employee_no)?.name||a.employee_no} / ${a.status}`,open:`go('comms');setTimeout(()=>applicationDetail('${a.id}'),40)`}));
+ visibleNotices().filter(n=>[n.id,n.title,n.body,n.date].join(' ').toLowerCase().includes(q)).slice(0,3).forEach(n=>results.push({label:'掲示',title:n.title,sub:`${n.date} / ${commsTargetLabel(n)}`,open:`go('comms');setTimeout(()=>noticeDetail('${n.id}'),40)`}));
  if(PREVIEW_ROLE==='管理者'){
   scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
   scopedComplaints().filter(c=>[c.id,c.responseDate,c.occurrenceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.rank].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(c=>results.push({label:'苦情',title:c.id,sub:`${c.driverName||c.name} / ${c.summary}`,open:`go('safe');setTimeout(()=>complaintDetail('${c.id}'),40)`}));
@@ -2594,5 +2723,5 @@ function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}func
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
-ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_ROLE;setPreviewRole(PREVIEW_ROLE);renderAll();
+ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_ROLE;setPreviewRole(PREVIEW_ROLE);renderAll();
 </script></body></html>
