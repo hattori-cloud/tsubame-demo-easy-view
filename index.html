@@ -1801,6 +1801,17 @@ function createHandoffNotice(kind,rec,fromOwner,toManager,note=''){
  HANDOFFS=HANDOFFS.slice(0,300)
 }
 function handoffCurrentRecord(h){return h?workloadCaseRecord(h.kind,h.caseId):null}
+const HANDOFF_WARN_DAYS=1;
+function handoffAgeDays(h){
+ if(!h?.createdAt)return 0;
+ let ms=Date.now()-new Date(h.createdAt).getTime();
+ return Number.isFinite(ms)&&ms>0?Math.floor(ms/86400000):0
+}
+function handoffAgeLabel(h){
+ let d=handoffAgeDays(h);
+ return d<=0?'本日引継ぎ':d+'日未確認'
+}
+function handoffIsOverdue(h){return handoffAgeDays(h)>=HANDOFF_WARN_DAYS}
 function pendingHandoffsForCurrentManager(){
  if(PREVIEW_ROLE!=='管理者')return [];
  let actor=currentActorIdentity(),manager=currentPreviewUser();
@@ -1814,10 +1825,10 @@ function renderHomeHandoffs(){
  let card=document.getElementById('homeHandoffCard'),rowsEl=document.getElementById('homeHandoffRows'),countEl=document.getElementById('homeHandoffCount');
  if(!card||!rowsEl||!countEl)return;
  let rows=pendingHandoffsForCurrentManager();
- card.style.display=PREVIEW_ROLE==='管理者'&&rows.length?'':'none';countEl.textContent=rows.length;
+ card.style.display=PREVIEW_ROLE==='管理者'&&rows.length?'':'none';let aged=rows.filter(handoffIsOverdue).length;countEl.textContent=rows.length;countEl.title=aged?aged+'件が1日以上未確認':'未確認引継ぎ '+rows.length+'件';
  rowsEl.innerHTML=rows.slice(0,5).map(h=>{
-  let rec=handoffCurrentRecord(h),e=emp(h.employee_no),urgent=(h.kind==='事故'&&accidentDeadlineState(rec)==='over')||(h.kind==='苦情'&&complaintState(rec)==='over');
-  return '<div class="handoff-card '+(urgent?'urgent':'')+'"><div class="handoff-main"><b>'+esc(h.kind)+' '+esc(h.caseId)+' / '+esc(e?.name||h.employee_no)+'</b><div class="mini">'+esc(h.fromOwner)+' → '+esc(h.toOwner)+' / '+esc(h.createdDate||'')+'</div><div class="mini">引継ぎ：'+esc(h.note||'担当変更')+'</div></div><button class="btn primary" onclick="openHandoffNotice(\''+esc(h.id)+'\')">確認する</button></div>'
+  let rec=handoffCurrentRecord(h),e=emp(h.employee_no),urgent=handoffIsOverdue(h)||(h.kind==='事故'&&accidentDeadlineState(rec)==='over')||(h.kind==='苦情'&&complaintState(rec)==='over');
+  return '<div class="handoff-card '+(urgent?'urgent':'')+'"><div class="handoff-main"><b>'+esc(h.kind)+' '+esc(h.caseId)+' / '+esc(e?.name||h.employee_no)+'</b><div class="mini">'+esc(h.fromOwner)+' → '+esc(h.toOwner)+' / '+esc(h.createdDate||'')+' / '+esc(handoffAgeLabel(h))+'</div><div class="mini">引継ぎ：'+esc(h.note||'担当変更')+'</div></div><div class="toolbar">'+(handoffIsOverdue(h)?'<span class="badge danger">未確認 '+handoffAgeDays(h)+'日</span>':'<span class="badge warn">未確認</span>')+'<button class="btn primary" onclick="openHandoffNotice(\''+esc(h.id)+'\')">確認する</button></div></div>'
  }).join('')+(rows.length>5?'<div class="mini">ほか '+(rows.length-5)+'件の未確認引継ぎがあります。</div>':'')
 }
 function openHandoffNotice(id){
@@ -1826,12 +1837,12 @@ function openHandoffNotice(id){
  let rec=handoffCurrentRecord(h),e=emp(h.employee_no);if(!rec||!managerCanCoverEmployee(currentPreviewUser(),h.employee_no))return alert('この引継ぎ案件は表示できません');
  dttl.textContent='引継ぎ確認 '+h.kind+' '+h.caseId;
  let confirmAction=h.status==='未確認'?'<button class="btn primary" onclick="confirmHandoffNotice(\''+esc(h.id)+'\')">内容を確認済みにする</button>':'<span class="badge ok">確認済み</span>';
- dbody.innerHTML='<div class="detail-alert warn">新しく担当になった案件です。内容を確認してから「確認済み」にしてください。</div>'+
+ dbody.innerHTML='<div class="detail-alert '+(handoffIsOverdue(h)?'danger':'warn')+'">新しく担当になった案件です。'+(handoffIsOverdue(h)?'引継ぎから'+handoffAgeDays(h)+'日経過しています。':'')+' 内容を確認してから「確認済み」にしてください。</div>'+
   '<div class="complaint-detail-grid"><div class="complaint-box"><label>案件</label><b>'+esc(h.kind)+' '+esc(h.caseId)+'</b></div>'+
   '<div class="complaint-box"><label>対象社員</label><b>'+esc(e?.no||h.employee_no)+' '+esc(e?.name||'')+'</b></div>'+
   '<div class="complaint-box"><label>前担当</label><b>'+esc(h.fromOwner||'未設定')+'</b></div>'+
   '<div class="complaint-box"><label>新担当</label><b>'+esc(h.toOwner||'')+'</b></div>'+
-  '<div class="complaint-box"><label>引継ぎ日</label><b>'+esc(h.createdDate||'')+'</b></div>'+
+  '<div class="complaint-box"><label>引継ぎ日</label><b>'+esc(h.createdDate||'')+' / '+esc(handoffAgeLabel(h))+'</b></div>'+
   '<div class="complaint-box"><label>変更者</label><b>'+esc(h.changedByName||'')+'</b></div></div>'+
   '<div class="section"><h3>引継ぎメモ</h3><div class="acc-v50-text">'+esc(h.note||'担当変更')+'</div></div>'+
   '<div class="detail-actions"><button class="btn soft" onclick="openHandoffCase(\''+esc(h.id)+'\')">案件詳細を見る</button>'+confirmAction+'</div>';
@@ -1916,6 +1927,7 @@ function renderAdminOverview(){
  let el=document.getElementById('adminOverview');if(!el)return;
  let deadlines=collectDeadlines(),urgent=deadlines.filter(x=>['over','today','7'].includes(x.bucket)).length,quality=qualityIssues();
  let pendingApps=scopedApplications().filter(a=>!['承認','差戻し'].includes(a.status)).length;
+ let handoffAged=PREVIEW_ROLE==='管理者'?pendingHandoffsForCurrentManager().filter(handoffIsOverdue).length:0;
  let pendingDocs=DOCS.filter(d=>canViewDocumentRecord(d)&&d.status!=='原本確認済み').length;
  let staleWork=scopedEmployees().filter(e=>e.status!=='退職'&&workUpdateStatus(e)==='更新確認').length;
  el.innerHTML=`<div class="metrics" style="margin-top:0">
@@ -1923,6 +1935,7 @@ function renderAdminOverview(){
   <button class="card metric ${staleWork?'warn':''}" onclick="go('work')"><small>勤務更新確認</small><b>${staleWork}</b><span>最終計上を確認</span></button>
   <button class="card metric ${pendingDocs?'warn':''}" onclick="openCredentialCenter()"><small>書類確認待ち等</small><b>${pendingDocs}</b><span>資格・書類</span></button>
   <button class="card metric ${pendingApps?'warn':''}" onclick="go('comms')"><small>申請対応中</small><b>${pendingApps}</b><span>担当範囲</span></button>
+  <button class="card metric ${handoffAged?'danger':''}" onclick="go('home')"><small>引継ぎ未確認 1日超</small><b>${handoffAged}</b><span>自分宛て</span></button>
   <button class="card metric ${quality.length?'warn':''}" onclick="showQualityDetails()"><small>品質確認</small><b>${quality.length}</b><span>入力漏れ・矛盾</span></button>
  </div>`
 }
@@ -1961,7 +1974,7 @@ function actionQueueItems(){
   scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
   scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
   scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
-  pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+h.note,key:h.id,owner:h.toOwner,ownerId:h.toManagerId,urgency:'warn'}))
+  pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:handoffIsOverdue(h)?0:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+handoffAgeLabel(h)+' / '+h.note,key:h.id,owner:h.toOwner,ownerId:h.toManagerId,urgency:handoffIsOverdue(h)?'danger':'warn'}))
  }
  if(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'){
   items=items.filter(x=>{
