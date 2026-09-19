@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v77 foundation build.
+Current application: v78 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -14,10 +14,10 @@ Current application: v77 foundation build.
 - Unified required-field validation and pre-save change confirmation for core edit forms
 - Unsaved-form protection for close / Escape / page unload
 - Readability improvements for typography, spacing, tables, forms, and responsive layout
-- Simplified home screen focused on today's actions, search, and common operations
-- Simplified employee, work/deadline, safety, and vehicle screens with search/list-first layouts
+- Simplified home and core operational screens
 - Vehicle management in the primary navigation
 - Communication screen split into Notice / Confirmation / Application tabs
 - Administration screen focused on today's actions with collapsible operational, system, and audit sections
+- Unified search/filter toolbars and consistent list actions across major screens
 
 Production note: the shared demo uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
