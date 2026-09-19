@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v83 foundation build.
+Current application: v84 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -25,5 +25,6 @@ Current application: v83 foundation build.
 - Actionable data-quality dashboard grouped by critical issues, missing fields, deadlines, workflow/closure metadata, and integrity issues
 - Direct navigation from quality issues to the relevant employee, accident, complaint, near-miss, vehicle, qualification, document, or application record
 - Critical data-quality issues surfaced in the daily action queue; full quality results can be exported to CSV
+- Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
 
 Production note: the shared demo uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
