@@ -790,10 +790,11 @@ function ensureAccidentWorkflowFields(){
   if(a.nextAction===undefined){a.nextAction=a.phase==='完了'?'':'対応状況を確認';changed=true}
   [
    ['time',''],['operationState','未設定'],['district','未設定'],['accidentType','未設定'],['faultRate',''],
-   ['opponentRepair','未確定'],['opponentRepairCost',''],['companyRepair','未確定'],['companyRepairCost',''],
-   ['employeeChargeTarget',''],['bonusDeductionAmount',''],['bonusDeductionMonth',''],['bonusDeductionStatus','未設定'],
-   ['bonusDeductionApprovedById',''],['bonusDeductionApprovedByName',''],['bonusDeductionApprovedAt',''],['bonusDeductionNote','']
-  ].forEach(([k,v])=>{if(a[k]===undefined){a[k]=v;changed=true}})
+   ['opponentRepair','未確定'],['opponentRepairCost',''],['companyRepair','未確定'],['companyRepairCost','']
+  ].forEach(([k,v])=>{if(a[k]===undefined){a[k]=v;changed=true}});
+  ['employeeChargeTarget','bonusDeductionAmount','bonusDeductionMonth','bonusDeductionStatus','bonusDeductionApprovedById','bonusDeductionApprovedByName','bonusDeductionApprovedAt','bonusDeductionNote'].forEach(k=>{
+   if(Object.prototype.hasOwnProperty.call(a,k)){delete a[k];changed=true}
+  })
  });
  if(changed)localStorage.setItem('v23A',JSON.stringify(A))
 }
@@ -811,7 +812,6 @@ function accidentRepairLabel(v){return ['あり','なし','未確定'].includes(
 function accidentMoney(v){let s=String(v??'').trim();if(!s)return 0;let n=Number(s);return Number.isFinite(n)&&n>=0?n:0}
 function accidentMoneyLabel(v){let s=String(v??'').trim();if(!s)return '未確定';return accidentMoney(s).toLocaleString('ja-JP')+'円'}
 function accidentTotalRepairCost(a){return accidentMoney(a?.opponentRepairCost)+accidentMoney(a?.companyRepairCost)}
-function accidentBonusStatus(v){return ['未設定','未控除','控除予定','控除済み','対象外'].includes(v)?v:'未設定'}
 function ensureNearMissWorkflowFields(){
  let changed=false;
  N.forEach(n=>{
@@ -1232,12 +1232,7 @@ function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一�
 function exportAccidentsCsv(){
  let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let header=['事故番号','発生日','曜日','発生時間','社員番号','システム連携ID','乗務員','区分','車両','運行時の状態','発生地区','事故形態・種類','過失率（自社側%）','相手修理','相手修理代','自社修理','自社修理代','修理費合計','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'];
- if(isFullCompanyAdmin())header.push('本人負担対象額','賞与控除額','控除対象賞与月','控除状況','控除承認・記録者','控除メモ');
- let data=rows.map(a=>{
-  let r=[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||''];
-  if(isFullCompanyAdmin())r.push(a.employeeChargeTarget||'',a.bonusDeductionAmount||'',a.bonusDeductionMonth||'',a.bonusDeductionStatus||'',a.bonusDeductionApprovedByName||'',a.bonusDeductionNote||'');
-  return r
- });
+ let data=rows.map(a=>[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||'']);
  downloadCsv('事故一覧_本番反映版_v68.csv',[header,...data]);
  audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
@@ -1369,8 +1364,6 @@ function qualityIssues(){
     if(miss.length)issues.push({level:'warn',label:`事故 ${a.id}`,detail:'事故分析項目未入力：'+miss.join('、')});
     if(a.opponentRepair==='あり'&&String(a.opponentRepairCost??'').trim()==='')issues.push({level:'warn',label:`事故 ${a.id}`,detail:'相手修理「あり」ですが相手修理代が未入力です'});
     if(a.companyRepair==='あり'&&String(a.companyRepairCost??'').trim()==='')issues.push({level:'warn',label:`事故 ${a.id}`,detail:'自社修理「あり」ですが自社修理代が未入力です'});
-    if(accidentBonusStatus(a.bonusDeductionStatus)==='控除済み'&&(!a.bonusDeductionMonth||String(a.bonusDeductionAmount??'').trim()===''))issues.push({level:'bad',label:`事故 ${a.id}`,detail:'賞与控除済みですが対象賞与月または控除額が未入力です'});
-    if(accidentMoney(a.employeeChargeTarget)>0&&accidentMoney(a.bonusDeductionAmount)>accidentMoney(a.employeeChargeTarget))issues.push({level:'warn',label:`事故 ${a.id}`,detail:'賞与控除額が本人負担対象額を超えています'});
    });
    N.forEach(n=>{if(n.riskLevel==='高い'&&!String(n.prevention||'').trim())issues.push({level:'warn',label:`ヒヤリハット ${n.id}`,detail:'危険度「高い」ですが改善・今後の対策が未入力です'})});
    A.filter(a=>a.phase==='完了').forEach(a=>{
@@ -2697,14 +2690,12 @@ function renderSafetyAnalysis(){
  let {from,to,no,type,accidents,near}=safetyAnalysisData(),total=accidents.length+near.length,high=near.filter(n=>n.riskLevel==='高い').length;
  let people=new Set([...accidents.map(x=>String(x.employee_no)),...near.map(x=>String(x.employee_no))]).size;
  let repairTotal=accidents.reduce((sum,a)=>sum+accidentTotalRepairCost(a),0);
- let bonusTotal=isFullCompanyAdmin()?accidents.reduce((sum,a)=>sum+accidentMoney(a.bonusDeductionAmount),0):0;
  let kpi=document.getElementById('analysisKpis');if(kpi)kpi.innerHTML=
   '<div class="analysis-kpi"><small>事故</small><b>'+accidents.length+'</b><div class="mini">該当期間</div></div>'+
   '<div class="analysis-kpi"><small>ヒヤリ</small><b>'+near.length+'</b><div class="mini">報告件数</div></div>'+
   '<div class="analysis-kpi"><small>修理費合計</small><b>'+repairTotal.toLocaleString('ja-JP')+'円</b><div class="mini">相手＋自社</div></div>'+
   '<div class="analysis-kpi"><small>危険度「高い」</small><b>'+high+'</b><div class="mini">ヒヤリ内</div></div>'+
-  '<div class="analysis-kpi"><small>対象社員</small><b>'+people+'</b><div class="mini">事故・ヒヤリ</div></div>'+
-  (isFullCompanyAdmin()?'<div class="analysis-kpi"><small>賞与控除額合計</small><b>'+bonusTotal.toLocaleString('ja-JP')+'円</b><div class="mini">全社管理者のみ</div></div>':'');
+  '<div class="analysis-kpi"><small>対象社員</small><b>'+people+'</b><div class="mini">事故・ヒヤリ</div></div>';
  let months={};
  accidents.forEach(a=>{let k=String(a.date||'').slice(0,7)||'日付未設定';months[k]=months[k]||{acc:0,near:0};months[k].acc++});
  near.forEach(n=>{let k=String(n.date||'').slice(0,7)||'日付未設定';months[k]=months[k]||{acc:0,near:0};months[k].near++});
@@ -2962,14 +2953,6 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
    <div class="acc-v50-box"><label>完了日</label><b>${esc(a.completedDate|| (a.phase==='完了'?'未記録':'未完了'))}</b></div>
    <div class="acc-v50-box"><label>最終確認者</label><b>${esc(a.finalReviewerName|| (a.phase==='完了'?'未記録':'-'))}</b>${a.finalReviewerScope?`<div class="mini">${esc(a.finalReviewerScope)}</div>`:''}</div>
  </div>
- ${isFullCompanyAdmin()?`<div class="section"><h3>賞与控除（全社管理者のみ）</h3><div class="infogrid">
-   <div class="info"><label>本人負担対象額</label><b>${esc(accidentMoneyLabel(a.employeeChargeTarget))}</b></div>
-   <div class="info"><label>賞与控除額</label><b>${esc(accidentMoneyLabel(a.bonusDeductionAmount))}</b></div>
-   <div class="info"><label>対象賞与月</label><b>${esc(a.bonusDeductionMonth||'未設定')}</b></div>
-   <div class="info"><label>控除状況</label><b>${esc(accidentBonusStatus(a.bonusDeductionStatus))}</b></div>
-   <div class="info"><label>控除承認・記録者</label><b>${esc(a.bonusDeductionApprovedByName||'未記録')}</b><div class="mini">${a.bonusDeductionApprovedAt?esc(String(a.bonusDeductionApprovedAt).replace('T',' ').slice(0,16)):''}</div></div>
-   <div class="info"><label>控除メモ</label><div>${esc(a.bonusDeductionNote||'未登録')}</div></div>
- </div></div>`:''}
  <div class="section"><h3>事故概要</h3><div>${esc(a.summary||'未登録')}</div></div>
  <div class="section"><h3>原因</h3><div class="acc-v50-text">${esc(a.cause||'未登録')}</div></div>
  <div class="section"><h3>再発防止</h3><div class="acc-v50-text">${esc(a.prevention||'未登録')}</div></div>
@@ -3332,13 +3315,6 @@ function accidentCompletionMissing(cause,prevention,responseHistory){
 }
 function openAccidentEdit(id){
  let a=A.find(x=>x.id===id);if(!a||!guardEmployeeEdit(a.employee_no,'事故記録'))return;
- let bonusBlock=isFullCompanyAdmin()?`<div class="employee-form-section"><h4>賞与控除（全社管理者のみ）</h4><p>修理費と賞与控除額は別管理です。会社ルールに基づき確定後に記録します</p></div>
- <div class="field"><label>本人負担対象額（円）</label><input id="faecharge" type="number" min="0" step="1" value="${esc(a.employeeChargeTarget??'')}"></div>
- <div class="field"><label>賞与控除額（円）</label><input id="faebonus" type="number" min="0" step="1" value="${esc(a.bonusDeductionAmount??'')}"></div>
- <div class="field"><label>控除対象賞与月</label><input id="faebonusmonth" type="month" value="${esc(a.bonusDeductionMonth||'')}"></div>
- <div class="field"><label>控除状況</label><select id="faebonusstatus"><option>未設定</option><option>未控除</option><option>控除予定</option><option>控除済み</option><option>対象外</option></select></div>
- <div class="field wide"><label>控除メモ</label><textarea id="faebonusnote" placeholder="控除判断の根拠、対象賞与、確認事項など">${esc(a.bonusDeductionNote||'')}</textarea></div>
- <div class="field wide"><div class="emp-group-note">前回記録：${esc(a.bonusDeductionApprovedByName||'未記録')}${a.bonusDeductionApprovedAt?' / '+esc(String(a.bonusDeductionApprovedAt).replace('T',' ').slice(0,16)):''}</div></div>`:'' ;
  fttl.textContent='事故記録・対応を更新';setFormSaveLabel('事故記録を保存する');
  fbody.innerHTML=`<div class="formnote">${esc(a.id)} / ${esc(a.driver)}<br><b>完了にする場合は「原因・再発防止・対応履歴」の3項目が必須です。</b></div><div class="formgrid">
  <div class="employee-form-section"><h4>事故表項目</h4><p>事故一覧・検索・安全分析に使用します</p></div>
@@ -3355,7 +3331,6 @@ function openAccidentEdit(id){
  <div class="field"><label>自社修理代（円）</label><input id="faeowncost" type="number" min="0" step="1" value="${esc(a.companyRepairCost??'')}"></div>
  <div class="field wide"><label>事故場所</label><input id="faeaddr" value="${esc(a.address||'')}"></div>
  <div class="field wide"><label>事故状況・概要</label><textarea id="faesummary" style="min-height:120px">${esc(a.summary||'')}</textarea></div>
- ${bonusBlock}
  <div class="employee-form-section"><h4>対応管理</h4><p>事故後の進捗・原因・再発防止</p></div>
  <div class="field"><label>対応状況</label><select id="faep"><option>初報</option><option>調査中</option><option>対策実施</option><option>対応中</option><option>完了</option></select></div>
  <div class="field"><label>担当者</label><select id="faeo">${managerSelectOptions(a.ownerId,a.owner)}</select></div>
@@ -3367,7 +3342,6 @@ function openAccidentEdit(id){
  </div>`;
  faep.value=[...faep.options].some(x=>x.value===a.phase)?a.phase:'調査中';
  faeoprepair.value=accidentRepairLabel(a.opponentRepair);faeownrepair.value=accidentRepairLabel(a.companyRepair);
- if(isFullCompanyAdmin())document.getElementById('faebonusstatus').value=accidentBonusStatus(a.bonusDeductionStatus);
  fsave.onclick=()=>{
   if(!guardEmployeeEdit(a.employee_no,'事故記録'))return;
   let nextCause=faec.value.trim(),nextPrevention=faer.value.trim(),nextHistory=faeh.value.trim();
@@ -3383,15 +3357,6 @@ function openAccidentEdit(id){
    opponentRepair:faeoprepair.value,opponentRepairCost:opCost,companyRepair:faeownrepair.value,companyRepairCost:ownCost,
    address:faeaddr.value.trim(),summary:faesummary.value.trim(),phase:faep.value,due:faed.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:faena.value.trim(),
    cause:nextCause||'未登録',prevention:nextPrevention||'未登録',responseHistory:nextHistory});
-  if(isFullCompanyAdmin()){
-   let charge=faecharge.value.trim(),bonus=faebonus.value.trim(),status=faebonusstatus.value,month=faebonusmonth.value,note=faebonusnote.value.trim();
-   if((charge!==''&&Number(charge)<0)||(bonus!==''&&Number(bonus)<0))return alert('本人負担対象額・賞与控除額は0円以上で入力してください');
-   if(status==='控除済み'&&(!month||bonus===''))return alert('「控除済み」にする場合は、控除対象賞与月と賞与控除額を入力してください');
-   let bonusBefore=[a.employeeChargeTarget,a.bonusDeductionAmount,a.bonusDeductionMonth,a.bonusDeductionStatus,a.bonusDeductionNote].join('|');
-   let bonusAfter=[charge,bonus,month,status,note].join('|');
-   Object.assign(a,{employeeChargeTarget:charge,bonusDeductionAmount:bonus,bonusDeductionMonth:month,bonusDeductionStatus:status,bonusDeductionNote:note});
-   if(bonusBefore!==bonusAfter){let actor=currentActorIdentity();a.bonusDeductionApprovedById=actor.id;a.bonusDeductionApprovedByName=actor.name;a.bonusDeductionApprovedAt=new Date().toISOString()}
-  }
   if(previousPhase!=='完了'&&a.phase==='完了'){let reviewer=currentAccidentReviewer();a.completedDate=TODAY;a.finalReviewerId=reviewer.id;a.finalReviewerName=reviewer.name;a.finalReviewerScope=reviewer.scope}
   else if(previousPhase==='完了'&&a.phase!=='完了'){a.completedDate='';a.finalReviewerId='';a.finalReviewerName='';a.finalReviewerScope=''}
   let after=JSON.stringify(a);
@@ -3501,7 +3466,7 @@ function openAccidentForm(defaultNo=''){
  <div class="field"><label>担当者<span class="req">必須</span></label><select id="faowner">${managerSelectOptions(currentAccidentReviewer().id,currentAccidentReviewer().name)}</select></div>
  <div class="field"><label>フォロー期限</label><input id="fadu" type="date"></div>
  <div class="field wide"><label>次回対応内容</label><input id="fanext" placeholder="例：本人聞き取り、ドラレコ確認"></div>
- <div class="form-help">賞与控除の情報は事故登録後、全社管理者だけが事故詳細の編集画面から記録します。</div>
+ <div class="form-help">修理代が未確定の場合は空欄で登録し、見積・修理完了後に更新できます。</div>
  </div>`;
  if(defaultNo&&candidates.some(e=>e.no===String(defaultNo)))fae.value=String(defaultNo);
  fillAccidentEmployeeDefaults();
@@ -3520,8 +3485,6 @@ function openAccidentForm(defaultNo=''){
    vehicle:fav.value.trim()||'未設定',operationState:faoperation.value.trim()||'未設定',district:fadistrict.value.trim()||'未設定',
    accidentType:fatype.value.trim()||'未設定',faultRate:fault,
    opponentRepair:faoprepair.value,opponentRepairCost:opCost,companyRepair:faownrepair.value,companyRepairCost:ownCost,
-   employeeChargeTarget:'',bonusDeductionAmount:'',bonusDeductionMonth:'',bonusDeductionStatus:'未設定',
-   bonusDeductionApprovedById:'',bonusDeductionApprovedByName:'',bonusDeductionApprovedAt:'',bonusDeductionNote:'',
    address:faa.value.trim(),summary:fas.value.trim(),phase:'初報',cause:'未登録',prevention:'未登録',responseHistory:'',
    ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fanext.value.trim(),due:fadu.value
   };
