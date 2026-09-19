@@ -2,14 +2,14 @@
 
 Vercel production deployment source.
 
-Current application: v82 foundation build.
+Current application: v83 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
 - Validated browser-storage backup / restore for the shared demo
 - Global search with category filtering
 - Permission matrix for administrator review
-- Unified administrator daily action center for deadlines, safety cases, handoffs, and applications
+- Unified administrator daily action center for deadlines, safety cases, handoffs, applications, and critical data-quality issues
 - Common next-action guidance across employee, work, vehicle, and application screens
 - Unified required-field validation and pre-save change confirmation for core edit forms
 - Unsaved-form protection for close / Escape / page unload
@@ -24,5 +24,6 @@ Current application: v82 foundation build.
 - Dynamic Japan business date (Asia/Tokyo) for today's deadlines, default dates, audit displays, and daily action centers
 - Actionable data-quality dashboard grouped by critical issues, missing fields, deadlines, workflow/closure metadata, and integrity issues
 - Direct navigation from quality issues to the relevant employee, accident, complaint, near-miss, vehicle, qualification, document, or application record
+- Critical data-quality issues surfaced in the daily action queue; full quality results can be exported to CSV
 
 Production note: the shared demo uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
