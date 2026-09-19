@@ -400,6 +400,16 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .handoff-card .handoff-main{min-width:0}
 .handoff-card b{display:block;color:#4f3d14}
 .handoff-unread{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;border-radius:999px;background:#b33e3e;color:#fff;font-size:.7rem;font-weight:950;padding:0 7px}
+.case-timeline{position:relative;margin-top:8px;padding-left:18px}
+.case-timeline:before{content:"";position:absolute;left:5px;top:8px;bottom:8px;width:2px;background:#d7e4ea}
+.case-timeline-item{position:relative;padding:0 0 14px 13px}
+.case-timeline-item:last-child{padding-bottom:2px}
+.case-timeline-item:before{content:"";position:absolute;left:-17px;top:5px;width:10px;height:10px;border-radius:50%;background:#6d9fb4;border:2px solid #fff;box-shadow:0 0 0 1px #9dbdca}
+.case-timeline-item.important:before{background:#c45b5b;box-shadow:0 0 0 1px #d99a9a}
+.case-timeline-time{font-size:.68rem;font-weight:900;color:var(--muted)}
+.case-timeline-title{font-weight:950;color:#244f63;margin:2px 0}
+.case-timeline-body{font-size:.78rem;line-height:1.55;white-space:pre-wrap}
+.case-timeline-meta{font-size:.67rem;color:var(--muted);margin-top:3px}
 @media(max-width:850px){.manager-workload-grid{grid-template-columns:1fr 1fr}
 .safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
@@ -1427,7 +1437,7 @@ const ACCESS_POLICY={
  procedures:{view:'full_admin',edit:'full_admin'},
  admin_sensitive:{view:'full_admin',edit:'full_admin'}
 };
-const MANAGEMENT_RECORD_TYPES=new Set(['accident','complaint','guidance','driver_ledger']);
+const MANAGEMENT_RECORD_TYPES=new Set(['accident','complaint','near_miss','guidance','driver_ledger']);
 const SELF_VISIBLE_DOCUMENT_CATEGORIES=new Set(['資格証憑','本人確認']);
 function accessRuleAllows(rule,no,record=null){
  if(rule==='full_admin')return isFullCompanyAdmin();
@@ -2192,6 +2202,8 @@ function complaintDetail(id){
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('complaint')">← 運行・安全の苦情一覧</button>${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">苦情対応を編集</button>`:''}</div>${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
  <div class="complaint-detail-grid"><div class="complaint-box"><label>対応者</label><b>${esc(c.responder||'未設定')}</b></div><div class="complaint-box"><label>対応日時</label><b>${esc(c.responseDate||c.date)} ${esc(c.responseTime||'')}</b></div><div class="complaint-box"><label>入力者</label><b>${esc(c.inputBy||'未設定')}</b></div><div class="complaint-box"><label>課</label><b>${esc(c.dept||'未設定')}</b></div><div class="complaint-box"><label>車番</label><b>${esc(c.vehicle||'未設定')}</b></div><div class="complaint-box"><label>乗務員名</label><b>${esc(c.driverName||c.name||'未設定')}</b></div><div class="complaint-box"><label>お客様名</label><b>${esc(c.customerName||'匿名')}</b></div><div class="complaint-box"><label>発生日時</label><b>${esc(c.occurrenceDate||'未設定')} ${esc(c.occurrenceTime||'')}</b></div><div class="complaint-box"><label>クレームランク</label>${complaintRankChip(c.rank||'未判定')}</div><div class="complaint-box"><label>担当者</label><b>${esc(c.owner||'未設定')}</b></div><div class="complaint-box"><label>フォロー期限</label><b>${esc(c.followupDue||'未設定')}</b></div><div class="complaint-box"><label>状態</label>${badge(c.status||'受付')}</div></div>
  <div class="section"><h3>内容</h3><div class="acc-v50-text">${esc(c.summary||'未登録')}</div></div><div class="section"><h3>指導内容</h3><div class="acc-v50-text">${esc(c.guidanceContent||'未登録')}</div></div><div class="section"><h3>次回対応内容</h3><div class="acc-v50-text">${esc(c.nextAction||'未登録')}</div></div>
+ <div class="section"><h3>対応の時系列</h3>${caseTimelineHtml('苦情',c)}</div>
+ ${c.status!=='完了'&&canEditEmployee(c.employee_no)?`<div class="section"><h3>対応メモを追記</h3><textarea id="complaintQuickNote" placeholder="例：お客様へ連絡、本人聞き取り、指導結果"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendCaseNote('苦情','${c.id}','complaintQuickNote')">対応メモを追記</button></div></div>`:''}
  <div class="section"><h3>指導・完了記録</h3><div class="infogrid"><div class="info"><label>指導者</label><b>${esc(c.instructor||'未設定')}</b></div><div class="info"><label>指導日時</label><b>${esc(c.guidanceDate||'未設定')} ${esc(c.guidanceTime||'')}</b></div><div class="info"><label>完了日</label><b>${esc(c.completedDate||'未完了')}</b></div><div class="info"><label>完了確認者</label><b>${esc(c.finalReviewerName||'-')}</b></div></div></div>`;showDetailModal()
 }
 function docExpiryClass(d){if(!d)return'';let n=days(d);return n<0?'expired':n<=30?'expiring':''}
@@ -2521,6 +2533,78 @@ function renderAcc(){
  accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><b>${a.id}</b></td><td>${esc(a.driver)}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td></tr>`}).join('');
  if(typeof accPager!=='undefined')accPager.innerHTML=pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
 }
+function caseEntityType(kind){return kind==='事故'?'accident':kind==='苦情'?'complaint':'near_miss'}
+function caseRecordByKind(kind,id){
+ if(kind==='事故')return A.find(x=>x.id===id)||null;
+ if(kind==='苦情')return C.find(x=>x.id===id)||null;
+ if(kind==='ヒヤリ')return N.find(x=>x.id===id)||null;
+ return null
+}
+function parseHistoryLineDate(line,baseDate=''){
+ let m=String(line||'').match(/^\s*(\d{1,2})[\/-](\d{1,2})\s+/);
+ if(!m)return '';
+ let y=(baseDate||TODAY).slice(0,4);
+ return y+'-'+String(m[1]).padStart(2,'0')+'-'+String(m[2]).padStart(2,'0')
+}
+function caseTimelineEvents(kind,rec){
+ if(!rec)return [];
+ let type=caseEntityType(kind),events=[];
+ let push=(e)=>events.push({time:e.time||'',date:e.date||'',title:e.title||'',body:e.body||'',actor:e.actor||'',source:e.source||'',important:!!e.important,order:e.order||0});
+ let createdDate=kind==='事故'?rec.date:kind==='苦情'?(rec.responseDate||rec.date):rec.date;
+ push({date:createdDate,title:kind+'を登録',body:kind==='事故'?(rec.summary||''):kind==='苦情'?(rec.summary||''):(rec.summary||''),actor:rec._meta?.created_by_name||rec.inputBy||'',source:'登録',order:1});
+ if(kind==='事故'&&rec.responseHistory){
+  String(rec.responseHistory).split(/\n+/).map(x=>x.trim()).filter(Boolean).forEach((line,i)=>{
+   let d=parseHistoryLineDate(line,rec.date),body=line.replace(/^\s*\d{1,2}[\/-]\d{1,2}\s+/,'');
+   push({date:d||rec.date,title:'対応履歴',body,source:'旧対応履歴',order:20+i})
+  })
+ }
+ if(kind==='苦情'&&(rec.guidanceContent||rec.guidanceDate)){
+  push({date:rec.guidanceDate||rec.responseDate||rec.date,title:'指導・対応',body:rec.guidanceContent||'指導実施',actor:rec.instructor||'',source:'指導記録',order:30})
+ }
+ let notes=Array.isArray(rec.caseNotes)?rec.caseNotes:[];
+ notes.forEach((n,i)=>push({time:n.time||'',date:n.date||'',title:'対応メモ',body:n.text||'',actor:n.actor_name||'',source:'対応メモ',order:100+i}));
+ HANDOFFS.filter(h=>h.kind===kind&&h.caseId===rec.id).forEach((h,i)=>{
+  push({time:h.createdAt||'',date:h.createdDate||'',title:'担当引継ぎ',body:(h.fromOwner||'未設定')+' → '+(h.toOwner||'未設定')+(h.note?'\n'+h.note:''),actor:h.changedByName||'',source:'引継ぎ',important:h.status==='未確認',order:200+i});
+  if(h.status==='確認済み')push({time:h.confirmedAt||'',date:h.createdDate||'',title:'引継ぎ確認済み',body:(h.toOwner||'')+' が引継ぎ内容を確認',actor:h.confirmedByName||'',source:'引継ぎ確認',order:210+i})
+ });
+ AUDIT.filter(a=>a.entity_type===type&&String(a.entity_id||'')===String(rec.id)).forEach((a,i)=>{
+  if(['担当変更','一括担当変更','引継ぎ確認','事故対応履歴追記'].includes(a.action))return;
+  push({time:a.time_iso||'',date:a.time_iso?String(a.time_iso).slice(0,10):'',title:a.action||'更新',body:a.detail||'',actor:a.actor_name||'',source:'操作履歴',order:300+i})
+ });
+ let completed=kind==='事故'?rec.completedDate:kind==='苦情'?rec.completedDate:'';
+ if(completed)push({date:completed,title:'対応完了',body:'案件を完了として記録',actor:rec.finalReviewerName||'',source:'完了',important:false,order:500});
+ const stamp=e=>{
+  if(e.time){let t=Date.parse(e.time);if(Number.isFinite(t))return t}
+  if(e.date){let t=Date.parse(e.date+'T12:00:00+09:00');if(Number.isFinite(t))return t}
+  return 0
+ };
+ return events.filter(e=>e.title||e.body).sort((a,b)=>stamp(b)-stamp(a)||b.order-a.order)
+}
+function caseTimelineHtml(kind,rec){
+ let rows=caseTimelineEvents(kind,rec);
+ if(!rows.length)return '<div class="mini">履歴はまだありません。</div>';
+ return '<div class="case-timeline">'+rows.slice(0,30).map(e=>{
+  let when=e.time?new Date(e.time).toLocaleString('ja-JP',{hour12:false}):(e.date||'日付未記録');
+  return '<div class="case-timeline-item '+(e.important?'important':'')+'"><div class="case-timeline-time">'+esc(when)+'</div><div class="case-timeline-title">'+esc(e.title)+'</div>'+(e.body?'<div class="case-timeline-body">'+esc(e.body)+'</div>':'')+'<div class="case-timeline-meta">'+(e.actor?'担当・記録者 '+esc(e.actor)+' / ':'')+esc(e.source||'記録')+'</div></div>'
+ }).join('')+(rows.length>30?'<div class="mini">最新30件を表示 / 全'+rows.length+'件</div>':'')+'</div>'
+}
+function appendCaseNote(kind,id,inputId){
+ let rec=caseRecordByKind(kind,id);if(!rec||!guardEmployeeEdit(rec.employee_no,kind+'記録'))return;
+ let el=document.getElementById(inputId),text=(el?.value||'').trim();if(!text)return alert('対応内容を入力してください');
+ let actor=currentActorIdentity();if(!Array.isArray(rec.caseNotes))rec.caseNotes=[];
+ rec.caseNotes.unshift({time:new Date().toISOString(),date:TODAY,text,actor_id:actor.id,actor_name:actor.name});
+ rec.caseNotes=rec.caseNotes.slice(0,100);
+ if(kind==='事故'){
+  let stamp=TODAY.slice(5).replace('-','/');
+  rec.responseHistory=(rec.responseHistory?String(rec.responseHistory).trim()+'\n':'')+stamp+' '+text
+ }
+ touchRecord(rec,caseEntityType(kind),false);
+ audit(kind+'対応メモ追記',rec.id+' / '+text,{employee_no:rec.employee_no,entity_type:caseEntityType(kind),entity_id:rec.id});
+ save();renderAll();
+ if(kind==='事故')accidentDetail(rec.id);
+ else if(kind==='苦情')complaintDetail(rec.id);
+ else nearDetail(rec.id)
+}
 function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  if(PREVIEW_ROLE!=='管理者'){alert('事故詳細は管理者のみ確認できます');return}
  let a=A.find(x=>x.id===id);
@@ -2546,20 +2630,13 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  <div class="section"><h3>事故概要</h3><div>${esc(a.summary||'未登録')}</div></div>
  <div class="section"><h3>原因</h3><div class="acc-v50-text">${esc(a.cause||'未登録')}</div></div>
  <div class="section"><h3>再発防止</h3><div class="acc-v50-text">${esc(a.prevention||'未登録')}</div></div>
- <div class="section"><h3>対応履歴</h3><div class="acc-v50-text">${esc(a.responseHistory||'未登録')}</div></div>
- ${a.phase!=='完了'&&canEditEmployee(a.employee_no)?`<div class="section"><h3>対応履歴へ追記</h3><div><textarea id="accQuickHistory" placeholder="対応内容を時系列で追記"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendAccidentHistory('${a.id}')">対応履歴へ追記</button></div></div></div>`:''}
+ <div class="section"><h3>対応の時系列</h3>${caseTimelineHtml('事故',a)}</div>
+ ${a.phase!=='完了'&&canEditEmployee(a.employee_no)?`<div class="section"><h3>対応メモを追記</h3><div><textarea id="accQuickHistory" placeholder="例：本人聞き取り実施、ドラレコ確認、相手方へ連絡"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendCaseNote('事故','${a.id}','accQuickHistory')">対応メモを追記</button></div></div></div>`:''}
  <div class="section"><h3>事故場所</h3><div>${esc(a.address)}<br><a class="map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}" target="_blank" rel="noopener">Googleマップで開く</a></div></div>
  <div class="section"><h3>添付資料</h3><div><button class="btn soft" onclick="showPreview()">事故現場イメージ</button></div></div>`;
  showDetailModal()
 }
-function appendAccidentHistory(id){
- let a=A.find(x=>x.id===id);if(!a||!guardEmployeeEdit(a.employee_no,'事故記録'))return;
- let el=document.getElementById('accQuickHistory'),v=(el?.value||'').trim();if(!v)return alert('追記内容を入力してください');
- let stamp=TODAY.slice(5).replace('-','/');
- a.responseHistory=(a.responseHistory?String(a.responseHistory).trim()+'\n':'')+stamp+' '+v;
- audit('事故対応履歴追記',`${a.id} ${a.driver}`,{employee_no:a.employee_no,entity_type:'accident',entity_id:a.id});
- save();renderAll();accidentDetail(a.id)
-}
+function appendAccidentHistory(id){appendCaseNote('事故',id,'accQuickHistory')}
 function renderNear(){
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().filter(n=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(n)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)));
@@ -2580,7 +2657,9 @@ function nearDetail(id){
   <div class="complaint-box"><label>担当者</label><b>${esc(n.owner||'未設定')}</b></div>
   <div class="complaint-box"><label>対応状態</label>${badge(n.action||'未対応')}</div>
  </div>
- <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>`;
+ <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>
+ <div class="section"><h3>対応の時系列</h3>${caseTimelineHtml('ヒヤリ',n)}</div>
+ ${!['完了','対応済'].includes(n.action)&&canEditEmployee(n.employee_no)?`<div class="section"><h3>対応メモを追記</h3><textarea id="nearQuickNote" placeholder="例：本人面談、注意点の共有、指導予定"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendCaseNote('ヒヤリ','${n.id}','nearQuickNote')">対応メモを追記</button></div></div>`:''}`;
  showDetailModal()
 }
 let COMPLAINT_FILTER='all';
