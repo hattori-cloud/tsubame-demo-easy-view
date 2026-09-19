@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v53</title>
+<title>つばめ交通株式会社 社員一元管理システム v54</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -309,7 +309,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 @media(max-width:600px){.deadline-grid,.deadline-summary-grid,.home-priority-grid{grid-template-columns:1fr}.home-urgent-item{align-items:flex-start;flex-direction:column}.home-urgent-item .btn{width:100%}}
 </style>
 </head><body>
-<div class="demo">共有デモ v53｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
+<div class="demo">共有デモ v54｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -358,7 +358,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v53：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v54：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -753,6 +753,10 @@ function qualityIssues(){
    }
  });
  if(fullCompany){
+   A.filter(a=>a.phase==='完了').forEach(a=>{
+     let missing=accidentCompletionMissing(a.cause,a.prevention,a.responseHistory);
+     if(missing.length)issues.push({level:'bad',label:`事故 ${a.id}`,detail:'完了済みですが未入力：'+missing.join('、')});
+   });
    const dup=(list,getKey,label)=>{
      let m={};list.forEach(x=>{let k=String(getKey(x)||'').trim();if(k)m[k]=(m[k]||0)+1});
      Object.entries(m).filter(([,n])=>n>1).forEach(([k,n])=>issues.push({level:'bad',label:`${label} ${k}`,detail:`重複 ${n}件`}))
@@ -853,7 +857,7 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v53 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v54 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
@@ -1669,10 +1673,18 @@ function openGuidanceRecordForm(no,idx=-1){
  };
  form.classList.add('show')
 }
+function accidentCompletionMissing(cause,prevention,responseHistory){
+ const filled=v=>{let s=String(v||'').trim();return !!s&&!['未登録','未入力','なし'].includes(s)};
+ let missing=[];
+ if(!filled(cause))missing.push('原因');
+ if(!filled(prevention))missing.push('再発防止');
+ if(!filled(responseHistory))missing.push('対応履歴');
+ return missing
+}
 function openAccidentEdit(id){
  let a=A.find(x=>x.id===id);if(!a||!guardEmployeeEdit(a.employee_no,'事故記録'))return;
  fttl.textContent='事故対応を更新';
- fbody.innerHTML=`<div class="formnote">${esc(a.id)} / ${esc(a.driver)} / ${esc(a.summary)}</div><div class="formgrid">
+ fbody.innerHTML=`<div class="formnote">${esc(a.id)} / ${esc(a.driver)} / ${esc(a.summary)}<br><b>完了にする場合は「原因・再発防止・対応履歴」の3項目が必須です。</b></div><div class="formgrid">
  <div class="field"><label>対応状況</label><select id="faep"><option>初報</option><option>調査中</option><option>対策実施</option><option>対応中</option><option>完了</option></select></div>
  <div class="field"><label>フォロー期限</label><input id="faed" type="date" value="${esc(a.due||'')}"></div>
  <div class="field wide"><label>原因</label><textarea id="faec">${esc(a.cause||'')}</textarea></div>
@@ -1680,7 +1692,26 @@ function openAccidentEdit(id){
  <div class="field wide"><label>対応履歴</label><textarea id="faeh" style="min-height:170px" placeholder="例：9/19 本人聞き取り実施\n9/20 ドライブレコーダー確認">${esc(a.responseHistory||'')}</textarea><div class="mini">時系列で追記して経過を残します。</div></div>
  </div>`;
  faep.value=[...faep.options].some(x=>x.value===a.phase)?a.phase:'調査中';
- fsave.onclick=()=>{if(!guardEmployeeEdit(a.employee_no,'事故記録'))return;let before=[a.phase,a.due,a.cause,a.prevention,a.responseHistory||''].join('|');a.phase=faep.value;a.due=faed.value;a.cause=faec.value.trim()||'未登録';a.prevention=faer.value.trim()||'未登録';a.responseHistory=faeh.value.trim();let after=[a.phase,a.due,a.cause,a.prevention,a.responseHistory||''].join('|');if(before!==after){audit('事故対応更新',`${a.id} ${a.driver} / ${a.phase}`,{employee_no:a.employee_no,entity_type:'accident',entity_id:a.id});save()}closeForm();renderAll();accidentDetail(a.id)};
+ fsave.onclick=()=>{
+  if(!guardEmployeeEdit(a.employee_no,'事故記録'))return;
+  let nextCause=faec.value.trim(),nextPrevention=faer.value.trim(),nextHistory=faeh.value.trim();
+  if(faep.value==='完了'){
+    let missing=accidentCompletionMissing(nextCause,nextPrevention,nextHistory);
+    if(missing.length)return alert('事故を完了にするには、次の項目を入力してください。\n\n・'+missing.join('\n・'));
+  }
+  let before=[a.phase,a.due,a.cause,a.prevention,a.responseHistory||''].join('|');
+  a.phase=faep.value;
+  a.due=faed.value;
+  a.cause=nextCause||'未登録';
+  a.prevention=nextPrevention||'未登録';
+  a.responseHistory=nextHistory;
+  let after=[a.phase,a.due,a.cause,a.prevention,a.responseHistory||''].join('|');
+  if(before!==after){
+    audit('事故対応更新',`${a.id} ${a.driver} / ${a.phase}`,{employee_no:a.employee_no,entity_type:'accident',entity_id:a.id});
+    save()
+  }
+  closeForm();renderAll();accidentDetail(a.id)
+};
  form.classList.add('show')
 }
 function openEmployeeForm(){
