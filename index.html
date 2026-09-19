@@ -622,7 +622,8 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
  <div id="analysisDataNote" class="analysis-note"></div>
  <div class="analysis-grid" style="margin-top:10px">
   <div class="analysis-card full"><h3>月別推移</h3><div id="analysisMonths"></div></div>
-  <div class="analysis-card"><h3>社員別</h3><div id="analysisEmployees"></div></div>
+  <div class="analysis-card"><h3>社員別 事故・ヒヤリ件数</h3><div id="analysisEmployees"></div></div>
+  <div class="analysis-card"><h3>社員別 修理費</h3><div id="analysisEmployeeRepair"></div></div>
   <div class="analysis-card"><h3>ヒヤリ危険度</h3><div id="analysisRisk"></div></div>
   <div class="analysis-card"><h3>ヒヤリ発生時の行動</h3><div id="analysisSituation"></div></div>
   <div class="analysis-card"><h3>内的要因</h3><div id="analysisInternal"></div></div>
@@ -812,6 +813,18 @@ function accidentRepairLabel(v){return ['あり','なし','未確定'].includes(
 function accidentMoney(v){let s=String(v??'').trim();if(!s)return 0;let n=Number(s);return Number.isFinite(n)&&n>=0?n:0}
 function accidentMoneyLabel(v){let s=String(v??'').trim();if(!s)return '未確定';return accidentMoney(s).toLocaleString('ja-JP')+'円'}
 function accidentTotalRepairCost(a){return accidentMoney(a?.opponentRepairCost)+accidentMoney(a?.companyRepairCost)}
+function employeeAccidentYearStats(no){
+ let map={};
+ A.filter(a=>String(a.employee_no)===String(no)).forEach(a=>{
+  let y=String(a.date||'').slice(0,4)||'日付未設定';
+  if(!map[y])map[y]={year:y,count:0,opponent:0,company:0,total:0};
+  map[y].count++;map[y].opponent+=accidentMoney(a.opponentRepairCost);map[y].company+=accidentMoney(a.companyRepairCost);map[y].total+=accidentTotalRepairCost(a)
+ });
+ return Object.values(map).sort((a,b)=>String(b.year).localeCompare(String(a.year)))
+}
+function employeeAccidentStatsForYear(no,year=String(TODAY).slice(0,4)){
+ return employeeAccidentYearStats(no).find(x=>x.year===String(year))||{year:String(year),count:0,opponent:0,company:0,total:0}
+}
 function ensureNearMissWorkflowFields(){
  let changed=false;
  N.forEach(n=>{
@@ -2493,6 +2506,7 @@ function employeeDetail(no){
  let e=emp(no);if(!e||!canAccess('employee','view',no)){alert('この画面確認の権限では表示できません');return}
  rememberEmployee(no);
  let aa=A.filter(x=>x.employee_no===no),tt=TR.filter(x=>x.employee_no===no),assets=AS.filter(x=>x.employee_no===no),qq=QUAL.filter(x=>x.employee_no===no),gg=GUIDANCE.filter(x=>x.employee_no===no),dd=DOCS.filter(x=>x.employee_no===no&&canViewDocumentRecord(x)),pp=procedureTemplate(e.status);
+ let accYear=String(TODAY).slice(0,4),accYearStats=employeeAccidentStatsForYear(no,accYear);
  let w=e.workSummary||{month:'-',restraint:'-',remaining:'-',overtime:e.overtime||0,lastPosted:'-',status:'未確認'};
  let nearest=employeeNearestDeadline(e),elig=e.eligibility||e.driverLedger?.eligibility||'対象外';
  let danger=e.safetyState==='期限切れ'||String(elig).includes('不可')||(nearest&&nearest.n<0),warn=!danger&&((e.safetyState&&e.safetyState!=='正常')||(nearest&&nearest.n<=30)||elig==='要確認');
@@ -2557,6 +2571,12 @@ function employeeDetail(no){
     <div class="detail-kpi"><label>適性診断</label><b>${esc(e.aptitude||'対象外')}</b></div>
     ${detailDeadlineItem('適性診断次回',e.aptitudeNext,e.aptitude?'未設定':'対象外')}
    </div>
+   ${canViewManagementRecord('accident',e.no)?`<div class="section" style="margin-top:10px"><h3>${accYear}年 事故・修理費</h3><div class="detail-kpi-grid">
+    <div class="detail-kpi"><label>事故件数</label><b>${accYearStats.count}件</b></div>
+    <div class="detail-kpi"><label>相手修理代</label><b>${accYearStats.opponent.toLocaleString('ja-JP')}円</b></div>
+    <div class="detail-kpi"><label>自社修理代</label><b>${accYearStats.company.toLocaleString('ja-JP')}円</b></div>
+    <div class="detail-kpi"><label>修理費合計</label><b>${accYearStats.total.toLocaleString('ja-JP')}円</b></div>
+   </div><div class="mini" style="margin-top:7px">事故に登録された修理代を集計。未確定・未入力の修理代は0円として集計します。</div></div>`:''}
    <div class="emp-group-actions">
     <button class="btn soft" onclick="employeeTraining('${e.no}')">安全指導 ${tt.length}件</button>
     ${canViewManagementRecord('accident',e.no)?`<button class="btn soft" onclick="employeeAccidents('${e.no}')">事故 ${aa.length}件</button>`:''}
@@ -2612,15 +2632,16 @@ function employeeAdminOnly(no){
 function employeeAccidents(no,page=1,filter='all'){
  if(!guardManagementRecord('accident',no,'事故履歴'))return;
  let e=emp(no),all=A.filter(x=>x.employee_no===no).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- let rows=filter==='open'?all.filter(a=>a.phase!=='完了'):all;
+ let rows=filter==='open'?all.filter(a=>a.phase!=='完了'):all,annual=employeeAccidentYearStats(no);
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));
  page=Math.min(Math.max(1,page),pages);
  const start=(page-1)*per,shown=rows.slice(start,start+per),openCount=all.filter(a=>a.phase!=='完了').length;
  dttl.textContent=`${e.name} の事故履歴`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div>
  <div class="acc-history-head"><div><div class="acc-count">事故履歴 ${all.length}件</div><div class="mini">新しい事故から表示。件数が増えても10件ずつ確認できます。</div></div><span class="badge ${openCount?'warn':'ok'}">未完了 ${openCount}件</span></div>
+ <div class="section"><h3>年別 事故・修理費</h3>${annual.length?`<div class="tablewrap"><table><thead><tr><th>年</th><th>事故件数</th><th>相手修理代</th><th>自社修理代</th><th>修理費合計</th></tr></thead><tbody>${annual.map(y=>`<tr><td><b>${esc(y.year)}年</b></td><td>${y.count}件</td><td>${y.opponent.toLocaleString('ja-JP')}円</td><td>${y.company.toLocaleString('ja-JP')}円</td><td><b>${y.total.toLocaleString('ja-JP')}円</b></td></tr>`).join('')}</tbody></table></div>`:'<div class="mini">事故記録はありません。</div>'}<div class="mini" style="margin-top:7px">修理代未確定・未入力の事故は0円として集計します。</div></div>
  <div class="acc-filter"><button class="btn ${filter==='all'?'active':''}" onclick="employeeAccidents('${no}',1,'all')">全件 ${all.length}</button><button class="btn ${filter==='open'?'active':''}" onclick="employeeAccidents('${no}',1,'open')">未完了 ${openCount}</button></div>`+
- (shown.length?shown.map(a=>`<div class="row acc-row ${a.phase==='完了'?'done':'open'}"><div><b>${a.date} ${esc(a.summary)}</b><div class="mini">${a.id} / ${esc(a.service||'')} / ${esc(a.phase)}</div></div><button class="btn soft" onclick="accidentDetail('${a.id}','${no}',${page},'${filter}')">詳細を見る</button></div>`).join(''):'<div class="mini">該当する事故履歴はありません。</div>')+
+ (shown.length?shown.map(a=>`<div class="row acc-row ${a.phase==='完了'?'done':'open'}"><div><b>${a.date} ${esc(a.summary)}</b><div class="mini">${a.id} / ${esc(a.service||'')} / ${esc(a.phase)} / 修理費 ${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</div></div><button class="btn soft" onclick="accidentDetail('${a.id}','${no}',${page},'${filter}')">詳細を見る</button></div>`).join(''):'<div class="mini">該当する事故履歴はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAccidents('${no}',${page-1},'${filter}')">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAccidents('${no}',${page+1},'${filter}')">次へ →</button></div>`:'')
 }
 function employeeTraining(no,page=1){
@@ -2709,6 +2730,9 @@ function renderSafetyAnalysis(){
  near.forEach(n=>{let k=String(n.employee_no),x=empMap[k]||(empMap[k]={acc:0,near:0});x.near++});
  let empTotals={};Object.entries(empMap).forEach(([id,v])=>{empTotals[(emp(id)?.name||id)+'（'+id+'）']=v.acc+v.near});
  let ee=document.getElementById('analysisEmployees');if(ee)ee.innerHTML=analysisBarsHtml(empTotals,10);
+ let repairByEmployee={};
+ accidents.forEach(a=>{let label=(emp(a.employee_no)?.name||a.employee_no)+'（'+a.employee_no+'）';repairByEmployee[label]=(repairByEmployee[label]||0)+accidentTotalRepairCost(a)});
+ let er=document.getElementById('analysisEmployeeRepair');if(er)er.innerHTML=analysisBarsHtml(repairByEmployee,10);
  let risk=document.getElementById('analysisRisk');if(risk)risk.innerHTML=analysisBarsHtml(analysisCount(near.map(n=>n.riskLevel||'未設定')),6);
  let situation=document.getElementById('analysisSituation');if(situation)situation.innerHTML=analysisBarsHtml(analysisCount(analysisFlatten(near,'situationTags')),10);
  let internal=document.getElementById('analysisInternal');if(internal)internal.innerHTML=analysisBarsHtml(analysisCount(analysisFlatten(near,'internalFactors')),10);
@@ -2731,7 +2755,7 @@ function renderSafetyAnalysis(){
    if(topSit)parts.push('ヒヤリで最も多い行動分類：'+topSit[0]+' '+topSit[1]+'件');
    if(topEmp)parts.push('事故＋ヒヤリ件数が最も多い社員：'+topEmp[0]+' '+topEmp[1]+'件')
   }
-  note.innerHTML='<b>分析メモ</b><br>'+parts.map(esc).join(' / ')+'<br><span class="mini">事故は月別・社員別に加え、事故形態・発生地区・運行状態・時間帯・修理有無・修理費まで集計します。ヒヤリは報告書の分類項目を分析し、自由記述から原因を自動推測はしません。</span>'
+  note.innerHTML='<b>分析メモ</b><br>'+parts.map(esc).join(' / ')+'<br><span class="mini">事故は月別・社員別に加え、社員別修理費・事故形態・発生地区・運行状態・時間帯・修理有無・修理費まで集計します。開始日と終了日を1年に設定すれば、その年の集計として確認できます。ヒヤリは報告書の分類項目を分析し、自由記述から原因を自動推測はしません。</span>'
  }
 }
 function clearAllSafetySearch(){
