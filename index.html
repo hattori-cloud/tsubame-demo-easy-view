@@ -464,7 +464,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリハット・苦情／お客様対応を、担当範囲内で登録・更新します。</p></div><div class="toolbar"><button class="btn soft" onclick="exportAccidentsCsv()">事故CSV</button><button class="btn soft" onclick="exportComplaintsCsv()">クレームCSV</button><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情／お客様対応</button></div></div>
-<div class="focus-guide"><div><strong>まず未完了・期限超過から確認</strong><div class="mini">事故・苦情・ヒヤリを同じ画面で切り替え、必要な記録へすぐ移動できます。</div></div><button class="btn soft" onclick="clearAllSafetySearch()">検索条件をすべて解除</button></div>
+<div class="focus-guide"><div><strong>まず未完了・期限超過から確認</strong><div class="mini">事故・苦情・ヒヤリを同じ画面で切り替え、必要な記録へすぐ移動できます。</div></div><div class="toolbar"><button class="btn" id="safeMyTaskBtn" onclick="toggleMyTasksOnly()">自分の担当だけ</button><button class="btn soft" onclick="clearAllSafetySearch()">検索条件をすべて解除</button></div></div>
 <div id="safetyOverview" class="safety-overview"></div>
 <div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
 <div class="tabpane active" id="safe-acc">
@@ -775,6 +775,28 @@ function currentActorIdentity(){
  u=u||USERS.find(x=>x.employee_no===String(no))||{id:'EMP-'+String(no||'SELF'),name:emp(String(no))?.name||'一般社員'};
  return {id:u.id||'',name:u.name||'一般社員',role:'一般社員'}
 }
+let MY_TASKS_ONLY=localStorage.getItem('v68MYTASKS')==='1';
+function recordAssignedToCurrentManager(rec){
+ if(PREVIEW_ROLE!=='管理者'||!rec)return false;
+ let actor=currentActorIdentity();
+ if(rec.ownerId)return String(rec.ownerId)===String(actor.id);
+ return !!rec.owner&&String(rec.owner)===String(actor.name)
+}
+function deadlineAssignedToCurrentManager(x){
+ if(PREVIEW_ROLE!=='管理者'||!x)return false;
+ if(x.ownerId||x.owner)return recordAssignedToCurrentManager(x);
+ if(x.type==='事故')return recordAssignedToCurrentManager(A.find(a=>a.id===String(x.key)));
+ if(x.type==='苦情')return recordAssignedToCurrentManager(C.find(r=>r.id===String(x.key)));
+ return false
+}
+function setMyTasksOnly(on){
+ MY_TASKS_ONLY=!!on;
+ localStorage.setItem('v68MYTASKS',MY_TASKS_ONLY?'1':'0');
+ ACC_PAGE=1;
+ renderHome();renderAcc();renderNear();renderComplaints();renderSafetyOverview();
+ if(document.getElementById('deadlineCenterRows'))renderDeadlineCenterRows()
+}
+function toggleMyTasksOnly(){setMyTasksOnly(!MY_TASKS_ONLY)}
 function requireInputs(items){
  let missing=items.filter(x=>!String(x.value??'').trim()).map(x=>x.label);
  if(!missing.length)return true;
@@ -1060,8 +1082,8 @@ function collectDeadlines(){
  scopedTraining().filter(t=>t.status!=='完了'&&t.due).forEach(t=>push({type:'安全指導',label:t.course,due:t.due,no:t.employee_no,key:t.id||t.course,notifyKey:'training',action:'未完了の指導を実施・完了確認',source:'安全指導'}));
  if(PREVIEW_ROLE==='管理者'){
   scopedVehicles().forEach(v=>{if(v.inspection)push({type:'車検',label:v.plate,due:v.inspection,no:v.employee_no,key:v.id,notifyKey:'vehicle',responsible:'車両管理',action:'車検・点検予定を確認',source:'車両管理'})});
-  scopedAccidents().filter(a=>a.phase!=='完了'&&a.due).forEach(a=>push({type:'事故',label:a.id,due:a.due,no:a.employee_no,key:a.id,notifyKey:'accident',responsible:a.owner||'担当管理者',action:a.nextAction||'事故対応を確認',source:'事故管理'}));
-  scopedComplaints().filter(c=>c.status!=='完了'&&c.followupDue).forEach(c=>push({type:'苦情',label:c.id,due:c.followupDue,no:c.employee_no,key:c.id,notifyKey:'task',responsible:c.owner||'担当管理者',action:c.nextAction||'お客様対応を確認',source:'苦情管理'}))
+  scopedAccidents().filter(a=>a.phase!=='完了'&&a.due).forEach(a=>push({type:'事故',label:a.id,due:a.due,no:a.employee_no,key:a.id,notifyKey:'accident',responsible:a.owner||'担当管理者',owner:a.owner||'',ownerId:a.ownerId||'',action:a.nextAction||'事故対応を確認',source:'事故管理'}));
+  scopedComplaints().filter(c=>c.status!=='完了'&&c.followupDue).forEach(c=>push({type:'苦情',label:c.id,due:c.followupDue,no:c.employee_no,key:c.id,notifyKey:'task',responsible:c.owner||'担当管理者',owner:c.owner||'',ownerId:c.ownerId||'',action:c.nextAction||'お客様対応を確認',source:'苦情管理'}))
  }
  scopedAssets().filter(a=>a.status==='未返却'&&a.return_due).forEach(a=>push({type:'貸与品',label:a.item,due:a.return_due,no:a.employee_no,key:a.id||a.asset_no,notifyKey:'task',action:'返却状況を確認',source:'貸与品'}));
  DOCS.filter(d=>d.expiry&&canViewDocumentRecord(d)).forEach(d=>push({type:'書類',label:d.name,due:d.expiry,no:d.employee_no,key:d.id,notifyKey:'task',action:'期限・差替え要否を確認',source:'書類管理'}));
@@ -1089,9 +1111,9 @@ function deadlineTypeOptions(rows){
 }
 function renderDeadlineCenterRows(){
  let all=collectDeadlines(),q=(document.getElementById('deadlineQ')?.value||'').trim().toLowerCase(),type=document.getElementById('deadlineType')?.value||'all';
- let rows=all.filter(x=>deadlineFilterMatch(x.due,DEADLINE_FILTER)&&(type==='all'||x.type===type)&&(!q||[x.type,x.label,x.employee_name,x.no,x.responsible,x.action,x.source,x.due].join(' ').toLowerCase().includes(q)));
+ let rows=all.filter(x=>(!MY_TASKS_ONLY||deadlineAssignedToCurrentManager(x))&&deadlineFilterMatch(x.due,DEADLINE_FILTER)&&(type==='all'||x.type===type)&&(!q||[x.type,x.label,x.employee_name,x.no,x.responsible,x.action,x.source,x.due].join(' ').toLowerCase().includes(q)));
  let el=document.getElementById('deadlineCenterRows'),sum=document.getElementById('deadlineCenterCount');
- if(sum)sum.textContent='表示 '+rows.length+'件 / 全期限 '+all.length+'件';
+ if(sum)sum.textContent='表示 '+rows.length+'件 / 全期限 '+all.length+'件'+(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?' / 自分担当のみ':'');
  if(el)el.innerHTML=rows.length?rows.map(x=>`<div class="row ${x.bucket==='over'?'quality-bad':x.bucket==='today'||x.bucket==='7'?'quality-warn':''}"><div><b>${esc(x.type)} / ${esc(x.employee_name)} / ${esc(x.label)}</b><div class="mini">期限 ${x.due} / ${deadlineBucketLabel(x.due)}</div><div class="deadline-task-meta"><span>確認担当 ${esc(x.responsible)}</span><span>次の対応 ${esc(x.action)}</span><span>${esc(x.source)}</span></div></div><button class="btn soft" onclick="deadlineOpen('${x.type}','${String(x.key).replaceAll("'","")}','${x.no||''}')">詳細</button></div>`).join(''):'<div class="mini">条件に該当する期限項目はありません。</div>'
 }
 function openDeadlineCenter(filter='all'){
@@ -1106,6 +1128,7 @@ function openDeadlineCenter(filter='all'){
   <div class="deadline-summary-box" onclick="openDeadlineCenter('60')"><small>31〜60日</small><b>${counts['60']}</b></div>
  </div>
  <div class="deadline-center-filters">
+  ${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}
   <button class="btn ${filter==='all'?'active':''}" onclick="openDeadlineCenter('all')">すべて</button>
   <button class="btn ${filter==='over'?'active':''}" onclick="openDeadlineCenter('over')">期限超過</button>
   <button class="btn ${filter==='today'?'active':''}" onclick="openDeadlineCenter('today')">本日</button>
@@ -1327,6 +1350,7 @@ function setPreviewRole(mode){
  if(!['full','scoped','self'].includes(mode))mode='self';
  PREVIEW_MODE=mode;
  PREVIEW_ROLE=mode==='self'?'一般社員':'管理者';
+ if(PREVIEW_ROLE!=='管理者')MY_TASKS_ONLY=false;
  localStorage.setItem('v67ROLE',mode);
  applyAdminScopeControls();
  roleBadge.textContent=PREVIEW_ROLE==='管理者'?previewRoleLabel()+' / '+adminScopeLabel():'一般社員 / 本人';
@@ -1734,13 +1758,22 @@ function actionQueueItems(){
 
  deadlines.filter(x=>['over','today','7'].includes(x.bucket)).forEach(x=>{
   let p=x.bucket==='over'?1:x.bucket==='today'?2:4;
-  add({id:'deadline:'+x.type+':'+String(x.key)+':'+String(x.no||''),kind:'deadline',priority:p,label:x.type+' / '+(x.employee_name||x.label),sub:x.label+' / '+x.due+' / '+deadlineBucketLabel(x.due),type:x.type,key:String(x.key),no:String(x.no||''),urgency:x.bucket==='over'?'danger':'warn'})
+  add({id:'deadline:'+x.type+':'+String(x.key)+':'+String(x.no||''),kind:'deadline',priority:p,label:x.type+' / '+(x.employee_name||x.label),sub:x.label+' / '+x.due+' / '+deadlineBucketLabel(x.due),type:x.type,key:String(x.key),no:String(x.no||''),owner:x.owner||'',ownerId:x.ownerId||'',urgency:x.bucket==='over'?'danger':'warn'})
  });
 
  if(PREVIEW_ROLE==='管理者'){
-  scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,urgency:'warn'}));
-  scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,urgency:'warn'}));
-  scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,urgency:'warn'}))
+  scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
+  scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
+  scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}))
+ }
+ if(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'){
+  items=items.filter(x=>{
+   if(x.kind==='accident')return recordAssignedToCurrentManager(A.find(a=>a.id===x.key)||x);
+   if(x.kind==='complaint')return recordAssignedToCurrentManager(C.find(r=>r.id===x.key)||x);
+   if(x.kind==='near')return recordAssignedToCurrentManager(N.find(n=>n.id===x.key)||x);
+   if(x.kind==='deadline')return deadlineAssignedToCurrentManager({type:x.type,key:x.key,no:x.no,owner:x.owner,ownerId:x.ownerId});
+   return false
+  })
  }
  return items.sort((a,b)=>a.priority-b.priority||String(a.label).localeCompare(String(b.label),'ja'))
 }
@@ -1794,7 +1827,7 @@ function renderHome(){
  <button class="home-priority-card ${acc?'warn':'ok'}" onclick="${PREVIEW_ROLE==='管理者'?"go('safe')":"openDeadlineCenter('7')"}"><small>${PREVIEW_ROLE==='管理者'?'事故フォロー':'7日以内'}</small><b>${PREVIEW_ROLE==='管理者'?acc:d7}</b><span>${PREVIEW_ROLE==='管理者'?(acc?'未完了事故を確認':'未完了事故なし'):(d7?'期限接近を確認':'期限接近なし')}</span></button>`;
  mEmp.textContent=active.length;mSafety.textContent=safety;mTrain.textContent=train;mAcc.textContent=acc;mVeh.textContent=veh;mAsset.textContent=asset;
  let queue=actionQueueItems(),shownQueue=queue.slice(0,6);
- today.innerHTML=`<div class="list-summary"><div><b>今日の処理キュー</b><div class="mini">乗務不可・期限超過・本日期限・期限未設定の安全案件を優先</div></div><div class="toolbar"><span class="badge ${queue.length?'warn':'ok'}">${queue.length}件</span><button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理する</button><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div></div><div class="action-queue-list">`+
+ today.innerHTML=`<div class="list-summary"><div><b>今日の処理キュー</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・本日期限・期限未設定の安全案件を優先'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<span class="badge ${queue.length?'warn':'ok'}">${queue.length}件</span><button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理する</button><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div></div><div class="action-queue-list">`+
  (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main"><b>${esc(x.label)}</b><div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">乗務安全・期限・事故・苦情・ヒヤリの要対応を確認済みです。</div></div></div>')+
  `</div>`
 }
@@ -2224,7 +2257,8 @@ function clearAllSafetySearch(){
 }
 function renderSafetyOverview(){
  let el=document.getElementById('safetyOverview');if(!el||PREVIEW_ROLE!=='管理者')return;
- let accidents=scopedAccidents(),complaints=scopedComplaints(),near=scopedNearMisses();
+ let accidents=scopedAccidents().filter(x=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(x)),complaints=scopedComplaints().filter(x=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(x)),near=scopedNearMisses().filter(x=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(x));
+ let myBtn=document.getElementById('safeMyTaskBtn');if(myBtn)myBtn.classList.toggle('primary',MY_TASKS_ONLY);
  let accOpen=accidents.filter(a=>a.phase!=='完了').length,accOver=accidents.filter(a=>accidentDeadlineState(a)==='over').length;
  let compOpen=complaints.filter(x=>x.status!=='完了').length,compOver=complaints.filter(x=>complaintState(x)==='over').length;
  let nearOpen=near.filter(x=>x.status!=='完了'&&x.status!=='対応済').length;
@@ -2256,7 +2290,7 @@ function accidentDeadlineState(a){
  return 'normal'
 }
 function renderAcc(){
- const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().filter(a=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(a)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  const counts={open:all.filter(a=>a.phase!=='完了').length,over:all.filter(a=>accidentDeadlineState(a)==='over').length,today:all.filter(a=>accidentDeadlineState(a)==='today').length,done:all.filter(a=>a.phase==='完了').length};
  let rows=all.filter(a=>{
    let state=accidentDeadlineState(a);
@@ -2314,7 +2348,7 @@ function appendAccidentHistory(id){
  save();renderAll();accidentDetail(a.id)
 }
 function renderNear(){
- let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().filter(n=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(n)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)));
  let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / キーワード・日付から検索できます</div></div>`;
  nearbody.innerHTML=rows.map(n=>{
@@ -2344,7 +2378,7 @@ function complaintState(c){
  return b==='over'?'over':b==='today'?'today':b==='7'?'soon':'normal'
 }
 function renderComplaints(){
- let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),date=document.getElementById('complaintDate')?.value||'',all=scopedComplaints().slice();
+ let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),date=document.getElementById('complaintDate')?.value||'',all=scopedComplaints().filter(c=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(c)).slice();
  let counts={open:all.filter(c=>c.status!=='完了').length,over:all.filter(c=>complaintState(c)==='over').length,today:all.filter(c=>complaintState(c)==='today').length,done:all.filter(c=>c.status==='完了').length};
  let rows=all.filter(c=>{
   let s=complaintState(c),pass=COMPLAINT_FILTER==='all'||(COMPLAINT_FILTER==='open'&&c.status!=='完了')||(COMPLAINT_FILTER==='over'&&s==='over')||(COMPLAINT_FILTER==='done'&&c.status==='完了');
