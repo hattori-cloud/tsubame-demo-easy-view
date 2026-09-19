@@ -1221,10 +1221,15 @@ function qualityIssues(){
    }
  });
  if(fullCompany){
-   [['事故',A],['ヒヤリハット',N],['苦情',C]].forEach(([label,list])=>list.forEach(x=>{if(x.ownerId&&!managerById(x.ownerId))issues.push({level:'warn',label:`${label} ${x.id}`,detail:'担当者が有効な管理者一覧に存在しません'})}));
+   [['事故',A],['ヒヤリハット',N],['苦情',C]].forEach(([label,list])=>list.forEach(x=>{
+     if(x.ownerId&&!managerById(x.ownerId))issues.push({level:'bad',label:`${label} ${x.id}`,detail:'担当者IDが有効な管理者一覧に存在しません'});
+     let m=x.ownerId?managerById(x.ownerId):managerByName(x.owner);
+     if(m&&x.employee_no&&!managerCanCoverEmployee(m,x.employee_no))issues.push({level:'bad',label:`${label} ${x.id}`,detail:'担当者の固定権限範囲外の社員に割り当てられています'})
+   }));
    C.filter(c=>c.status==='完了'&&(c.rank==='未判定'||!c.rank)).forEach(c=>issues.push({level:'warn',label:`苦情 ${c.id}`,detail:'完了済みですがクレームランクが未判定です'}));
    C.filter(c=>c.status!=='完了').forEach(c=>{let miss=[];if(!String(c.owner||'').trim())miss.push('担当者');if(!String(c.nextAction||'').trim())miss.push('次回対応');if(!c.followupDue)miss.push('フォロー期限');if(miss.length)issues.push({level:'warn',label:`苦情 ${c.id}`,detail:'未完了クレームの管理項目未入力：'+miss.join('、')})});
    A.filter(a=>a.phase!=='完了').forEach(a=>{let miss=[];if(!String(a.owner||'').trim())miss.push('担当者');if(!String(a.nextAction||'').trim())miss.push('次回対応');if(!a.due)miss.push('フォロー期限');if(miss.length)issues.push({level:'warn',label:`事故 ${a.id}`,detail:'未完了事故の管理項目未入力：'+miss.join('、')})});
+   N.filter(n=>!['完了','対応済'].includes(n.action)).forEach(n=>{let miss=[];if(!String(n.owner||'').trim())miss.push('担当者');if(!String(n.nextAction||'').trim())miss.push('次回対応');if(!n.due)miss.push('対応期限');if(miss.length)issues.push({level:'warn',label:`ヒヤリハット ${n.id}`,detail:'未完了ヒヤリの管理項目未入力：'+miss.join('、')})});
    A.filter(a=>a.phase==='完了').forEach(a=>{
      let missing=accidentCompletionMissing(a.cause,a.prevention,a.responseHistory);
      if(missing.length)issues.push({level:'bad',label:`事故 ${a.id}`,detail:'完了済みですが未入力：'+missing.join('、')});
@@ -1247,11 +1252,28 @@ function qualityIssues(){
      if(expected&&v.service!==expected)issues.push({level:'bad',label:`車両 ${v.id}`,detail:'車両区分と担当社員の部署が一致しません'});
     }
    });
-   [['事故',A],['ヒヤリハット',N],['苦情',C],['安全指導',TR],['面談・指導',GUIDANCE],['書類',DOCS]].forEach(([label,list])=>dup(list,x=>x.id,label+'ID'));
+   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['資格',QUAL],['面談・指導',GUIDANCE],['書類',DOCS],['申請',APPLICATIONS],['掲示',NOTICES],['確認依頼',CONFIRMATIONS],['引継ぎ',HANDOFFS]].forEach(([label,list])=>dup(list,x=>x.id,label+'ID'));
    const empSet=new Set(E.map(e=>String(e.no)));
-   [['事故',A],['ヒヤリハット',N],['苦情',C],['安全指導',TR],['貸与品',AS],['面談・指導',GUIDANCE],['書類',DOCS],['資格',QUAL]].forEach(([label,list])=>{
+   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['面談・指導',GUIDANCE],['書類',DOCS],['資格',QUAL],['申請',APPLICATIONS]].forEach(([label,list])=>{
      list.filter(x=>x.employee_no&&!empSet.has(String(x.employee_no))).forEach(x=>issues.push({level:'bad',label:`${label} ${x.id||x.name||''}`,detail:`存在しない社員番号 ${x.employee_no} に紐づいています`}))
    });
+   const validHandoffStatus=new Set(['未確認','確認済み','取消']);
+   HANDOFFS.forEach(h=>{
+     let rec=workloadCaseRecord(h.kind,h.caseId),m=managerById(h.toManagerId);
+     if(!['事故','苦情','ヒヤリ'].includes(h.kind))issues.push({level:'bad',label:`引継ぎ ${h.id}`,detail:'案件種別が不正です：'+h.kind});
+     if(!rec)issues.push({level:'bad',label:`引継ぎ ${h.id}`,detail:`対象案件 ${h.kind} ${h.caseId} が存在しません`});
+     if(!validHandoffStatus.has(h.status))issues.push({level:'warn',label:`引継ぎ ${h.id}`,detail:'状態が想定外です：'+h.status});
+     if(!m)issues.push({level:'bad',label:`引継ぎ ${h.id}`,detail:'引継ぎ先管理者が存在しません'});
+     if(m&&h.employee_no&&!managerCanCoverEmployee(m,h.employee_no))issues.push({level:'bad',label:`引継ぎ ${h.id}`,detail:'引継ぎ先が対象社員の固定権限範囲外です'});
+     if(h.status==='確認済み'&&!h.confirmedAt)issues.push({level:'warn',label:`引継ぎ ${h.id}`,detail:'確認済みですが確認日時がありません'})
+   });
+   coreRecordCollections().forEach(([type,list])=>list.forEach(x=>{
+     if(!x._meta)issues.push({level:'bad',label:`${type} ${x.id||x.no||''}`,detail:'共通メタ情報がありません'});
+     else{
+       if(x._meta.entity_type!==type)issues.push({level:'warn',label:`${type} ${x.id||x.no||''}`,detail:'メタ情報の種別が一致しません'});
+       if(x._meta.schema_version!==CORE_SCHEMA_VERSION)issues.push({level:'warn',label:`${type} ${x.id||x.no||''}`,detail:'スキーマ版が最新ではありません'})
+     }
+   }));
    QUAL.forEach(q=>{
      if(q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q))issues.push({level:'warn',label:`資格 ${q.employee_no} ${q.name}`,detail:'証憑管理が「必要」ですが証憑書類が紐付いていません'});
      if(q.document_id&&!qualificationEvidenceDocument(q))issues.push({level:'bad',label:`資格 ${q.employee_no} ${q.name}`,detail:'紐付け先の証憑書類が存在しません'});
@@ -1969,12 +1991,12 @@ function renderAdminOverview(){
 }
 function renderFoundationStatus(){
  let el=document.getElementById('foundationStatus');if(!el)return;
- let quality=qualityIssues(),deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length;
+ let quality=qualityIssues(),critical=quality.filter(x=>x.level==='bad').length,deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length;
  let structured=AUDIT.filter(x=>x.structured).length,mc=metadataCoverage(),moduleCount=coreRecordCollections().length;
  let grantedCount=grantedEmployees().length,displayCount=scopedEmployees().length;
  el.innerHTML=`<div class="metrics" style="margin-top:0">
   <div class="card metric"><small>権限対象 / 画面表示</small><b>${grantedCount} / ${displayCount}</b><span>固定権限と表示絞込を分離</span></div>
-  <div class="card metric ${quality.some(x=>x.level==='bad')?'danger':quality.length?'warn':''}"><small>品質チェック</small><b>${quality.length}</b><span>重複・未入力・矛盾</span></div>
+  <div class="card metric ${critical?'danger':quality.length?'warn':''}"><small>データ整合性</small><b>${critical} / ${quality.length}</b><span>重大 / 全確認事項</span></div>
   <div class="card metric ${over?'danger':''}"><small>期限超過</small><b>${over}</b><span>全モジュール共通判定</span></div>
   <div class="card metric"><small>監査履歴</small><b>${structured}</b><span>操作記録</span></div>
   <div class="card metric"><small>権限ポリシー</small><b>${Object.keys(ACCESS_POLICY).length}</b><span>共通ルール</span></div>
