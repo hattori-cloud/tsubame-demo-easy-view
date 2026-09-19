@@ -1420,7 +1420,21 @@ function go(id){
  window.scrollTo(0,0)
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
-function safeTab(id){document.querySelectorAll('#safe .tabpane').forEach(x=>x.classList.remove('active'));document.getElementById('safe-'+id).classList.add('active');document.querySelectorAll('#safe .tabs button').forEach(x=>x.classList.toggle('active',x.dataset.s===id))}
+let SAFE_ACTIVE_TAB='acc';
+function safeTab(id){
+ SAFE_ACTIVE_TAB=id;
+ document.querySelectorAll('#safe .tabpane').forEach(x=>x.classList.remove('active'));
+ document.getElementById('safe-'+id)?.classList.add('active');
+ document.querySelectorAll('#safe .tabs button').forEach(x=>x.classList.toggle('active',x.dataset.s===id))
+}
+function returnToSafetyList(tab){
+ detail.classList.remove('show');
+ DETAIL_HISTORY=[];
+ DETAIL_ORIGIN=null;
+ go('safe');
+ safeTab(tab);
+ requestAnimationFrame(()=>document.getElementById('safe')?.scrollIntoView({block:'start'}))
+}
 function trainingTab(id){document.querySelectorAll('#training .tabpane').forEach(x=>x.classList.remove('active'));document.getElementById('training-'+id).classList.add('active');document.querySelectorAll('#training .tabs button').forEach(x=>x.classList.toggle('active',x.dataset.t===id))}
 
 
@@ -1861,7 +1875,7 @@ function employeeComplaints(no){
 function complaintDetail(id){
  let c=C.find(x=>x.id===id);if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
  let idx=C.indexOf(c),state=complaintState(c);dttl.textContent='クレーム詳細 '+c.id;
- dbody.innerHTML=`<div class="detail-actions">${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">編集</button>`:''}</div>${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
+ dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('complaint')">← 運行・安全の苦情一覧</button>${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">苦情対応を編集</button>`:''}</div>${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
  <div class="complaint-detail-grid"><div class="complaint-box"><label>対応者</label><b>${esc(c.responder||'未設定')}</b></div><div class="complaint-box"><label>対応日時</label><b>${esc(c.responseDate||c.date)} ${esc(c.responseTime||'')}</b></div><div class="complaint-box"><label>入力者</label><b>${esc(c.inputBy||'未設定')}</b></div><div class="complaint-box"><label>課</label><b>${esc(c.dept||'未設定')}</b></div><div class="complaint-box"><label>車番</label><b>${esc(c.vehicle||'未設定')}</b></div><div class="complaint-box"><label>乗務員名</label><b>${esc(c.driverName||c.name||'未設定')}</b></div><div class="complaint-box"><label>お客様名</label><b>${esc(c.customerName||'匿名')}</b></div><div class="complaint-box"><label>発生日時</label><b>${esc(c.occurrenceDate||'未設定')} ${esc(c.occurrenceTime||'')}</b></div><div class="complaint-box"><label>クレームランク</label>${complaintRankChip(c.rank||'未判定')}</div><div class="complaint-box"><label>担当者</label><b>${esc(c.owner||'未設定')}</b></div><div class="complaint-box"><label>フォロー期限</label><b>${esc(c.followupDue||'未設定')}</b></div><div class="complaint-box"><label>状態</label>${badge(c.status||'受付')}</div></div>
  <div class="section"><h3>内容</h3><div class="acc-v50-text">${esc(c.summary||'未登録')}</div></div><div class="section"><h3>指導内容</h3><div class="acc-v50-text">${esc(c.guidanceContent||'未登録')}</div></div><div class="section"><h3>次回対応内容</h3><div class="acc-v50-text">${esc(c.nextAction||'未登録')}</div></div>
  <div class="section"><h3>指導・完了記録</h3><div class="infogrid"><div class="info"><label>指導者</label><b>${esc(c.instructor||'未設定')}</b></div><div class="info"><label>指導日時</label><b>${esc(c.guidanceDate||'未設定')} ${esc(c.guidanceTime||'')}</b></div><div class="info"><label>完了日</label><b>${esc(c.completedDate||'未完了')}</b></div><div class="info"><label>完了確認者</label><b>${esc(c.finalReviewerName||'-')}</b></div></div></div>`;showDetailModal()
@@ -2199,7 +2213,7 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  let state=accidentDeadlineState(a),n=a.due?days(a.due):9999;
  dttl.textContent='事故詳細 '+a.id;
  dbody.innerHTML=`${backNo?`<div class="backbar"><button class="btn soft" onclick="employeeAccidents('${backNo}',${backPage},'${backFilter}')">← 事故履歴一覧へ戻る</button><button class="btn" onclick="employeeDetail('${backNo}')">社員詳細へ戻る</button></div>`:''}
- <div class="detail-actions">${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEdit('${a.id}')">編集</button>`:''}</div>
+ <div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('acc')">← 運行・安全の事故一覧</button>${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEdit('${a.id}')">事故対応を編集</button>`:''}</div>
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(n)}日超過しています（${esc(a.due)}）</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。対応状況を確認してください。</div>':''}
  <div class="spec-note">事故1件ごとに、「原因」「再発防止」「対応履歴」を自由記入できます。</div>
  <div class="acc-v50-detail-grid">
@@ -2233,12 +2247,26 @@ function appendAccidentHistory(id){
 }
 function renderNear(){
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action].join(' ').toLowerCase().includes(q)));
+ let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)));
  let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / キーワード・日付から検索できます</div></div>`;
- nearbody.innerHTML=rows.map(function(n){
-  var idx=N.indexOf(n),op=canEditEmployee(n.employee_no)?'<button class="btn soft" onclick="openNearForm('+idx+')">編集</button>':'-';
-  return '<tr><td>'+esc(n.date)+'</td><td><b>'+esc(n.id)+'</b></td><td>'+esc(n.driver)+'</td><td>'+esc(n.summary)+'<div class="mini">担当 '+esc(n.owner||'未設定')+'</div></td><td>'+badge(n.action)+'</td><td>'+op+'</td></tr>';
+ nearbody.innerHTML=rows.map(n=>{
+  return `<tr><td>${esc(n.date)}</td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="mini">担当 ${esc(n.owner||'未設定')}</div></td><td>${badge(n.action)}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">詳細</button></td></tr>`;
  }).join('')
+}
+function nearDetail(id){
+ let n=N.find(x=>x.id===id);if(!n||!guardManagementRecord('near_miss',n.employee_no,'ヒヤリハット'))return;
+ let idx=N.indexOf(n),e=emp(n.employee_no);
+ dttl.textContent='ヒヤリハット詳細 '+n.id;
+ dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('near')">← 運行・安全のヒヤリ一覧</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">ヒヤリを編集</button>`:''}</div>
+ <div class="complaint-detail-grid">
+  <div class="complaint-box"><label>日付</label><b>${esc(n.date||'未設定')}</b></div>
+  <div class="complaint-box"><label>対象社員</label><b>${esc(n.employee_no)} ${esc(n.driver||e?.name||'')}</b></div>
+  <div class="complaint-box"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'未設定'}</b></div>
+  <div class="complaint-box"><label>担当者</label><b>${esc(n.owner||'未設定')}</b></div>
+  <div class="complaint-box"><label>対応状態</label>${badge(n.action||'未対応')}</div>
+ </div>
+ <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>`;
+ showDetailModal()
 }
 let COMPLAINT_FILTER='all';
 function complaintState(c){
@@ -2552,7 +2580,7 @@ function accidentCompletionMissing(cause,prevention,responseHistory){
 }
 function openAccidentEdit(id){
  let a=A.find(x=>x.id===id);if(!a||!guardEmployeeEdit(a.employee_no,'事故記録'))return;
- fttl.textContent='事故対応を更新';
+ fttl.textContent='事故対応を更新';setFormSaveLabel('事故対応を保存する');
  fbody.innerHTML=`<div class="formnote">${esc(a.id)} / ${esc(a.driver)} / ${esc(a.summary)}<br><b>完了にする場合は「原因・再発防止・対応履歴」の3項目が必須です。</b></div><div class="formgrid">
  <div class="field"><label>対応状況</label><select id="faep"><option>初報</option><option>調査中</option><option>対策実施</option><option>対応中</option><option>完了</option></select></div>
  <div class="field"><label>担当者</label><select id="faeo">${managerSelectOptions(a.ownerId,a.owner)}</select></div>
@@ -2762,7 +2790,7 @@ function openNearForm(idx=-1){
   let previousOwner=rec?.owner||'',data={date:fnd.value,employee_no:e.no,driver:e.name,summary:fns.value.trim(),action:fna.value,ownerId:ownerSel.id,owner:ownerSel.name},rid;
   if(rec){rid=rec.id;Object.assign(rec,data);touchRecord(rec,'near_miss',false)}else{rid=nextRecordId('H',N);data.id=rid;touchRecord(data,'near_miss',true);N.push(data)}
   audit(rec?'ヒヤリハット更新':'ヒヤリハット登録',rid+' '+e.name+' / '+data.action+(previousOwner&&previousOwner!==data.owner?' / 担当 '+previousOwner+'→'+data.owner:' / 担当 '+data.owner),{employee_no:e.no,entity_type:'near_miss',entity_id:rid});
-  save();closeForm();renderAll();safeTab('near')
+  save();closeForm();renderAll();nearDetail(rid)
  };
  form.classList.add('show')
 }
@@ -2927,7 +2955,7 @@ detail.addEventListener('click',e=>{
    if(!text.includes('社員詳細へ戻る')&&DETAIL_HISTORY.length)DETAIL_HISTORY.pop();
    return
  }
- if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|deadlineOpen|showQualityDetails|showUsers|showImportSpec/.test(code)){
+ if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showQualityDetails|showUsers|showImportSpec/.test(code)){
    saveDetailState()
  }
 },true);
