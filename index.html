@@ -279,6 +279,14 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .acc-v50-box{border:1px solid #dce6eb;border-radius:10px;padding:10px;background:#fff}
 .acc-v50-box label{display:block;font-size:.7rem;color:var(--muted);font-weight:900}
 .acc-v50-text{white-space:pre-wrap;min-height:64px}
+.acc-group-switch{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px}
+.acc-group-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.acc-group-card{border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px;text-align:left}
+.acc-group-card b{display:block;color:#214f64}
+.acc-group-card .acc-group-count{font-size:1.45rem;font-weight:950;margin:4px 0}
+.acc-group-card .mini{margin-top:3px}
+@media(max-width:900px){.acc-group-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.acc-group-grid{grid-template-columns:1fr}}
 @media(max-width:800px){.acc-v50-kpis{grid-template-columns:1fr 1fr}.acc-v50-detail-grid{grid-template-columns:1fr}}
 
 /* v52 employee ledger six-group foundation */
@@ -515,9 +523,15 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
     <button class="btn" id="accTodayBtn" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()">本日期限</button>
     <button class="btn" id="accDoneBtn" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()">完了</button>
   </div>
+  <div class="acc-group-switch">
+    <button class="btn" id="accViewList" onclick="setAccView('list')">一覧</button>
+    <button class="btn" id="accViewMonth" onclick="setAccView('month')">月ごと</button>
+    <button class="btn" id="accViewEmployee" onclick="setAccView('employee')">社員ごと</button>
+  </div>
   <div id="accSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>概要</th><th>進捗</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
+<div id="accGroupView" class="acc-group-grid" style="display:none"></div>
+<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>概要</th><th>進捗</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
 <div class="tabpane" id="safe-near">
 <div class="card" style="margin-bottom:10px"><div class="list-controls">
 <input id="nearq" placeholder="番号・乗務員・内容・対応で検索" oninput="renderNear()">
@@ -2547,7 +2561,29 @@ function clearSafetySearch(kind){
   let q=document.getElementById('complaintq'),d=document.getElementById('complaintDate');if(q)q.value='';if(d)d.value='';COMPLAINT_FILTER='all';renderComplaints()
  }
 }
-let ACC_PAGE=1,ACC_FILTER='all';
+let ACC_PAGE=1,ACC_FILTER='all',ACC_VIEW=localStorage.getItem('v68ACC_VIEW')||'list';
+if(!['list','month','employee'].includes(ACC_VIEW))ACC_VIEW='list';
+function setAccView(v){
+ ACC_VIEW=['list','month','employee'].includes(v)?v:'list';
+ localStorage.setItem('v68ACC_VIEW',ACC_VIEW);
+ ACC_PAGE=1;renderAcc()
+}
+function accidentMonthKey(a){return String(a?.date||'').slice(0,7)}
+function accidentMonthLabel(key){
+ if(!/^\d{4}-\d{2}$/.test(key))return key||'日付未設定';
+ let [y,m]=key.split('-');return y+'年'+Number(m)+'月'
+}
+function openAccidentGroup(kind,key){
+ let all=scopedAccidents().filter(a=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(a));
+ let rows=kind==='month'?all.filter(a=>accidentMonthKey(a)===key):all.filter(a=>String(a.employee_no)===String(key));
+ rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ let title=kind==='month'?accidentMonthLabel(key):((emp(key)?.name||key)+' の事故');
+ dttl.textContent=title;
+ let open=rows.filter(a=>a.phase!=='完了').length,done=rows.filter(a=>a.phase==='完了').length,drivers=new Set(rows.map(a=>a.employee_no)).size;
+ dbody.innerHTML='<div class="list-summary"><div><b>'+esc(title)+'</b><div class="mini">事故 '+rows.length+'件 / 未完了 '+open+'件 / 完了 '+done+'件'+(kind==='month'?' / 対象社員 '+drivers+'名':'')+'</div></div></div>'+
+ (rows.length?rows.map(a=>'<div class="row"><div><b>'+esc(a.date)+' / '+esc(a.id)+' / '+esc(a.driver)+'</b><div class="mini">'+esc(a.summary)+' / '+esc(a.phase)+'</div></div><button class="btn soft" onclick="accidentDetail(\''+a.id+'\')">詳細</button></div>').join(''):'<div class="mini">該当する事故はありません。</div>');
+ showDetailModal()
+}
 function accidentDeadlineState(a){
  if(a.phase==='完了')return 'done';
  if(!a.due)return 'none';
@@ -2572,9 +2608,29 @@ function renderAcc(){
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));ACC_PAGE=Math.min(Math.max(1,ACC_PAGE),pages);
  const st=(ACC_PAGE-1)*per,shown=rows.slice(st,st+per);
  [['accAllBtn','all'],['accOpenBtn','open'],['accOverBtn','over'],['accTodayBtn','today'],['accDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_FILTER===k)});
+ [['accViewList','list'],['accViewMonth','month'],['accViewEmployee','employee']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_VIEW===k)});
  if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="acc-v50-kpis"><div class="acc-v50-kpi" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></div><div class="acc-v50-kpi over" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></div><div class="acc-v50-kpi today" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></div><div class="acc-v50-kpi" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / キーワード・発生日から検索できます</div></div></div>`;
+ let group=document.getElementById('accGroupView'),table=document.getElementById('accTableView');
+ if(group&&table){
+  if(ACC_VIEW==='list'){group.style.display='none';table.style.display='';}
+  else{
+   table.style.display='none';group.style.display='grid';
+   let groups={};
+   rows.forEach(a=>{
+    let key=ACC_VIEW==='month'?accidentMonthKey(a):String(a.employee_no);
+    if(!groups[key])groups[key]=[];groups[key].push(a)
+   });
+   let entries=Object.entries(groups).sort((a,b)=>ACC_VIEW==='month'?String(b[0]).localeCompare(String(a[0])):String(emp(a[0])?.name||a[0]).localeCompare(String(emp(b[0])?.name||b[0]),'ja'));
+   group.innerHTML=entries.length?entries.map(([key,list])=>{
+    let open=list.filter(a=>a.phase!=='完了').length,done=list.length-open,latest=list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+    let title=ACC_VIEW==='month'?accidentMonthLabel(key):(emp(key)?.name||key);
+    let sub=ACC_VIEW==='month'?'対象社員 '+new Set(list.map(a=>a.employee_no)).size+'名':'社員番号 '+key+' / '+esc(emp(key)?.branch||'')+' / '+esc(emp(key)?.dept||'');
+    return '<button class="acc-group-card" onclick="openAccidentGroup(\''+ACC_VIEW+'\',\''+key+'\')"><b>'+esc(title)+'</b><div class="acc-group-count">'+list.length+'件</div><div class="mini">未完了 '+open+' / 完了 '+done+'</div><div class="mini">'+sub+'</div><div class="mini">最新 '+esc(latest?.date||'-')+'</div></button>'
+   }).join(''):'<div class="mini">該当する事故はありません。</div>'
+  }
+ }
  accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><b>${a.id}</b></td><td>${esc(a.driver)}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td></tr>`}).join('');
- if(typeof accPager!=='undefined')accPager.innerHTML=pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
+ if(typeof accPager!=='undefined')accPager.innerHTML=ACC_VIEW==='list'&&pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
 }
 function nearDefaultNextAction(state){
  return ({'未対応':'対応内容を決める','面談予定':'本人面談を実施','指導予定':'安全指導を実施','対応中':'対応内容を確認','完了':'対応完了'})[state]||'対応内容を確認'
