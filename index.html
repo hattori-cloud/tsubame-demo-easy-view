@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v51</title>
+<title>つばめ交通株式会社 社員一元管理システム v52</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -278,9 +278,20 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .acc-v50-box label{display:block;font-size:.7rem;color:var(--muted);font-weight:900}
 .acc-v50-text{white-space:pre-wrap;min-height:64px}
 @media(max-width:800px){.acc-v50-kpis{grid-template-columns:1fr 1fr}.acc-v50-detail-grid{grid-template-columns:1fr}}
+
+/* v52 employee ledger six-group foundation */
+.employee-detail-tabs{grid-template-columns:repeat(6,1fr)}
+.employee-form-section{grid-column:1/-1;border-top:1px solid var(--line);padding-top:10px;margin-top:4px}
+.employee-form-section:first-child{border-top:0;padding-top:0;margin-top:0}
+.employee-form-section h4{margin:0 0 2px;color:#234f67;font-size:.92rem}
+.employee-form-section p{margin:0;color:var(--muted);font-size:.72rem;font-weight:800}
+.emp-group-note{border:1px solid #d6e2e8;border-radius:10px;background:#f8fbfc;padding:9px 11px;font-size:.74rem;color:#476473;font-weight:800}
+.emp-group-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:9px}
+@media(max-width:980px){.employee-detail-tabs{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:620px){.employee-detail-tabs{grid-template-columns:repeat(2,1fr);position:static}}
 </style>
 </head><body>
-<div class="demo">共有デモ v51｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
+<div class="demo">共有デモ v52｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -329,7 +340,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v51：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v52：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -756,7 +767,7 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v51 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v52 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
@@ -1176,7 +1187,8 @@ function setEmployeeDetailTab(tab){
 function employeeDetail(no){
  let e=emp(no);if(!e||!scopedEmployees().some(x=>x.no===no)){alert('この画面確認の権限では表示できません');return}
  rememberEmployee(no);
- let aa=A.filter(x=>x.employee_no===no),tt=TR.filter(x=>x.employee_no===no),as=AS.filter(x=>x.employee_no===no),qq=QUAL.filter(x=>x.employee_no===no),gg=GUIDANCE.filter(x=>x.employee_no===no),dd=DOCS.filter(x=>x.employee_no===no&&canViewDocumentRecord(x)),pp=procedureTemplate(e.status);
+ let aa=A.filter(x=>x.employee_no===no),tt=TR.filter(x=>x.employee_no===no),assets=AS.filter(x=>x.employee_no===no),qq=QUAL.filter(x=>x.employee_no===no),gg=GUIDANCE.filter(x=>x.employee_no===no),dd=DOCS.filter(x=>x.employee_no===no&&canViewDocumentRecord(x)),pp=procedureTemplate(e.status);
+ let w=e.workSummary||{month:'-',restraint:'-',remaining:'-',overtime:e.overtime||0,lastPosted:'-',status:'未確認'};
  let nearest=employeeNearestDeadline(e),elig=e.eligibility||e.driverLedger?.eligibility||'対象外';
  let danger=e.safetyState==='期限切れ'||String(elig).includes('不可')||(nearest&&nearest.n<0),warn=!danger&&((e.safetyState&&e.safetyState!=='正常')||(nearest&&nearest.n<=30)||elig==='要確認');
  let safetyClass=danger?'danger':warn?'warn':'ok',safetyTitle=danger?'最優先で確認':warn?'確認が必要':'現在大きな警告なし';
@@ -1190,37 +1202,85 @@ function employeeDetail(no){
  </div>
  <div class="detail-alert ${safetyClass}">${esc(alertText)}</div>
  <div id="employeeDetailTabRoot">
-  <div class="employee-detail-tabs" role="tablist" aria-label="社員詳細メニュー">
-   <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本情報</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="safety" onclick="setEmployeeDetailTab('safety')">乗務・安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="history" onclick="setEmployeeDetailTab('history')">履歴・書類</button>
+  <div class="employee-detail-tabs" role="tablist" aria-label="社員台帳 6区分">
+   <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="affiliation" onclick="setEmployeeDetailTab('affiliation')">所属</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="work" onclick="setEmployeeDetailTab('work')">勤務</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="safety" onclick="setEmployeeDetailTab('safety')">安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="qualification" onclick="setEmployeeDetailTab('qualification')">資格</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="documents" onclick="setEmployeeDetailTab('documents')">書類</button>
   </div>
+
   <div class="employee-detail-panel active" data-panel="basic">
- <div class="section"><h3>基本情報</h3><div class="infogrid"><div class="info"><label>社員コード</label><b>${e.no}</b>${e.oldNos?.length?`<div class="mini">旧番号 ${e.oldNos.join('、')}</div>`:''}</div><div class="info"><label>氏名</label><b>${esc(e.name)}（仮名）</b></div><div class="info"><label>事業所</label><b>${esc(e.workplace||e.branch)}</b></div><div class="info"><label>部署</label><b>${esc(e.dept)}</b></div><div class="info"><label>役職</label><b>${esc(e.position||'一般')}</b></div><div class="info"><label>雇用区分</label><b>${esc(e.employment||'未設定')}</b></div><div class="info"><label>勤務形態</label><b>${esc(e.workPattern||'通常勤務')}</b></div><div class="info"><label>年次確認</label><b>${esc(e.annualConfirmed||'未確認')}</b></div></div></div>
- ${e.taxiSection?`<div class="section"><h3>配属情報</h3><div>${esc(e.taxiSection)} / ${esc(e.workPattern||'通常勤務')} / ${esc(e.team||'')}</div></div>`:''}
+   <div class="section"><h3>基本</h3><div class="infogrid">
+    <div class="info"><label>社員番号</label><b>${e.no}</b>${e.oldNos?.length?`<div class="mini">旧番号 ${e.oldNos.join('、')}</div>`:''}</div>
+    <div class="info"><label>氏名</label><b>${esc(e.name)}（仮名）</b></div>
+    <div class="info"><label>ふりがな</label><b>${esc(e.furigana||'未登録')}</b></div>
+    <div class="info"><label>入社日</label><b>${esc(e.hire||'未登録')}</b></div>
+    <div class="info"><label>雇用区分</label><b>${esc(e.employment||'未設定')}</b></div>
+    <div class="info"><label>在籍状態</label>${badge(e.status||'未設定')}</div>
+    <div class="info"><label>年次確認</label><b>${esc(e.annualConfirmed||'未確認')}</b></div>
+   </div></div>
   </div>
+
+  <div class="employee-detail-panel" data-panel="affiliation">
+   <div class="section"><h3>所属</h3><div class="infogrid">
+    <div class="info"><label>事業所</label><b>${esc(e.workplace||e.branch||'未設定')}</b></div>
+    <div class="info"><label>部署</label><b>${esc(e.dept||'未設定')}</b></div>
+    <div class="info"><label>役職</label><b>${esc(e.position||'一般')}</b></div>
+    <div class="info"><label>タクシー課区分</label><b>${esc(e.taxiSection||'対象外')}</b></div>
+    <div class="info"><label>班</label><b>${esc(e.team||'未設定')}</b></div>
+   </div><div class="emp-group-note" style="margin-top:9px">事業所と部署は別区分です。管理者の担当範囲も「事業所 × 部署」で判定します。</div></div>
+  </div>
+
+  <div class="employee-detail-panel" data-panel="work">
+   <div class="section"><h3>勤務</h3><div class="detail-kpi-grid">
+    <div class="detail-kpi"><label>勤務形態</label><b>${esc(e.workPattern||'通常勤務')}</b></div>
+    <div class="detail-kpi"><label>対象月</label><b>${esc(w.month||'-')}</b></div>
+    <div class="detail-kpi"><label>拘束時間</label><b>${esc(w.restraint||'-')}時間</b></div>
+    <div class="detail-kpi"><label>残時間</label><b>${esc(w.remaining||'-')}時間</b></div>
+    <div class="detail-kpi"><label>残業時間</label><b>${esc(w.overtime??e.overtime??0)}時間</b></div>
+    <div class="detail-kpi"><label>勤務集計</label>${badge(w.status||'未確認')}</div>
+   </div><div class="detail-kpi-grid" style="margin-top:8px">${detailDeadlineItem('健康診断期限',e.health,'未設定')}<div class="detail-kpi"><label>最終計上</label><b>${esc(w.lastPosted||'-')}</b></div></div>
+   <div class="sensitive-note" style="margin-top:9px">健康診断は期限・受診予定のみ扱い、結果・病名などは表示しません。</div></div>
+  </div>
+
   <div class="employee-detail-panel" data-panel="safety">
- <div class="section"><h3>乗務・安全</h3><div class="detail-kpi-grid"><div class="detail-kpi"><label>安全管理状態</label>${badge(e.safetyState||'正常')}</div><div class="detail-kpi"><label>乗務可否</label>${badge(elig)}</div><div class="detail-kpi"><label>免許・資格</label><b>${esc(e.license||'対象外')}</b></div><div class="detail-kpi"><label>適性診断</label><b>${esc(e.aptitude||'対象外')}</b></div></div><div class="detail-kpi-grid" style="margin-top:8px">${detailDeadlineItem('免許期限',e.licenseExpiry,e.license?'未設定':'対象外')}${detailDeadlineItem('健康診断期限',e.health,'未設定')}${detailDeadlineItem('適性診断次回',e.aptitudeNext,e.aptitude?'未設定':'対象外')}${nearest?`<div class="detail-kpi"><label>最優先期限</label><b>${esc(nearest.label)}</b><span class="badge ${nearest.n<0?'danger':nearest.n<=30?'warn':'ok'}">${esc(nearest.date)}</span></div>`:'<div class="detail-kpi"><label>最優先期限</label><b>登録なし</b></div>'}</div><div class="sensitive-note" style="margin-top:9px">健康診断は期限・受診予定のみ表示し、診断結果や病名などの健康情報はこの画面に表示しません。</div></div>
-  </div>
-  <div class="employee-detail-panel" data-panel="history">
-   <div class="employee-history-summary">
-    ${PREVIEW_ROLE==='管理者'?`<div class="mini-card"><span class="mini">事故</span><b>${aa.length}件</b></div>`:''}
-    <div class="mini-card"><span class="mini">安全指導</span><b>${tt.length}件</b></div>
-    <div class="mini-card"><span class="mini">資格</span><b>${qq.length}件</b></div>
-    <div class="mini-card"><span class="mini">書類</span><b>${dd.length}件</b></div>
+   <div class="section"><h3>安全</h3><div class="detail-kpi-grid">
+    <div class="detail-kpi"><label>安全管理状態</label>${badge(e.safetyState||'正常')}</div>
+    <div class="detail-kpi"><label>乗務可否</label>${badge(elig)}</div>
+    <div class="detail-kpi"><label>適性診断</label><b>${esc(e.aptitude||'対象外')}</b></div>
+    ${detailDeadlineItem('適性診断次回',e.aptitudeNext,e.aptitude?'未設定':'対象外')}
    </div>
- <div class="section"><h3>履歴・書類</h3><div><div class="related-grid">
- ${PREVIEW_ROLE==='管理者'?`<button class="related-btn" onclick="employeeAccidents('${e.no}')"><b>事故 ${aa.length}件 ›</b><span>事故内容・原因・再発防止</span></button>`:''}
- <button class="related-btn" onclick="employeeTraining('${e.no}')"><b>安全指導 ${tt.length}件 ›</b><span>安全指導・適性診断</span></button>
- <button class="related-btn" onclick="employeeQualification('${e.no}')"><b>資格 ${qq.length}件 ›</b><span>資格名・証番号・期限</span></button>
- <button class="related-btn" onclick="employeeAssets('${e.no}')"><b>貸与品 ${as.length}件 ›</b><span>返却状況</span></button>
- ${canViewManagementRecord('guidance',e.no)?`<button class="related-btn" onclick="employeeGuidance('${e.no}')"><b>指導記録 ${gg.length}件 ›</b><span>事故後指導・適性診断等</span></button>`:''}
- <button class="related-btn" onclick="employeeDocuments('${e.no}')"><b>書類 ${dd.length}件 ›</b><span>確認待ち・原本確認済み等</span></button>
- ${isFullCompanyAdmin()?`<button class="related-btn" onclick="employeeProcedures('${e.no}')"><b>休職・退職手続 ${pp.length}項目 ›</b><span>ログイン停止・引継ぎを確認</span></button>`:''}
- ${canViewManagementRecord('driver_ledger',e.no)?`<button class="related-btn" onclick="employeeDriverLedger('${e.no}')"><b>乗務員台帳 ›</b><span>免許・適性診断・担当車両</span></button>`:''}
- <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>社内認定・制服 ›</b><span>英語/観光ドライバー・現在サイズ</span></button>
- ${roleCanSeeSensitive()?`<button class="related-btn" onclick="employeeAdminOnly('${e.no}')"><b>管理者専用 ›</b><span>労働条件・保険・二種免許養成</span></button>`:''}
- </div></div></div>
+   <div class="emp-group-actions">
+    <button class="btn soft" onclick="employeeTraining('${e.no}')">安全指導 ${tt.length}件</button>
+    ${canViewManagementRecord('accident',e.no)?`<button class="btn soft" onclick="employeeAccidents('${e.no}')">事故 ${aa.length}件</button>`:''}
+    ${canViewManagementRecord('guidance',e.no)?`<button class="btn soft" onclick="employeeGuidance('${e.no}')">面談・指導 ${gg.length}件</button>`:''}
+    ${canViewManagementRecord('driver_ledger',e.no)?`<button class="btn soft" onclick="employeeDriverLedger('${e.no}')">乗務員台帳</button>`:''}
+   </div></div>
+  </div>
+
+  <div class="employee-detail-panel" data-panel="qualification">
+   <div class="section"><h3>資格</h3><div class="detail-kpi-grid">
+    <div class="detail-kpi"><label>主な免許・資格</label><b>${esc(e.license||'対象外')}</b></div>
+    ${detailDeadlineItem('免許・資格期限',e.licenseExpiry,e.license?'未設定':'対象外')}
+    <div class="detail-kpi"><label>登録資格件数</label><b>${qq.length}件</b></div>
+   </div><div class="emp-group-actions"><button class="btn soft" onclick="employeeQualification('${e.no}')">資格一覧を開く</button></div></div>
+  </div>
+
+  <div class="employee-detail-panel" data-panel="documents">
+   <div class="employee-history-summary">
+    <div class="mini-card"><span class="mini">書類</span><b>${dd.length}件</b></div>
+    <div class="mini-card"><span class="mini">貸与品</span><b>${assets.length}件</b></div>
+    <div class="mini-card"><span class="mini">社内認定</span><b>${e.companyCerts?.length||0}件</b></div>
+   </div>
+   <div class="section"><h3>書類・貸与品</h3><div><div class="related-grid">
+    <button class="related-btn" onclick="employeeDocuments('${e.no}')"><b>書類 ${dd.length}件 ›</b><span>${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑':'確認待ち・原本確認済み・期限'}</span></button>
+    <button class="related-btn" onclick="employeeAssets('${e.no}')"><b>貸与品 ${assets.length}件 ›</b><span>返却状況・管理番号</span></button>
+    <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>社内認定・制服 ›</b><span>英語/観光ドライバー・現在サイズ</span></button>
+    ${isFullCompanyAdmin()?`<button class="related-btn" onclick="employeeProcedures('${e.no}')"><b>休職・退職手続 ${pp.length}項目 ›</b><span>ログイン停止・引継ぎを確認</span></button>`:''}
+    ${roleCanSeeSensitive()?`<button class="related-btn" onclick="employeeAdminOnly('${e.no}')"><b>管理者専用 ›</b><span>労働条件・保険・二種免許養成</span></button>`:''}
+   </div></div></div>
   </div>
  </div>`;
  showDetailModal()
@@ -1423,21 +1483,54 @@ function openEmployeeEdit(no){
  if(!canEditEmployee(no)){alert('現在の担当範囲ではこの社員を編集できません');return}
  let e=emp(no);if(!e)return;
  let full=isFullCompanyAdmin();
- let branchDept=full?`<div class='field'><label>事業所</label><select id='feb'><option>本社</option><option>府中</option><option>馬木</option></select></div><div class='field'><label>部署</label><select id='fed'>${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>`:`<div class='field'><label>事業所</label><input value='${esc(e.branch)}' disabled></div><div class='field'><label>部署</label><input value='${esc(e.dept)}' disabled></div><div class='field wide'><div class='scope-note'>事業所・部署は管理者の表示範囲に関わるため、変更は全社管理者のみ行えます。</div></div>`;
+ let branchDept=full?`<div class="field"><label>事業所</label><select id="feb">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>部署</label><select id="fed">${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>`:`<div class="field"><label>事業所</label><input value="${esc(e.branch)}" disabled></div><div class="field"><label>部署</label><input value="${esc(e.dept)}" disabled></div><div class="field wide"><div class="scope-note">事業所・部署は表示権限に関わるため、変更は全社管理者のみです。</div></div>`;
  fttl.textContent='社員情報を編集';
- fbody.innerHTML=`<div class='formnote'>担当範囲内の既存社員を編集できます。社員番号・機密情報・全社設定は変更できません。休職・退職予定・退職などの在籍状態変更は全社管理者のみです。</div><div class='formgrid'><div class='field'><label>社員番号</label><input value='${e.no}' disabled></div><div class='field'><label>氏名（仮名）</label><input id='fen' value='${esc(e.name)}'></div>${branchDept}<div class='field'><label>役職</label><input id='fep' value='${esc(e.position||'一般')}'></div><div class='field'><label>雇用区分</label><select id='fee'><option>正社員</option><option>定時制</option><option>パート</option></select></div><div class='field'><label>在籍状態</label><select id='fes' ${full?'':'disabled'}><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select>${full?'':`<div class='mini'>全社管理者のみ変更できます</div>`}</div><div class='field'><label>勤務形態</label><input id='few' value='${esc(e.workPattern||'通常勤務')}'></div><div class='field wide'><label>免許・資格名</label><input id='fel' value='${esc(e.license||'')}'></div><div class='field'><label>免許期限</label><input id='felx' type='date' value='${esc(String(e.licenseExpiry||'').replaceAll('/','-'))}'></div><div class='field'><label>健康診断期限</label><input id='feh' type='date' value='${esc(String(e.health||'').replaceAll('/','-'))}'></div><div class='field'><label>適性診断 次回</label><input id='fea' type='date' value='${esc(String(e.aptitudeNext||'').replaceAll('/','-'))}'></div><div class='field'><label>安全管理状態</label><select id='fess'><option>正常</option><option>期限30日以内</option><option>期限31～60日以内</option><option>期限切れ</option><option>要確認</option></select></div><div class='field'><label>乗務可否</label><select id='feelig'><option>可</option><option>要確認</option><option>不可（更新確認まで）</option><option>対象外</option></select></div></div><div class='sensitive-note' style='margin-top:10px'>健康診断は期限・受診予定だけを扱います。診断結果・病名・給与・保険等の機密情報は編集対象外です。</div>`;
- if(full){document.getElementById('feb').value=e.branch||'本社';document.getElementById('fed').value=e.dept||depts[0]}
- document.getElementById('fee').value=e.employment||'正社員';document.getElementById('fes').value=e.status||'在籍';document.getElementById('fess').value=e.safetyState||'正常';document.getElementById('feelig').value=e.eligibility||'対象外';
+ fbody.innerHTML=`<div class="formnote">社員台帳を「基本・所属・勤務・安全・資格・書類」の6区分で管理します。</div><div class="formgrid">
+  <div class="employee-form-section"><h4>基本</h4><p>本人と在籍を識別する情報</p></div>
+  <div class="field"><label>社員番号</label><input value="${e.no}" disabled></div>
+  <div class="field"><label>氏名（仮名）</label><input id="fen" value="${esc(e.name)}"></div>
+  <div class="field"><label>ふりがな</label><input id="fefuri" value="${esc(e.furigana||'')}"></div>
+  <div class="field"><label>入社日</label><input id="fehire" type="date" value="${esc(String(e.hire||'').replaceAll('/','-'))}"></div>
+  <div class="field"><label>雇用区分</label><select id="fee">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>在籍状態</label><select id="fes" ${full?'':'disabled'}><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select>${full?'':'<div class="mini">全社管理者のみ変更できます</div>'}</div>
+
+  <div class="employee-form-section"><h4>所属</h4><p>事業所と部署は別区分</p></div>
+  ${branchDept}
+  <div class="field"><label>役職</label><input id="fep" value="${esc(e.position||'一般')}"></div>
+  <div class="field"><label>タクシー課区分</label><select id="fets"><option value="">対象外・未設定</option>${COMPANY_SPEC.taxiSections.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>班</label><input id="feteam" value="${esc(e.team||'')}" placeholder="例：1班"></div>
+
+  <div class="employee-form-section"><h4>勤務</h4><p>勤務形態と健康診断期限</p></div>
+  <div class="field"><label>勤務形態</label><select id="few"><option>通常勤務</option>${COMPANY_SPEC.workPatterns.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>健康診断期限</label><input id="feh" type="date" value="${esc(String(e.health||'').replaceAll('/','-'))}"></div>
+
+  <div class="employee-form-section"><h4>安全</h4><p>乗務判断・適性診断</p></div>
+  <div class="field"><label>適性診断</label><input id="feapt" value="${esc(e.aptitude||'')}"></div>
+  <div class="field"><label>適性診断 次回</label><input id="fea" type="date" value="${esc(String(e.aptitudeNext||'').replaceAll('/','-'))}"></div>
+  <div class="field"><label>安全管理状態</label><select id="fess"><option>正常</option><option>期限30日以内</option><option>期限31～60日以内</option><option>期限切れ</option><option>要確認</option></select></div>
+  <div class="field"><label>乗務可否</label><select id="feelig"><option>可</option><option>要確認</option><option>不可（更新確認まで）</option><option>対象外</option></select></div>
+
+  <div class="employee-form-section"><h4>資格</h4><p>主な免許・資格と期限。複数資格は保存後の資格一覧で管理</p></div>
+  <div class="field wide"><label>主な免許・資格名</label><input id="fel" value="${esc(e.license||'')}"></div>
+  <div class="field"><label>免許・資格期限</label><input id="felx" type="date" value="${esc(String(e.licenseExpiry||'').replaceAll('/','-'))}"></div>
+
+  <div class="employee-form-section"><h4>書類</h4><p>書類・貸与品・社内認定は社員詳細から個別管理</p></div>
+  <div class="field wide"><div class="emp-group-note">この編集画面では実ファイルを扱いません。保存後、「書類」タブから証憑・貸与品・社内認定を管理します。</div></div>
+ </div><div class="sensitive-note" style="margin-top:10px">健康診断は期限・受診予定のみ扱います。診断結果・病名・給与・保険等の機密情報は編集対象外です。</div>`;
+
+ if(full){feb.value=e.branch||'本社';fed.value=e.dept||depts[0]}
+ fee.value=e.employment||'正社員';fes.value=e.status||'在籍';few.value=e.workPattern||'通常勤務';fets.value=e.taxiSection||'';fess.value=e.safetyState||'正常';feelig.value=e.eligibility||'対象外';
+
  fsave.onclick=()=>{
   if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
-  if(!fen.value.trim())return alert('氏名を入力してください');
+  if(!fen.value.trim()||!fehire.value)return alert('氏名と入社日を入力してください');
   let nextBranch=e.branch,nextDept=e.dept;
   if(full){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
-  let before={name:e.name,branch:e.branch,dept:e.dept,position:e.position,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
-  e.name=fen.value.trim();e.branch=nextBranch;e.workplace=nextBranch;e.dept=nextDept;e.position=fep.value.trim()||'一般';e.employment=fee.value;e.status=full?fes.value:e.status;e.workPattern=few.value.trim()||'通常勤務';e.license=fel.value.trim();e.licenseExpiry=felx.value;e.health=feh.value;e.aptitudeNext=fea.value;e.safetyState=fess.value;e.eligibility=feelig.value;
+  let before={name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
+  e.name=fen.value.trim();e.furigana=fefuri.value.trim();e.hire=fehire.value;e.branch=nextBranch;e.workplace=nextBranch;e.dept=nextDept;e.position=fep.value.trim()||'一般';e.taxiSection=e.dept==='タクシー課'?fets.value:'';e.team=feteam.value.trim();e.employment=fee.value;e.status=full?fes.value:e.status;e.workPattern=few.value;e.health=feh.value;e.aptitude=feapt.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.aptitudeNext=fea.value;e.safetyState=fess.value;e.eligibility=feelig.value;e.license=fel.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.licenseExpiry=felx.value;
   if(['タクシー課','バス課'].includes(e.dept)&&e.licenseExpiry&&days(e.licenseExpiry)<0){e.safetyState='期限切れ';e.eligibility='不可（更新確認まで）'}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
-  let labels={name:'氏名',branch:'事業所',dept:'部署',position:'役職',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
+  let labels={name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
   let changed=Object.keys(before).filter(k=>String(before[k]||'')!==String(e[k]||'')).map(k=>labels[k]);
   if(!changed.length){closeForm();return}
   audit('社員情報更新',`${e.no} ${e.name} / ${changed.join('・')}`,{employee_no:e.no,entity_type:'employee',entity_id:e.no});
@@ -1501,43 +1594,52 @@ function openAccidentEdit(id){
 function openEmployeeForm(){
  if(!canCreateEmployee()){alert('社員の新規登録は全社管理者のみ行えます');return}
  fttl.textContent='社員を登録';
- fbody.innerHTML=`<div class="formnote">共有デモ用の架空情報だけ入力してください。事業所と部署は別区分で管理します。</div>
- <div class="formgrid">
+ fbody.innerHTML=`<div class="formnote">社員台帳を6区分で登録します。共有デモ用の架空情報だけ入力してください。</div><div class="formgrid">
+  <div class="employee-form-section"><h4>基本</h4><p>社員を識別する基本情報</p></div>
   <div class="field"><label>氏名（仮名）</label><input id="fn" placeholder="例：広島 太郎"></div>
   <div class="field"><label>ふりがな（任意）</label><input id="ffuri"></div>
   <div class="field"><label>入社日</label><input id="fhire" type="date" value="${TODAY}"></div>
+  <div class="field"><label>雇用区分</label><select id="femp">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
+
+  <div class="employee-form-section"><h4>所属</h4><p>事業所・部署・役職を別々に管理</p></div>
   <div class="field"><label>事業所</label><select id="fbranch">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div>
   <div class="field"><label>部署</label><select id="fd">${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>
   <div class="field"><label>役職</label><input id="fpos" value="一般"></div>
-  <div class="field"><label>雇用区分</label><select id="femp">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>タクシー課区分</label><select id="fts"><option value="">対象外・未設定</option>${COMPANY_SPEC.taxiSections.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>班</label><input id="fteam" placeholder="例：1班"></div>
+
+  <div class="employee-form-section"><h4>勤務</h4><p>勤務形態と健康診断期限</p></div>
   <div class="field"><label>勤務形態</label><select id="fwork"><option>通常勤務</option>${COMPANY_SPEC.workPatterns.map(x=>`<option>${x}</option>`).join('')}</select></div>
- </div>
- <div class="scope-note" style="margin-top:10px">タクシー課・バス課で登録した社員は、免許期限等を確認するまで「要確認」で開始します。</div>`;
+  <div class="field"><label>健康診断期限</label><input id="fhealth" type="date"></div>
+
+  <div class="employee-form-section"><h4>安全</h4><p>乗務社員は確認完了まで「要確認」で開始</p></div>
+  <div class="field"><label>適性診断</label><input id="fapt" placeholder="例：一般診断済"></div>
+  <div class="field"><label>適性診断 次回</label><input id="faptnext" type="date"></div>
+
+  <div class="employee-form-section"><h4>資格</h4><p>主な免許・資格。複数資格は登録後に追加</p></div>
+  <div class="field wide"><label>主な免許・資格名</label><input id="flicense" placeholder="例：普通自動車第二種免許"></div>
+  <div class="field"><label>免許・資格期限</label><input id="flicenseexp" type="date"></div>
+
+  <div class="employee-form-section"><h4>書類</h4><p>証憑や本人確認書類は社員登録後に追加</p></div>
+  <div class="field wide"><div class="emp-group-note">社員番号を発行してから、「書類」タブで資格証憑・本人確認・貸与品などを紐づけます。</div></div>
+ </div>`;
+
  fsave.onclick=()=>{
   if(!canCreateEmployee())return alert('社員の新規登録は全社管理者のみ行えます');
   if(!fn.value.trim()||!fhire.value)return alert('氏名と入社日を入力してください');
   let rule=validateOfficeDept(fbranch.value,fd.value);if(rule)return alert(rule);
   let no=String(Math.max(...E.map(x=>+x.no))+1),driver=['タクシー課','バス課'].includes(fd.value);
+  let expired=driver&&flicenseexp.value&&days(flicenseexp.value)<0;
   let rec={
-    no,
-    name:fn.value.trim(),
-    furigana:ffuri.value.trim(),
-    hire:fhire.value,
-    branch:fbranch.value,
-    workplace:fbranch.value,
-    dept:fd.value,
-    position:fpos.value.trim()||'一般',
-    employment:femp.value,
-    workPattern:fwork.value,
-    status:'在籍',
-    license:driver?'未設定':'対象外',
-    licenseExpiry:'',
-    health:'',
-    aptitude:driver?'未設定':'対象外',
-    aptitudeNext:'',
-    safetyState:driver?'要確認':'正常',
-    eligibility:driver?'要確認':'対象外',
-    overtime:0
+    no,name:fn.value.trim(),furigana:ffuri.value.trim(),hire:fhire.value,
+    branch:fbranch.value,workplace:fbranch.value,dept:fd.value,position:fpos.value.trim()||'一般',
+    taxiSection:fd.value==='タクシー課'?fts.value:'',team:fteam.value.trim(),
+    employment:femp.value,workPattern:fwork.value,status:'在籍',
+    license:flicense.value.trim()||(driver?'未設定':'対象外'),licenseExpiry:flicenseexp.value,
+    health:fhealth.value,aptitude:fapt.value.trim()||(driver?'未設定':'対象外'),aptitudeNext:faptnext.value,
+    safetyState:expired?'期限切れ':driver?'要確認':'正常',
+    eligibility:expired?'不可（更新確認まで）':driver?'要確認':'対象外',
+    overtime:0,annualConfirmed:'未確認'
   };
   E.push(rec);
   audit('社員登録',`${no} ${rec.name} / ${rec.branch} / ${rec.dept}`,{employee_no:no,entity_type:'employee',entity_id:no});
