@@ -358,6 +358,21 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .board-card.unread{border-left:6px solid #d4aa26}
 .board-card.important{border-left:6px solid #ca5f5f}
 .application-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+
+/* v68 usability pass */
+.quick-strip{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 12px}
+.quick-strip .btn{min-height:44px;padding:8px 13px}
+.quick-strip-label{font-size:.75rem;font-weight:950;color:var(--muted);margin-right:2px}
+.safety-overview{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px}
+.safety-overview-card{border:1px solid var(--line);border-radius:13px;background:#fff;padding:13px;text-align:left;min-height:88px}
+.safety-overview-card small{display:block;color:var(--muted);font-weight:900}
+.safety-overview-card b{display:block;font-size:1.6rem;color:var(--b);line-height:1.15;margin-top:2px}
+.safety-overview-card.warn{border-left:6px solid #d4aa26}
+.safety-overview-card.danger{border-left:6px solid #ca5f5f;background:#fff9f9}
+.focus-guide{border:1px solid #c8dce6;background:#f7fbfd;border-radius:12px;padding:11px 13px;margin-bottom:10px;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.focus-guide strong{color:#234f65}
+@media(max-width:850px){.safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
+@media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}}
 </style>
 </head><body>
 <div class="demo">本番反映版 v68｜社内運用候補｜社員120名の架空データ｜本番DB・認証接続前は実社員データ入力禁止</div>
@@ -366,6 +381,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>担当範囲の重要事項から順に確認できます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
+<div class="quick-strip general-restricted"><span class="quick-strip-label">すぐ確認</span><button class="btn danger" onclick="openSafetyCenter()">乗務・安全</button><button class="btn warn" onclick="openDeadlineCenter('over')">期限超過</button><button class="btn warn" onclick="openDeadlineCenter('today')">本日期限</button><button class="btn soft" onclick="go('safe')">事故・苦情・ヒヤリ</button></div>
 <div class="card general-restricted home-search-card">
  <div class="home-search-head"><div><h3>社員・安全情報を検索</h3><div class="mini">社員・資格・安全指導・事故・苦情・ヒヤリ・車両・書類を、権限範囲内で横断検索できます。</div></div><span class="badge ok">担当範囲内</span></div>
  <div class="home-search-row"><input id="gq" placeholder="例：安芸 太郎 / 1001 / タクシー課 / A-2026-001 / 広島 500" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
@@ -411,6 +427,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
 <div class="spec-note">本番反映版 v68：現在は架空社員120名で動作確認しています。実社員データは本番DB・認証・サーバー側権限制御の接続完了後に移行します。社員の新規登録・権限設定は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
+<div class="quick-strip"><span class="quick-strip-label">よく使う絞り込み</span><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍のみ</button></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
 <div class="table-card"><div class="table-head"><strong>社員一覧</strong><span class="mini">標準：安全優先順（期限切れ・乗務不可 → 30日以内 → 要確認 → 正常）</span></div><div class="tablewrap"><table><thead><tr><th>社員</th><th>事業所</th><th>部署</th><th>最優先期限</th><th>安全・乗務</th><th>状態</th><th>操作</th></tr></thead><tbody id="empbody"></tbody></table></div></div>
@@ -422,6 +439,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 <section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類センター</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div class="spec-note">勤務の更新確認、資格・健康診断・適性診断・安全指導・書類・貸与品・車検などを「誰が・何を・いつまでに確認するか」で統一します。健康診断は結果内容ではなく予定・期限だけを扱います。</div>
 <div id="workKpis" class="work-kpis"></div>
+<div class="quick-strip"><span class="quick-strip-label">期限をすぐ確認</span><button class="btn danger" onclick="openDeadlineCenter('over')">期限超過</button><button class="btn warn" onclick="openDeadlineCenter('today')">本日</button><button class="btn warn" onclick="openDeadlineCenter('7')">7日以内</button><button class="btn soft" onclick="openDeadlineCenter('30')">30日以内</button></div>
 <div id="workDeadlineKpis" class="deadline-grid" style="margin-top:10px"></div>
 <div class="card" style="margin-top:12px"><h3>優先対応</h3><div id="workActionRows" class="list"></div></div>
 <div class="grid2" style="margin-top:12px">
@@ -432,6 +450,8 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリハット・苦情／お客様対応を、担当範囲内で登録・更新します。</p></div><div class="toolbar"><button class="btn soft" onclick="exportAccidentsCsv()">事故CSV</button><button class="btn soft" onclick="exportComplaintsCsv()">クレームCSV</button><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情／お客様対応</button></div></div>
+<div class="focus-guide"><div><strong>まず未完了・期限超過から確認</strong><div class="mini">事故・苦情・ヒヤリを同じ画面で切り替え、必要な記録へすぐ移動できます。</div></div><button class="btn soft" onclick="clearAllSafetySearch()">検索条件をすべて解除</button></div>
+<div id="safetyOverview" class="safety-overview"></div>
 <div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
 <div class="tabpane active" id="safe-acc">
 <div class="card" style="margin-bottom:10px">
@@ -1759,6 +1779,14 @@ function employeeSafetySort(a,b){
 
 
 
+function setEmployeeQuickFilter(kind){
+ let q=document.getElementById('eq'),b=document.getElementById('eb'),d=document.getElementById('ed'),s=document.getElementById('es'),r=document.getElementById('erisk');
+ if(q)q.value='';if(b)b.value='';if(d)d.value='';if(s)s.value='';if(r)r.value='';
+ if(kind==='attention'&&r)r.value='attention';
+ if(kind==='blocked'&&r)r.value='blocked';
+ if(kind==='active'&&s)s.value='在籍';
+ EMP_PAGE=1;renderEmp()
+}
 function renderEmp(){
  let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',
      filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)).sort(employeeSafetySort),
@@ -2102,6 +2130,23 @@ function employeeAssets(no,page=1){
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openAssetRecordForm('${no}')">＋ 貸与品を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">貸与品 ${rows.length}件</div><div class="mini">未返却 ${rows.filter(x=>x.status==='未返却').length}件</div></div></div>`+
  (shown.length?shown.map(a=>{let idx=AS.indexOf(a);return `<div class="row"><div><b>${esc(a.item)}</b><div class="mini">管理番号 ${esc(a.asset_no||'-')} / 返却予定 ${a.return_due||'-'}</div></div><div>${badge(a.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openAssetRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">貸与品はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAssets('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAssets('${no}',${page+1})">次へ →</button></div>`:'')
+}
+function clearAllSafetySearch(){
+ ['accq','nearq','complaintq','accDate','nearDate','complaintDate'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=''});
+ ACC_FILTER='all';COMPLAINT_FILTER='all';ACC_PAGE=1;
+ renderAcc();renderNear();renderComplaints();renderSafetyOverview()
+}
+function renderSafetyOverview(){
+ let el=document.getElementById('safetyOverview');if(!el||PREVIEW_ROLE!=='管理者')return;
+ let accidents=scopedAccidents(),complaints=scopedComplaints(),near=scopedNearMisses();
+ let accOpen=accidents.filter(a=>a.phase!=='完了').length,accOver=accidents.filter(a=>accidentDeadlineState(a)==='over').length;
+ let compOpen=complaints.filter(x=>x.status!=='完了').length,compOver=complaints.filter(x=>complaintState(x)==='over').length;
+ let nearOpen=near.filter(x=>x.status!=='完了'&&x.status!=='対応済').length;
+ let total=accOpen+compOpen+nearOpen;
+ el.innerHTML=`<button class="safety-overview-card ${accOver?'danger':accOpen?'warn':''}" onclick="safeTab('acc');ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>事故 未完了</small><b>${accOpen}</b><span class="mini">期限超過 ${accOver}件</span></button>
+ <button class="safety-overview-card ${compOver?'danger':compOpen?'warn':''}" onclick="safeTab('complaint');COMPLAINT_FILTER='open';renderComplaints()"><small>苦情 未完了</small><b>${compOpen}</b><span class="mini">期限超過 ${compOver}件</span></button>
+ <button class="safety-overview-card ${nearOpen?'warn':''}" onclick="safeTab('near')"><small>ヒヤリ 要対応</small><b>${nearOpen}</b><span class="mini">記録を確認</span></button>
+ <button class="safety-overview-card ${total?'warn':''}" onclick="go('safe')"><small>安全対応 合計</small><b>${total}</b><span class="mini">未完了・要対応</span></button>`
 }
 function clearSafetySearch(kind){
  if(kind==='accident'){
@@ -2859,6 +2904,6 @@ detail.addEventListener('click',e=>{
 function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}function closeForm(){form.classList.remove('show');fbody.innerHTML=''}
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
-function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
+function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_MODE;setPreviewRole(PREVIEW_MODE);renderAll();
 </script></body></html>
