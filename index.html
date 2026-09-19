@@ -2351,6 +2351,7 @@ function openEmployeeEdit(no){
   <div class="field"><label>適性診断 次回</label><input id="fea" type="date" value="${esc(String(e.aptitudeNext||'').replaceAll('/','-'))}"></div>
   <div class="field"><label>安全管理状態</label><select id="fess" ${canSafety?'':'disabled'}><option>正常</option><option>期限30日以内</option><option>期限31～60日以内</option><option>期限切れ</option><option>要確認</option></select>${canSafety?'':'<div class="mini">安全判断権限を持つ安全管理・運行管理担当者のみ変更できます</div>'}</div>
   <div class="field"><label>乗務可否</label><select id="feelig" ${canSafety?'':'disabled'}><option>可</option><option>要確認</option><option>不可（更新確認まで）</option><option>対象外</option></select>${canSafety?'':'<div class="mini">「可」への変更は安全判断権限者のみです</div>'}</div>
+  ${canSafety?'<div class="field wide"><label>乗務可へ戻す理由・確認内容</label><textarea id="fesafetyreason" placeholder="例：免許更新確認済、適性診断確認済、運行管理者確認"></textarea><div class="mini">要確認・不可から「可」へ戻す場合は必須です。病名など不要な健康情報は記載しません。</div></div>':''}
 
   <div class="employee-form-section"><h4>資格</h4><p>主な免許・資格と期限。複数資格は保存後の資格一覧で管理</p></div>
   <div class="field wide"><label>主な免許・資格名</label><input id="fel" value="${esc(e.license||'')}"></div>
@@ -2366,12 +2367,30 @@ function openEmployeeEdit(no){
  fsave.onclick=()=>{
   if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
   if(!fen.value.trim()||!fehire.value)return alert('氏名と入社日を入力してください');
+  let requestedEligibility=canSafety?feelig.value:e.eligibility,requestedSafetyState=canSafety?fess.value:e.safetyState;
+  let restoringToAllowed=canSafety&&String(e.eligibility||'')!=='可'&&requestedEligibility==='可';
+  let safetyReason=(document.getElementById('fesafetyreason')?.value||'').trim();
+  if(restoringToAllowed&&!safetyReason)return alert('乗務可へ戻す理由・確認内容を入力してください');
+  if(restoringToAllowed&&['期限切れ','要確認'].includes(requestedSafetyState))return alert('安全管理状態が「期限切れ」または「要確認」のままでは乗務可に戻せません');
   let nextBranch=e.branch,nextDept=e.dept;
   if(canAssignment){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
+  let nextIsDriver=['タクシー課','バス課'].includes(nextDept);
+  if(restoringToAllowed&&nextIsDriver){
+   if(!felx.value)return alert('乗務可へ戻す前に免許・資格期限を確認してください');
+   if(days(felx.value)<0)return alert('免許・資格期限が切れているため乗務可には戻せません');
+  }
   let before={name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
   e.name=fen.value.trim();e.furigana=fefuri.value.trim();e.hire=fehire.value;e.branch=nextBranch;e.workplace=nextBranch;e.dept=nextDept;e.position=fep.value.trim()||'一般';e.taxiSection=e.dept==='タクシー課'?fets.value:'';e.team=feteam.value.trim();e.employment=fee.value;e.status=canLifecycle?fes.value:e.status;e.workPattern=few.value;e.health=feh.value;e.aptitude=feapt.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.aptitudeNext=fea.value;e.safetyState=canSafety?fess.value:e.safetyState;e.eligibility=canSafety?feelig.value:e.eligibility;e.license=fel.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.licenseExpiry=felx.value;
   if(['タクシー課','バス課'].includes(e.dept)){if(!e.licenseExpiry){e.safetyState='要確認';e.eligibility='要確認'}else if(days(e.licenseExpiry)<0){e.safetyState='期限切れ';e.eligibility='不可（更新確認まで）'}}else{e.eligibility='対象外'}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
+  if(restoringToAllowed&&e.eligibility==='可'){
+   let actor=currentActorIdentity();
+   if(!Array.isArray(e.safetyDecisionHistory))e.safetyDecisionHistory=[];
+   let decision={time:new Date().toISOString(),date:TODAY,from:before.eligibility||'',to:'可',reason:safetyReason,actor_id:actor.id,actor_name:actor.name,actor_role:actor.role};
+   e.safetyDecisionHistory.unshift(decision);
+   e.safetyDecisionHistory=e.safetyDecisionHistory.slice(0,50);
+   audit('乗務可否 復帰承認',`${e.no} ${e.name} / ${before.eligibility||'未設定'}→可 / ${safetyReason}`,{employee_no:e.no,entity_type:'employee',entity_id:e.no})
+  }
   let labels={name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
   let changed=Object.keys(before).filter(k=>String(before[k]||'')!==String(e[k]||'')).map(k=>labels[k]);
   if(!changed.length){closeForm();return}
