@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v56</title>
+<title>つばめ交通株式会社 社員一元管理システム v57</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -319,7 +319,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 @media(max-width:850px){.complaint-kpis,.complaint-detail-grid{grid-template-columns:1fr 1fr}}@media(max-width:560px){.complaint-kpis,.complaint-detail-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">共有デモ v56｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
+<div class="demo">共有デモ v57｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -368,7 +368,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v56：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v57：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -393,7 +393,9 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 <div class="tabpane active" id="safe-acc">
 <div class="card" style="margin-bottom:10px">
   <div class="list-controls">
-    <input id="accq" placeholder="事故番号・乗務員・住所・概要を検索" oninput="ACC_PAGE=1;renderAcc()">
+    <input id="accq" placeholder="事故番号・乗務員・住所・概要・担当者で検索" oninput="ACC_PAGE=1;renderAcc()">
+    <input id="accDate" type="date" aria-label="事故発生日で検索" onchange="ACC_PAGE=1;renderAcc()">
+    <button class="btn" onclick="clearSafetySearch('accident')">検索解除</button>
     <button class="btn" id="accAllBtn" onclick="ACC_FILTER='all';ACC_PAGE=1;renderAcc()">全件</button>
     <button class="btn" id="accOpenBtn" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()">未完了</button>
     <button class="btn" id="accOverBtn" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()">期限超過</button>
@@ -403,11 +405,19 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
   <div id="accSummary"></div>
 </div>
 <div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>概要</th><th>進捗</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
-<div class="tabpane" id="safe-near"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>日付</th><th>番号</th><th>乗務員</th><th>内容</th><th>対応</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
+<div class="tabpane" id="safe-near">
+<div class="card" style="margin-bottom:10px"><div class="list-controls">
+<input id="nearq" placeholder="番号・乗務員・内容・対応で検索" oninput="renderNear()">
+<input id="nearDate" type="date" aria-label="ヒヤリハット日付で検索" onchange="renderNear()">
+<button class="btn" onclick="clearSafetySearch('near')">検索解除</button>
+</div><div id="nearSummary" class="list-summary"></div></div>
+<div class="table-card"><div class="tablewrap"><table><thead><tr><th>日付</th><th>番号</th><th>乗務員</th><th>内容</th><th>対応</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
 <div class="tabpane" id="safe-complaint">
 <div class="spec-note">現在のクレーム表をシステム化した共有デモです。受付・発生日時・乗務員・車番・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
 <div class="card" style="margin-bottom:10px"><div class="list-controls">
-<input id="complaintq" placeholder="番号・乗務員・車番・内容・担当者で検索" oninput="COMPLAINT_FILTER='all';renderComplaints()">
+<input id="complaintq" placeholder="番号・乗務員・車番・内容・担当者で検索" oninput="renderComplaints()">
+<input id="complaintDate" type="date" aria-label="クレーム日付で検索" onchange="renderComplaints()">
+<button class="btn" onclick="clearSafetySearch('complaint')">検索解除</button>
 <button class="btn" id="complaintAllBtn" onclick="COMPLAINT_FILTER='all';renderComplaints()">全件</button><button class="btn" id="complaintOpenBtn" onclick="COMPLAINT_FILTER='open';renderComplaints()">未完了</button><button class="btn" id="complaintOverBtn" onclick="COMPLAINT_FILTER='over';renderComplaints()">期限超過</button><button class="btn" id="complaintDoneBtn" onclick="COMPLAINT_FILTER='done';renderComplaints()">完了</button>
 </div><div id="complaintSummary"></div></div>
 <div class="table-card"><div class="tablewrap"><table><thead><tr><th>受付</th><th>番号</th><th>対象</th><th>ランク</th><th>次回対応・期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="complaintbody"></tbody></table></div></div></div></section>
@@ -715,7 +725,7 @@ function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一�
 function exportAccidentsCsv(){let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));downloadCsv('事故一覧_共有デモ.csv',[['事故番号','発生日','社員番号','システム連携ID','乗務員','区分','車両','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'],...rows.map(a=>[a.id,a.date,a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||''])]);audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)}
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_共有デモ_v56.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',c.rank||'',c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_共有デモ_v57.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',c.rank||'',c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
@@ -913,7 +923,7 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v56 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v57 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
@@ -1502,6 +1512,17 @@ function employeeAssets(no,page=1){
  (shown.length?shown.map(a=>{let idx=AS.indexOf(a);return `<div class="row"><div><b>${esc(a.item)}</b><div class="mini">管理番号 ${esc(a.asset_no||'-')} / 返却予定 ${a.return_due||'-'}</div></div><div>${badge(a.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openAssetRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">貸与品はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAssets('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAssets('${no}',${page+1})">次へ →</button></div>`:'')
 }
+function clearSafetySearch(kind){
+ if(kind==='accident'){
+  let q=document.getElementById('accq'),d=document.getElementById('accDate');if(q)q.value='';if(d)d.value='';ACC_FILTER='all';ACC_PAGE=1;renderAcc();return
+ }
+ if(kind==='near'){
+  let q=document.getElementById('nearq'),d=document.getElementById('nearDate');if(q)q.value='';if(d)d.value='';renderNear();return
+ }
+ if(kind==='complaint'){
+  let q=document.getElementById('complaintq'),d=document.getElementById('complaintDate');if(q)q.value='';if(d)d.value='';COMPLAINT_FILTER='all';renderComplaints()
+ }
+}
 let ACC_PAGE=1,ACC_FILTER='all';
 function accidentDeadlineState(a){
  if(a.phase==='完了')return 'done';
@@ -1513,12 +1534,12 @@ function accidentDeadlineState(a){
  return 'normal'
 }
 function renderAcc(){
- const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),all=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  const counts={open:all.filter(a=>a.phase!=='完了').length,over:all.filter(a=>accidentDeadlineState(a)==='over').length,today:all.filter(a=>accidentDeadlineState(a)==='today').length,done:all.filter(a=>a.phase==='完了').length};
  let rows=all.filter(a=>{
    let state=accidentDeadlineState(a);
    let pass=ACC_FILTER==='all'||(ACC_FILTER==='open'&&a.phase!=='完了')||(ACC_FILTER==='over'&&state==='over')||(ACC_FILTER==='today'&&state==='today')||(ACC_FILTER==='done'&&a.phase==='完了');
-   return pass&&(!q||[a.id,a.driver,a.address,a.summary,a.vehicle,a.service,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
+   return pass&&(!date||a.date===date)&&(!q||[a.id,a.date,a.driver,a.address,a.summary,a.vehicle,a.service,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{
    const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};
    let ra=rank[accidentDeadlineState(a)]??9,rb=rank[accidentDeadlineState(b)]??9;
@@ -1527,7 +1548,7 @@ function renderAcc(){
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));ACC_PAGE=Math.min(Math.max(1,ACC_PAGE),pages);
  const st=(ACC_PAGE-1)*per,shown=rows.slice(st,st+per);
  [['accAllBtn','all'],['accOpenBtn','open'],['accOverBtn','over'],['accTodayBtn','today'],['accDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_FILTER===k)});
- if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="acc-v50-kpis"><div class="acc-v50-kpi" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></div><div class="acc-v50-kpi over" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></div><div class="acc-v50-kpi today" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></div><div class="acc-v50-kpi" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / 対応履歴を含めて検索できます</div></div></div>`;
+ if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="acc-v50-kpis"><div class="acc-v50-kpi" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></div><div class="acc-v50-kpi over" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></div><div class="acc-v50-kpi today" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></div><div class="acc-v50-kpi" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / キーワード・発生日から検索できます</div></div></div>`;
  accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><b>${a.id}</b></td><td>${esc(a.driver)}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td></tr>`}).join('');
  if(typeof accPager!=='undefined')accPager.innerHTML=pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
 }
@@ -1570,10 +1591,15 @@ function appendAccidentHistory(id){
  audit('事故対応履歴追記',`${a.id} ${a.driver}`,{employee_no:a.employee_no,entity_type:'accident',entity_id:a.id});
  save();renderAll();accidentDetail(a.id)
 }
-function renderNear(){nearbody.innerHTML=scopedNearMisses().map(function(n){
- var idx=N.indexOf(n),op=canEditEmployee(n.employee_no)?'<button class="btn soft" onclick="openNearForm('+idx+')">編集</button>':'-';
- return '<tr><td>'+esc(n.date)+'</td><td><b>'+esc(n.id)+'</b></td><td>'+esc(n.driver)+'</td><td>'+esc(n.summary)+'</td><td>'+badge(n.action)+'</td><td>'+op+'</td></tr>';
-}).join('')}
+function renderNear(){
+ let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action].join(' ').toLowerCase().includes(q)));
+ let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / キーワード・日付から検索できます</div></div>`;
+ nearbody.innerHTML=rows.map(function(n){
+  var idx=N.indexOf(n),op=canEditEmployee(n.employee_no)?'<button class="btn soft" onclick="openNearForm('+idx+')">編集</button>':'-';
+  return '<tr><td>'+esc(n.date)+'</td><td><b>'+esc(n.id)+'</b></td><td>'+esc(n.driver)+'</td><td>'+esc(n.summary)+'</td><td>'+badge(n.action)+'</td><td>'+op+'</td></tr>';
+ }).join('')
+}
 let COMPLAINT_FILTER='all';
 function complaintState(c){
  if(c.status==='完了')return 'done';
@@ -1582,14 +1608,15 @@ function complaintState(c){
  return b==='over'?'over':b==='today'?'today':b==='7'?'soon':'normal'
 }
 function renderComplaints(){
- let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),all=scopedComplaints().slice();
+ let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),date=document.getElementById('complaintDate')?.value||'',all=scopedComplaints().slice();
  let counts={open:all.filter(c=>c.status!=='完了').length,over:all.filter(c=>complaintState(c)==='over').length,today:all.filter(c=>complaintState(c)==='today').length,done:all.filter(c=>c.status==='完了').length};
  let rows=all.filter(c=>{
   let s=complaintState(c),pass=COMPLAINT_FILTER==='all'||(COMPLAINT_FILTER==='open'&&c.status!=='完了')||(COMPLAINT_FILTER==='over'&&s==='over')||(COMPLAINT_FILTER==='done'&&c.status==='完了');
-  return pass&&(!q||[c.id,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.customerName,c.rank].join(' ').toLowerCase().includes(q))
+  let dateMatch=!date||c.responseDate===date||c.date===date||c.occurrenceDate===date||c.guidanceDate===date;
+  return pass&&dateMatch&&(!q||[c.id,c.responseDate,c.occurrenceDate,c.guidanceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.customerName,c.rank,c.responder,c.instructor].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};let ra=rank[complaintState(a)]??9,rb=rank[complaintState(b)]??9;return ra!==rb?ra-rb:String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date))});
  [['complaintAllBtn','all'],['complaintOpenBtn','open'],['complaintOverBtn','over'],['complaintDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',COMPLAINT_FILTER===k)});
- let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="complaint-kpis"><div class="complaint-kpi" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></div><div class="complaint-kpi over" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></div><div class="complaint-kpi today"><small>本日期限</small><b>${counts.today}</b></div><div class="complaint-kpi" onclick="COMPLAINT_FILTER='done';renderComplaints()"><small>完了</small><b>${counts.done}</b></div></div>`;
+ let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="complaint-kpis"><div class="complaint-kpi" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></div><div class="complaint-kpi over" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></div><div class="complaint-kpi today"><small>本日期限</small><b>${counts.today}</b></div><div class="complaint-kpi" onclick="COMPLAINT_FILTER='done';renderComplaints()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">キーワード・受付日・発生日・指導日から検索できます</div></div></div>`;
  complaintbody.innerHTML=rows.map(c=>{let idx=C.indexOf(c),state=complaintState(c),cls=state==='over'?'complaint-row-over':state==='today'?'complaint-row-today':'',due=c.followupDue?`${c.followupDue}（${deadlineBucketLabel(c.followupDue)}）`:'未設定';return `<tr class="${cls}"><td>${esc(c.responseDate||c.date)}<div class="mini">${esc(c.responseTime||'')}</div></td><td><button class="link" onclick="complaintDetail('${c.id}')"><b>${esc(c.id)}</b></button></td><td>${esc(c.driverName||c.name)}<div class="mini">${esc(c.dept||'')} / 車番 ${esc(c.vehicle||'未設定')}</div></td><td>${esc(c.rank||'未設定')}</td><td><b>${esc(c.nextAction||'未設定')}</b><div class="mini">担当 ${esc(c.owner||'未設定')} / ${esc(due)}</div></td><td>${badge(c.status||'受付')}</td><td>${canEditEmployee(c.employee_no)?`<button class="btn soft" onclick="openComplaintForm(${idx})">編集</button>`:''}</td></tr>`}).join('')
 }
 function renderVehicles(){vehiclebody.innerHTML=scopedVehicles().map(v=>{
