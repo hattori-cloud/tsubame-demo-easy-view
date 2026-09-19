@@ -1308,7 +1308,7 @@ function scopedEmployees(){
  }
  return []
 }
-function inCurrentEmployeeScopefunction inCurrentEmployeeScope(no){return scopedEmployees().some(e=>e.no===String(no))}
+function inCurrentEmployeeScope(no){return scopedEmployees().some(e=>e.no===String(no))}
 function scopedAccidents(){return A.filter(a=>inCurrentEmployeeScope(a.employee_no))}
 function scopedTraining(){return TR.filter(t=>inCurrentEmployeeScope(t.employee_no))}
 function scopedAssets(){return AS.filter(a=>inCurrentEmployeeScope(a.employee_no))}
@@ -1319,7 +1319,7 @@ function scopedApplications(){return APPLICATIONS.filter(a=>a.employee_no?inCurr
 function scopedGuidance(){return GUIDANCE.filter(g=>inCurrentEmployeeScope(g.employee_no))}
 function isFullCompanyAdmin(){return PREVIEW_ROLE==='管理者'&&PREVIEW_MODE==='full'}
 const ACCESS_POLICY={
- employee:{view:'self_or_scope',edit:'admin_scope',create:'full_admin'},
+ employee:{view:'self_or_scope',edit:'admin_scope',create:'full_admin',transfer:'full_admin',lifecycle:'full_admin'},
  qualification:{view:'self_or_scope',edit:'admin_scope'},
  training:{view:'self_or_scope',edit:'admin_scope'},
  asset:{view:'self_or_scope',edit:'admin_scope'},
@@ -1358,6 +1358,8 @@ function canAccess(resource,action='view',no='',record=null){
 }
 function canCreateEmployee(){return canAccess('employee','create')}
 function canEditEmployee(no){return canAccess('employee','edit',no)}
+function canChangeEmployeeAssignment(){return canAccess('employee','transfer')}
+function canChangeEmployeeLifecycle(){return canAccess('employee','lifecycle')}
 function guardEmployeeView(no,label='社員情報'){if(!canAccess('employee','view',no)){alert('現在の担当範囲では'+label+'を表示できません');return false}return true}
 function guardEmployeeEdit(no,label='この記録'){if(!canEditEmployee(no)){alert('現在の担当範囲では'+label+'を更新できません');return false}return true}
 function roleCanSeeSensitive(){return canAccess('admin_sensitive','view')}
@@ -1592,7 +1594,7 @@ function renderCompanySpec(){
  let roles=['全社管理者','担当管理者','一般社員'],activeUsers=USERS.filter(u=>u.state==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
  userSummary.innerHTML=`<div class="row"><div><b>${roles.length}権限</b><div class="mini">${roles.map(esc).join(' / ')}</div></div><span class="badge ok">共通権限ポリシー</span></div>
  <div class="row"><div><b>有効利用者 ${activeUsers.length}名</b><div class="mini">管理者 ${managers.length}名 / 一般社員 ${activeUsers.filter(u=>u.role==='一般社員').length}名</div></div><span class="badge ok">状態確認</span></div>
- <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。権限設定は全社管理者のみです。</div></div><span class="badge ok">固定範囲</span></div>`;
+ <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。社員番号・所属変更・休職/退職・権限設定は全社管理者のみです。</div></div><span class="badge ok">固定範囲</span></div>`;
  readiness.innerHTML=[['実サーバーHTTPS','未確認','bad'],['実VPN・スマホ疎通','未確認','bad'],['MFA本番必須化','未確認','bad'],['別故障領域バックアップ','実設備で未確認','bad'],['保存年限・紙原本方針','会社承認待ち','warn'],['実社員データ照合','未実施','bad'],['PC/スマホ実機受入','未完了','warn'],['PCA・アントレ・Eight','正式仕様未確定','warn'],['匿名開発版','検証資材あり','ok']].map(x=>`<div class="ready-item ${x[2]}"><b>${x[0]}</b><div class="mini">${x[1]}</div></div>`).join('');
  documentLifecycle.innerHTML=DOCS.slice().sort((a,b)=>{
   let sa=a.status==='原本確認済み'?1:0,sb=b.status==='原本確認済み'?1:0;
@@ -2316,8 +2318,8 @@ function searchAll(){
 function openEmployeeEdit(no){
  if(!canEditEmployee(no)){alert('現在の担当範囲ではこの社員を編集できません');return}
  let e=emp(no);if(!e)return;
- let full=isFullCompanyAdmin();
- let branchDept=full?`<div class="field"><label>事業所</label><select id="feb">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>部署</label><select id="fed">${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>`:`<div class="field"><label>事業所</label><input value="${esc(e.branch)}" disabled></div><div class="field"><label>部署</label><input value="${esc(e.dept)}" disabled></div><div class="field wide"><div class="scope-note">事業所・部署は表示権限に関わるため、変更は全社管理者のみです。</div></div>`;
+ let full=isFullCompanyAdmin(),canAssignment=canChangeEmployeeAssignment(),canLifecycle=canChangeEmployeeLifecycle();
+ let branchDept=canAssignment?`<div class="field"><label>事業所</label><select id="feb">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>部署</label><select id="fed">${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>`:`<div class="field"><label>事業所</label><input value="${esc(e.branch)}" disabled></div><div class="field"><label>部署</label><input value="${esc(e.dept)}" disabled></div><div class="field wide"><div class="scope-note">事業所・部署は表示権限に関わるため、変更は全社管理者のみです。</div></div>`;
  fttl.textContent='社員情報を編集';
  fbody.innerHTML=`<div class="formnote">社員台帳を「基本・所属・勤務・安全・資格・書類」の6区分で管理します。</div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>本人と在籍を識別する情報</p></div>
@@ -2326,7 +2328,7 @@ function openEmployeeEdit(no){
   <div class="field"><label>ふりがな</label><input id="fefuri" value="${esc(e.furigana||'')}"></div>
   <div class="field"><label>入社日</label><input id="fehire" type="date" value="${esc(String(e.hire||'').replaceAll('/','-'))}"></div>
   <div class="field"><label>雇用区分</label><select id="fee">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
-  <div class="field"><label>在籍状態</label><select id="fes" ${full?'':'disabled'}><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select>${full?'':'<div class="mini">全社管理者のみ変更できます</div>'}</div>
+  <div class="field"><label>在籍状態</label><select id="fes" ${canLifecycle?'':'disabled'}><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select>${canLifecycle?'':'<div class="mini">休職・退職等は全社管理者のみ変更できます</div>'}</div>
 
   <div class="employee-form-section"><h4>所属</h4><p>事業所と部署は別区分</p></div>
   ${branchDept}
@@ -2352,16 +2354,16 @@ function openEmployeeEdit(no){
   <div class="field wide"><div class="emp-group-note">この編集画面では実ファイルを扱いません。保存後、「書類」タブから証憑・貸与品・社内認定を管理します。</div></div>
  </div><div class="sensitive-note" style="margin-top:10px">健康診断は期限・受診予定のみ扱います。診断結果・病名・給与・保険等の機密情報は編集対象外です。</div>`;
 
- if(full){feb.value=e.branch||'本社';fed.value=e.dept||depts[0]}
+ if(canAssignment){feb.value=e.branch||'本社';fed.value=e.dept||depts[0]}
  fee.value=e.employment||'正社員';fes.value=e.status||'在籍';few.value=e.workPattern||'通常勤務';fets.value=e.taxiSection||'';fess.value=e.safetyState||'正常';feelig.value=e.eligibility||'対象外';
 
  fsave.onclick=()=>{
   if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
   if(!fen.value.trim()||!fehire.value)return alert('氏名と入社日を入力してください');
   let nextBranch=e.branch,nextDept=e.dept;
-  if(full){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
+  if(canAssignment){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
   let before={name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
-  e.name=fen.value.trim();e.furigana=fefuri.value.trim();e.hire=fehire.value;e.branch=nextBranch;e.workplace=nextBranch;e.dept=nextDept;e.position=fep.value.trim()||'一般';e.taxiSection=e.dept==='タクシー課'?fets.value:'';e.team=feteam.value.trim();e.employment=fee.value;e.status=full?fes.value:e.status;e.workPattern=few.value;e.health=feh.value;e.aptitude=feapt.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.aptitudeNext=fea.value;e.safetyState=fess.value;e.eligibility=feelig.value;e.license=fel.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.licenseExpiry=felx.value;
+  e.name=fen.value.trim();e.furigana=fefuri.value.trim();e.hire=fehire.value;e.branch=nextBranch;e.workplace=nextBranch;e.dept=nextDept;e.position=fep.value.trim()||'一般';e.taxiSection=e.dept==='タクシー課'?fets.value:'';e.team=feteam.value.trim();e.employment=fee.value;e.status=canLifecycle?fes.value:e.status;e.workPattern=few.value;e.health=feh.value;e.aptitude=feapt.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.aptitudeNext=fea.value;e.safetyState=fess.value;e.eligibility=feelig.value;e.license=fel.value.trim()||( ['タクシー課','バス課'].includes(e.dept)?'未設定':'対象外');e.licenseExpiry=felx.value;
   if(['タクシー課','バス課'].includes(e.dept)){if(!e.licenseExpiry){e.safetyState='要確認';e.eligibility='要確認'}else if(days(e.licenseExpiry)<0){e.safetyState='期限切れ';e.eligibility='不可（更新確認まで）'}}else{e.eligibility='対象外'}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
   let labels={name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
