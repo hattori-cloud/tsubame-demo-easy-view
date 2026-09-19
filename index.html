@@ -2629,18 +2629,59 @@ function employeeAdminOnly(no){
 }
 
 
+const EMP_ACC_RANGES={};
+function employeeAccidentRange(no){
+ let key=String(no),v=EMP_ACC_RANGES[key];
+ if(v)return v;
+ let y=String(TODAY).slice(0,4);
+ return EMP_ACC_RANGES[key]={from:y+'-01-01',to:y+'-12-31',label:y+'年'}
+}
+function setEmployeeAccidentRange(no,mode){
+ let y=Number(String(TODAY).slice(0,4)),from='',to='',label='全期間';
+ if(mode==='this'){from=y+'-01-01';to=y+'-12-31';label=y+'年'}
+ if(mode==='prev'){from=(y-1)+'-01-01';to=(y-1)+'-12-31';label=(y-1)+'年'}
+ EMP_ACC_RANGES[String(no)]={from,to,label};employeeAccidents(no,1,'all')
+}
+function applyEmployeeAccidentRange(no){
+ let from=document.getElementById('empAccFrom')?.value||'',to=document.getElementById('empAccTo')?.value||'';
+ if(from&&to&&from>to)return alert('開始日は終了日以前にしてください');
+ EMP_ACC_RANGES[String(no)]={from,to,label:(from||to)?((from||'指定なし')+' ～ '+(to||'指定なし')):'全期間'};
+ employeeAccidents(no,1,'all')
+}
 function employeeAccidents(no,page=1,filter='all'){
  if(!guardManagementRecord('accident',no,'事故履歴'))return;
- let e=emp(no),all=A.filter(x=>x.employee_no===no).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- let rows=filter==='open'?all.filter(a=>a.phase!=='完了'):all,annual=employeeAccidentYearStats(no);
+ let e=emp(no),all=A.filter(x=>x.employee_no===no).sort((a,b)=>String(b.date).localeCompare(String(a.date))),range=employeeAccidentRange(no);
+ let ranged=all.filter(a=>analysisDateInRange(a.date,range.from,range.to));
+ let rows=filter==='open'?ranged.filter(a=>a.phase!=='完了'):ranged,annual=employeeAccidentYearStats(no);
+ let rangeStats={count:ranged.length,opponent:ranged.reduce((s,a)=>s+accidentMoney(a.opponentRepairCost),0),company:ranged.reduce((s,a)=>s+accidentMoney(a.companyRepairCost),0),total:ranged.reduce((s,a)=>s+accidentTotalRepairCost(a),0)};
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));
  page=Math.min(Math.max(1,page),pages);
- const start=(page-1)*per,shown=rows.slice(start,start+per),openCount=all.filter(a=>a.phase!=='完了').length;
+ const start=(page-1)*per,shown=rows.slice(start,start+per),openCount=ranged.filter(a=>a.phase!=='完了').length;
  dttl.textContent=`${e.name} の事故履歴`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div>
- <div class="acc-history-head"><div><div class="acc-count">事故履歴 ${all.length}件</div><div class="mini">新しい事故から表示。件数が増えても10件ずつ確認できます。</div></div><span class="badge ${openCount?'warn':'ok'}">未完了 ${openCount}件</span></div>
- <div class="section"><h3>年別 事故・修理費</h3>${annual.length?`<div class="tablewrap"><table><thead><tr><th>年</th><th>事故件数</th><th>相手修理代</th><th>自社修理代</th><th>修理費合計</th></tr></thead><tbody>${annual.map(y=>`<tr><td><b>${esc(y.year)}年</b></td><td>${y.count}件</td><td>${y.opponent.toLocaleString('ja-JP')}円</td><td>${y.company.toLocaleString('ja-JP')}円</td><td><b>${y.total.toLocaleString('ja-JP')}円</b></td></tr>`).join('')}</tbody></table></div>`:'<div class="mini">事故記録はありません。</div>'}<div class="mini" style="margin-top:7px">修理代未確定・未入力の事故は0円として集計します。</div></div>
- <div class="acc-filter"><button class="btn ${filter==='all'?'active':''}" onclick="employeeAccidents('${no}',1,'all')">全件 ${all.length}</button><button class="btn ${filter==='open'?'active':''}" onclick="employeeAccidents('${no}',1,'open')">未完了 ${openCount}</button></div>`+
+ <div class="acc-history-head"><div><div class="acc-count">事故履歴 ${all.length}件</div><div class="mini">期間を指定して、事故件数と修理費を集計できます。</div></div><span class="badge ${openCount?'warn':'ok'}">期間内 未完了 ${openCount}件</span></div>
+ <div class="safety-search-card">
+  <div class="safety-search-title">集計期間</div>
+  <div class="safety-search-main">
+   <input id="empAccFrom" type="date" value="${esc(range.from||'')}" aria-label="開始日">
+   <input id="empAccTo" type="date" value="${esc(range.to||'')}" aria-label="終了日">
+   <button class="btn primary" onclick="applyEmployeeAccidentRange('${no}')">この期間で集計</button>
+  </div>
+  <div class="safety-search-sub"><span class="group-label">すぐ選ぶ</span>
+   <button class="btn" onclick="setEmployeeAccidentRange('${no}','this')">今年</button>
+   <button class="btn" onclick="setEmployeeAccidentRange('${no}','prev')">前年</button>
+   <button class="btn" onclick="setEmployeeAccidentRange('${no}','all')">全期間</button>
+  </div>
+ </div>
+ <div class="section"><h3>指定期間の事故・修理費</h3><div class="detail-kpi-grid">
+  <div class="detail-kpi"><label>対象期間</label><b>${esc(range.label)}</b></div>
+  <div class="detail-kpi"><label>事故件数</label><b>${rangeStats.count}件</b></div>
+  <div class="detail-kpi"><label>相手修理代</label><b>${rangeStats.opponent.toLocaleString('ja-JP')}円</b></div>
+  <div class="detail-kpi"><label>自社修理代</label><b>${rangeStats.company.toLocaleString('ja-JP')}円</b></div>
+  <div class="detail-kpi"><label>修理費合計</label><b>${rangeStats.total.toLocaleString('ja-JP')}円</b></div>
+ </div><div class="mini" style="margin-top:7px">修理代未確定・未入力の事故は0円として集計します。</div></div>
+ <div class="section"><h3>年別 事故・修理費</h3>${annual.length?`<div class="tablewrap"><table><thead><tr><th>年</th><th>事故件数</th><th>相手修理代</th><th>自社修理代</th><th>修理費合計</th></tr></thead><tbody>${annual.map(y=>`<tr><td><b>${esc(y.year)}年</b></td><td>${y.count}件</td><td>${y.opponent.toLocaleString('ja-JP')}円</td><td>${y.company.toLocaleString('ja-JP')}円</td><td><b>${y.total.toLocaleString('ja-JP')}円</b></td></tr>`).join('')}</tbody></table></div>`:'<div class="mini">事故記録はありません。</div>'}</div>
+ <div class="acc-filter"><button class="btn ${filter==='all'?'active':''}" onclick="employeeAccidents('${no}',1,'all')">期間内すべて ${ranged.length}</button><button class="btn ${filter==='open'?'active':''}" onclick="employeeAccidents('${no}',1,'open')">期間内 未完了 ${openCount}</button></div>`+
  (shown.length?shown.map(a=>`<div class="row acc-row ${a.phase==='完了'?'done':'open'}"><div><b>${a.date} ${esc(a.summary)}</b><div class="mini">${a.id} / ${esc(a.service||'')} / ${esc(a.phase)} / 修理費 ${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</div></div><button class="btn soft" onclick="accidentDetail('${a.id}','${no}',${page},'${filter}')">詳細を見る</button></div>`).join(''):'<div class="mini">該当する事故履歴はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAccidents('${no}',${page-1},'${filter}')">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAccidents('${no}',${page+1},'${filter}')">次へ →</button></div>`:'')
 }
