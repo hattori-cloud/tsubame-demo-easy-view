@@ -2201,10 +2201,12 @@ function renderFoundationStatus(){
  let structured=AUDIT.filter(x=>x.structured).length,mc=metadataCoverage(),moduleCount=coreRecordCollections().length;
  let grantedCount=grantedEmployees().length,displayCount=scopedEmployees().length;
  let storageErrors=STORAGE_HEALTH.readErrors.length+STORAGE_HEALTH.writeErrors.length,lastSaved=STORAGE_HEALTH.lastSave||localStorage.getItem('v68LAST_SAVE')||'この端末では未保存';
+ let bootErrors=typeof BOOT_HEALTH!=='undefined'?BOOT_HEALTH.errors.length:0,bootSchema=typeof BOOT_HEALTH!=='undefined'?BOOT_HEALTH.schema:'未確認';
  el.innerHTML=`<div class="metrics" style="margin-top:0">
   <div class="card metric"><small>権限対象 / 画面表示</small><b>${grantedCount} / ${displayCount}</b><span>固定権限と表示絞込を分離</span></div>
   <div class="card metric ${critical?'danger':quality.length?'warn':''}"><small>データ整合性</small><b>${critical} / ${quality.length}</b><span>重大 / 全確認事項</span></div>
   <div class="card metric ${storageErrors?'danger':'ok'}"><small>ブラウザ保存</small><b>${storageErrors?'要確認':'正常'}</b><span>${storageErrors?storageErrors+'件の読込・保存異常':'最終 '+esc(String(lastSaved).replace('T',' ').slice(0,19))}</span></div>
+  <div class="card metric ${bootErrors?'danger':'ok'}"><small>起動・データ移行</small><b>${bootErrors?'要確認':'正常'}</b><span>スキーマ ${esc(bootSchema)}${bootErrors?' / '+bootErrors+'件失敗':''}</span></div>
   <div class="card metric ${over?'danger':''}"><small>期限超過</small><b>${over}</b><span>全モジュール共通判定</span></div>
   <div class="card metric"><small>監査履歴</small><b>${structured}</b><span>操作記録</span></div>
   <div class="card metric"><small>権限ポリシー</small><b>${Object.keys(ACCESS_POLICY).length}</b><span>共通ルール</span></div>
@@ -3891,5 +3893,48 @@ function setFormSaveLabel(label){if(typeof fsave!=='undefined')fsave.textContent
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
-ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_MODE;setPreviewRole(PREVIEW_MODE);renderAll();
+
+const APP_DATA_SCHEMA='v68.5';
+const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
+function runBootStep(label,fn){
+ try{
+  fn();
+  BOOT_HEALTH.steps.push({label,ok:true});
+  return true
+ }catch(err){
+  let message=String(err?.message||err);
+  BOOT_HEALTH.steps.push({label,ok:false,message});
+  BOOT_HEALTH.errors.push({label,message});
+  console.error('[起動移行]',label,err);
+  return false
+ }
+}
+function runBootMigrations(){
+ try{BOOT_HEALTH.previousSchema=localStorage.getItem('v68SCHEMA')||''}catch(_){}
+ [
+  ['事故サンプル補完',ensureAccidentSamples],
+  ['事故項目移行',ensureAccidentWorkflowFields],
+  ['車両項目移行',ensureVehicleFields],
+  ['ヒヤリ項目移行',ensureNearMissWorkflowFields],
+  ['苦情項目移行',ensureComplaintFields],
+  ['資格項目移行',ensureQualifications],
+  ['引継ぎ項目移行',ensureHandoffFields],
+  ['共通ID補完',ensureCoreRecordIds],
+  ['資格書類リンク補完',ensureCredentialLinks],
+  ['掲示・申請項目移行',ensureCommsFields],
+  ['共通メタ情報補完',ensureRecordMetadata],
+  ['監査メタ情報補完',ensureAuditMetadata],
+  ['勤務集計移行',migrateLegacyWorkSummary]
+ ].forEach(([label,fn])=>runBootStep(label,fn));
+ BOOT_HEALTH.completed=true;
+ if(!BOOT_HEALTH.errors.length){
+  try{localStorage.setItem('v68SCHEMA',APP_DATA_SCHEMA);localStorage.setItem('v68LAST_BOOT',new Date().toISOString())}catch(err){
+   BOOT_HEALTH.errors.push({label:'スキーマ記録',message:String(err?.message||err)})
+  }
+ }
+}
+runBootMigrations();
+setSize(localStorage.getItem('v23Size')||'normal');
+rolePreview.value=PREVIEW_MODE;
+setPreviewRole(PREVIEW_MODE);
 </script></body></html>
