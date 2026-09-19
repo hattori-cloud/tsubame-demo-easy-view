@@ -1412,12 +1412,21 @@ function setPreviewRole(mode){
  if(PREVIEW_ROLE!=='一般社員'&&document.querySelector('.page.active')?.id==='my')go('home');
  EMP_PAGE=1;renderAll()
 }
-function scopedEmployees(){
+function grantedEmployees(){
  if(PREVIEW_ROLE==='一般社員')return E.filter(e=>e.no===currentSelfNo());
  if(PREVIEW_ROLE==='管理者'){
-  return E.filter(e=>employeeMatchesAssignedScope(e)&&(!ADMIN_OFFICE_SCOPE||e.branch===ADMIN_OFFICE_SCOPE)&&(!ADMIN_DEPT_SCOPE||e.dept===ADMIN_DEPT_SCOPE))
+  if(isFullCompanyAdmin())return E.slice();
+  return E.filter(employeeMatchesAssignedScope)
  }
  return []
+}
+function inGrantedEmployeeScope(no){return grantedEmployees().some(e=>e.no===String(no))}
+function scopedEmployees(){
+ let list=grantedEmployees();
+ if(PREVIEW_ROLE==='管理者'){
+  return list.filter(e=>(!ADMIN_OFFICE_SCOPE||e.branch===ADMIN_OFFICE_SCOPE)&&(!ADMIN_DEPT_SCOPE||e.dept===ADMIN_DEPT_SCOPE))
+ }
+ return list
 }
 function inCurrentEmployeeScope(no){return scopedEmployees().some(e=>e.no===String(no))}
 function scopedAccidents(){return A.filter(a=>inCurrentEmployeeScope(a.employee_no))}
@@ -1428,7 +1437,7 @@ function scopedNearMisses(){return N.filter(n=>inCurrentEmployeeScope(n.employee
 function scopedComplaints(){return C.filter(c=>c.employee_no?inCurrentEmployeeScope(c.employee_no):isFullCompanyAdmin())}
 function scopedApplications(){return APPLICATIONS.filter(a=>a.employee_no?inCurrentEmployeeScope(a.employee_no):isFullCompanyAdmin())}
 function scopedGuidance(){return GUIDANCE.filter(g=>inCurrentEmployeeScope(g.employee_no))}
-function isFullCompanyAdmin(){return PREVIEW_ROLE==='管理者'&&PREVIEW_MODE==='full'}
+function isFullCompanyAdmin(){return PREVIEW_ROLE==='管理者'&&currentPreviewUser()?.adminLevel==='full'}
 const ACCESS_POLICY={
  employee:{view:'self_or_scope',edit:'admin_scope',create:'full_admin',transfer:'full_admin',lifecycle:'full_admin'},
  qualification:{view:'self_or_scope',edit:'admin_scope'},
@@ -1443,6 +1452,7 @@ const ACCESS_POLICY={
  guidance:{view:'admin_scope',edit:'admin_scope'},
  driver_ledger:{view:'admin_scope',edit:'admin_scope'},
  vehicle:{view:'admin_scope',edit:'admin_scope'},
+ application:{view:'self_or_scope',edit:'admin_scope'},
  procedures:{view:'full_admin',edit:'full_admin'},
  admin_sensitive:{view:'full_admin',edit:'full_admin'}
 };
@@ -1450,14 +1460,14 @@ const MANAGEMENT_RECORD_TYPES=new Set(['accident','complaint','near_miss','guida
 const SELF_VISIBLE_DOCUMENT_CATEGORIES=new Set(['資格証憑','本人確認']);
 function accessRuleAllows(rule,no,record=null){
  if(rule==='full_admin')return isFullCompanyAdmin();
- if(rule==='admin_scope')return PREVIEW_ROLE==='管理者'&&!!no&&inCurrentEmployeeScope(no);
+ if(rule==='admin_scope')return PREVIEW_ROLE==='管理者'&&!!no&&inGrantedEmployeeScope(no);
  if(rule==='self_or_scope'){
-  if(PREVIEW_ROLE==='管理者')return !!no&&inCurrentEmployeeScope(no);
+  if(PREVIEW_ROLE==='管理者')return !!no&&inGrantedEmployeeScope(no);
   return !!no&&String(no)===String(currentSelfNo())
  }
  if(rule==='document_rule'){
   if(!record)return false;
-  if(PREVIEW_ROLE==='管理者')return inCurrentEmployeeScope(record.employee_no);
+  if(PREVIEW_ROLE==='管理者')return inGrantedEmployeeScope(record.employee_no);
   return String(record.employee_no)===String(currentSelfNo())&&SELF_VISIBLE_DOCUMENT_CATEGORIES.has(record.category)
  }
  return false
@@ -1475,7 +1485,7 @@ function canManageSafetyDecision(no=''){
  let u=currentPreviewUser();
  if(PREVIEW_ROLE!=='管理者'||!u?.safetyAuthority)return false;
  if(!no)return true;
- return inCurrentEmployeeScope(no)
+ return inGrantedEmployeeScope(no)
 }
 function guardEmployeeView(no,label='社員情報'){if(!canAccess('employee','view',no)){alert('現在の担当範囲では'+label+'を表示できません');return false}return true}
 function guardEmployeeEdit(no,label='この記録'){if(!canEditEmployee(no)){alert('現在の担当範囲では'+label+'を更新できません');return false}return true}
@@ -1697,8 +1707,7 @@ function openApplicationForm(){
 }
 function applicationDetail(id){
  let a=APPLICATIONS.find(x=>x.id===id);if(!a)return;
- if(PREVIEW_ROLE==='一般社員'&&String(a.employee_no)!==String(currentSelfNo())){alert('本人の申請だけ確認できます');return}
- if(PREVIEW_ROLE==='管理者'&&!inCurrentEmployeeScope(a.employee_no)){alert('現在の担当範囲ではこの申請を確認できません');return}
+ if(!canAccess('application','view',a.employee_no)){alert(PREVIEW_ROLE==='一般社員'?'本人の申請だけ確認できます':'現在の担当範囲ではこの申請を確認できません');return}
  let e=emp(a.employee_no);
  dttl.textContent='申請詳細 '+a.id;
  dbody.innerHTML=`<div class="section"><h3>${esc(a.type)}</h3><div class="infogrid"><div class="info"><label>申請者</label><b>${e?esc(e.no+' '+e.name):esc(a.employee_no)}</b></div><div class="info"><label>申請日</label><b>${esc(a.date)}</b></div><div class="info"><label>状態</label>${badge(a.status)}</div><div class="info"><label>最終確認者</label><b>${esc(a.reviewedBy||'-')}</b></div></div></div><div class="section"><h3>申請内容</h3><div class="acc-v50-text">${esc(a.detail||'内容未登録')}</div></div>`+
@@ -1707,7 +1716,7 @@ function applicationDetail(id){
 }
 function updateApplicationStatus(id,status){
  if(PREVIEW_ROLE!=='管理者')return;
- let a=APPLICATIONS.find(x=>x.id===id);if(!a||!inCurrentEmployeeScope(a.employee_no))return;
+ let a=APPLICATIONS.find(x=>x.id===id);if(!a||!canAccess('application','edit',a.employee_no))return;
  let actor=currentActorIdentity();a.status=status;a.updatedDate=TODAY;a.reviewedBy=actor.name;touchRecord(a,'application',false);save();audit('申請状態更新',id+' '+status,{employee_no:a.employee_no,entity_type:'application',entity_id:id});renderComms();applicationDetail(id)
 }
 function renderCompanySpec(){
@@ -1962,8 +1971,9 @@ function renderFoundationStatus(){
  let el=document.getElementById('foundationStatus');if(!el)return;
  let quality=qualityIssues(),deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length;
  let structured=AUDIT.filter(x=>x.structured).length,mc=metadataCoverage(),moduleCount=coreRecordCollections().length;
+ let grantedCount=grantedEmployees().length,displayCount=scopedEmployees().length;
  el.innerHTML=`<div class="metrics" style="margin-top:0">
-  <div class="card metric"><small>社員データ</small><b>${scopedEmployees().length}</b><span>現在の権限範囲</span></div>
+  <div class="card metric"><small>権限対象 / 画面表示</small><b>${grantedCount} / ${displayCount}</b><span>固定権限と表示絞込を分離</span></div>
   <div class="card metric ${quality.some(x=>x.level==='bad')?'danger':quality.length?'warn':''}"><small>品質チェック</small><b>${quality.length}</b><span>重複・未入力・矛盾</span></div>
   <div class="card metric ${over?'danger':''}"><small>期限超過</small><b>${over}</b><span>全モジュール共通判定</span></div>
   <div class="card metric"><small>監査履歴</small><b>${structured}</b><span>操作記録</span></div>
@@ -1971,7 +1981,7 @@ function renderFoundationStatus(){
   <div class="card metric"><small>共通メタ情報</small><b>${mc.meta}/${mc.total}</b><span>更新履歴あり ${mc.updated}件</span></div>
   <div class="card metric"><small>共通データ基盤</small><b>${moduleCount}</b><span>共通管理コレクション</span></div>
  </div>
- <div class="scope-note" style="margin-top:9px">共有デモはブラウザ保存です。本運用では認証・DB・サーバー側権限制御・バックアップ・監査ログをサーバー側へ移します。</div>`
+ <div class="scope-note" style="margin-top:9px">権限判定は利用者に固定された担当範囲、事業所・部署セレクトは画面表示の絞り込みとして分離しています。共有デモはブラウザ保存です。本運用では認証・DB・サーバー側権限制御・バックアップ・監査ログをサーバー側へ移します。</div>`
 }
 let ACTION_QUEUE_ACTIVE=false;
 let ACTION_QUEUE_CURRENT='';
@@ -2179,7 +2189,7 @@ function procedureTemplate(status){
 }
 function procKey(no,item){return no+'|'+item}
 function toggleProcedure(no,item,checked){
- if(!isFullCompanyAdmin()||!inCurrentEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ更新できます');return}
+ if(!canAccess('procedures','edit')||!inGrantedEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ更新できます');return}
  PROCEDURES[procKey(no,item)]=checked;localStorage.setItem('v30PROCEDURES',JSON.stringify(PROCEDURES));
  audit('手続チェック更新',`${no} ${item}：${checked?'完了':'未完了'}`,{employee_no:no});employeeProcedures(no)
 }
@@ -2195,7 +2205,7 @@ function employeeGuidance(no,page=1){
  dbody.innerHTML=body
 }
 function guidanceDetail(id,no){
- if(!guardManagementRecord('guidance',no,'面談・指導'))return;let g=GUIDANCE.find(x=>x.id===id&&x.employee_no===String(no));if(!g||!inCurrentEmployeeScope(g.employee_no)){alert('現在の担当範囲ではこの面談・指導を表示できません');return}
+ if(!guardManagementRecord('guidance',no,'面談・指導'))return;let g=GUIDANCE.find(x=>x.id===id&&x.employee_no===String(no));if(!g||!canAccess('guidance','view',g.employee_no)){alert('現在の担当範囲ではこの面談・指導を表示できません');return}
  dttl.textContent='面談・指導詳細';
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeGuidance('${no}')">← 面談・指導一覧へ戻る</button><button class="btn" onclick="employeeDetail('${no}')">社員詳細へ戻る</button></div><div class="section"><h3>面談情報</h3><div class="infogrid"><div class="info"><label>日付</label><b>${g.date}</b></div><div class="info"><label>区分</label><b>${esc(g.type)}</b></div><div class="info"><label>担当</label><b>${esc(g.owner)}</b></div><div class="info"><label>次回確認</label><b>${g.next||'-'}</b></div></div></div><div class="section"><h3>内容</h3><div>${esc(g.summary)}</div></div>`
 }
@@ -2286,7 +2296,7 @@ function deleteDocument(id){
  save();renderAll();employeeDocuments(no)
 }
 function employeeProcedures(no){
- if(!isFullCompanyAdmin()||!inCurrentEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ確認できます');return}
+ if(!canAccess('procedures','view')||!inGrantedEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ確認できます');return}
  let e=emp(no),items=procedureTemplate(e.status),done=items.filter(i=>PROCEDURES[procKey(no,i)]).length;
  dttl.textContent=`${e.name} の手続`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="list-summary"><div><div class="related-title">${esc(e.status)} 手続</div><div class="mini">${items.length?`${done}/${items.length} 完了`:'現在必要な手続チェックはありません。'}</div></div>${items.length?badge(done===items.length?'完了':'要確認'):badge('対象なし')}</div>`+
@@ -2326,7 +2336,7 @@ function safetyDecisionHistoryHtml(e){
  '</div></div>'
 }
 function employeeDetail(no){
- let e=emp(no);if(!e||!scopedEmployees().some(x=>x.no===no)){alert('この画面確認の権限では表示できません');return}
+ let e=emp(no);if(!e||!canAccess('employee','view',no)){alert('この画面確認の権限では表示できません');return}
  rememberEmployee(no);
  let aa=A.filter(x=>x.employee_no===no),tt=TR.filter(x=>x.employee_no===no),assets=AS.filter(x=>x.employee_no===no),qq=QUAL.filter(x=>x.employee_no===no),gg=GUIDANCE.filter(x=>x.employee_no===no),dd=DOCS.filter(x=>x.employee_no===no&&canViewDocumentRecord(x)),pp=procedureTemplate(e.status);
  let w=e.workSummary||{month:'-',restraint:'-',remaining:'-',overtime:e.overtime||0,lastPosted:'-',status:'未確認'};
@@ -2440,7 +2450,7 @@ function employeeCertUniform(no){
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="section"><h3>社内認定</h3><div>${e.companyCerts?.length?e.companyCerts.map(x=>`<span class="badge ok">${x}</span>`).join(' '):'登録なし'}<div class="mini">英語ドライバー・観光ドライバーは有効期限なし。</div></div></div><div class="section"><h3>現在の制服サイズ</h3><div class="infogrid"><div class="info"><label>ジャケット</label><b>${e.uniform?.jacket||'-'}</b></div><div class="info"><label>スラックス</label><b>${e.uniform?.slacks||'-'}</b></div><div class="info"><label>カッターシャツ</label><b>${e.uniform?.shirt||'-'}</b></div></div></div>`
 }
 function employeeAdminOnly(no){
- if(!roleCanSeeSensitive()||!inCurrentEmployeeScope(no)){alert('全社管理者専用です');return}let e=emp(no);dttl.textContent=`${e.name} の管理者専用情報`;
+ if(!roleCanSeeSensitive()||!inGrantedEmployeeScope(no)){alert('全社管理者専用です');return}let e=emp(no);dttl.textContent=`${e.name} の管理者専用情報`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="sensitive-note">労働条件通知書、社会保険・雇用保険・年金、給与振込・扶養、二種免許養成条件は管理者限定です。共有デモでは実値を表示しません。</div><div class="section" style="margin-top:10px"><h3>二種免許養成</h3><div><b>学校候補：</b>高陽自動車学校 / Mランド（島根） / ロイヤルドライビングスクール（福山）<br><b>高陽の会社立替：</b>180,000円<br><span class="mini">その他の金額・返納条件は本番覚書と照合が必要です。</span></div></div><div class="section"><h3>労働条件・保険</h3><div>共有デモでは機密値を非表示にしています。</div></div>`
 }
 
@@ -2636,7 +2646,7 @@ function appendCaseNote(kind,id,inputId){
 function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  if(PREVIEW_ROLE!=='管理者'){alert('事故詳細は管理者のみ確認できます');return}
  let a=A.find(x=>x.id===id);
- if(!a||!inCurrentEmployeeScope(a.employee_no)){alert('現在の担当範囲ではこの事故情報を表示できません');return}
+ if(!a||!canAccess('accident','view',a.employee_no)){alert('現在の担当範囲ではこの事故情報を表示できません');return}
  let state=accidentDeadlineState(a),n=a.due?days(a.due):9999;
  dttl.textContent='事故詳細 '+a.id;
  dbody.innerHTML=`${backNo?`<div class="backbar"><button class="btn soft" onclick="employeeAccidents('${backNo}',${backPage},'${backFilter}')">← 事故履歴一覧へ戻る</button><button class="btn" onclick="employeeDetail('${backNo}')">社員詳細へ戻る</button></div>`:''}
@@ -2731,7 +2741,7 @@ function renderVehicles(){
 }
 function vehicleDetail(id){
  let v=V.find(x=>x.id===id);if(!v)return;
- if(PREVIEW_ROLE!=='管理者'||!v.employee_no||!inCurrentEmployeeScope(v.employee_no)){alert('現在の担当範囲ではこの車両を表示できません');return}
+ if(PREVIEW_ROLE!=='管理者'||!v.employee_no||!canAccess('vehicle','view',v.employee_no)){alert('現在の担当範囲ではこの車両を表示できません');return}
  let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v);
  dttl.textContent='車両詳細 '+v.id;
  dbody.innerHTML=`<div class="detail-actions">${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
