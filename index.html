@@ -741,7 +741,7 @@ function currentActorIdentity(){
  u=u||USERS.find(x=>x.employee_no===String(no))||{id:'EMP-'+String(no||'SELF'),name:emp(String(no))?.name||'一般社員'};
  return {id:u.id||'',name:u.name||'一般社員',role:'一般社員'}
 }
-function requireInputsfunction requireInputs(items){
+function requireInputs(items){
  let missing=items.filter(x=>!String(x.value??'').trim()).map(x=>x.label);
  if(!missing.length)return true;
  alert('次の項目を入力してください。\n\n・'+missing.join('\n・'));
