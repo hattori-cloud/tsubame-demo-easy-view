@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v66</title>
+<title>つばめ交通株式会社 社員一元管理システム v67</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -358,8 +358,8 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .application-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 </style>
 </head><body>
-<div class="demo">共有デモ v66｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
-<header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
+<div class="demo">共有デモ v67｜3段階権限・複数担当範囲を分離｜社員120名｜すべて架空データです</div>
+<header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>担当範囲の重要事項から順に確認できます。</p></div></div>
@@ -407,7 +407,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v66：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v67：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録・権限設定は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -694,43 +694,52 @@ function syncDocumentQualificationLink(d,qid){
 
 
 
-let PREVIEW_ROLE=localStorage.getItem('v31ROLE')||'管理者';if(!['管理者','一般社員'].includes(PREVIEW_ROLE)){PREVIEW_ROLE='一般社員';localStorage.setItem('v31ROLE',PREVIEW_ROLE)}
+let PREVIEW_MODE=localStorage.getItem('v67ROLE')||'full';
+if(!['full','scoped','self'].includes(PREVIEW_MODE)){PREVIEW_MODE='full';localStorage.setItem('v67ROLE',PREVIEW_MODE)}
+let PREVIEW_ROLE=PREVIEW_MODE==='self'?'一般社員':'管理者';
 const COMPANY_SPEC={offices:['本社','府中','馬木'],employment:['正社員','定時制','パート'],taxiSections:['タクシー1課','タクシー2課','タクシー3課'],workPatterns:['隔日勤務','日勤','夜勤'],companyCerts:['英語ドライバー','観光ドライバー']};
 const USERS=[
- {id:'EMP-1002',name:'検証管理者',role:'管理者',scope:'担当事業所 × 担当部署（全社設定可）',state:'有効',mfa:'設定済',sessions:1},
- {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',scope:'安全管理',state:'有効',mfa:'設定済',sessions:0},
- {id:'ADMIN-OPS',name:'運行管理担当（仮）',role:'管理者',scope:'運行管理',state:'有効',mfa:'設定済',sessions:0},
- {id:'EMP-1001',employee_no:'1001',name:'安芸 太郎',role:'一般社員',scope:'本人のみ',state:'有効',mfa:'未設定（デモ）',sessions:1}
+ {id:'EMP-1002',name:'検証管理者',role:'管理者',adminLevel:'full',scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1},
+ {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',adminLevel:'scoped',scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0},
+ {id:'ADMIN-OPS',name:'運行管理担当（仮）',role:'管理者',adminLevel:'scoped',scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0},
+ {id:'EMP-1001',employee_no:'1001',name:'安芸 太郎',role:'一般社員',adminLevel:'self',scope:'本人のみ',scopes:[],state:'有効',mfa:'未設定（デモ）',sessions:1}
 ];
+function currentPreviewUser(){
+ if(PREVIEW_MODE==='full')return USERS.find(u=>u.id==='EMP-1002');
+ if(PREVIEW_MODE==='scoped')return USERS.find(u=>u.id==='ADMIN-OPS');
+ return USERS.find(u=>u.id==='EMP-1001')
+}
+function previewRoleLabel(){return PREVIEW_MODE==='full'?'全社管理者':PREVIEW_MODE==='scoped'?'担当管理者':'一般社員'}
 function activeManagers(){return USERS.filter(u=>u.role==='管理者'&&u.state==='有効')}
 function managerById(id){return activeManagers().find(u=>u.id===String(id))}
 function managerByName(name){return activeManagers().find(u=>u.name===String(name))}
 function managerSelectOptions(selectedId='',selectedName=''){
  let current=managerById(selectedId)||managerByName(selectedName)||activeManagers()[0];
- return activeManagers().map(u=>`<option value="${esc(u.id)}" ${current&&u.id===current.id?'selected':''}>${esc(u.name)} / ${esc(u.scope||'管理者')}</option>`).join('')
+ return activeManagers().map(u=>`<option value="${esc(u.id)}" ${current&&u.id===current.id?'selected':''}>${esc(u.name)} / ${esc(u.adminLevel==='full'?'全社管理者':'担当管理者')} / ${esc(u.scope||'未設定')}</option>`).join('')
 }
 function resolveManagerSelection(id){
  let u=managerById(id);
- return u?{id:u.id,name:u.name,scope:u.scope||'管理者'}:{id:'',name:'',scope:''}
+ return u?{id:u.id,name:u.name,scope:(u.adminLevel==='full'?'全社管理者':'担当管理者')+' / '+(u.scope||'未設定')}:{id:'',name:'',scope:''}
 }
 function currentAccidentReviewer(){
- const u=activeManagers()[0]||{id:'ADMIN-DEMO',name:'検証管理者'};
+ const u=currentPreviewUser()||{id:'ADMIN-DEMO',name:'検証管理者'};
  return {
    id:u.id||'ADMIN-DEMO',
    name:u.name||'検証管理者',
-   scope:isFullCompanyAdmin()?'全社管理者':'担当管理者 / '+adminScopeLabel()
+   scope:isFullCompanyAdmin()?'全社管理者':'担当管理者 / '+authorizedScopeLabel()
  }
 }
 function currentActorIdentity(){
+ let u=currentPreviewUser();
  if(PREVIEW_ROLE==='管理者'){
-  let u=activeManagers()[0]||{id:'ADMIN-DEMO',name:'検証管理者'};
-  return {id:u.id||'ADMIN-DEMO',name:u.name||'検証管理者',role:'管理者'}
+  u=u||activeManagers()[0]||{id:'ADMIN-DEMO',name:'検証管理者'};
+  return {id:u.id||'ADMIN-DEMO',name:u.name||'検証管理者',role:previewRoleLabel()}
  }
  let no=typeof currentSelfNo==='function'?currentSelfNo():'';
- let u=USERS.find(x=>x.employee_no===String(no))||{id:'EMP-'+String(no||'SELF'),name:emp(String(no))?.name||'一般社員'};
+ u=u||USERS.find(x=>x.employee_no===String(no))||{id:'EMP-'+String(no||'SELF'),name:emp(String(no))?.name||'一般社員'};
  return {id:u.id||'',name:u.name||'一般社員',role:'一般社員'}
 }
-function requireInputs(items){
+function requireInputsfunction requireInputs(items){
  let missing=items.filter(x=>!String(x.value??'').trim()).map(x=>x.label);
  if(!missing.length)return true;
  alert('次の項目を入力してください。\n\n・'+missing.join('\n・'));
@@ -1238,9 +1247,29 @@ function save(){localStorage.setItem('v45E',JSON.stringify(E));localStorage.setI
 
 let ADMIN_OFFICE_SCOPE=localStorage.getItem('v45ADMIN_OFFICE')||'';
 let ADMIN_DEPT_SCOPE=localStorage.getItem('v45ADMIN_DEPT')||'';
+function currentAdminAssignedScopes(){
+ let u=currentPreviewUser();
+ return PREVIEW_ROLE==='管理者'&&u&&Array.isArray(u.scopes)?u.scopes:[]
+}
+function scopePairLabel(s){
+ let office=s.office||'全事業所',dept=s.dept||'全部署';
+ return office+' × '+dept
+}
+function authorizedScopeLabel(){
+ if(isFullCompanyAdmin())return '全社';
+ let scopes=currentAdminAssignedScopes();
+ return scopes.length?scopes.map(scopePairLabel).join(' / '):'担当範囲なし'
+}
+function employeeMatchesAssignedScope(e){
+ if(isFullCompanyAdmin())return true;
+ return currentAdminAssignedScopes().some(s=>(!s.office||e.branch===s.office)&&(!s.dept||e.dept===s.dept))
+}
 function adminScopeLabel(){
- if(!ADMIN_OFFICE_SCOPE&&!ADMIN_DEPT_SCOPE)return '全社';
- let p=[];if(ADMIN_OFFICE_SCOPE)p.push(ADMIN_OFFICE_SCOPE);if(ADMIN_DEPT_SCOPE)p.push(ADMIN_DEPT_SCOPE);return p.join(' × ')
+ if(PREVIEW_ROLE!=='管理者')return '本人';
+ let auth=authorizedScopeLabel();
+ if(!ADMIN_OFFICE_SCOPE&&!ADMIN_DEPT_SCOPE)return auth;
+ let p=[];if(ADMIN_OFFICE_SCOPE)p.push(ADMIN_OFFICE_SCOPE);if(ADMIN_DEPT_SCOPE)p.push(ADMIN_DEPT_SCOPE);
+ return auth+' / 表示絞込 '+p.join(' × ')
 }
 function applyAdminScopeControls(){
  let o=document.getElementById('adminOfficeScope'),d=document.getElementById('adminDeptScope');
@@ -1254,27 +1283,32 @@ function setAdminScope(){
  ADMIN_OFFICE_SCOPE=document.getElementById('adminOfficeScope')?.value||'';
  ADMIN_DEPT_SCOPE=document.getElementById('adminDeptScope')?.value||'';
  localStorage.setItem('v45ADMIN_OFFICE',ADMIN_OFFICE_SCOPE);localStorage.setItem('v45ADMIN_DEPT',ADMIN_DEPT_SCOPE);
- if(PREVIEW_ROLE==='管理者')roleBadge.textContent='管理者 / '+adminScopeLabel();
+ if(PREVIEW_ROLE==='管理者')roleBadge.textContent=previewRoleLabel()+' / '+adminScopeLabel();
  applyAdminScopeControls();
  EMP_PAGE=1;renderAll()
 }
-function setPreviewRole(role){
- if(!['管理者','一般社員'].includes(role))role='一般社員';
- PREVIEW_ROLE=role;localStorage.setItem('v31ROLE',role);applyAdminScopeControls();
- roleBadge.textContent=role==='管理者'?'管理者 / '+adminScopeLabel():'一般社員 / 本人';
- document.querySelectorAll('.admin-only').forEach(x=>x.style.display=role==='管理者'?'':'none');
- document.querySelectorAll('.self-only').forEach(x=>x.style.display=role==='一般社員'?'':'none');
- document.querySelectorAll('.general-restricted').forEach(x=>x.style.display=role==='一般社員'?'none':'');
- if(role==='一般社員'&&!['home','my','emp','comms'].includes(document.querySelector('.page.active')?.id||'home'))go('home');
- if(role!=='一般社員'&&document.querySelector('.page.active')?.id==='my')go('home');
+function setPreviewRole(mode){
+ if(!['full','scoped','self'].includes(mode))mode='self';
+ PREVIEW_MODE=mode;
+ PREVIEW_ROLE=mode==='self'?'一般社員':'管理者';
+ localStorage.setItem('v67ROLE',mode);
+ applyAdminScopeControls();
+ roleBadge.textContent=PREVIEW_ROLE==='管理者'?previewRoleLabel()+' / '+adminScopeLabel():'一般社員 / 本人';
+ document.querySelectorAll('.admin-only').forEach(x=>x.style.display=PREVIEW_ROLE==='管理者'?'':'none');
+ document.querySelectorAll('.self-only').forEach(x=>x.style.display=PREVIEW_ROLE==='一般社員'?'':'none');
+ document.querySelectorAll('.general-restricted').forEach(x=>x.style.display=PREVIEW_ROLE==='一般社員'?'none':'');
+ if(PREVIEW_ROLE==='一般社員'&&!['home','my','emp','comms'].includes(document.querySelector('.page.active')?.id||'home'))go('home');
+ if(PREVIEW_ROLE!=='一般社員'&&document.querySelector('.page.active')?.id==='my')go('home');
  EMP_PAGE=1;renderAll()
 }
 function scopedEmployees(){
  if(PREVIEW_ROLE==='一般社員')return E.filter(e=>e.no===currentSelfNo());
- if(PREVIEW_ROLE==='管理者')return E.filter(e=>(!ADMIN_OFFICE_SCOPE||e.branch===ADMIN_OFFICE_SCOPE)&&(!ADMIN_DEPT_SCOPE||e.dept===ADMIN_DEPT_SCOPE));
+ if(PREVIEW_ROLE==='管理者'){
+  return E.filter(e=>employeeMatchesAssignedScope(e)&&(!ADMIN_OFFICE_SCOPE||e.branch===ADMIN_OFFICE_SCOPE)&&(!ADMIN_DEPT_SCOPE||e.dept===ADMIN_DEPT_SCOPE))
+ }
  return []
 }
-function inCurrentEmployeeScope(no){return scopedEmployees().some(e=>e.no===String(no))}
+function inCurrentEmployeeScopefunction inCurrentEmployeeScope(no){return scopedEmployees().some(e=>e.no===String(no))}
 function scopedAccidents(){return A.filter(a=>inCurrentEmployeeScope(a.employee_no))}
 function scopedTraining(){return TR.filter(t=>inCurrentEmployeeScope(t.employee_no))}
 function scopedAssets(){return AS.filter(a=>inCurrentEmployeeScope(a.employee_no))}
@@ -1283,7 +1317,7 @@ function scopedNearMisses(){return N.filter(n=>inCurrentEmployeeScope(n.employee
 function scopedComplaints(){return C.filter(c=>c.employee_no?inCurrentEmployeeScope(c.employee_no):isFullCompanyAdmin())}
 function scopedApplications(){return APPLICATIONS.filter(a=>a.employee_no?inCurrentEmployeeScope(a.employee_no):isFullCompanyAdmin())}
 function scopedGuidance(){return GUIDANCE.filter(g=>inCurrentEmployeeScope(g.employee_no))}
-function isFullCompanyAdmin(){return PREVIEW_ROLE==='管理者'&&!ADMIN_OFFICE_SCOPE&&!ADMIN_DEPT_SCOPE}
+function isFullCompanyAdmin(){return PREVIEW_ROLE==='管理者'&&PREVIEW_MODE==='full'}
 const ACCESS_POLICY={
  employee:{view:'self_or_scope',edit:'admin_scope',create:'full_admin'},
  qualification:{view:'self_or_scope',edit:'admin_scope'},
@@ -1550,15 +1584,15 @@ function renderCompanySpec(){
  <div class="company-item"><span class="mini">タクシー課</span><b>${taxi}名</b><div class="mini">在籍比率 ${active.length?Math.round(taxi/active.length*100):0}%</div></div>
  <div class="company-item"><span class="mini">バス課</span><b>${bus}名</b><div class="mini">在籍比率 ${active.length?Math.round(bus/active.length*100):0}%</div></div>
  <div class="company-item"><span class="mini">事業所</span><b>${officeCounts.map(x=>x[0]+' '+x[1]).join('・')}</b></div>
- <div class="company-item"><span class="mini">管理者担当範囲</span><b>事業所 × 部署</b><div class="mini">両方「全て」で全社管理者</div></div>
+ <div class="company-item"><span class="mini">管理者担当範囲</span><b>固定権限 + 事業所 × 部署</b><div class="mini">全社管理者／担当管理者を利用者ごとに固定。表示絞込では権限は広がりません。</div></div>
  <div class="company-item"><span class="mini">区分原則</span><b>事業所と部署は別管理</b></div>
  <div class="company-item"><span class="mini">安全原則</span><b>免許期限切れは乗務不可</b></div>
  <div class="company-item"><span class="mini">社員番号範囲</span><b>${empNos.length?empNos[0]+' ～ '+empNos[empNos.length-1]:'未登録'}</b></div>
  <div class="company-item"><span class="mini">マイナンバー</span><b>保存しない</b></div>`;
- let roles=[...new Set(USERS.map(u=>u.role))],activeUsers=USERS.filter(u=>u.state==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
+ let roles=['全社管理者','担当管理者','一般社員'],activeUsers=USERS.filter(u=>u.state==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
  userSummary.innerHTML=`<div class="row"><div><b>${roles.length}権限</b><div class="mini">${roles.map(esc).join(' / ')}</div></div><span class="badge ok">共通権限ポリシー</span></div>
  <div class="row"><div><b>有効利用者 ${activeUsers.length}名</b><div class="mini">管理者 ${managers.length}名 / 一般社員 ${activeUsers.filter(u=>u.role==='一般社員').length}名</div></div><span class="badge ok">状態確認</span></div>
- <div class="row"><div><b>管理者の表示範囲</b><div class="mini">担当事業所 × 担当部署で制御。画面と本番APIの両方で同じ制御を行う設計です。</div></div><span class="badge ok">範囲制御</span></div>`;
+ <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。権限設定は全社管理者のみです。</div></div><span class="badge ok">固定範囲</span></div>`;
  readiness.innerHTML=[['実サーバーHTTPS','未確認','bad'],['実VPN・スマホ疎通','未確認','bad'],['MFA本番必須化','未確認','bad'],['別故障領域バックアップ','実設備で未確認','bad'],['保存年限・紙原本方針','会社承認待ち','warn'],['実社員データ照合','未実施','bad'],['PC/スマホ実機受入','未完了','warn'],['PCA・アントレ・Eight','正式仕様未確定','warn'],['匿名開発版','検証資材あり','ok']].map(x=>`<div class="ready-item ${x[2]}"><b>${x[0]}</b><div class="mini">${x[1]}</div></div>`).join('');
  documentLifecycle.innerHTML=DOCS.slice().sort((a,b)=>{
   let sa=a.status==='原本確認済み'?1:0,sb=b.status==='原本確認済み'?1:0;
@@ -1566,7 +1600,7 @@ function renderCompanySpec(){
   return deadlinePriority(a.expiry)-deadlinePriority(b.expiry)
  }).slice(0,8).map(d=>`<div class="row"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)}${d.expiry?' / 期限 '+esc(d.expiry):''}</div></div><span class="badge ${d.status==='原本確認済み'?'ok':'warn'}">${esc(d.status||'確認待ち')}</span></div>`).join('')
 }
-function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限は全社管理者のみ確認できます');return}dttl.textContent='利用者・権限（共有デモ）';dbody.innerHTML=`<div class="spec-note">画面確認の切替は実権限を変更しません。本番では画面だけでなくAPIでも対象社員・項目を制限します。</div>`+USERS.map(u=>`<div class="row"><div><b>${u.id} ${esc(u.name)}</b><div class="mini">${u.role} / ${u.scope} / MFA ${u.mfa} / セッション ${u.sessions}</div></div>${badge(u.state)}</div>`).join('');showDetailModal()}
+function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認・変更できます');return}dttl.textContent='利用者・権限設定（全社管理者専用）';dbody.innerHTML=`<div class="spec-note">v67では権限を利用者に固定します。全社管理者は全社、担当管理者は割り当て済みの複数範囲だけ、一般社員は本人だけです。上部の事業所・部署は表示絞込であり権限変更ではありません。</div>`+USERS.map(u=>`<div class="row"><div><b>${u.id} ${esc(u.name)}</b><div class="mini">${u.adminLevel==='full'?'全社管理者':u.adminLevel==='scoped'?'担当管理者':'一般社員'} / ${u.scope} / MFA ${u.mfa} / セッション ${u.sessions}</div></div>${badge(u.state)}</div>`).join('');showDetailModal()}
 function showImportSpec(){if(!isFullCompanyAdmin()){alert('一括取込仕様は全社管理者のみ確認できます');return}dttl.textContent='入力用Excel・取込仕様';dbody.innerHTML=`<div class="section"><h3>入力用Excel</h3><div>11シート。取込対象は「社員基本」「資格技能」「労務・保険」「制服・二種免許」「健康診断」「勤務・残業」「事故」「退職者」の8シートです。</div></div><div class="section"><h3>安全条件</h3><div>社員コードで結び付け、空欄は既存値を保持。未照合の詳細行から社員を自動作成しません。管理者限定の機密シートを含みます。</div></div><div class="section"><h3>本番</h3><div>取込前チェック、別管理者承認、変更前バックアップ、監査を経て確定します。</div></div>`;showDetailModal()}
 
 
@@ -2766,5 +2800,5 @@ function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}func
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
-ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_ROLE;setPreviewRole(PREVIEW_ROLE);renderAll();
+ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_MODE;setPreviewRole(PREVIEW_MODE);renderAll();
 </script></body></html>
