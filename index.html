@@ -385,8 +385,19 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .action-queue-item .queue-main{min-width:0}
 .action-queue-item .queue-main b{display:block}
 .action-queue-item .queue-main .mini{margin-top:3px}
-@media(max-width:850px){.safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
-@media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}}
+.manager-workload-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.manager-workload-card{border:1px solid var(--line);border-radius:13px;background:#fff;padding:13px;text-align:left;cursor:pointer}
+.manager-workload-card:hover{border-color:#9ebdca;box-shadow:0 4px 14px rgba(35,74,91,.08)}
+.manager-workload-card.current{outline:2px solid #86b8cc}
+.manager-workload-card.danger{border-left:6px solid #c95b5b;background:#fff9f9}
+.manager-workload-card.warn{border-left:6px solid #d1a329}
+.manager-workload-name{font-weight:950;color:#244f63}
+.manager-workload-count{font-size:1.65rem;font-weight:950;line-height:1.15;margin:5px 0;color:#173f52}
+.manager-workload-breakdown{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.manager-workload-breakdown span{font-size:.68rem;font-weight:900;background:#eef5f8;border-radius:999px;padding:4px 7px}
+@media(max-width:850px){.manager-workload-grid{grid-template-columns:1fr 1fr}
+.safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
+@media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
 <div class="demo">本番反映版 v68｜社内運用候補｜社員120名の架空データ｜本番DB・認証接続前は実社員データ入力禁止</div>
@@ -539,6 +550,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 <section class="page" id="manage"><div class="page-title"><div><h2>管理</h2><p>会社固有設定、利用者・権限、導入前確認、取込・監査をまとめます。</p></div></div>
 <div class="spec-note">担当管理者は担当範囲内の社員・勤務・期限・資格・書類・車両・安全記録・申請を管理します。在籍状態変更、会社固有設定、利用者権限、機密情報、一括取込、通知ルール変更は全社管理者のみです。共有デモでは実社員情報や本番秘密情報を扱いません。</div>
 <div class="card" style="margin-top:12px"><h3>管理者要対応</h3><div id="adminOverview"></div></div>
+<div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">管理者別 担当状況</h3><div class="mini">事故・苦情・ヒヤリの未完了案件を担当者別に集計します。数字を押すと案件内容を確認できます。</div></div><button class="btn soft" onclick="renderManagerWorkload()">再集計</button></div><div id="managerWorkload" class="manager-workload-grid"></div></div>
 <div class="card" style="margin-top:12px"><h3>システム基盤状態</h3><div id="foundationStatus"></div></div><div class="v46-security-note">本番運用では、画面側の制御だけでなくAPI・データ保存側でも同じ権限制御を必ず実装してください。担当範囲外の社員番号を直接指定しても取得・更新できないことをサーバー側で検証します。</div>
 <div class="grid2 full-admin-only"><div class="card"><h3>会社固有設定</h3><div id="companySpec" class="company-grid"></div></div><div class="card"><h3>利用者・権限</h3><div id="userSummary"></div><button class="btn soft" style="margin-top:9px" onclick="showUsers()">利用者一覧を確認</button></div></div>
 <div class="card full-admin-only" style="margin-top:12px"><h3>導入前チェック</h3><div id="readiness" class="readiness-grid"></div></div>
@@ -776,11 +788,14 @@ function currentActorIdentity(){
  return {id:u.id||'',name:u.name||'一般社員',role:'一般社員'}
 }
 let MY_TASKS_ONLY=localStorage.getItem('v68MYTASKS')==='1';
+function recordAssignedToManager(rec,manager){
+ if(!rec||!manager)return false;
+ if(rec.ownerId)return String(rec.ownerId)===String(manager.id);
+ return !!rec.owner&&String(rec.owner)===String(manager.name)
+}
 function recordAssignedToCurrentManager(rec){
  if(PREVIEW_ROLE!=='管理者'||!rec)return false;
- let actor=currentActorIdentity();
- if(rec.ownerId)return String(rec.ownerId)===String(actor.id);
- return !!rec.owner&&String(rec.owner)===String(actor.name)
+ return recordAssignedToManager(rec,currentActorIdentity())
 }
 function deadlineAssignedToCurrentManager(x){
  if(PREVIEW_ROLE!=='管理者'||!x)return false;
@@ -1715,6 +1730,44 @@ function renderCredentialCenterRows(){
  });
  rows.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));
  let el=document.getElementById('credentialRows');if(el)el.innerHTML=rows.length?rows.map(x=>x.html).join(''):'<div class="mini">該当する資格・書類はありません。</div>'
+}
+function managerWorkloadData(manager){
+ let accidents=scopedAccidents().filter(a=>a.phase!=='完了'&&recordAssignedToManager(a,manager));
+ let complaints=scopedComplaints().filter(x=>x.status!=='完了'&&recordAssignedToManager(x,manager));
+ let near=scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)&&recordAssignedToManager(x,manager));
+ let overdue=accidents.filter(a=>accidentDeadlineState(a)==='over').length+complaints.filter(x=>complaintState(x)==='over').length;
+ return {manager,accidents,complaints,near,total:accidents.length+complaints.length+near.length,overdue}
+}
+function managerWorkloadUnassigned(){
+ let accidents=scopedAccidents().filter(a=>a.phase!=='完了'&&!a.ownerId&&!String(a.owner||'').trim());
+ let complaints=scopedComplaints().filter(x=>x.status!=='完了'&&!x.ownerId&&!String(x.owner||'').trim());
+ let near=scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)&&!x.ownerId&&!String(x.owner||'').trim());
+ let overdue=accidents.filter(a=>accidentDeadlineState(a)==='over').length+complaints.filter(x=>complaintState(x)==='over').length;
+ return {manager:{id:'UNASSIGNED',name:'担当者未設定',scope:'要割当'},accidents,complaints,near,total:accidents.length+complaints.length+near.length,overdue}
+}
+function renderManagerWorkload(){
+ let el=document.getElementById('managerWorkload');if(!el||PREVIEW_ROLE!=='管理者')return;
+ let current=currentActorIdentity(),rows=activeManagers().map(managerWorkloadData),unassigned=managerWorkloadUnassigned();
+ if(unassigned.total)rows.push(unassigned);
+ rows.sort((a,b)=>b.overdue-a.overdue||b.total-a.total||String(a.manager.name).localeCompare(String(b.manager.name),'ja'));
+ el.innerHTML=rows.length?rows.map(r=>{
+  let cls=r.overdue?'danger':r.total?'warn':'',currentCls=r.manager.id===current.id?' current':'';
+  return `<button class="manager-workload-card ${cls}${currentCls}" onclick="showManagerWorkload('${esc(r.manager.id)}')"><div class="manager-workload-name">${esc(r.manager.name)}${r.manager.id===current.id?'（自分）':''}</div><div class="mini">${esc(r.manager.scope||'')}</div><div class="manager-workload-count">${r.total}件</div><div class="mini">期限超過 ${r.overdue}件</div><div class="manager-workload-breakdown"><span>事故 ${r.accidents.length}</span><span>苦情 ${r.complaints.length}</span><span>ヒヤリ ${r.near.length}</span></div></button>`
+ }).join(''):'<div class="mini">表示できる管理者がいません。</div>'
+}
+function showManagerWorkload(managerId){
+ if(PREVIEW_ROLE!=='管理者')return;
+ let data=managerId==='UNASSIGNED'?managerWorkloadUnassigned():managerWorkloadData(activeManagers().find(x=>x.id===managerId));
+ if(!data?.manager)return alert('管理者が見つかりません');
+ let rows=[
+  ...data.accidents.map(x=>({kind:'事故',id:x.id,name:x.driver||x.employee_no,state:x.phase,due:x.due,over:accidentDeadlineState(x)==='over',open:`accidentDetail('${x.id}')`})),
+  ...data.complaints.map(x=>({kind:'苦情',id:x.id,name:x.driverName||x.name||x.employee_no,state:x.status,due:x.followupDue,over:complaintState(x)==='over',open:`complaintDetail('${x.id}')`})),
+  ...data.near.map(x=>({kind:'ヒヤリ',id:x.id,name:x.driver||x.employee_no,state:x.action,due:'',over:false,open:`nearDetail('${x.id}')`}))
+ ].sort((a,b)=>(b.over?1:0)-(a.over?1:0)||String(a.kind).localeCompare(String(b.kind),'ja'));
+ dttl.textContent=data.manager.name+' の担当案件';
+ dbody.innerHTML=`<div class="list-summary"><div><b>未完了 ${data.total}件</b><div class="mini">事故 ${data.accidents.length} / 苦情 ${data.complaints.length} / ヒヤリ ${data.near.length}</div></div><span class="badge ${data.overdue?'danger':'ok'}">期限超過 ${data.overdue}件</span></div>`+
+ (rows.length?rows.map(x=>`<div class="row ${x.over?'quality-bad':''}"><div><b>${esc(x.kind)} / ${esc(x.id)} / ${esc(x.name)}</b><div class="mini">状態 ${esc(x.state||'未設定')}${x.due?' / 期限 '+esc(x.due)+' / '+esc(deadlineBucketLabel(x.due)):''}</div></div><button class="btn soft" onclick="${x.open}">詳細</button></div>`).join(''):'<div class="notice"><b>現在、未完了の担当案件はありません。</b></div>');
+ showDetailModal()
 }
 function renderAdminOverview(){
  let el=document.getElementById('adminOverview');if(!el)return;
@@ -3058,7 +3111,7 @@ detail.addEventListener('click',e=>{
    if(!text.includes('社員詳細へ戻る')&&DETAIL_HISTORY.length)DETAIL_HISTORY.pop();
    return
  }
- if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showQualityDetails|showUsers|showImportSpec/.test(code)){
+ if(/employeeAccidents|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showManagerWorkload|showQualityDetails|showUsers|showImportSpec/.test(code)){
    saveDetailState()
  }
 },true);
@@ -3066,6 +3119,6 @@ function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}func
 function setFormSaveLabel(label){if(typeof fsave!=='undefined')fsave.textContent=label||'保存'}
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
-function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
+function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 ensureAccidentSamples();ensureAccidentWorkflowFields();ensureVehicleFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureCommsFields();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_MODE;setPreviewRole(PREVIEW_MODE);renderAll();
 </script></body></html>
