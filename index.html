@@ -371,6 +371,10 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .safety-overview-card.danger{border-left:6px solid #ca5f5f;background:#fff9f9}
 .focus-guide{border:1px solid #c8dce6;background:#f7fbfd;border-radius:12px;padding:11px 13px;margin-bottom:10px;display:flex;gap:10px;justify-content:space-between;align-items:center;flex-wrap:wrap}
 .focus-guide strong{color:#234f65}
+.req{display:inline-flex;margin-left:6px;padding:1px 6px;border-radius:999px;background:#ffe8e8;color:#922c2c;font-size:.62rem;font-weight:950;vertical-align:middle}
+.form-flow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
+.form-flow span{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border-radius:999px;background:#edf5f8;color:#31596b;font-size:.7rem;font-weight:900}
+.form-help{grid-column:1/-1;border:1px solid #d9e7ed;background:#f9fcfd;border-radius:10px;padding:9px 11px;color:#55707e;font-size:.72rem;font-weight:800}
 @media(max-width:850px){.safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}}
 </style>
@@ -2388,7 +2392,7 @@ function openEmployeeEdit(no){
  let e=emp(no);if(!e)return;
  let full=isFullCompanyAdmin(),canAssignment=canChangeEmployeeAssignment(),canLifecycle=canChangeEmployeeLifecycle(),canSafety=canManageSafetyDecision(no);
  let branchDept=canAssignment?`<div class="field"><label>事業所</label><select id="feb">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div><div class="field"><label>部署</label><select id="fed">${depts.map(x=>`<option>${x}</option>`).join('')}</select></div>`:`<div class="field"><label>事業所</label><input value="${esc(e.branch)}" disabled></div><div class="field"><label>部署</label><input value="${esc(e.dept)}" disabled></div><div class="field wide"><div class="scope-note">事業所・部署は表示権限に関わるため、変更は全社管理者のみです。</div></div>`;
- fttl.textContent='社員情報を編集';
+ fttl.textContent='社員情報を編集';setFormSaveLabel('変更を保存する');
  fbody.innerHTML=`<div class="formnote">社員台帳を「基本・所属・勤務・安全・資格・書類」の6区分で管理します。</div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>本人と在籍を識別する情報</p></div>
   <div class="field"><label>社員番号</label><input value="${e.no}" disabled></div>
@@ -2601,12 +2605,12 @@ function openAccidentEdit(id){
 }
 function openEmployeeForm(){
  if(!canCreateEmployee()){alert('社員の新規登録は全社管理者のみ行えます');return}
- fttl.textContent='社員を登録';
+ fttl.textContent='社員を登録';setFormSaveLabel('社員を登録する');
  fbody.innerHTML=`<div class="formnote">社員台帳を6区分で登録します。共有デモ用の架空情報だけ入力してください。</div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>社員を識別する基本情報</p></div>
-  <div class="field"><label>氏名（仮名）</label><input id="fn" placeholder="例：広島 太郎"></div>
+  <div class="field"><label>氏名（仮名）<span class="req">必須</span></label><input id="fn" placeholder="例：広島 太郎"></div>
   <div class="field"><label>ふりがな（任意）</label><input id="ffuri"></div>
-  <div class="field"><label>入社日</label><input id="fhire" type="date" value="${TODAY}"></div>
+  <div class="field"><label>入社日<span class="req">必須</span></label><input id="fhire" type="date" value="${TODAY}"></div>
   <div class="field"><label>雇用区分</label><select id="femp">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
 
   <div class="employee-form-section"><h4>所属</h4><p>事業所・部署・役職を別々に管理</p></div>
@@ -2659,12 +2663,35 @@ function openEmployeeForm(){
  };
  form.classList.add('show')
 }
+function fillAccidentEmployeeDefaults(){
+ let e=emp(document.getElementById('fae')?.value);if(!e)return;
+ let vehicle=document.getElementById('fav');
+ if(vehicle){
+  let v=V.find(x=>x.employee_no===e.no&&x.status!=='廃車');
+  vehicle.value=v?.plate||''
+ }
+}
 function openAccidentForm(defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('事故登録は管理者のみ操作できます');return}
  let candidates=scopedEmployees().filter(e=>e.status==='在籍'&&['タクシー課','バス課'].includes(e.dept));if(!candidates.length){alert('現在の担当範囲に事故登録対象の乗務社員がいません');return}
- fttl.textContent='事故を登録';fbody.innerHTML=`<div class="formgrid"><div class="field"><label>乗務員</label><select id="fae">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)}</option>`).join('')}</select></div><div class="field"><label>発生日</label><input id="fad" type="date" value="${TODAY}"></div><div class="field wide"><label>事故場所</label><input id="faa"></div><div class="field wide"><label>概要</label><textarea id="fas"></textarea></div><div class="field"><label>担当者</label><select id="faowner">${managerSelectOptions(currentAccidentReviewer().id,currentAccidentReviewer().name)}</select></div><div class="field"><label>フォロー期限</label><input id="fadu" type="date"></div><div class="field wide"><label>次回対応内容</label><input id="fanext" placeholder="例：本人聞き取り、ドラレコ確認"></div></div>`;
+ fttl.textContent='事故を登録';setFormSaveLabel('事故を登録する');
+ fbody.innerHTML=`<div class="form-flow"><span>1 対象・日時</span><span>2 状況</span><span>3 担当・次回対応</span></div><div class="formgrid">
+ <div class="employee-form-section"><h4>1. 対象・日時</h4><p>誰の、いつの事故か</p></div>
+ <div class="field"><label>乗務員<span class="req">必須</span></label><select id="fae" onchange="fillAccidentEmployeeDefaults()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)}</option>`).join('')}</select></div>
+ <div class="field"><label>発生日<span class="req">必須</span></label><input id="fad" type="date" value="${TODAY}"></div>
+ <div class="field wide"><label>車番</label><input id="fav" placeholder="登録済み担当車両があれば自動候補"></div>
+ <div class="employee-form-section"><h4>2. 状況</h4><p>場所と概要を簡潔に記録</p></div>
+ <div class="field wide"><label>事故場所<span class="req">必須</span></label><input id="faa" placeholder="例：○○交差点付近"></div>
+ <div class="field wide"><label>概要<span class="req">必須</span></label><textarea id="fas" style="min-height:140px" placeholder="発生状況、相手方の有無、確認できた事実など"></textarea></div>
+ <div class="employee-form-section"><h4>3. 担当・次回対応</h4><p>誰が、いつまでに、何をするか</p></div>
+ <div class="field"><label>担当者<span class="req">必須</span></label><select id="faowner">${managerSelectOptions(currentAccidentReviewer().id,currentAccidentReviewer().name)}</select></div>
+ <div class="field"><label>フォロー期限</label><input id="fadu" type="date"></div>
+ <div class="field wide"><label>次回対応内容</label><input id="fanext" placeholder="例：本人聞き取り、ドラレコ確認"></div>
+ <div class="form-help">登録後に事故詳細画面で、原因・再発防止・対応履歴・完了確認を追記できます。</div>
+ </div>`;
  if(defaultNo&&candidates.some(e=>e.no===String(defaultNo)))fae.value=String(defaultNo);
- fsave.onclick=()=>{let e=emp(fae.value),ownerSel=resolveManagerSelection(faowner.value);if(!e||!guardEmployeeEdit(e.no,'事故記録'))return;if(!ownerSel.id)return alert('担当者を選択してください');if(!faa.value.trim()||!fas.value.trim())return alert('事故場所と概要は必須です');let aid='A-2026-'+String(A.length+1).padStart(3,'0'),arec={id:aid,date:fad.value,employee_no:e.no,driver:e.name,service:e.dept==='バス課'?'バス':'タクシー',vehicle:'未設定',address:faa.value.trim(),summary:fas.value.trim(),phase:'初報',cause:'未登録',prevention:'未登録',responseHistory:'',ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fanext.value.trim(),due:fadu.value};touchRecord(arec,'accident',true);A.push(arec);audit('事故登録',`${aid} ${e.name}`,{employee_no:e.no,entity_type:'accident',entity_id:aid});save();closeForm();renderAll();accidentDetail(aid)};
+ fillAccidentEmployeeDefaults();
+ fsave.onclick=()=>{let e=emp(fae.value),ownerSel=resolveManagerSelection(faowner.value);if(!e||!guardEmployeeEdit(e.no,'事故記録'))return;if(!fad.value)return alert('発生日を入力してください');if(!ownerSel.id)return alert('担当者を選択してください');if(!faa.value.trim()||!fas.value.trim())return alert('事故場所と概要は必須です');let aid='A-2026-'+String(A.length+1).padStart(3,'0'),arec={id:aid,date:fad.value,employee_no:e.no,driver:e.name,service:e.dept==='バス課'?'バス':'タクシー',vehicle:fav.value.trim()||'未設定',address:faa.value.trim(),summary:fas.value.trim(),phase:'初報',cause:'未登録',prevention:'未登録',responseHistory:'',ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fanext.value.trim(),due:fadu.value};touchRecord(arec,'accident',true);A.push(arec);audit('事故登録',`${aid} ${e.name}`,{employee_no:e.no,entity_type:'accident',entity_id:aid});save();closeForm();renderAll();accidentDetail(aid)};
  form.classList.add('show')
 }
 function openVehicleForm(idx=-1){
@@ -2714,14 +2741,17 @@ function openNearForm(idx=-1){
  let candidates=scopedEmployees().filter(e=>e.status!=='退職');
  if(!candidates.length){alert('現在の担当範囲に登録対象社員がいません');return}
  if(rec&&!candidates.some(e=>e.no===String(rec.employee_no))){alert('現在の担当範囲ではこのヒヤリハットを編集できません');return}
- fttl.textContent=rec?'ヒヤリハットを編集':'ヒヤリハットを登録';
+ fttl.textContent=rec?'ヒヤリハットを編集':'ヒヤリハットを登録';setFormSaveLabel(rec?'変更を保存する':'ヒヤリを登録する');
  let opts=candidates.map(e=>`<option value="${esc(e.no)}">${esc(e.no)} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
- fbody.innerHTML=`<div class="formnote">共有デモ用の架空情報だけ入力してください。担当者は有効な管理者一覧から選択します。</div><div class="formgrid">
-  <div class="field"><label>対象社員</label><select id="fne">${opts}</select></div>
-  <div class="field"><label>日付</label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
-  <div class="field"><label>担当者</label><select id="fnowner">${managerSelectOptions(rec?.ownerId,rec?.owner)}</select></div>
-  <div class="field wide"><label>内容</label><textarea id="fns" placeholder="ヒヤリハットの状況を簡潔に入力">${esc(rec?rec.summary:'')}</textarea></div>
-  <div class="field"><label>対応</label><select id="fna"><option>未対応</option><option>面談予定</option><option>指導予定</option><option>対応中</option><option>完了</option></select></div>
+ fbody.innerHTML=`<div class="form-flow"><span>1 対象・日付</span><span>2 内容</span><span>3 担当・対応</span></div><div class="formgrid">
+  <div class="employee-form-section"><h4>1. 対象・日付</h4><p>誰の、いつのヒヤリか</p></div>
+  <div class="field"><label>対象社員<span class="req">必須</span></label><select id="fne">${opts}</select></div>
+  <div class="field"><label>日付<span class="req">必須</span></label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
+  <div class="employee-form-section"><h4>2. 内容</h4><p>危なかった状況を短く具体的に</p></div>
+  <div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fns" style="min-height:140px" placeholder="例：交差点右折時、自転車の接近に気づくのが遅れた">${esc(rec?rec.summary:'')}</textarea></div>
+  <div class="employee-form-section"><h4>3. 担当・対応</h4><p>誰が、どの状態まで対応したか</p></div>
+  <div class="field"><label>担当者<span class="req">必須</span></label><select id="fnowner">${managerSelectOptions(rec?.ownerId,rec?.owner)}</select></div>
+  <div class="field"><label>対応状態</label><select id="fna"><option>未対応</option><option>面談予定</option><option>指導予定</option><option>対応中</option><option>完了</option></select></div>
  </div>`;
  fne.value=String(rec?rec.employee_no:candidates[0].no);fna.value=rec&&rec.action?rec.action:'未対応';
  fsave.onclick=()=>{
@@ -2771,12 +2801,12 @@ function openComplaintForm(idx=-1,defaultNo=''){
  let candidates=scopedEmployees().filter(e=>e.status!=='退職');if(!candidates.length){alert('現在の担当範囲に登録対象社員がいません');return}
  if(rec&&!candidates.some(e=>e.no===String(rec.employee_no))){alert('現在の担当範囲ではこの苦情記録を編集できません');return}
  let reviewer=currentAccidentReviewer(),selected=rec?emp(rec.employee_no):(candidates.find(e=>e.no===String(defaultNo))||candidates[0]);
- fttl.textContent=rec?'クレーム／お客様対応を編集':'クレーム／お客様対応を登録';
+ fttl.textContent=rec?'クレーム／お客様対応を編集':'クレーム／お客様対応を登録';setFormSaveLabel(rec?'変更を保存する':'苦情・お客様対応を登録する');
  let opts=candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
- fbody.innerHTML=`<div class="formnote">紙のクレーム表を置き換える入力画面です。上から順番に入力すれば完了します。共有デモではお客様名は仮名・匿名のみ入力してください。</div><div class="formgrid">
- <div class="employee-form-section"><h4>1. 受付</h4><p>誰が、いつ受け付けたか</p></div><div class="field"><label>対応者</label><input id="fcresp" value="${esc(rec?.responder||reviewer.name)}"></div><div class="field"><label>対応日</label><input id="fcdate" type="date" value="${esc(rec?.responseDate||rec?.date||TODAY)}"></div><div class="field"><label>対応時間</label><input id="fctime" type="time" value="${esc(rec?.responseTime||'')}"></div><div class="field"><label>入力者（自動）</label><input id="fcinput" value="${esc(rec?.inputBy||reviewer.name)}" disabled></div>
- <div class="employee-form-section"><h4>2. 対象乗務員・車両</h4><p>乗務員を選ぶと課と氏名は自動保存。担当車両があれば車番も候補入力します</p></div><div class="field wide"><label>乗務員</label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>車番</label><input id="fcvehicle" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="登録車両から自動候補"></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
- <div class="employee-form-section"><h4>3. お客様からの申告</h4><p>発生日時を分けて後から検索しやすくします</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容</label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
+ fbody.innerHTML=`<div class="formnote">紙のクレーム表を置き換える入力画面です。上から順番に入力すれば完了します。お客様名は仮名・匿名のみ入力してください。</div><div class="form-flow"><span>1 受付</span><span>2 対象</span><span>3 申告内容</span><span>4 対応</span><span>5 完了</span></div><div class="formgrid">
+ <div class="employee-form-section"><h4>1. 受付</h4><p>誰が、いつ受け付けたか</p></div><div class="field"><label>対応者</label><input id="fcresp" value="${esc(rec?.responder||reviewer.name)}"></div><div class="field"><label>対応日<span class="req">必須</span></label><input id="fcdate" type="date" value="${esc(rec?.responseDate||rec?.date||TODAY)}"></div><div class="field"><label>対応時間</label><input id="fctime" type="time" value="${esc(rec?.responseTime||'')}"></div><div class="field"><label>入力者（自動）</label><input id="fcinput" value="${esc(rec?.inputBy||reviewer.name)}" disabled></div>
+ <div class="employee-form-section"><h4>2. 対象乗務員・車両</h4><p>乗務員を選ぶと課と氏名は自動保存。担当車両があれば車番も候補入力します</p></div><div class="field wide"><label>乗務員<span class="req">必須</span></label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>車番</label><input id="fcvehicle" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="登録車両から自動候補"></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
+ <div class="employee-form-section"><h4>3. お客様からの申告</h4><p>発生日時を分けて後から検索しやすくします</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
  <div class="employee-form-section"><h4>4. 指導・対応</h4><p>誰が何をして、次に何をするか</p></div><div class="field wide"><label>指導内容</label><textarea id="fcguide" style="min-height:120px" placeholder="本人確認、指導内容、お客様への対応など">${esc(rec?.guidanceContent||'')}</textarea></div><div class="field"><label>指導者</label><input id="fcinst" value="${esc(rec?.instructor||'')}"></div><div class="field"><label>指導日</label><input id="fcguided" type="date" value="${esc(rec?.guidanceDate||'')}"></div><div class="field"><label>指導時間</label><input id="fcguidet" type="time" value="${esc(rec?.guidanceTime||'')}"></div><div class="field"><label>担当者</label><select id="fcowner">${managerSelectOptions(rec?.ownerId,rec?.owner||reviewer.name)}</select></div><div class="field"><label>フォロー期限</label><input id="fcdue" type="date" value="${esc(rec?.followupDue||'')}"></div><div class="field wide"><label>次回対応内容</label><input id="fcnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人再面談、お客様へ結果連絡"></div>
  <div class="employee-form-section"><h4>5. 完了</h4><p>完了にすると完了日と確認者を自動記録します</p></div><div class="field"><label>状態</label><select id="fcst"><option>受付</option><option>確認中</option><option>対応中</option><option>完了</option></select></div></div>`;
  fce.value=String(selected.no);fcst.value=rec?.status||'受付';fcrank.value=['未判定','A','B','C'].includes(rec?.rank)?rec.rank:'未判定';if(!rec)fillComplaintEmployeeDefaults();updateComplaintRankGuide(false);
@@ -2901,7 +2931,8 @@ detail.addEventListener('click',e=>{
    saveDetailState()
  }
 },true);
-function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}function closeForm(){form.classList.remove('show');fbody.innerHTML=''}
+function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}function closeForm(){form.classList.remove('show');fbody.innerHTML='';if(typeof fsave!=='undefined')fsave.textContent='保存'}
+function setFormSaveLabel(label){if(typeof fsave!=='undefined')fsave.textContent=label||'保存'}
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminOverview();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
