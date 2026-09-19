@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>つばめ交通株式会社 社員一元管理システム v62</title>
+<title>つばめ交通株式会社 社員一元管理システム v63</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -334,9 +334,16 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .work-priority-row.warn{border-left-color:#d4aa26;background:#fffdf3}
 .work-priority-row.danger{border-left-color:#ca5f5f;background:#fff8f8}
 @media(max-width:650px){.deadline-toolbar{grid-template-columns:1fr}}
+
+/* v63 qualification/document foundation */
+.credential-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.credential-kpi{border:1px solid var(--line);border-radius:11px;padding:10px;background:#fff}
+.credential-kpi small{display:block;color:var(--muted);font-weight:900}.credential-kpi b{font-size:1.25rem}
+.credential-link{font-size:.72rem;font-weight:900}.credential-link.ok{color:#256b4a}.credential-link.warn{color:#8a6200}
+@media(max-width:700px){.credential-kpis{grid-template-columns:1fr 1fr}}
 </style>
 </head><body>
-<div class="demo">共有デモ v62｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
+<div class="demo">共有デモ v63｜最終権限・データ整合性監査反映｜社員120名｜すべて架空データです</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員120名版｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option>管理者</option><option>一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">担当事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">担当部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -385,7 +392,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="spec-note">共有デモ v62：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
+<div class="spec-note">共有デモ v63：既存30名を残し、架空社員90名を追加した計120名です。タクシー72名、バス5名。事業所と部署は別区分です。社員の新規登録は全社管理者のみ行えます。</div>
 <div id="employeeStatusSummary" class="metrics" style="grid-template-columns:repeat(4,1fr);margin-top:0"></div>
 <div class="card" style="margin-bottom:12px"><div class="filters"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><button class="btn" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div></div>
 <div id="empListSummary" class="emp-list-summary"></div>
@@ -395,7 +402,7 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類センター</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div class="spec-note">勤務の更新確認、資格・健康診断・適性診断・安全指導・書類・貸与品・車検などを「誰が・何を・いつまでに確認するか」で統一します。健康診断は結果内容ではなく予定・期限だけを扱います。</div>
 <div id="workKpis" class="work-kpis"></div>
 <div id="workDeadlineKpis" class="deadline-grid" style="margin-top:10px"></div>
@@ -581,6 +588,53 @@ function ensureQualifications(){
  });
  QUAL.forEach(q=>{q.status=normalizeQualificationStatus(q.expiry,q.status)});
  localStorage.setItem('v28QUAL',JSON.stringify(QUAL))
+}
+function ensureCredentialLinks(){
+ let changed=false;
+ QUAL.forEach(q=>{
+  if(q.evidenceRequirement===undefined){q.evidenceRequirement='未設定';changed=true}
+  if(q.document_id===undefined){q.document_id='';changed=true}
+ });
+ DOCS.forEach(d=>{
+  if(d.qualification_id===undefined){d.qualification_id='';changed=true}
+  if(d.verifiedDate===undefined){d.verifiedDate='';changed=true}
+  if(d.verifiedById===undefined){d.verifiedById='';changed=true}
+  if(d.verifiedByName===undefined){d.verifiedByName='';changed=true}
+ });
+ if(changed){localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v30DOCS',JSON.stringify(DOCS))}
+}
+function qualificationEvidenceDocument(q){
+ if(!q?.document_id)return null;
+ let d=DOCS.find(x=>x.id===q.document_id);
+ return d&&String(d.employee_no)===String(q.employee_no)?d:null
+}
+function qualificationEvidenceLabel(q){
+ if(q.evidenceRequirement==='不要')return '証憑不要';
+ let d=qualificationEvidenceDocument(q);
+ if(d)return d.status==='原本確認済み'?'証憑確認済み':'証憑 '+(d.status||'確認待ち');
+ return q.evidenceRequirement==='必要'?'証憑未紐付け':'証憑ルール未設定'
+}
+function qualificationEvidenceClass(q){
+ let label=qualificationEvidenceLabel(q);
+ return label==='証憑確認済み'||label==='証憑不要'?'ok':'warn'
+}
+function qualificationOptionsForDocument(no,selected=''){
+ return '<option value="">関連資格なし</option>'+QUAL.filter(q=>String(q.employee_no)===String(no)).map(q=>`<option value="${esc(q.id)}" ${q.id===selected?'selected':''}>${esc(q.name)} / ${esc(q.number||'番号未登録')}</option>`).join('')
+}
+function documentOptionsForQualification(no,selected=''){
+ return '<option value="">証憑未紐付け</option>'+DOCS.filter(d=>String(d.employee_no)===String(no)&&d.category==='資格証憑').map(d=>`<option value="${esc(d.id)}" ${d.id===selected?'selected':''}>${esc(d.name)} / ${esc(d.status||'確認待ち')}</option>`).join('')
+}
+function syncQualificationDocumentLink(q,docId){
+ let old=q.document_id||'';
+ q.document_id=docId||'';
+ if(old&&old!==q.document_id){let oldDoc=DOCS.find(d=>d.id===old&&d.qualification_id===q.id);if(oldDoc)oldDoc.qualification_id=''}
+ if(q.document_id){let d=DOCS.find(x=>x.id===q.document_id);if(d)d.qualification_id=q.id}
+}
+function syncDocumentQualificationLink(d,qid){
+ let old=d.qualification_id||'';
+ d.qualification_id=qid||'';
+ if(old&&old!==qid){let oldQ=QUAL.find(q=>q.id===old&&q.document_id===d.id);if(oldQ)oldQ.document_id=''}
+ if(qid){let q=QUAL.find(x=>x.id===qid);if(q)q.document_id=d.id}
 }
 
 
@@ -860,7 +914,7 @@ function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一�
 function exportAccidentsCsv(){let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));downloadCsv('事故一覧_共有デモ.csv',[['事故番号','発生日','社員番号','システム連携ID','乗務員','区分','車両','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'],...rows.map(a=>[a.id,a.date,a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||''])]);audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)}
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_共有デモ_v62.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_共有デモ_v63.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
@@ -944,7 +998,7 @@ function openDeadlineCenter(filter='all'){
 }
 function exportDeadlinesCsv(){
  let rows=collectDeadlines();
- downloadCsv('期限一覧_共有デモ_v62.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
+ downloadCsv('期限一覧_共有デモ_v63.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
  audit('CSV出力',`期限一覧 v62 / ${rows.length}件`)
 }
 function qualityIssues(){
@@ -996,10 +1050,16 @@ function qualityIssues(){
      list.filter(x=>x.employee_no&&!empSet.has(String(x.employee_no))).forEach(x=>issues.push({level:'bad',label:`${label} ${x.id||x.name||''}`,detail:`存在しない社員番号 ${x.employee_no} に紐づいています`}))
    });
    QUAL.forEach(q=>{
+     if(q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q))issues.push({level:'warn',label:`資格 ${q.employee_no} ${q.name}`,detail:'証憑管理が「必要」ですが証憑書類が紐付いていません'});
+     if(q.document_id&&!qualificationEvidenceDocument(q))issues.push({level:'bad',label:`資格 ${q.employee_no} ${q.name}`,detail:'紐付け先の証憑書類が存在しません'});
      if(!q.expiry)return;
      let expired=days(q.expiry)<0;
      if(expired&&q.status!=='期限切れ')issues.push({level:'warn',label:`資格 ${q.employee_no} ${q.name}`,detail:'期限切れですが状態が「期限切れ」ではありません'});
      if(!expired&&q.status==='期限切れ')issues.push({level:'warn',label:`資格 ${q.employee_no} ${q.name}`,detail:'期限内ですが状態が「期限切れ」になっています'});
+   });
+   DOCS.forEach(d=>{
+    if(d.qualification_id&&!QUAL.some(q=>q.id===d.qualification_id&&String(q.employee_no)===String(d.employee_no)))issues.push({level:'bad',label:`書類 ${d.id}`,detail:'関連資格の紐付けが不正です'});
+    if(d.status==='原本確認済み'&&!d.verifiedDate)issues.push({level:'warn',label:`書類 ${d.id}`,detail:'原本確認済みですが確認日の記録がありません'});
    });
  }
  return issues
@@ -1084,7 +1144,7 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v62 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v63 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
@@ -1315,6 +1375,35 @@ function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限は全�
 function showImportSpec(){if(!isFullCompanyAdmin()){alert('一括取込仕様は全社管理者のみ確認できます');return}dttl.textContent='入力用Excel・取込仕様';dbody.innerHTML=`<div class="section"><h3>入力用Excel</h3><div>11シート。取込対象は「社員基本」「資格技能」「労務・保険」「制服・二種免許」「健康診断」「勤務・残業」「事故」「退職者」の8シートです。</div></div><div class="section"><h3>安全条件</h3><div>社員コードで結び付け、空欄は既存値を保持。未照合の詳細行から社員を自動作成しません。管理者限定の機密シートを含みます。</div></div><div class="section"><h3>本番</h3><div>取込前チェック、別管理者承認、変更前バックアップ、監査を経て確定します。</div></div>`;showDetailModal()}
 
 
+function openCredentialCenter(){
+ let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d));
+ let needMissing=quals.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
+ let expiring=quals.filter(q=>q.expiry&&days(q.expiry)<=30).length;
+ let pending=docs.filter(d=>d.status!=='原本確認済み').length;
+ dttl.textContent='資格・書類センター';
+ dbody.innerHTML=`<div class="credential-kpis">
+  <div class="credential-kpi"><small>資格</small><b>${quals.length}</b></div>
+  <div class="credential-kpi"><small>30日以内・超過</small><b>${expiring}</b></div>
+  <div class="credential-kpi"><small>要証憑・未紐付け</small><b>${needMissing}</b></div>
+  <div class="credential-kpi"><small>書類確認待ち等</small><b>${pending}</b></div>
+ </div>
+ <div class="deadline-toolbar"><input id="credentialQ" placeholder="社員名・資格名・証番号・書類名で検索" oninput="renderCredentialCenterRows()"><select id="credentialKind" onchange="renderCredentialCenterRows()"><option value="all">資格＋書類</option><option value="qualification">資格のみ</option><option value="document">書類のみ</option></select></div>
+ <div id="credentialRows"></div>`;
+ showDetailModal();renderCredentialCenterRows()
+}
+function renderCredentialCenterRows(){
+ let q=(document.getElementById('credentialQ')?.value||'').trim().toLowerCase(),kind=document.getElementById('credentialKind')?.value||'all',rows=[];
+ if(kind!=='document')QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)).forEach(x=>{
+  let e=emp(x.employee_no),text=[e?.name,x.employee_no,x.name,x.number,x.expiry,qualificationEvidenceLabel(x)].join(' ').toLowerCase();
+  if(!q||text.includes(q))rows.push({sort:x.expiry||'9999-12-31',html:`<div class="row"><div><b>資格 / ${esc(e?.name||x.employee_no)} / ${esc(x.name)}</b><div class="mini">証番号 ${esc(x.number||'-')} / 期限 ${esc(x.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(x)}">${esc(qualificationEvidenceLabel(x))}</div></div><button class="btn soft" onclick="employeeQualification('${x.employee_no}')">開く</button></div>`})
+ });
+ if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)).forEach(d=>{
+  let e=emp(d.employee_no),text=[e?.name,d.employee_no,d.name,d.category,d.status,d.expiry].join(' ').toLowerCase();
+  if(!q||text.includes(q))rows.push({sort:d.expiry||'9999-12-31',html:`<div class="row"><div><b>書類 / ${esc(e?.name||d.employee_no)} / ${esc(d.name)}</b><div class="mini">${esc(d.category)} / ${esc(d.status||'確認待ち')}${d.expiry?' / 期限 '+esc(d.expiry):''}</div></div><button class="btn soft" onclick="employeeDocuments('${d.employee_no}')">開く</button></div>`})
+ });
+ rows.sort((a,b)=>String(a.sort).localeCompare(String(b.sort)));
+ let el=document.getElementById('credentialRows');if(el)el.innerHTML=rows.length?rows.map(x=>x.html).join(''):'<div class="mini">該当する資格・書類はありません。</div>'
+}
 function renderFoundationStatus(){
  let el=document.getElementById('foundationStatus');if(!el)return;
  let quality=qualityIssues(),deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length;
@@ -1499,14 +1588,14 @@ function employeeDocuments(no,page=1){
  dttl.textContent=`${e.name} の書類`;
  let addBtn=canEditEmployee(no)?`<button class="btn primary" onclick="openDocumentForm('${no}')">＋ 書類を登録</button>`:'';
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${addBtn}</div><div class="list-summary"><div><div class="related-title">登録書類 ${rows.length}件</div><div class="mini">${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑のみ':'資格証憑・安全指導・事故資料・手続書類'}</div></div></div>`+
- (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditEmployee(no)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',del=isFullCompanyAdmin()?`<button class="btn danger" onclick="deleteDocument('${d.id}')">削除</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${d.status||'確認待ち'}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">開く</button>${edit}${del}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
+ (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditEmployee(no)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',del=isFullCompanyAdmin()?`<button class="btn danger" onclick="deleteDocument('${d.id}')">削除</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${d.status||'確認待ち'}</div><div class="mini">${d.qualification_id?'関連資格 '+esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id):'関連資格なし'}${d.verifiedDate?' / 最終確認 '+esc(d.verifiedDate)+' '+esc(d.verifiedByName||''):''}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">開く</button>${edit}${del}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeDocuments('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeDocuments('${no}',${page+1})">次へ →</button></div>`:'')
 }
 function documentPreview(id){
  let d=DOCS.find(x=>x.id===id);if(!d||!canViewDocumentRecord(d)){alert('この書類を表示する権限がありません');return}let e=emp(d.employee_no);
  pttl.textContent=d.name+'（SAMPLE）';
  if(d.kind==='image')pbody.innerHTML=`<div class="scene"><div class="road"><div class="car1"></div><div class="car2"></div></div></div><p class="mini">共有デモ用の架空画像です。</p>`;
- else pbody.innerHTML=`<div class="doc"><h3>${esc(d.category)}</h3><p><b>社員：</b>${e?esc(e.name):d.employee_no}（仮名）</p><p><b>ファイル名：</b>${esc(d.name)}</p><p><b>登録日：</b>${d.date}</p><p><b>状態：</b>${d.status||'確認待ち'}</p>${d.expiry?`<p><b>期限：</b>${d.expiry}</p>`:''}<hr><p class="mini">架空・SAMPLE｜実際の社員書類ではありません。</p></div>`;
+ else pbody.innerHTML=`<div class="doc"><h3>${esc(d.category)}</h3><p><b>社員：</b>${e?esc(e.name):d.employee_no}（仮名）</p><p><b>ファイル名：</b>${esc(d.name)}</p><p><b>登録日：</b>${d.date}</p><p><b>状態：</b>${d.status||'確認待ち'}</p>${d.expiry?`<p><b>期限：</b>${d.expiry}</p>`:''}${d.qualification_id?`<p><b>関連資格：</b>${esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id)}</p>`:''}${d.verifiedDate?`<p><b>最終確認：</b>${esc(d.verifiedDate)} / ${esc(d.verifiedByName||'')}</p>`:''}<hr><p class="mini">架空・SAMPLE｜実際の社員書類ではありません。</p></div>`;
  preview.classList.add('show')
 }
 function nextDocumentId(no){
@@ -1524,15 +1613,28 @@ function openDocumentForm(no,idx=-1){
  let e=emp(no),d=idx>=0?DOCS[idx]:null;if(!e)return;
  if(d&&d.employee_no!==String(no)){alert('書類の対象社員が一致しません');return}
  fttl.textContent=d?'書類情報を編集':'書類を登録';
- fbody.innerHTML='<div class="formnote">'+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。</div><div class="formgrid"><div class="field"><label>書類区分</label><select id="fdcat"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div><div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div><div class="field wide"><label>ファイル名（架空）</label><input id="fdname"></div><div class="field"><label>登録日</label><input id="fddate" type="date"></div><div class="field"><label>期限（任意）</label><input id="fdexp" type="date"></div><div class="field"><label>確認状態</label><select id="fdstatus"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div></div>';
+ fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。</div><div class="formgrid">
+  <div class="field"><label>書類区分</label><select id="fdcat"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>
+  <div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>
+  <div class="field wide"><label>ファイル名（架空）</label><input id="fdname"></div>
+  <div class="field"><label>登録日</label><input id="fddate" type="date"></div>
+  <div class="field"><label>期限（任意）</label><input id="fdexp" type="date"></div>
+  <div class="field"><label>確認状態</label><select id="fdstatus"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div>
+  <div class="field wide"><label>関連資格（任意）</label><select id="fdqual">${qualificationOptionsForDocument(no,d?.qualification_id||'')}</select><div class="mini">資格証憑の場合に関連資格を選択できます。その他の書類では未選択で構いません。</div></div>
+ </div>`;
  fdcat.value=d?d.category:'その他';fdkind.value=d?d.kind:'pdf';fdname.value=d?d.name:'';fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry||'':'';fdstatus.value=d?d.status||'確認待ち':'確認待ち';
  fsave.onclick=()=>{
   if(!guardEmployeeEdit(no,'書類'))return;
   if(!fdname.value.trim()||!fddate.value)return alert('ファイル名と登録日を入力してください');
-  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value};
-  let id,action;
-  if(d){id=d.id;Object.assign(d,rec);touchRecord(d,'document',false);action='書類更新'}else{id=nextDocumentId(no);rec.id=id;touchRecord(rec,'document',true);DOCS.push(rec);action='書類登録'}
-  audit(action,id+' '+rec.name,{employee_no:String(no),entity_type:'document',entity_id:id});
+  if(fdqual.value&&fdcat.value!=='資格証憑'&&!confirm('関連資格が選択されていますが、書類区分が「資格証憑」ではありません。このまま保存しますか？'))return;
+  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value},id,action,target,oldStatus=d?.status||'';
+  if(d){id=d.id;Object.assign(d,rec);target=d;syncDocumentQualificationLink(d,fdqual.value);action='書類更新'}
+  else{id=nextDocumentId(no);rec.id=id;rec.qualification_id='';rec.verifiedDate='';rec.verifiedById='';rec.verifiedByName='';DOCS.push(rec);target=rec;syncDocumentQualificationLink(rec,fdqual.value);action='書類登録'}
+  if(target.status==='原本確認済み'&&oldStatus!=='原本確認済み'){
+   let actor=currentActorIdentity();target.verifiedDate=TODAY;target.verifiedById=actor.id;target.verifiedByName=actor.name
+  }
+  touchRecord(target,'document',!d);
+  audit(action,id+' '+rec.name+(target.qualification_id?' / 関連資格 '+(QUAL.find(q=>q.id===target.qualification_id)?.name||target.qualification_id):''),{employee_no:String(no),entity_type:'document',entity_id:id});
   save();closeForm();renderAll();employeeDocuments(no)
  };
  form.classList.add('show')
@@ -1542,7 +1644,7 @@ function deleteDocument(id){
  if(!isFullCompanyAdmin()){alert('書類の削除は全社管理者のみ操作できます');return}
  if(!guardEmployeeEdit(d.employee_no,'書類'))return;
  if(!confirm('この書類情報を削除しますか？\n'+d.name))return;
- let no=d.employee_no;DOCS=DOCS.filter(x=>x.id!==id);
+ let no=d.employee_no;QUAL.filter(q=>q.document_id===id).forEach(q=>q.document_id='');DOCS=DOCS.filter(x=>x.id!==id);
  audit('書類削除',id+' '+d.name,{employee_no:no,entity_type:'document',entity_id:id});
  save();renderAll();employeeDocuments(no)
 }
@@ -1720,7 +1822,7 @@ function employeeQualification(no,page=1){
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の資格`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openQualificationRecordForm('${no}')">＋ 資格を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">資格 ${rows.length}件</div><div class="mini">期限の近い順に表示</div></div></div>`+
- (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q);return `<div class="row"><div><b>${esc(q.name)}</b><div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
+ (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q);return `<div class="row"><div><b>${esc(q.name)}</b><div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(q)}">${esc(qualificationEvidenceLabel(q))}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeQualification('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeQualification('${no}',${page+1})">次へ →</button></div>`:'')
 }
 function employeeAssets(no,page=1){
@@ -1991,9 +2093,30 @@ function openTrainingRecordForm(no,idx=-1){
  fsave.onclick=()=>{if(!guardEmployeeEdit(no,'安全指導'))return;if(!ftrc.value.trim())return alert('安全指導名を入力してください');if(ftrs.value!=='完了'&&!ftrd.value)return alert('未完了の安全指導には期限を入力してください');let rec={employee_no:no,course:ftrc.value.trim(),due:ftrd.value,status:ftrs.value};let rid;if(t){rid=t.id;Object.assign(t,rec);touchRecord(t,'training',false)}else{rid=nextRecordId('T',TR);rec.id=rid;touchRecord(rec,'training',true);TR.push(rec)}audit(t?'安全指導更新':'安全指導登録',`${no} ${rec.course}`,{employee_no:no,entity_type:'training',entity_id:rid});save();closeForm();renderAll();employeeTraining(no)};form.classList.add('show')
 }
 function openQualificationRecordForm(no,idx=-1){
- if(!guardEmployeeEdit(no,'資格'))return;let e=emp(no),q=idx>=0?QUAL[idx]:null;if(q&&q.employee_no!==String(no)){alert('資格情報の対象社員が一致しません');return}
- fttl.textContent=q?'資格を編集':'資格を追加';fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>資格名</label><input id="fqname" value="${esc(q?.name||'')}"></div><div class="field"><label>証番号</label><input id="fqnum" value="${esc(q?.number||'')}"></div><div class="field"><label>期限／次回管理日（任意）</label><input id="fqexp" type="date" value="${esc(q?.expiry||'')}"></div><div class="field"><label>状態</label><select id="fqst"><option>有効</option><option>要確認</option><option>期限切れ</option><option>未設定</option></select></div></div>`;fqst.value=q?.status||'有効';
- fsave.onclick=()=>{if(!guardEmployeeEdit(no,'資格'))return;if(!fqname.value.trim())return alert('資格名を入力してください');let rec={employee_no:no,name:fqname.value.trim(),number:fqnum.value.trim(),expiry:fqexp.value,status:normalizeQualificationStatus(fqexp.value,fqst.value)};let rid;if(q){rid=q.id;Object.assign(q,rec);touchRecord(q,'qualification',false)}else{rid=nextRecordId('Q',QUAL);rec.id=rid;touchRecord(rec,'qualification',true);QUAL.push(rec)}audit(q?'資格更新':'資格登録',`${no} ${rec.name}`,{employee_no:no,entity_type:'qualification',entity_id:rid});save();closeForm();renderAll();employeeQualification(no)};form.classList.add('show')
+ if(!guardEmployeeEdit(no,'資格'))return;
+ let e=emp(no),q=idx>=0?QUAL[idx]:null;
+ if(q&&q.employee_no!==String(no)){alert('資格情報の対象社員が一致しません');return}
+ fttl.textContent=q?'資格を編集':'資格を追加';
+ fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>資格情報と証憑は別データとして管理し、必要な場合だけ紐づけます。</div><div class="formgrid">
+  <div class="field wide"><label>資格名</label><input id="fqname" value="${esc(q?.name||'')}"></div>
+  <div class="field"><label>証番号</label><input id="fqnum" value="${esc(q?.number||'')}"></div>
+  <div class="field"><label>期限／次回管理日（任意）</label><input id="fqexp" type="date" value="${esc(q?.expiry||'')}"></div>
+  <div class="field"><label>状態</label><select id="fqst"><option>有効</option><option>要確認</option><option>期限切れ</option><option>未設定</option></select></div>
+  <div class="field"><label>証憑管理</label><select id="fqev"><option>未設定</option><option>必要</option><option>不要</option></select></div>
+  <div class="field wide"><label>証憑書類</label><select id="fqdoc">${documentOptionsForQualification(no,q?.document_id||'')}</select><div class="mini">「資格証憑」区分の書類だけ表示します。</div></div>
+ </div>`;
+ fqst.value=q?.status||'有効';fqev.value=q?.evidenceRequirement||'未設定';
+ fsave.onclick=()=>{
+  if(!guardEmployeeEdit(no,'資格'))return;
+  if(!fqname.value.trim())return alert('資格名を入力してください');
+  if(fqev.value==='必要'&&!fqdoc.value&&!confirm('証憑管理を「必要」にしますが、証憑書類が未紐付けです。保存しますか？'))return;
+  let rec={employee_no:no,name:fqname.value.trim(),number:fqnum.value.trim(),expiry:fqexp.value,status:normalizeQualificationStatus(fqexp.value,fqst.value),evidenceRequirement:fqev.value},rid,target;
+  if(q){rid=q.id;Object.assign(q,rec);target=q;syncQualificationDocumentLink(q,fqdoc.value);touchRecord(q,'qualification',false)}
+  else{rid=nextRecordId('Q',QUAL);rec.id=rid;rec.document_id='';touchRecord(rec,'qualification',true);QUAL.push(rec);target=rec;syncQualificationDocumentLink(rec,fqdoc.value)}
+  audit(q?'資格更新':'資格登録',`${no} ${rec.name} / 証憑 ${qualificationEvidenceLabel(target)}`,{employee_no:no,entity_type:'qualification',entity_id:rid});
+  save();closeForm();renderAll();employeeQualification(no)
+ };
+ form.classList.add('show')
 }
 function openAssetRecordForm(no,idx=-1){
  if(!guardEmployeeEdit(no,'貸与品'))return;let e=emp(no),a=idx>=0?AS[idx]:null;if(a&&a.employee_no!==String(no)){alert('貸与品の対象社員が一致しません');return}
@@ -2386,5 +2509,5 @@ function closePreview(){preview.classList.remove('show');pbody.innerHTML=''}func
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
-ensureAccidentSamples();ensureAccidentWorkflowFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_ROLE;setPreviewRole(PREVIEW_ROLE);renderAll();
+ensureAccidentSamples();ensureAccidentWorkflowFields();ensureNearMissWorkflowFields();ensureComplaintFields();ensureQualifications();ensureHandoffFields();ensureCoreRecordIds();ensureCredentialLinks();ensureRecordMetadata();ensureAuditMetadata();migrateLegacyWorkSummary();setSize(localStorage.getItem('v23Size')||'normal');rolePreview.value=PREVIEW_ROLE;setPreviewRole(PREVIEW_ROLE);renderAll();
 </script></body></html>
