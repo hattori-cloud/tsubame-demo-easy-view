@@ -375,6 +375,16 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .form-flow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .form-flow span{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border-radius:999px;background:#edf5f8;color:#31596b;font-size:.7rem;font-weight:900}
 .form-help{grid-column:1/-1;border:1px solid #d9e7ed;background:#f9fcfd;border-radius:10px;padding:9px 11px;color:#55707e;font-size:.72rem;font-weight:800}
+.action-queue-head{border:1px solid #bcd6e2;background:#f4fafc;border-radius:13px;padding:11px 12px;margin:0 0 12px;display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.action-queue-head strong{color:#214f64}
+.action-queue-progress{font-size:.72rem;font-weight:900;color:#58717e}
+.action-queue-list{display:grid;gap:7px}
+.action-queue-item{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:11px;padding:10px 11px;background:#fff}
+.action-queue-item.danger{border-left:6px solid #c95b5b;background:#fff9f9}
+.action-queue-item.warn{border-left:6px solid #d1a329;background:#fffdf6}
+.action-queue-item .queue-main{min-width:0}
+.action-queue-item .queue-main b{display:block}
+.action-queue-item .queue-main .mini{margin-top:3px}
 @media(max-width:850px){.safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}}
 </style>
@@ -1070,7 +1080,7 @@ function deadlineOpen(type,key,no){
  if(type==='安全指導'||type==='適性診断'){employeeTraining(no);return}
  if(type==='貸与品'){employeeAssets(no);return}
  if(type==='書類'){employeeDocuments(no);return}
- if(type==='車検'){closeDetail();go('vehicles');return}
+ if(type==='車検'){vehicleDetail(key);return}
  if(type==='健康診断'){employeeDetail(no);setTimeout(()=>setEmployeeDetailTab('work'),30);return}
 }
 let DEADLINE_FILTER='all';
@@ -1428,6 +1438,7 @@ function safeTab(id){
  document.querySelectorAll('#safe .tabs button').forEach(x=>x.classList.toggle('active',x.dataset.s===id))
 }
 function returnToSafetyList(tab){
+ ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';
  detail.classList.remove('show');
  DETAIL_HISTORY=[];
  DETAIL_ORIGIN=null;
@@ -1710,6 +1721,62 @@ function renderFoundationStatus(){
  </div>
  <div class="scope-note" style="margin-top:9px">共有デモはブラウザ保存です。本運用では認証・DB・サーバー側権限制御・バックアップ・監査ログをサーバー側へ移します。</div>`
 }
+let ACTION_QUEUE_ACTIVE=false;
+let ACTION_QUEUE_CURRENT='';
+
+function actionQueueItems(){
+ let items=[],deadlines=collectDeadlines();
+ let add=(x)=>{if(!items.some(y=>y.id===x.id))items.push(x)};
+
+ scopedEmployees().filter(e=>e.status==='在籍'&&(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可'))).forEach(e=>{
+  add({id:'safety:'+e.no,kind:'safety',priority:0,label:e.name,sub:'乗務・安全 / '+(e.safetyState||'要確認')+' / '+(e.eligibility||'要確認'),no:e.no,urgency:'danger'})
+ });
+
+ deadlines.filter(x=>['over','today','7'].includes(x.bucket)).forEach(x=>{
+  let p=x.bucket==='over'?1:x.bucket==='today'?2:4;
+  add({id:'deadline:'+x.type+':'+String(x.key)+':'+String(x.no||''),kind:'deadline',priority:p,label:x.type+' / '+(x.employee_name||x.label),sub:x.label+' / '+x.due+' / '+deadlineBucketLabel(x.due),type:x.type,key:String(x.key),no:String(x.no||''),urgency:x.bucket==='over'?'danger':'warn'})
+ });
+
+ if(PREVIEW_ROLE==='管理者'){
+  scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,urgency:'warn'}));
+  scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,urgency:'warn'}));
+  scopedNearMisses().filter(x=>!['完了','対応済'].includes(x.action)).forEach(x=>add({id:'near:'+x.id,kind:'near',priority:3,label:'ヒヤリ / '+x.driver,sub:x.id+' / '+(x.action||'未対応')+' / 担当 '+(x.owner||'未設定'),key:x.id,urgency:'warn'}))
+ }
+ return items.sort((a,b)=>a.priority-b.priority||String(a.label).localeCompare(String(b.label),'ja'))
+}
+function actionQueueOpen(idOrIndex=0){
+ let items=actionQueueItems();
+ let item=typeof idOrIndex==='number'?items[idOrIndex]:items.find(x=>x.id===idOrIndex);
+ if(!item){ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';renderHome();return alert('現在、処理待ちの案件はありません')}
+ ACTION_QUEUE_ACTIVE=true;ACTION_QUEUE_CURRENT=item.id;
+ if(item.kind==='safety'){employeeDetail(item.no);setTimeout(()=>setEmployeeDetailTab('safety'),20);return}
+ if(item.kind==='deadline'){deadlineOpen(item.type,item.key,item.no);return}
+ if(item.kind==='accident'){accidentDetail(item.key);return}
+ if(item.kind==='complaint'){complaintDetail(item.key);return}
+ if(item.kind==='near'){nearDetail(item.key);return}
+}
+function actionQueueNext(){
+ let items=actionQueueItems();
+ if(!items.length){ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';closeDetail();renderAll();return alert('現在の処理キューはすべて確認済みです')}
+ let idx=items.findIndex(x=>x.id===ACTION_QUEUE_CURRENT),next=idx>=0?items[idx+1]:items[0];
+ if(!next){ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';closeDetail();renderAll();return alert('このキューの最後まで確認しました')}
+ actionQueueOpen(next.id)
+}
+function actionQueueStop(){
+ ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';
+ closeDetail();renderAll()
+}
+function injectActionQueueNav(){
+ if(!ACTION_QUEUE_ACTIVE||!detail.classList.contains('show'))return;
+ let items=actionQueueItems(),idx=items.findIndex(x=>x.id===ACTION_QUEUE_CURRENT);
+ let old=document.getElementById('actionQueueHead');if(old)old.remove();
+ let displayIndex=idx>=0?idx+1:1,total=items.length;
+ let next=idx>=0?items[idx+1]:items[0];
+ let bar=document.createElement('div');bar.id='actionQueueHead';bar.className='action-queue-head';
+ bar.innerHTML='<div><strong>今日の処理キュー</strong><div class="action-queue-progress">'+displayIndex+' / '+total+'件を確認中</div></div><div class="toolbar">'+(next?'<button class="btn primary" onclick="actionQueueNext()">次の未処理へ →</button>':'<span class="badge ok">最後の案件</span>')+'<button class="btn soft" onclick="actionQueueStop()">キューを終了</button></div>';
+ dbody.prepend(bar)
+}
+
 function renderHome(){
  let scope=scopedEmployees(),active=scope.filter(x=>x.status==='在籍');
  let train=scopedTraining().filter(x=>x.status!=='完了').length,acc=PREVIEW_ROLE==='管理者'?scopedAccidents().filter(x=>x.phase!=='完了').length:0,veh=PREVIEW_ROLE==='管理者'?scopedVehicles().filter(x=>days(x.inspection)<=60).length:0,asset=scopedAssets().filter(x=>x.status==='未返却').length;
@@ -1726,8 +1793,9 @@ function renderHome(){
  <button class="home-priority-card ${todayCount?'warn':'ok'}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${todayCount}</b><span>${todayCount?'今日中に確認':'本日期限なし'}</span></button>
  <button class="home-priority-card ${acc?'warn':'ok'}" onclick="${PREVIEW_ROLE==='管理者'?"go('safe')":"openDeadlineCenter('7')"}"><small>${PREVIEW_ROLE==='管理者'?'事故フォロー':'7日以内'}</small><b>${PREVIEW_ROLE==='管理者'?acc:d7}</b><span>${PREVIEW_ROLE==='管理者'?(acc?'未完了事故を確認':'未完了事故なし'):(d7?'期限接近を確認':'期限接近なし')}</span></button>`;
  mEmp.textContent=active.length;mSafety.textContent=safety;mTrain.textContent=train;mAcc.textContent=acc;mVeh.textContent=veh;mAsset.textContent=asset;
- today.innerHTML=`<div class="list-summary"><div><b>直近の要対応</b><div class="mini">期限超過 → 本日 → 7日以内の順で表示</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div><div class="home-urgent-list">`+
- (urgent.length?urgent.map(x=>`<div class="home-urgent-item ${x.bucket}"><div><b>${esc(x.type)} ${esc(x.label)}</b><div class="mini">${x.due} / ${deadlineBucketLabel(x.due)}</div></div><button class="btn soft" onclick="deadlineOpen('${x.type}','${String(x.key).replaceAll("'","")}','${x.no||''}')">確認</button></div>`).join(''):'<div class="notice"><div><b>直近7日以内の期限はありません。</b><div class="mini">期限超過・本日期限・7日以内を確認済みです。</div></div></div>')+
+ let queue=actionQueueItems(),shownQueue=queue.slice(0,6);
+ today.innerHTML=`<div class="list-summary"><div><b>今日の処理キュー</b><div class="mini">乗務不可・期限超過・本日期限・期限未設定の安全案件を優先</div></div><div class="toolbar"><span class="badge ${queue.length?'warn':'ok'}">${queue.length}件</span><button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理する</button><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div></div><div class="action-queue-list">`+
+ (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main"><b>${esc(x.label)}</b><div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">乗務安全・期限・事故・苦情・ヒヤリの要対応を確認済みです。</div></div></div>')+
  `</div>`
 }
 function openSafetyCenter(){
@@ -2894,7 +2962,8 @@ function showDetailModal(){
  detail.classList.add('show');
  let modal=detail.querySelector('.modal');
  if(modal)modal.scrollTop=0;
- updateDetailCloseLabels()
+ updateDetailCloseLabels();
+ if(ACTION_QUEUE_ACTIVE)requestAnimationFrame(injectActionQueueNav)
 }
 function applyDetailState(s){
  if(!s)return false;
