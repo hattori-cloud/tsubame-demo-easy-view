@@ -426,7 +426,13 @@ main{max-width:1540px;margin:auto;padding:22px}.page{display:none}.page.active{d
 .case-action-item small{display:block;color:var(--muted);font-size:.65rem;font-weight:900;margin-bottom:3px}
 .case-action-item b{display:block;line-height:1.35}
 .case-action-due{font-size:.68rem;font-weight:900;margin-top:3px}
-@media(max-width:700px){.case-action-grid{grid-template-columns:1fr}.case-action-pin{top:0}}
+.near-check-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:5px}
+.near-check{display:flex;gap:6px;align-items:flex-start;border:1px solid #dbe6eb;border-radius:9px;padding:7px 8px;background:#fff;font-size:.74rem;font-weight:850}
+.near-check input{width:auto;margin-top:2px}
+.near-tag-list{display:flex;gap:5px;flex-wrap:wrap}
+.near-tag{display:inline-flex;border:1px solid #cddde5;border-radius:999px;background:#f5fafc;padding:3px 7px;font-size:.68rem;font-weight:900}
+@media(max-width:700px){.case-action-grid{grid-template-columns:1fr}.case-action-pin{top:0}.near-check-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:460px){.near-check-grid{grid-template-columns:1fr}}
 @media(max-width:850px){.manager-workload-grid{grid-template-columns:1fr 1fr}
 .safety-overview{grid-template-columns:1fr 1fr}.quick-strip{display:grid;grid-template-columns:1fr 1fr}.quick-strip-label{grid-column:1/-1}.quick-strip .btn{width:100%}}
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
@@ -707,6 +713,8 @@ function ensureNearMissWorkflowFields(){
  N.forEach(n=>{
   if(n.owner===undefined){n.owner='検証管理者';changed=true}
   if(n.ownerId===undefined){n.ownerId=(managerByName(n.owner)||activeManagers()[0]||{}).id||'';changed=true}
+  [['locationTags',[]],['situationTags',[]],['roadTags',[]],['targetTags',[]],['internalFactors',[]]].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}});
+  [['reportDate',n.date||''],['time',''],['causeSide','未設定'],['riskLevel','未設定'],['education',''],['prevention','']].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}})
  });
  if(changed)localStorage.setItem('v46NEAR',JSON.stringify(N))
 }
@@ -1244,6 +1252,7 @@ function qualityIssues(){
    C.filter(c=>c.status!=='完了').forEach(c=>{let miss=[];if(!String(c.owner||'').trim())miss.push('担当者');if(!String(c.nextAction||'').trim())miss.push('次回対応');if(!c.followupDue)miss.push('フォロー期限');if(miss.length)issues.push({level:'warn',label:`苦情 ${c.id}`,detail:'未完了クレームの管理項目未入力：'+miss.join('、')})});
    A.filter(a=>a.phase!=='完了').forEach(a=>{let miss=[];if(!String(a.owner||'').trim())miss.push('担当者');if(!String(a.nextAction||'').trim())miss.push('次回対応');if(!a.due)miss.push('フォロー期限');if(miss.length)issues.push({level:'warn',label:`事故 ${a.id}`,detail:'未完了事故の管理項目未入力：'+miss.join('、')})});
    N.filter(n=>!['完了','対応済'].includes(n.action)).forEach(n=>{let miss=[];if(!String(n.owner||'').trim())miss.push('担当者');if(!String(n.nextAction||'').trim())miss.push('次回対応');if(!n.due)miss.push('対応期限');if(miss.length)issues.push({level:'warn',label:`ヒヤリハット ${n.id}`,detail:'未完了ヒヤリの管理項目未入力：'+miss.join('、')})});
+   N.forEach(n=>{if(n.riskLevel==='高い'&&!String(n.prevention||'').trim())issues.push({level:'warn',label:`ヒヤリハット ${n.id}`,detail:'危険度「高い」ですが改善・今後の対策が未入力です'})});
    A.filter(a=>a.phase==='完了').forEach(a=>{
      let missing=accidentCompletionMissing(a.cause,a.prevention,a.responseHistory);
      if(missing.length)issues.push({level:'bad',label:`事故 ${a.id}`,detail:'完了済みですが未入力：'+missing.join('、')});
@@ -2756,10 +2765,10 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
 function appendAccidentHistory(id){appendCaseNote('事故',id,'accQuickHistory')}
 function renderNear(){
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',all=scopedNearMisses().filter(n=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(n)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)));
+ let rows=all.filter(n=>(!date||n.date===date)&&(!q||[n.id,n.date,n.time,n.driver,n.summary,n.action,n.owner,n.riskLevel,n.causeSide,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase().includes(q)));
  let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / キーワード・日付から検索できます</div></div>`;
  nearbody.innerHTML=rows.map(n=>{
-  return `<tr><td>${esc(n.date)}</td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="mini">担当 ${esc(n.owner||'未設定')}</div></td><td>${badge(n.action)}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">詳細</button></td></tr>`;
+  return `<tr><td>${esc(n.date)}</td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="mini">担当 ${esc(n.owner||'未設定')} / 危険度 ${esc(n.riskLevel||'未設定')}</div></td><td>${badge(n.action)}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">詳細</button></td></tr>`;
  }).join('')
 }
 function nearDetail(id){
@@ -2769,15 +2778,27 @@ function nearDetail(id){
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('near')">← 運行・安全のヒヤリ一覧</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">ヒヤリを編集</button>`:''}</div>
  ${caseActionPanelHtml('ヒヤリ',n)}
  <div class="complaint-detail-grid">
-  <div class="complaint-box"><label>日付</label><b>${esc(n.date||'未設定')}</b></div>
+  <div class="complaint-box"><label>記入日</label><b>${esc(n.reportDate||'未設定')}</b></div>
+  <div class="complaint-box"><label>発生日時</label><b>${esc(n.date||'未設定')} ${esc(n.time||'')}</b></div>
   <div class="complaint-box"><label>対象社員</label><b>${esc(n.employee_no)} ${esc(n.driver||e?.name||'')}</b></div>
   <div class="complaint-box"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'未設定'}</b></div>
   <div class="complaint-box"><label>担当者</label><b>${esc(n.owner||'未設定')}</b></div>
+  <div class="complaint-box"><label>危険度</label><b>${esc(n.riskLevel||'未設定')}</b></div>
+  <div class="complaint-box"><label>原因側</label><b>${esc(n.causeSide||'未設定')}</b></div>
   <div class="complaint-box"><label>対応状態</label>${badge(n.action||'未対応')}</div>
   <div class="complaint-box"><label>次回対応</label><b>${esc(n.nextAction||nearDefaultNextAction(n.action))}</b></div>
   <div class="complaint-box"><label>対応期限</label><b>${esc(n.due||'未設定')}</b><div class="mini">${n.due?esc(deadlineBucketLabel(n.due)):''}</div></div>
  </div>
+ <div class="section"><h3>状況分類</h3><div class="infogrid">
+   <div class="info"><label>場所</label>${nearTagsHtml(n.locationTags)}</div>
+   <div class="info"><label>行動</label>${nearTagsHtml(n.situationTags)}</div>
+   <div class="info"><label>道路・周囲</label>${nearTagsHtml(n.roadTags)}</div>
+   <div class="info"><label>危険対象</label>${nearTagsHtml(n.targetTags)}</div>
+   <div class="info"><label>内的要因</label>${nearTagsHtml(n.internalFactors)}</div>
+ </div></div>
  <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>
+ <div class="section"><h3>教育事項</h3><div class="acc-v50-text">${esc(n.education||'未登録')}</div></div>
+ <div class="section"><h3>改善・今後の対策</h3><div class="acc-v50-text">${esc(n.prevention||'未登録')}</div></div>
  <div class="section"><h3>対応の時系列</h3>${caseTimelineHtml('ヒヤリ',n)}</div>
  ${!['完了','対応済'].includes(n.action)&&canEditEmployee(n.employee_no)?`<div class="section"><h3>対応メモを追記</h3><textarea id="nearQuickNote" placeholder="例：本人面談、注意点の共有、指導予定"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendCaseNote('ヒヤリ','${n.id}','nearQuickNote')">対応メモを追記</button></div></div>`:''}`;
  showDetailModal()
@@ -3276,34 +3297,74 @@ function nextRecordId(prefix,list){
  var max=0;list.forEach(function(x){var m=String(x.id||'').match(new RegExp('^'+prefix+'-(\\d+)$'));if(m)max=Math.max(max,Number(m[1]))});
  return prefix+'-'+String(max+1).padStart(3,'0')
 }
+const NEAR_OPTIONS={
+ location:['道路上','交差点','乗降場所','車庫・駐車場','構内','その他'],
+ situation:['発進','走行','右左折','進路変更','停車','駐車','バック','乗降対応','その他'],
+ road:['直線','交差点','カーブ','坂道','狭路','夜間・暗所','雨天・悪天候','その他'],
+ target:['歩行者','自転車','二輪車','自動車','駐車車両','工作物・障害物','その他'],
+ internal:['焦り','急ぎ','疲労','眠気','イライラ','思い込み','確認不足','その他']
+};
+function nearOptionHtml(name,options,selected=[]){
+ let set=new Set(Array.isArray(selected)?selected:[]);
+ return '<div class="near-check-grid">'+options.map(x=>'<label class="near-check"><input type="checkbox" name="'+name+'" value="'+esc(x)+'" '+(set.has(x)?'checked':'')+'> '+esc(x)+'</label>').join('')+'</div>'
+}
+function nearChecked(name){return [...document.querySelectorAll('input[name="'+name+'"]:checked')].map(x=>x.value)}
+function nearTagsHtml(values){
+ let arr=Array.isArray(values)?values:[];
+ return arr.length?'<div class="near-tag-list">'+arr.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')+'</div>':'<span class="mini">未設定</span>'
+}
 function openNearForm(idx=-1){
  if(PREVIEW_ROLE!=='管理者'){alert('ヒヤリハット登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?N[idx]:null;
  if(rec&&!guardEmployeeEdit(rec.employee_no,'ヒヤリハット'))return;
  let candidates=scopedEmployees().filter(e=>e.status!=='退職');
+ if(rec){let re=emp(rec.employee_no);if(re&&canEditEmployee(re.no)&&!candidates.some(e=>e.no===re.no))candidates.unshift(re)}
  if(!candidates.length){alert('現在の担当範囲に登録対象社員がいません');return}
- if(rec&&!candidates.some(e=>e.no===String(rec.employee_no))){alert('現在の担当範囲ではこのヒヤリハットを編集できません');return}
  fttl.textContent=rec?'ヒヤリハットを編集':'ヒヤリハットを登録';setFormSaveLabel(rec?'変更を保存する':'ヒヤリを登録する');
  let opts=candidates.map(e=>`<option value="${esc(e.no)}">${esc(e.no)} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
- fbody.innerHTML=`<div class="form-flow"><span>1 対象・日付</span><span>2 内容</span><span>3 担当・対応</span></div><div class="formgrid">
-  <div class="employee-form-section"><h4>1. 対象・日付</h4><p>誰の、いつのヒヤリか</p></div>
-  <div class="field"><label>対象社員<span class="req">必須</span></label><select id="fne">${opts}</select></div>
-  <div class="field"><label>日付<span class="req">必須</span></label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
-  <div class="employee-form-section"><h4>2. 内容</h4><p>危なかった状況を短く具体的に</p></div>
-  <div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fns" style="min-height:140px" placeholder="例：交差点右折時、自転車の接近に気づくのが遅れた">${esc(rec?rec.summary:'')}</textarea></div>
-  <div class="employee-form-section"><h4>3. 担当・対応</h4><p>誰が、どの状態まで対応したか</p></div>
+ fbody.innerHTML=`<div class="formnote">現在使用中の「ヒヤリ・ハット（危険予知）報告書」をもとに、チェック項目を検索・集計できる形にしています。</div>
+ <div class="form-flow"><span>1 記入・発生</span><span>2 状況</span><span>3 原因・危険度</span><span>4 自由記述</span><span>5 管理対応</span></div><div class="formgrid">
+  <div class="employee-form-section"><h4>1. 記入者・発生日時</h4><p>所属・氏名は社員台帳から自動取得します</p></div>
+  <div class="field wide"><label>対象社員<span class="req">必須</span></label><select id="fne">${opts}</select></div>
+  <div class="field"><label>記入日</label><input id="fnreport" type="date" value="${esc(rec?.reportDate||TODAY)}"></div>
+  <div class="field"><label>ヒヤリ発生日<span class="req">必須</span></label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
+  <div class="field"><label>発生時間</label><input id="fntime" type="time" value="${esc(rec?.time||'')}"></div>
+
+  <div class="employee-form-section"><h4>2. ヒヤリ時の状況</h4><p>紙報告書のチェック欄を複数選択できます</p></div>
+  <div class="field wide"><label>場所</label>${nearOptionHtml('nearLocation',NEAR_OPTIONS.location,rec?.locationTags)}</div>
+  <div class="field wide"><label>何をしていた時か</label>${nearOptionHtml('nearSituation',NEAR_OPTIONS.situation,rec?.situationTags)}</div>
+  <div class="field wide"><label>道路・周囲の状況</label>${nearOptionHtml('nearRoad',NEAR_OPTIONS.road,rec?.roadTags)}</div>
+  <div class="field wide"><label>危険を感じた対象</label>${nearOptionHtml('nearTarget',NEAR_OPTIONS.target,rec?.targetTags)}</div>
+
+  <div class="employee-form-section"><h4>3. 原因・危険度</h4><p>原因の方向と、その時の自分の状態を残します</p></div>
+  <div class="field"><label>原因はどちら側か</label><select id="fnside"><option>未設定</option><option>自分</option><option>相手</option><option>双方</option><option>その他</option></select></div>
+  <div class="field"><label>事故につながる可能性</label><select id="fnrisk"><option>未設定</option><option>高い</option><option>中程度</option><option>低い</option></select></div>
+  <div class="field wide"><label>内的要因</label>${nearOptionHtml('nearInternal',NEAR_OPTIONS.internal,rec?.internalFactors)}</div>
+
+  <div class="employee-form-section"><h4>4. 自由記述</h4><p>危険だった状況、危険を感じた理由、今後の処置など</p></div>
+  <div class="field wide"><label>ヒヤリ・ハット内容<span class="req">必須</span></label><textarea id="fns" style="min-height:160px" placeholder="できるだけ具体的に記入してください">${esc(rec?rec.summary:'')}</textarea></div>
+  <div class="field wide"><label>教育事項</label><textarea id="fneducation" placeholder="本人へ伝えたこと、今後指導する内容など">${esc(rec?.education||'')}</textarea></div>
+  <div class="field wide"><label>改善・今後の対策</label><textarea id="fnprevention" placeholder="再発防止、運行上の改善点など">${esc(rec?.prevention||'')}</textarea></div>
+
+  <div class="employee-form-section"><h4>5. 管理者対応</h4><p>誰が、何を、いつまでに対応するか</p></div>
   <div class="field"><label>担当者<span class="req">必須</span></label><select id="fnowner">${managerSelectOptions(rec?.ownerId,rec?.owner)}</select></div>
   <div class="field"><label>対応状態</label><select id="fna"><option>未対応</option><option>面談予定</option><option>指導予定</option><option>対応中</option><option>完了</option></select></div>
   <div class="field wide"><label>次回対応内容</label><input id="fnnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人面談、映像確認、安全指導"></div>
   <div class="field"><label>対応期限</label><input id="fndue" type="date" value="${esc(rec?.due||'')}"></div>
  </div>`;
- fne.value=String(rec?rec.employee_no:candidates[0].no);fna.value=rec&&rec.action?rec.action:'未対応';
+ fne.value=String(rec?rec.employee_no:candidates[0].no);fna.value=rec&&rec.action?rec.action:'未対応';fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';
  fsave.onclick=()=>{
   let e=emp(fne.value),ownerSel=resolveManagerSelection(fnowner.value);
   if(!e||!guardEmployeeEdit(e.no,'ヒヤリハット'))return;
   if(!ownerSel.id)return alert('担当者を選択してください');
   if(!fnd.value||!fns.value.trim())return alert('日付と内容を入力してください');
-  let previousOwner=rec?.owner||'',data={date:fnd.value,employee_no:e.no,driver:e.name,summary:fns.value.trim(),action:fna.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fnnext.value.trim(),due:fndue.value},rid;
+  let previousOwner=rec?.owner||'',data={
+   reportDate:fnreport.value||TODAY,date:fnd.value,time:fntime.value,employee_no:e.no,driver:e.name,
+   locationTags:nearChecked('nearLocation'),situationTags:nearChecked('nearSituation'),roadTags:nearChecked('nearRoad'),targetTags:nearChecked('nearTarget'),
+   causeSide:fnside.value,internalFactors:nearChecked('nearInternal'),riskLevel:fnrisk.value,
+   summary:fns.value.trim(),education:fneducation.value.trim(),prevention:fnprevention.value.trim(),
+   action:fna.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fnnext.value.trim(),due:fndue.value
+  },rid;
   if(data.action!=='完了'&&(!data.nextAction||!data.due)){let miss=[];if(!data.nextAction)miss.push('次回対応内容');if(!data.due)miss.push('対応期限');if(!confirm('未入力の管理項目があります：'+miss.join('、')+'\nこのまま保存しますか？'))return}
   if(rec){rid=rec.id;Object.assign(rec,data);touchRecord(rec,'near_miss',false)}else{rid=nextRecordId('H',N);data.id=rid;touchRecord(data,'near_miss',true);N.push(data)}
   audit(rec?'ヒヤリハット更新':'ヒヤリハット登録',rid+' '+e.name+' / '+data.action+(previousOwner&&previousOwner!==data.owner?' / 担当 '+previousOwner+'→'+data.owner:' / 担当 '+data.owner),{employee_no:e.no,entity_type:'near_miss',entity_id:rid});
