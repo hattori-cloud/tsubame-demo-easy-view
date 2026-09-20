@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v109 foundation build.
+Current application: v110 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v109 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v106.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v110.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -28,7 +28,7 @@ Current application: v109 foundation build.
 - Work detail provides a dedicated employee-level view of restraint/overtime, posting freshness, next action, and health-check deadline without exposing medical results
 - Credential/document center supports attention filters for overdue items, missing evidence links, and pending document verification
 - Vehicle detail checks inspection date, vehicle status, assigned employee state, and driver eligibility together while keeping actual dispatch decisions in normal operations
-- Vehicle records now support call sign, model, next maintenance check, and a lightweight maintenance note with live pre-save warnings
+- Vehicle records use a single three-digit car number, plus model, next maintenance check, and a lightweight maintenance note with live pre-save warnings
 - Qualification rows show overdue/soon/missing-evidence counts and can jump directly into evidence document registration
 - Qualification and document forms now provide live deadline/evidence/linkage guidance while preserving separate qualification/document records
 - Vehicle assignment now supports dedicated, shared, spare and temporary-replacement modes while retaining one primary responsible employee for scope and accountability
@@ -62,6 +62,7 @@ Current application: v109 foundation build.
 - v107 starts the production API implementation with a fail-closed security foundation, a no-business-data health endpoint, and a protected probe that refuses access until real identity verification is implemented.
 - v108 unifies the taxi-company vehicle identifier as a single three-digit car number and adds history-based Gold / English / Tourism driver certifications. Gold is marked as planned for October 2026; detailed qualification rules are intentionally not hard-coded yet.
 - v109 adds one-tap employee filtering and counts for Gold / English / Tourism certifications, plus current certification columns in the employee CSV.
+- v110 links the three-digit car number across vehicle, accident and complaint records, shows related safety/customer-response records from vehicle detail, and keeps near-miss unlinked until a car-number field is explicitly defined.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
