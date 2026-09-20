@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v96</title>
+<title>つばめ交通株式会社 社員一元管理システム v97</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,7 +548,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v96｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v97｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -1711,7 +1711,7 @@ function openQualityIssue(index){
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v96.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ downloadCsv('データ品質チェック_本番反映版_v97.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
  audit('CSV出力','データ品質チェック / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
@@ -2771,7 +2771,7 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -2780,14 +2780,14 @@ function runSystemDiagnosticChecks(){
  let collections=coreRecordCollections();
  let badCollections=collections.filter(x=>!Array.isArray(x.list)).map(x=>x.type);
  out.push(systemDiagnosticCheck('共通データコレクション',badCollections.length===0,badCollections.length?'配列ではない：'+badCollections.join('、'):collections.length+'コレクション正常'));
- out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v96.0','現在 '+APP_DATA_SCHEMA));
+ out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v97.0','現在 '+APP_DATA_SCHEMA));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
  out.push(systemDiagnosticCheck('起動・データ移行',bootOk,typeof BOOT_HEALTH==='undefined'?'BOOT_HEALTHなし':BOOT_HEALTH.errors.length?BOOT_HEALTH.errors.map(x=>x.label+': '+x.message).join(' / '):'起動処理 '+BOOT_HEALTH.steps.length+'項目完了'));
  let officeRuleOk=allowedDepartmentsForOffice('府中').includes('バス課')&&allowedDepartmentsForOffice('本社').includes('バス課')&&allowedDepartmentsForOffice('馬木').length===1&&allowedDepartmentsForOffice('馬木')[0]==='バス課';
  out.push(systemDiagnosticCheck('事業所・部署ルール',officeRuleOk,officeRuleOk?'本社・府中は各部署 / 馬木はバス課のみ':'会社固有ルールと一致しません'));
  let storageOk=false,storageDetail='';
- let testKey='v96SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
+ let testKey='v97SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
  try{
   localStorage.setItem(testKey,testValue);
   storageOk=localStorage.getItem(testKey)===testValue;
@@ -3071,9 +3071,23 @@ function renderFavorites(){
  let allowed=new Set(scopedEmployees().map(e=>e.no)),rows=FAVORITES.map(no=>emp(no)).filter(e=>e&&allowed.has(e.no));
  el.innerHTML=rows.length?rows.map(e=>`<button class="favorite-card" onclick="go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)"><b>★ ${esc(e.name)}</b><div class="mini">${e.no} / ${e.dept}</div></button>`).join(''):'<div class="mini">社員詳細の「★注目社員」を押すと、ここに固定表示されます。</div>'
 }
+function employeeTransitionRelated(no){
+ let openAcc=A.filter(x=>String(x.employee_no)===String(no)&&x.phase!=='完了');
+ let openComplaint=C.filter(x=>String(x.employee_no)===String(no)&&x.status!=='完了');
+ let primaryVehicles=V.filter(v=>String(v.employee_no)===String(no)&&v.status!=='廃車');
+ let sharedVehicles=V.filter(v=>Array.isArray(v.additionalEmployeeNos)&&v.additionalEmployeeNos.map(String).includes(String(no))&&v.status!=='廃車');
+ let assets=AS.filter(x=>String(x.employee_no)===String(no)&&x.status!=='返却済');
+ let training=TR.filter(x=>String(x.employee_no)===String(no)&&x.status!=='完了');
+ return {openAcc,openComplaint,primaryVehicles,sharedVehicles,assets,training}
+}
+function employeeTransitionHistoryHtml(e){
+ let rows=Array.isArray(e?.transitionHistory)?e.transitionHistory:[];
+ if(!rows.length)return '<div class="mini">異動・休職・退職の引継ぎ履歴はありません。</div>';
+ return rows.slice(0,10).map(h=>'<div class="row"><div><b>'+esc(h.date||'')+' '+esc(h.kind||'変更')+'</b><div class="mini">'+esc(h.from||'')+' → '+esc(h.to||'')+' / 確認者 '+esc(h.actor_name||'')+'</div><div class="mini">引継ぎ：'+esc(h.note||'')+'</div><div class="mini">記録時：未完了事故 '+Number(h.open_accidents||0)+' / 苦情 '+Number(h.open_complaints||0)+' / 主担当車両 '+Number(h.primary_vehicles||0)+' / 貸与品 '+Number(h.assets||0)+'</div></div><span class="badge ok">記録済み</span></div>').join('')
+}
 function procedureTemplate(status){
- if(status==='休職')return ['休職開始日を確認','社内アカウント・アクセス権を確認','貸与品の扱いを確認','社会保険等の手続状況を確認','復職予定・連絡方法を確認'];
- if(status==='退職予定'||status==='退職')return ['退職日を確認','貸与品を回収','社内アカウント停止を確認','必要書類の発行・回収を確認','共有フォルダ等のアクセス停止を確認'];
+ if(status==='休職')return ['休職開始日を確認','担当車両・共用車登録を確認','未完了事故・苦情の引継ぎを確認','社内アカウント・アクセス権を確認','貸与品の扱いを確認','未完了安全指導・資格期限を確認','社会保険等の手続状況を確認','復職予定・連絡方法を確認'];
+ if(status==='退職予定'||status==='退職')return ['退職日を確認','担当車両・共用車登録を解除／引継ぎ','未完了事故・苦情の引継ぎを確認','貸与品を回収','未完了安全指導・資格管理を確認','社内アカウント停止を確認','必要書類の発行・回収を確認','共有フォルダ等のアクセス停止を確認'];
  return []
 }
 function procKey(no,item){return no+'|'+item}
@@ -3235,9 +3249,9 @@ function deleteDocument(id){
 }
 function employeeProcedures(no){
  if(!canAccess('procedures','view')||!inGrantedEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ確認できます');return}
- let e=emp(no),items=procedureTemplate(e.status),done=items.filter(i=>PROCEDURES[procKey(no,i)]).length;
+ let e=emp(no),items=procedureTemplate(e.status),done=items.filter(i=>PROCEDURES[procKey(no,i)]).length,rel=employeeTransitionRelated(no);
  dttl.textContent=`${e.name} の手続`;
- dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="list-summary"><div><div class="related-title">${esc(e.status)} 手続</div><div class="mini">${items.length?`${done}/${items.length} 完了`:'現在必要な手続チェックはありません。'}</div></div>${items.length?badge(done===items.length?'完了':'要確認'):badge('対象なし')}</div>`+
+ dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="list-summary"><div><div class="related-title">${esc(e.status)} 手続</div><div class="mini">${items.length?`${done}/${items.length} 完了`:'現在必要な手続チェックはありません。'}</div></div>${items.length?badge(done===items.length?'完了':'要確認'):badge('対象なし')}</div><div class="scope-note" style="margin:9px 0">関連残件：未完了事故 ${rel.openAcc.length} / 苦情 ${rel.openComplaint.length} / 主担当車両 ${rel.primaryVehicles.length} / 共用等車両 ${rel.sharedVehicles.length} / 貸与品 ${rel.assets.length} / 安全指導 ${rel.training.length}</div>`+
  (items.length?`<div class="card">${items.map(i=>`<label class="proc-item"><input type="checkbox" ${PROCEDURES[procKey(no,i)]?'checked':''} onchange="toggleProcedure('${no}',${JSON.stringify(i)},this.checked)"><span><b>${esc(i)}</b></span></label>`).join('')}</div>`:'')
 }
 function employeeHealthWork(no){
@@ -3364,7 +3378,8 @@ function employeeDetail(no){
     <div class="info"><label>役職</label><b>${esc(e.position||'一般')}</b></div>
     <div class="info"><label>タクシー課区分</label><b>${esc(e.taxiSection||'対象外')}</b></div>
     <div class="info"><label>班</label><b>${esc(e.team||'未設定')}</b></div>
-   </div><div class="emp-group-note" style="margin-top:9px">事業所と部署は別区分です。管理者の担当範囲も「事業所 × 部署」で判定します。</div></div>
+   </div><div class="emp-group-note" style="margin-top:9px">事業所と部署は別区分です。管理者の担当範囲も「事業所 × 部署」で判定します。</div>
+   ${PREVIEW_ROLE!=='一般社員'?'<details class="detail-fold" style="margin-top:10px"><summary>異動・休職・退職の引継ぎ履歴</summary><div class="detail-fold-body">'+employeeTransitionHistoryHtml(e)+'</div></details>':''}</div>
   </div>
 
   <div class="employee-detail-panel" data-panel="work">
@@ -4016,7 +4031,7 @@ function renderVehicles(){
  let q=(document.getElementById('vehicleq')?.value||'').trim().toLowerCase(),date=document.getElementById('vehicleDate')?.value||'',status=document.getElementById('vehicleStatus')?.value||'',all=scopedVehicles().slice();
  let counts={active:all.filter(v=>v.status==='稼働').length,over:all.filter(v=>vehicleDeadlineState(v)==='over').length,soon:all.filter(v=>['today','soon'].includes(vehicleDeadlineState(v))).length,inactive:all.filter(v=>['休車','廃車'].includes(v.status)).length};
  let rows=all.filter(v=>{
-  let e=emp(v.employee_no),text=[v.id,v.plate,v.callSign,v.model,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept].join(' ').toLowerCase();
+  let e=emp(v.employee_no),extra=vehicleAssignedEmployees(v).slice(1),text=[v.id,v.plate,v.callSign,v.model,v.assignmentMode,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept,...extra.flatMap(x=>[x.name,x.no,x.branch,x.dept])].join(' ').toLowerCase();
   return (!q||text.includes(q))&&(!date||v.inspection===date)&&(!status||v.status===status)
  }).sort((a,b)=>deadlinePriority(a.inspection)-deadlinePriority(b.inspection)||String(a.plate).localeCompare(String(b.plate),'ja'));
  let summary=document.getElementById('vehicleSummary');
@@ -4025,20 +4040,21 @@ function renderVehicles(){
   let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v),canEdit=PREVIEW_ROLE==='管理者'&&v.employee_no&&canEditEmployee(v.employee_no);
   let op=`<div class="toolbar"><button class="btn soft" onclick="vehicleDetail('${v.id}')">開く</button>${canEdit?`<button class="btn soft" onclick="openVehicleForm(${idx})">編集</button>`:''}</div>`;
   let deadline=v.inspection?`${v.inspection} / ${deadlineBucketLabel(v.inspection)}`:'未設定';
-  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.callSign?'<div class="mini">号車 '+esc(v.callSign)+'</div>':''}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}</td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''}</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
+  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.callSign?'<div class="mini">号車 '+esc(v.callSign)+'</div>':''}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}<div class="mini">${esc(v.assignmentMode||'専属')}</div></td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''} / 利用登録 ${vehicleAssignedEmployeeNos(v).length}名</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
  }).join('')
 }
 function vehicleOperationalChecklistHtml(v,e){
  let inspectionOk=!!v.inspection&&days(v.inspection)>=0;
  let assigned=!!e,activeEmployee=!!e&&e.status==='在籍';
- let driverOk=!!e&&!String(e.eligibility||'').includes('不可')&&e.safetyState!=='期限切れ';
+ let drivers=vehicleAssignedEmployees(v),badDrivers=drivers.filter(x=>x.status!=='在籍'||String(x.eligibility||'').includes('不可')||x.safetyState==='期限切れ');
+ let driverOk=!!e&&badDrivers.length===0;
  let vehicleActive=v.status==='稼働',maintenanceOk=!v.nextMaintenance||days(v.nextMaintenance)>=0;
  let checks=[
   {label:'車検期限',ok:inspectionOk,note:v.inspection?(inspectionOk?deadlineBucketLabel(v.inspection):Math.abs(days(v.inspection))+'日超過'):'未設定'},
   {label:'車両状態',ok:vehicleActive,note:v.status||'未設定'},
   {label:'次回整備確認',ok:maintenanceOk,note:v.nextMaintenance?(maintenanceOk?deadlineBucketLabel(v.nextMaintenance):Math.abs(days(v.nextMaintenance))+'日超過'):'任意・未設定'},
   {label:'担当社員',ok:assigned&&activeEmployee,note:e?(e.no+' '+e.name+' / '+e.status):'未設定'},
-  {label:'担当乗務員の安全状態',ok:driverOk,note:e?('乗務可否 '+(e.eligibility||'対象外')+' / '+(e.safetyState||'正常')):'担当社員未設定'}
+  {label:'登録乗務員の安全状態',ok:driverOk,note:drivers.length?(drivers.length+'名登録 / '+(badDrivers.length?'要確認 '+badDrivers.length+'名':'大きな警告なし')):'担当社員未設定'}
  ];
  let bad=checks.filter(x=>!x.ok).length;
  return `<div class="section"><h3>出庫前の管理確認</h3><div class="list-summary"><div><b>${bad?'要確認 '+bad+'件':'登録情報上の大きな警告なし'}</b><div class="mini">車検・車両状態・担当乗務員の乗務可否を同じ画面で確認します。</div></div><span class="badge ${bad?'danger':'ok'}">${bad?'要確認':'確認済み'}</span></div>
@@ -4061,11 +4077,14 @@ function vehicleDetail(id){
   <div class="detail-primary-item"><label>車種</label><b>${esc(v.model||'未設定')}</b></div>
   <div class="detail-primary-item"><label>状態</label>${badge(v.status)}</div>
   <div class="detail-primary-item"><label>区分</label><b>${esc(v.service)}</b></div>
-  <div class="detail-primary-item"><label>担当社員</label><b>${e?esc(e.no+' '+e.name):'未設定'}</b></div>
+  <div class="detail-primary-item"><label>配車形態</label><b>${esc(v.assignmentMode||'専属')}</b></div>
+  <div class="detail-primary-item"><label>主担当社員</label><b>${e?esc(e.no+' '+e.name):'未設定'}</b></div>
+  <div class="detail-primary-item"><label>利用登録</label><b>${vehicleAssignedEmployeeNos(v).length}名</b></div>
   <div class="detail-primary-item"><label>車検期限</label><b>${esc(v.inspection||'未設定')}</b><div class="mini">${v.inspection?esc(deadlineBucketLabel(v.inspection)):''}</div></div>
   <div class="detail-primary-item"><label>次回整備確認</label><b>${esc(v.nextMaintenance||'未設定')}</b><div class="mini">${v.nextMaintenance?esc(deadlineBucketLabel(v.nextMaintenance)):'任意'}</div></div>
  </div></div>
  ${v.maintenanceNote?`<div class="section"><h3>次回整備メモ</h3><div class="acc-v50-text">${esc(v.maintenanceNote)}</div></div>`:''}
+ <div class="section"><h3>利用登録乗務員</h3>${vehicleAssignedEmployees(v).map((x,i)=>`<div class="row"><div><b>${i===0?'主担当':'追加'} / ${esc(x.no)} ${esc(x.name)}</b><div class="mini">${esc(x.branch)} / ${esc(x.dept)} / ${esc(x.status)} / 乗務可否 ${esc(x.eligibility||'対象外')}</div></div>${badge(x.safetyState||'正常')}</div>`).join('')||'<div class="mini">登録なし</div>'}</div>
  ${vehicleOperationalChecklistHtml(v,e)}
  <details class="detail-fold"><summary>担当・所属の詳細</summary><div class="detail-fold-body"><div class="complaint-detail-grid">
   <div class="complaint-box"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'-'}</b></div>
@@ -4218,6 +4237,10 @@ function openEmployeeEdit(no){
 
   <div class="employee-form-section"><h4>書類</h4><p>書類・貸与品・社内認定は社員詳細から個別管理</p></div>
   <div class="field wide"><div class="emp-group-note">この編集画面では実ファイルを扱いません。保存後、「書類」タブから証憑・貸与品・社内認定を管理します。</div></div>
+
+  <div class="employee-form-section"><h4>異動・休職・退職時の引継ぎ</h4><p>通常の情報修正では不要。所属または在籍状態を変える場合だけ確認します</p></div>
+  <div class="field wide"><div class="proc-item"><label><input type="checkbox" id="fetransvehicle"> 担当車両・共用車の引継ぎ先を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetranscase"> 未完了の事故・苦情の担当を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetransasset"> 貸与品・書類・安全指導の残件を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetransaccess"> 権限・アカウント・新しい担当範囲を確認した</label></div><div class="mini">異動・休職・退職時は4項目すべて必須です。車両や案件を自動で別担当へ移すことはせず、確認記録を残します。</div></div>
+  <div class="field wide"><label>引継ぎメモ</label><textarea id="fetransnote" placeholder="例：801号車は○○へ変更予定。未完了事故A-001は△△管理者へ引継ぎ。"></textarea></div>
  </div><div class="sensitive-note" style="margin-top:10px">健康診断は期限・受診予定のみ扱います。診断結果・病名・給与・保険等の機密情報は編集対象外です。</div>`;
  organizeCurrentFormSections({open:[0,1]});
 
@@ -4264,12 +4287,18 @@ function openEmployeeEdit(no){
    license:fel.value.trim()||(nextIsDriver?'未設定':'対象外'),licenseExpiry:felx.value
   };
   if(nextIsDriver){if(!after.licenseExpiry){after.safetyState='要確認';after.eligibility='要確認'}else if(days(after.licenseExpiry)<0){after.safetyState='期限切れ';after.eligibility='不可（更新確認まで）'}}else{after.eligibility='対象外'}
+  let transitionNeeded=before.status!==after.status||before.branch!==after.branch||before.dept!==after.dept;
+  let transitionNote=(document.getElementById('fetransnote')?.value||'').trim();
+  let transitionChecks=[['車両',!!document.getElementById('fetransvehicle')?.checked],['事故・苦情',!!document.getElementById('fetranscase')?.checked],['貸与品・書類・安全指導',!!document.getElementById('fetransasset')?.checked],['権限・担当範囲',!!document.getElementById('fetransaccess')?.checked]];
+  if(transitionNeeded){let miss=transitionChecks.filter(x=>!x[1]).map(x=>x[0]);if(miss.length)return alert('異動・休職・退職の変更前に、次の引継ぎ確認が必要です。\n\n・'+miss.join('\n・'));if(!transitionNote)return alert('異動・休職・退職の引継ぎメモを入力してください')}
+  if(after.status!=='在籍')after.eligibility='対象外';
   let labels={name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
   let changeLines=recordChangeLines(before,after,labels);
   if(!changeLines.length){closeForm();return}
   let warnings=[];
   if(after.eligibility.includes('不可'))warnings.push('乗務可否が「'+after.eligibility+'」になります');
   if(after.safetyState==='期限切れ')warnings.push('安全管理状態が「期限切れ」になります');
+  if(transitionNeeded){let rel=employeeTransitionRelated(no);if(rel.primaryVehicles.length||rel.sharedVehicles.length)warnings.push('登録車両があります：主担当 '+rel.primaryVehicles.length+'台 / 共用等 '+rel.sharedVehicles.length+'台');if(rel.openAcc.length||rel.openComplaint.length)warnings.push('未完了案件があります：事故 '+rel.openAcc.length+'件 / 苦情 '+rel.openComplaint.length+'件');if(rel.assets.length)warnings.push('未返却・貸与中の貸与品 '+rel.assets.length+'件');if(rel.training.length)warnings.push('未完了の安全指導 '+rel.training.length+'件')}
   if(nextIsDriver){
    if(!after.licenseExpiry)warnings.push('乗務社員ですが免許・資格期限が未設定です');
    if(!after.health)warnings.push('乗務社員ですが健康診断期限が未設定です');
@@ -4277,6 +4306,7 @@ function openEmployeeEdit(no){
   }
   if(!confirmFormSave('社員情報の変更確認',changeLines,warnings))return;
   Object.assign(e,after,{workplace:nextBranch});
+  if(transitionNeeded){let actor=currentActorIdentity(),rel=employeeTransitionRelated(no);if(!Array.isArray(e.transitionHistory))e.transitionHistory=[];let kind=before.status!==after.status?'在籍状態変更':'所属異動';e.transitionHistory.unshift({date:TODAY,time:new Date().toISOString(),kind,from:[before.branch,before.dept,before.status].join(' / '),to:[after.branch,after.dept,after.status].join(' / '),note:transitionNote,checks:transitionChecks.map(x=>x[0]),open_accidents:rel.openAcc.length,open_complaints:rel.openComplaint.length,primary_vehicles:rel.primaryVehicles.length,shared_vehicles:rel.sharedVehicles.length,assets:rel.assets.length,training:rel.training.length,actor_id:actor.id,actor_name:actor.name});e.transitionHistory=e.transitionHistory.slice(0,30);audit('異動・休職・退職 引継ぎ確認',e.no+' '+e.name+' / '+kind+' / '+transitionNote,{employee_no:e.no,entity_type:'employee',entity_id:e.no})}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
   if(restoringToAllowed&&e.eligibility==='可'){
    let actor=currentActorIdentity();
@@ -4582,9 +4612,22 @@ function openAccidentForm(defaultNo=''){
  };
  form.classList.add('show')
 }
+function vehicleAdditionalDriverHtml(candidates,selected=[]){
+ let set=new Set((Array.isArray(selected)?selected:[]).map(String));
+ return '<div class="near-check-grid">'+candidates.map(e=>'<label class="near-check"><input type="checkbox" name="vehicleAdditionalDriver" value="'+esc(e.no)+'" '+(set.has(String(e.no))?'checked':'')+'> '+esc(e.no)+' '+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'</label>').join('')+'</div>'
+}
+function vehicleAdditionalDriverNos(){
+ return [...document.querySelectorAll('input[name="vehicleAdditionalDriver"]:checked')].map(x=>String(x.value))
+}
+function vehicleAssignedEmployeeNos(v){
+ return [...new Set([String(v?.employee_no||''),...((Array.isArray(v?.additionalEmployeeNos)?v.additionalEmployeeNos:[]).map(String))].filter(Boolean))]
+}
+function vehicleAssignedEmployees(v){
+ return vehicleAssignedEmployeeNos(v).map(no=>emp(no)).filter(Boolean)
+}
 function updateVehicleFormGuide(){
  let el=document.getElementById('vehicleFormGuide');if(!el)return;
- let e=emp(document.getElementById('fve')?.value||''),inspection=document.getElementById('fvi')?.value||'',status=document.getElementById('fvst')?.value||'',maint=document.getElementById('fvmaint')?.value||'';
+ let e=emp(document.getElementById('fve')?.value||''),inspection=document.getElementById('fvi')?.value||'',status=document.getElementById('fvst')?.value||'',maint=document.getElementById('fvmaint')?.value||'',mode=document.getElementById('fvmode')?.value||'専属';
  let notes=[],danger=false,warn=false;
  if(inspection){let n=days(inspection);if(n<0){notes.push('車検期限が'+Math.abs(n)+'日超過');danger=true}else if(n<=30){notes.push('車検期限まで'+n+'日');warn=true}}
  else{notes.push('車検期限が未設定');warn=true}
@@ -4594,6 +4637,7 @@ function updateVehicleFormGuide(){
  }else{notes.push('担当社員が未設定');warn=true}
  if(maint){let n=days(maint);if(n<0){notes.push('次回整備確認日を'+Math.abs(n)+'日超過');warn=true}else if(n<=30){notes.push('次回整備確認まで'+n+'日');warn=true}}
  if(status&&status!=='稼働')notes.push('車両状態：'+status);
+ let extra=vehicleAdditionalDriverNos().filter(no=>!e||String(no)!==String(e.no));if(mode==='専属'&&extra.length)notes.push('専属設定ですが追加利用乗務員が'+extra.length+'名あります');
  let cls=danger?'danger':warn?'warn':'ok';
  el.className='detail-alert '+cls;
  el.innerHTML='<b>保存前チェック：</b> '+esc(notes.length?notes.join(' / '):'登録情報上の大きな警告はありません');
@@ -4603,6 +4647,8 @@ function openVehicleForm(idx=-1){
  let v=idx>=0?V[idx]:null;
  if(v&&(!v.employee_no||!guardEmployeeEdit(v.employee_no,'車両記録')))return;
  let candidates=scopedEmployees().filter(e=>e.status==='在籍'&&['タクシー課','バス課'].includes(e.dept));
+ let currentPrimary=v?emp(v.employee_no):null;
+ if(v&&currentPrimary&&canEditEmployee(currentPrimary.no)&&!candidates.some(e=>e.no===String(currentPrimary.no)))candidates.unshift(currentPrimary);
  if(!candidates.length){alert('現在の担当範囲に車両担当の乗務社員がいません');return}
  if(v&&!candidates.some(e=>e.no===String(v.employee_no))){alert('現在の担当範囲ではこの車両を編集できません');return}
  let statuses=isFullCompanyAdmin()?['稼働','点検予定','休車','廃車']:['稼働','点検予定','休車'];
@@ -4618,11 +4664,13 @@ function openVehicleForm(idx=-1){
   <div class="field"><label>次回整備確認（任意）</label><input id="fvmaint" type="date" value="${esc(v?.nextMaintenance||'')}" onchange="updateVehicleFormGuide()"></div>
   <div class="field"><label>状態</label><select id="fvst" onchange="updateVehicleFormGuide()">${statuses.map(s=>`<option>${s}</option>`).join('')}</select></div>
   <div class="field wide"><label>整備メモ（任意）</label><textarea id="fvnote" placeholder="例：次回入庫時にタイヤ確認">${esc(v?.maintenanceNote||'')}</textarea><div class="mini">日々の整備記録そのものを置き換える欄ではなく、次回確認事項のメモとして使います。</div></div>
-  <div class="employee-form-section"><h4>担当</h4><p>担当乗務員の安全状態も同時に確認します</p></div>
-  <div class="field wide"><label>担当社員<span class="req">必須</span></label><select id="fve" onchange="updateVehicleFormGuide()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)} / 乗務可否 ${esc(e.eligibility||'対象外')}</option>`).join('')}</select></div>
+  <div class="employee-form-section"><h4>担当・配車形態</h4><p>主担当を1名置きつつ、共用・予備車・代車と複数乗務員にも対応します</p></div>
+  <div class="field"><label>配車形態</label><select id="fvmode" onchange="updateVehicleFormGuide()"><option>専属</option><option>共用</option><option>予備車</option><option>代車</option></select></div>
+  <div class="field wide"><label>主担当社員<span class="req">必須</span></label><select id="fve" onchange="updateVehicleFormGuide()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)} / ${esc(e.status)} / 乗務可否 ${esc(e.eligibility||'対象外')}</option>`).join('')}</select><div class="mini">主担当は車両の管理責任・表示範囲の基準に使います。実際の当日乗務員とは別です。</div></div>
+  <div class="field wide"><label>追加利用乗務員（任意・複数可）</label>${vehicleAdditionalDriverHtml(candidates,v?.additionalEmployeeNos||[])}<div class="mini">共用車・予備車・代車で、日常的に利用する乗務員だけ登録します。当日の配車記録そのものではありません。</div></div>
  </div>`;
  organizeCurrentFormSections({open:[0,1,2]});
- if(v){fve.value=String(v.employee_no);fvst.value=statuses.includes(v.status)?v.status:'稼働'}
+ if(v){fve.value=String(v.employee_no);fvst.value=statuses.includes(v.status)?v.status:'稼働';fvmode.value=['専属','共用','予備車','代車'].includes(v.assignmentMode)?v.assignmentMode:'専属'}
  updateVehicleFormGuide();
  fsave.onclick=()=>{
   let e=emp(fve.value);
@@ -4631,10 +4679,13 @@ function openVehicleForm(idx=-1){
   if(!requireInputs([{id:'fvp',label:'車両番号',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;
   if(V.some((x,j)=>j!==idx&&String(x.plate).trim()===fvp.value.trim()))return alert('同じ車両番号が既に登録されています');
   if(fvst.value==='廃車'&&!isFullCompanyAdmin())return alert('廃車は全社管理者のみ操作できます');
-  let data={plate:fvp.value.trim(),callSign:fvcall.value.trim(),model:fvmodel.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,inspection:fvi.value,nextMaintenance:fvmaint.value,maintenanceNote:fvnote.value.trim(),status:fvst.value};
-  let vehicleLines=v?recordChangeLines({plate:v.plate,callSign:v.callSign||'',model:v.model||'',employee_no:v.employee_no,inspection:v.inspection,nextMaintenance:v.nextMaintenance||'',maintenanceNote:v.maintenanceNote||'',status:v.status},data,{plate:'車両番号',callSign:'号車・呼称',model:'車種',employee_no:'担当社員番号',inspection:'車検期限',nextMaintenance:'次回整備確認',maintenanceNote:'整備メモ',status:'状態'}):['車両番号：'+data.plate,'号車・呼称：'+(data.callSign||'未設定'),'車種：'+(data.model||'未設定'),'担当社員：'+e.no+' '+e.name,'車検期限：'+data.inspection,'次回整備確認：'+(data.nextMaintenance||'未設定'),'状態：'+data.status];
+  let extraNos=vehicleAdditionalDriverNos().filter(no=>String(no)!==String(e.no));
+  let data={plate:fvp.value.trim(),callSign:fvcall.value.trim(),model:fvmodel.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,assignmentMode:fvmode.value,additionalEmployeeNos:extraNos,inspection:fvi.value,nextMaintenance:fvmaint.value,maintenanceNote:fvnote.value.trim(),status:fvst.value};
+  let beforeVehicle=v?{plate:v.plate,callSign:v.callSign||'',model:v.model||'',employee_no:v.employee_no,assignmentMode:v.assignmentMode||'専属',additionalEmployeeNos:(v.additionalEmployeeNos||[]).join(','),inspection:v.inspection,nextMaintenance:v.nextMaintenance||'',maintenanceNote:v.maintenanceNote||'',status:v.status}:null;
+  let compareVehicle={...data,additionalEmployeeNos:extraNos.join(',')};
+  let vehicleLines=v?recordChangeLines(beforeVehicle,compareVehicle,{plate:'車両番号',callSign:'号車・呼称',model:'車種',employee_no:'主担当社員番号',assignmentMode:'配車形態',additionalEmployeeNos:'追加利用乗務員',inspection:'車検期限',nextMaintenance:'次回整備確認',maintenanceNote:'整備メモ',status:'状態'}):['車両番号：'+data.plate,'号車・呼称：'+(data.callSign||'未設定'),'車種：'+(data.model||'未設定'),'配車形態：'+data.assignmentMode,'主担当社員：'+e.no+' '+e.name,'追加利用乗務員：'+extraNos.length+'名','車検期限：'+data.inspection,'次回整備確認：'+(data.nextMaintenance||'未設定'),'状態：'+data.status];
   if(v&&!vehicleLines.length){closeForm();return}
-  let vehicleWarnings=[];if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.nextMaintenance&&days(data.nextMaintenance)<0)vehicleWarnings.push('次回整備確認日を超過しています');if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ')vehicleWarnings.push('担当社員が乗務不可または期限切れ状態です');else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常'))vehicleWarnings.push('担当社員の安全状態が要確認です');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
+  let vehicleWarnings=[];if(data.assignmentMode==='専属'&&extraNos.length)vehicleWarnings.push('配車形態が「専属」ですが追加利用乗務員が登録されています');if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.nextMaintenance&&days(data.nextMaintenance)<0)vehicleWarnings.push('次回整備確認日を超過しています');if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ')vehicleWarnings.push('担当社員が乗務不可または期限切れ状態です');else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常'))vehicleWarnings.push('担当社員の安全状態が要確認です');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
   if(!confirmFormSave(v?'車両変更の確認':'車両登録の確認',vehicleLines,vehicleWarnings))return;
   if(v){
    let oldNo=v.employee_no,oldPlate=v.plate,oldStatus=v.status,oldEmployee=emp(oldNo),actor=currentActorIdentity();
@@ -4929,7 +4980,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v96.0';
+const APP_DATA_SCHEMA='v97.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
