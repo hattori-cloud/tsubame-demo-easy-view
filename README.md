@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v98 foundation build.
+Current application: v99 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v98 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v98.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v99.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -38,6 +38,9 @@ Current application: v98 foundation build.
 - Administrator user registry now models roughly ten management accounts with role, state, MFA, safety authority, assigned scopes, session placeholders and authentication status using only fictional demo identities
 - User/access management provides search, filters and per-user scope detail, while clearly separating demo role preview from real authentication
 - Production login design requires identity authentication, company allow-list validation, MFA, server-side authorization/session controls and audit logging before real employee data is introduced
+- Database migration model now defines candidate production tables, primary keys and main references for employees, credentials, documents, vehicles, safety records, users and audit logs
+- Relation-integrity checks detect orphan employee/user/qualification/document references and duplicate business primary keys before production migration
+- Employee search UI keeps quick search and common status buttons visible while moving office/department/lifecycle/deadline filters into a collapsible detailed section
 - Self-diagnostic results show Normal / Warning / Needs attention and are available from the System Foundation section
 
 Production note: the shared demo still uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
