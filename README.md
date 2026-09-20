@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v119 foundation build.
+Current application: v120 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v119 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v119.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v120.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -72,6 +72,7 @@ Current application: v119 foundation build.
 - v117 adds a taxi-driver-only operational snapshot at the top of employee detail, showing current car number, Gold/English/Tourism certifications, accident/complaint/near-miss counts, open-case counts, taxi section/work pattern, and direct links to the related records.
 - v118 shifts the visible UI toward production operation: simplifies environment wording, combines office and department into one employee-list affiliation column, adds car number and driver certification visibility directly to the list, supports car-number employee search, highlights unregistered car numbers, and uses a clearer mobile employee card.
 - v119 makes the Safety screen work as a daily operations dashboard: restores the top overview, surfaces open/overdue accident and complaint work, high-risk near-misses and today’s due items, and adds direct employee/car-number navigation from the accident list.
+- v120 makes the Work/Deadlines screen a daily management dashboard: puts overdue, due-today, due-within-30-days, and work-time-attention counts at the top; shows only employees needing attention; separates overtime/update checks from general employee lists; and keeps health/training follow-up directly accessible.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
