@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v106 foundation build.
+Current application: v107 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -59,6 +59,7 @@ Current application: v106 foundation build.
 - Safety-entry forms now support browser-local drafts for accident, near-miss and complaint input, with restore/discard controls and automatic draft removal after successful registration
 - Production technology architecture proposal separates Web/API, authentication, managed PostgreSQL, private object storage, audit logging, backups, scheduled jobs and environment isolation by responsibility and acceptance criteria
 - External-integration planning covers PCA and アントレ.
+- v107 starts the production API implementation with a fail-closed security foundation, a no-business-data health endpoint, and a protected probe that refuses access until real identity verification is implemented.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
