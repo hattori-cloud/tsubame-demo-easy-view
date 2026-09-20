@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v105 foundation build.
+Current application: v106 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v105 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v105.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v106.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -59,6 +59,10 @@ Current application: v105 foundation build.
 - Safety-entry forms now support browser-local drafts for accident, near-miss and complaint input, with restore/discard controls and automatic draft removal after successful registration
 - Production technology architecture proposal separates Web/API, authentication, managed PostgreSQL, private object storage, audit logging, backups, scheduled jobs and environment isolation by responsibility and acceptance criteria
 - External-integration planning now covers PCA and アントレ only; Eight is out of scope
+- Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
+- Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
+- `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
+- `docs/api-contract.md` defines authentication, authorization, concurrency, state transitions, document-storage tickets, server-side drafts, transactions and initial staging acceptance flow
 - Self-diagnostic results show Normal / Warning / Needs attention and are available from the System Foundation section
 
 Production note: the shared demo still uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
