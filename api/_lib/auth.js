@@ -72,7 +72,10 @@ async function verifyAccessToken(token){
     const email=String(claims.email||claims.preferred_username||'').toLowerCase();
     if(!email.endsWith('@'+domain))throw new AuthError(403,'COMPANY_ACCOUNT_REQUIRED','会社で許可されたアカウントが必要です')
   }
-  return {subject:String(claims.sub),email:claims.email||claims.preferred_username||'',claims}
+  const amr=Array.isArray(claims.amr)?claims.amr.map(x=>String(x).toLowerCase()):[];
+  const requiredAcr=(process.env.TSUBAME_AUTH_MFA_ACR||'').trim();
+  const mfa=amr.some(x=>['mfa','otp','hwk','fido','webauthn'].includes(x))||Boolean(requiredAcr&&claims.acr===requiredAcr);
+  return {subject:String(claims.sub),email:claims.email||claims.preferred_username||'',mfa,claims}
 }
 async function authenticateRequest(req){
   return verifyAccessToken(getBearer(req))
@@ -80,9 +83,10 @@ async function authenticateRequest(req){
 function sendApiError(req,res,err){
   const id=requestId(req);
   applySecurityHeaders(res);res.setHeader('X-Request-Id',id);
-  const status=err instanceof AuthError?err.status:500;
-  const code=err instanceof AuthError?err.code:'INTERNAL_ERROR';
-  const message=err instanceof AuthError?err.message:'サーバー処理に失敗しました';
+  const structured=err&&typeof err.status==='number'&&err.code&&err.message;
+  const status=err instanceof AuthError?err.status:structured?err.status:500;
+  const code=err instanceof AuthError?err.code:structured?err.code:'INTERNAL_ERROR';
+  const message=err instanceof AuthError?err.message:structured?err.message:'サーバー処理に失敗しました';
   return res.status(status).json(errorBody(code,message,id))
 }
 module.exports={AuthError,authenticateRequest,verifyAccessToken,sendApiError};
