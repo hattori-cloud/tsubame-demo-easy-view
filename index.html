@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v107</title>
+<title>つばめ交通株式会社 社員一元管理システム v108</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -738,11 +738,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="vehicles">
-<div class="page-title"><div><h2>車両管理</h2><p>号車・車種・担当乗務員・車検期限・状態をまとめて管理します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
+<div class="page-title"><div><h2>車両管理</h2><p>3桁の号車（車両番号）・車種・担当乗務員・車検期限・状態をまとめて管理します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
 <div class="simple-note">車検期限の近い順に表示します。担当変更は履歴として残ります。</div>
 <div class="card" style="margin-top:12px">
  <div class="home-search-row">
-  <input id="vehicleq" placeholder="管理番号・車両番号・号車・車種・担当社員で検索" oninput="renderVehicles()">
+  <input id="vehicleq" placeholder="管理番号・号車・車種・担当社員で検索" oninput="renderVehicles()">
   <select id="vehicleStatus" onchange="renderVehicles()"><option value="">全状態</option><option>稼働</option><option>点検予定</option><option>休車</option><option>廃車</option></select>
   <button class="btn soft" onclick="clearVehicleSearch()">検索解除</button>
  </div>
@@ -750,7 +750,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="list-controls"><label class="mini">車検期限を指定</label><input id="vehicleDate" type="date" aria-label="車検期限で検索" onchange="renderVehicles()"></div></div></details>
  <div id="vehicleSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>管理番号</th><th>車両番号</th><th>区分</th><th>担当</th><th>車検期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
+<div class="table-card"><div class="tablewrap"><table><thead><tr><th>管理番号</th><th>号車</th><th>区分</th><th>担当</th><th>車検期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
 </section>
 
 
@@ -936,12 +936,15 @@ function ensureAccidentSamples(){
 }
 
 
-let V=safeStorageRead('v23V',null)||[{id:'V-001',plate:'広島500 あ 00-01',service:'タクシー',employee_no:'1001',inspection:'2026-10-20',status:'稼働'},{id:'V-002',plate:'広島200 か 00-02',service:'バス',employee_no:'1016',inspection:'2026-11-05',status:'点検予定'}];
+let V=safeStorageRead('v23V',null)||[{id:'V-001',plate:'801',service:'タクシー',employee_no:'1001',inspection:'2026-10-20',status:'稼働'},{id:'V-002',plate:'802',service:'バス',employee_no:'1016',inspection:'2026-11-05',status:'点検予定'}];
 function ensureVehicleFields(){
  let changed=false;
  V.forEach(v=>{
   if(v.assignmentHistory===undefined){v.assignmentHistory=[];changed=true}
   if(v.currentAssignedDate===undefined){v.currentAssignedDate='';changed=true}
+  let oldPlate=String(v.plate||'').trim(),oldCall=String(v.callSign||'').trim();
+  if(!/^\\d{3}$/.test(oldPlate)&&/^\\d{3}$/.test(oldCall)){v.legacyPlate=oldPlate;v.plate=oldCall;v.callSign='';changed=true}
+  if(/^\\d{3}$/.test(String(v.plate||''))&&v.callSign){v.callSign='';changed=true}
  });
  if(changed)localStorage.setItem('v23V',JSON.stringify(V))
 }
@@ -1097,7 +1100,12 @@ function syncDocumentQualificationLink(d,qid){
 let PREVIEW_MODE=localStorage.getItem('v67ROLE')||'full';
 if(!['full','scoped','self'].includes(PREVIEW_MODE)){PREVIEW_MODE='full';localStorage.setItem('v67ROLE',PREVIEW_MODE)}
 let PREVIEW_ROLE=PREVIEW_MODE==='self'?'一般社員':'管理者';
-const COMPANY_SPEC={offices:['本社','府中','馬木'],employment:['正社員','定時制','パート'],taxiSections:['タクシー1課','タクシー2課','タクシー3課'],workPatterns:['隔日勤務','日勤','夜勤'],companyCerts:['英語ドライバー','観光ドライバー']};
+const COMPANY_SPEC={offices:['本社','府中','馬木'],employment:['正社員','定時制','パート'],taxiSections:['タクシー1課','タクシー2課','タクシー3課'],workPatterns:['隔日勤務','日勤','夜勤'],companyCerts:['ゴールド認定ドライバー','英語ドライバー','観光ドライバー']};
+const DRIVER_CERT_DEFS=[
+ {key:'gold',label:'ゴールド認定ドライバー',short:'ゴールド'},
+ {key:'english',label:'英語ドライバー',short:'英語'},
+ {key:'tourism',label:'観光ドライバー',short:'観光'}
+];
 const AUTH_CONFIG={connected:false,provider:'本番未選定',requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',note:'共有デモは認証なし。権限切替は画面確認専用'};
 const USERS=[
  {id:'EMP-1002',name:'検証全社管理者',role:'管理者',adminLevel:'full',safetyAuthority:false,scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1,authMethod:'本番未接続',loginKey:'ADM-01',lastLogin:'デモ確認中'},
@@ -1288,6 +1296,88 @@ function ensureCommsFields(){
  if(changed){localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS))}
 }
 let ATT_PRECHECK=false;
+function ensureDriverCertificationFields(){
+ let changed=false;
+ E.forEach(e=>{
+  if(!e.driverCertifications||typeof e.driverCertifications!=='object'||Array.isArray(e.driverCertifications)){e.driverCertifications={};changed=true}
+  if(!Array.isArray(e.driverCertificationHistory)){e.driverCertificationHistory=[];changed=true}
+  let legacy=Array.isArray(e.companyCerts)?e.companyCerts:[];
+  DRIVER_CERT_DEFS.forEach(def=>{
+   if(!e.driverCertifications[def.key]){
+    let active=legacy.includes(def.label)||(def.key==='english'&&legacy.includes('英語ドライバー'))||(def.key==='tourism'&&legacy.includes('観光ドライバー'));
+    e.driverCertifications[def.key]={active,startedAt:'',lastChangedAt:''};changed=true
+   }else if(typeof e.driverCertifications[def.key].active!=='boolean'){
+    e.driverCertifications[def.key].active=!!e.driverCertifications[def.key].active;changed=true
+   }
+  });
+  let current=DRIVER_CERT_DEFS.filter(def=>e.driverCertifications[def.key]?.active).map(def=>def.label);
+  if(JSON.stringify(current)!==JSON.stringify(legacy)){e.companyCerts=current;changed=true}
+ });
+ if(changed){safeStorageWrite('v45E',E);safeStorageWrite('v23E',E)}
+}
+function driverCertActive(e,key){return !!e?.driverCertifications?.[key]?.active}
+function driverCertBadgesHtml(e){
+ let active=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key));
+ return active.length?active.map(def=>'<span class="badge ok">'+esc(def.short)+'</span>').join(' '):''
+}
+function driverCertificationHistoryHtml(e){
+ let rows=Array.isArray(e?.driverCertificationHistory)?e.driverCertificationHistory:[];
+ if(!rows.length)return '<div class="mini">認定・解除の履歴はまだありません。</div>';
+ return rows.slice().sort((a,b)=>String(b.time||b.date||'').localeCompare(String(a.time||a.date||''))).slice(0,30).map(h=>
+  '<div class="row"><div><b>'+esc(h.date||'')+' '+esc(h.certification||'')+' / '+esc(h.action||'変更')+'</b><div class="mini">変更者 '+esc(h.actor_name||'不明')+(h.note?' / '+esc(h.note):'')+'</div></div>'+badge(h.action==='解除'?'解除':'記録済み')+'</div>'
+ ).join('')
+}
+function openDriverCertificationForm(no){
+ if(!canEditEmployee(no)){alert('現在の担当範囲では認定情報を変更できません');return}
+ let e=emp(no);if(!e)return;
+ fttl.textContent=e.name+' の乗務員認定';
+ setFormSaveLabel('認定状態を保存する');
+ fbody.innerHTML='<div class="formnote">ゴールド・英語・観光の現在状態を管理します。期限は設けず、認定・解除の変更履歴を残します。ゴールドは2026年10月から運用開始予定です。</div><div class="formgrid">'+
+ DRIVER_CERT_DEFS.map(def=>'<div class="field wide"><label><input type="checkbox" id="cert_'+def.key+'" style="width:auto;min-height:auto;margin-right:8px" '+(driverCertActive(e,def.key)?'checked':'')+'> '+esc(def.label)+'</label>'+(def.key==='gold'?'<div class="mini">2026年10月運用開始予定。制度詳細は運用開始後に追加できます。</div>':'')+'</div>').join('')+
+ '<div class="field wide"><label>変更理由・メモ</label><textarea id="cert_note" placeholder="例：認定開始、社内基準見直しにより解除、継続確認など"></textarea><div class="mini">状態を変更する場合は理由・メモを残します。</div></div></div>';
+ fsave.onclick=()=>{
+  if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
+  let changes=[];
+  DRIVER_CERT_DEFS.forEach(def=>{
+   let before=driverCertActive(e,def.key),after=!!document.getElementById('cert_'+def.key)?.checked;
+   if(before!==after)changes.push({def,before,after})
+  });
+  if(!changes.length){closeForm();return}
+  let note=(document.getElementById('cert_note')?.value||'').trim();
+  if(!note)return alert('認定状態を変更する理由・メモを入力してください');
+  let lines=changes.map(x=>x.def.label+'：'+(x.before?'認定中':'未認定')+' → '+(x.after?'認定中':'未認定'));
+  if(!confirmFormSave('乗務員認定の変更確認',lines,[]))return;
+  let actor=currentActorIdentity(),now=new Date().toISOString();
+  if(!Array.isArray(e.driverCertificationHistory))e.driverCertificationHistory=[];
+  changes.forEach(x=>{
+   e.driverCertifications[x.def.key]={...(e.driverCertifications[x.def.key]||{}),active:x.after,lastChangedAt:TODAY,startedAt:x.after?(e.driverCertifications[x.def.key]?.startedAt||TODAY):e.driverCertifications[x.def.key]?.startedAt||''};
+   e.driverCertificationHistory.unshift({date:TODAY,time:now,certification:x.def.label,certification_key:x.def.key,action:x.after?'認定':'解除',actor_id:actor.id,actor_name:actor.name,note});
+  });
+  e.companyCerts=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label);
+  touchRecord(e,'employee',false);
+  audit('乗務員認定更新',e.no+' '+e.name+' / '+lines.join(' / '),{employee_no:e.no,entity_type:'employee',entity_id:e.no});
+  if(!save())return;closeForm();renderAll();employeeCertUniform(no)
+ };
+ form.classList.add('show')
+}
+function openGoldReviewForm(no){
+ if(!canEditEmployee(no)){alert('現在の担当範囲ではゴールド認定の記録を追加できません');return}
+ let e=emp(no);if(!e||!driverCertActive(e,'gold'))return alert('現在ゴールド認定中の乗務員だけ継続確認を記録できます');
+ fttl.textContent=e.name+' のゴールド認定 継続確認';
+ setFormSaveLabel('継続確認を記録する');
+ fbody.innerHTML='<div class="formnote">期限アラートは使わず、3か月ごとの見直し結果を履歴として残すための記録です。運用ルールが固まったら項目を追加できます。</div><div class="formgrid"><div class="field wide"><label>確認メモ</label><textarea id="gold_review_note" placeholder="例：認定継続を確認"></textarea></div></div>';
+ fsave.onclick=()=>{
+  let note=(document.getElementById('gold_review_note')?.value||'').trim()||'認定継続を確認';
+  let actor=currentActorIdentity(),now=new Date().toISOString();
+  if(!Array.isArray(e.driverCertificationHistory))e.driverCertificationHistory=[];
+  e.driverCertificationHistory.unshift({date:TODAY,time:now,certification:'ゴールド認定ドライバー',certification_key:'gold',action:'継続',actor_id:actor.id,actor_name:actor.name,note});
+  e.driverCertifications.gold.lastChangedAt=TODAY;
+  touchRecord(e,'employee',false);
+  audit('ゴールド認定継続確認',e.no+' '+e.name+' / '+note,{employee_no:e.no,entity_type:'employee',entity_id:e.no});
+  if(!save())return;closeForm();renderAll();employeeCertUniform(no)
+ };
+ form.classList.add('show')
+}
 function ensureHandoffFields(){
  E.forEach((e,i)=>{
    e.system_id=systemEmployeeId(e.no);
@@ -1428,7 +1518,7 @@ const MAILRULES=[
  {key:'license',label:'資格期限',days:[30,14,7,1],to:['社員本人','所属管理者','運行管理'],note:'資格名・期限のみ通知'},
  {key:'health',label:'健康診断期限',days:[30,14,7],to:['社員本人','権限のある健康管理担当'],note:'健診期限のみ。結果内容はメールに載せない'},
  {key:'training',label:'安全指導期限',days:[14,7,1],to:['社員本人','所属管理者','運行管理'],note:'未完了の安全指導と期限を通知'},
- {key:'vehicle',label:'車検・点検期限',days:[60,30,14,7],to:['整備担当','車両管理者'],note:'車両番号・期限を通知'},
+ {key:'vehicle',label:'車検・点検期限',days:[60,30,14,7],to:['整備担当','車両管理者'],note:'号車・期限を通知'},
  {key:'accident',label:'事故フォロー期限',days:[7,3,1],to:['事故担当者','運行管理','安全管理'],note:'必要最小限の事故番号・期限を通知'},
  {key:'task',label:'手続・タスク期限',days:[7,3,1],to:['担当者','所属管理者'],note:'未完了タスクを通知'}
 ];
@@ -1644,7 +1734,7 @@ function qualityIssues(){
      Object.entries(m).filter(([,n])=>n>1).forEach(([k,n])=>issues.push({level:'bad',label:`${label} ${k}`,detail:`重複 ${n}件`}))
    };
    dup(E,x=>x.no,'社員番号');
-   dup(V,x=>x.plate,'車両番号');
+   dup(V,x=>x.plate,'号車');
    V.forEach(v=>{
     let e=emp(v.employee_no);
     if(v.status!=='廃車'&&!v.employee_no)issues.push({level:'bad',label:`車両 ${v.id}`,detail:'稼働対象車両ですが担当社員が未設定です'});
@@ -2045,7 +2135,7 @@ const DATA_MODEL_META={
  near_misses:{required:'id / employee_id / occurred_at / summary',indexes:'employee_id, occurred_at, risk_level',history:'分類・危険度・対策'},
  complaints:{required:'id / employee_id / received_at / summary / status',indexes:'employee_id, received_at, status, owner_user_id, followup_due',history:'担当・指導・期限・完了'},
  guidance:{required:'id / employee_id / date / type / summary',indexes:'employee_id, date, type',history:'担当・次回確認'},
- vehicles:{required:'id / plate / status',indexes:'plate(unique), call_sign, inspection_due, status, primary_employee_id',history:'主担当・利用乗務員・状態・車検・整備'},
+ vehicles:{required:'id / plate(3桁号車) / status',indexes:'plate(unique), inspection_due, status, primary_employee_id',history:'号車・主担当・利用乗務員・状態・車検・整備'},
  applications:{required:'id / employee_id / type / status / applied_at',indexes:'employee_id, status, applied_at',history:'申請・承認・差戻し'},
  notices:{required:'id / title / published_at / state',indexes:'published_at, state',history:'公開・停止'},
  confirmations:{required:'id / title / due / state',indexes:'due, state',history:'回答状況'},
@@ -3403,15 +3493,15 @@ function renderEmployeeDataNotice(){
 function renderEmp(){
  renderEmployeeDataNotice();
  let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',
-     filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)).sort(employeeSafetySort),
+     filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)).sort(employeeSafetySort),
      pages=Math.max(1,Math.ceil(filtered.length/EMP_PER_PAGE));
  EMP_PAGE=Math.min(Math.max(1,EMP_PAGE),pages);
  let start=(EMP_PAGE-1)*EMP_PER_PAGE,arr=filtered.slice(start,start+EMP_PER_PAGE);
  let summary=document.getElementById('empListSummary');
  if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length;summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopedEmployees().length}名 ・ 標準は安全優先順</div></div><div><span class="badge ${attention?'warn':'ok'}">要確認 ${attention}名</span></div>`}
- empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),rowClass=(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></td><td><span class="emp-chip">${esc(e.branch)}</span></td><td><span class="emp-chip">${esc(e.dept)}</span></td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td>${badge(e.status)}</td><td><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></td></tr>`}).join('');
+ empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),rowClass=(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:5px">${driverCertBadgesHtml(e)}</div>`:''}</td><td><span class="emp-chip">${esc(e.branch)}</span></td><td><span class="emp-chip">${esc(e.dept)}</span></td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td>${badge(e.status)}</td><td><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></td></tr>`}).join('');
  let mobile=document.getElementById('empMobileList');
- if(mobile){mobile.innerHTML=arr.length?arr.map(e=>`<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>事業所</label><b>${esc(e.branch)}</b></div><div><label>部署</label><b>${esc(e.dept)}</b></div></div><div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div><button class="btn soft" onclick="event.stopPropagation();employeeDetail('${e.no}')">開く</button></article>`).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
+ if(mobile){mobile.innerHTML=arr.length?arr.map(e=>`<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>事業所</label><b>${esc(e.branch)}</b></div><div><label>部署</label><b>${esc(e.dept)}</b></div></div><div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:6px">${driverCertBadgesHtml(e)}</div>`:''}<button class="btn soft" onclick="event.stopPropagation();employeeDetail('${e.no}')">開く</button></article>`).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
  let pager=document.getElementById('empPager');
  if(pager){if(filtered.length===0){pager.innerHTML=''}else{let from=start+1,to=Math.min(start+EMP_PER_PAGE,filtered.length);pager.innerHTML=`<button class="btn" ${EMP_PAGE<=1?'disabled':''} onclick="employeePage(${EMP_PAGE-1})">← 前へ</button><span class="emp-page-info">${from}〜${to}件 / 全${filtered.length}件 （${EMP_PAGE}/${pages}ページ）</span><button class="btn" ${EMP_PAGE>=pages?'disabled':''} onclick="employeePage(${EMP_PAGE+1})">次へ →</button>`}}
 }
@@ -3707,7 +3797,7 @@ function employeeDetail(no){
  dttl.textContent='社員詳細';
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft detail-origin-action" onclick="closeDetail()">← 元の画面へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openEmployeeEdit('${no}')">社員情報を編集</button>`:''}${PREVIEW_ROLE!=='一般社員'?`<button class="star-btn ${isFavorite(no)?'on':''}" onclick="toggleFavorite('${no}')">${isFavorite(no)?'★ 注目社員':'☆ 注目社員に追加'}</button>`:''}</div>
  <div class="employee-profile-hero">
-   <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${systemEmployeeId(e.no)}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)}</div></div>
+   <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${systemEmployeeId(e.no)}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)} ${driverCertBadgesHtml(e)}</div></div>
    <div class="employee-safety-panel ${safetyClass}"><small>${safetyTitle}</small><strong>乗務可否 ${esc(elig)}</strong><div>${badge(e.safetyState||'正常')}</div><div class="mini">最優先期限：${esc(nearestText)}</div></div>
  </div>
  <div class="detail-alert ${safetyClass}">${esc(alertText)}</div>
@@ -3799,7 +3889,7 @@ function employeeDetail(no){
    <div class="section"><h3>書類・貸与品</h3><div><div class="related-grid">
     <button class="related-btn" onclick="employeeDocuments('${e.no}')"><b>書類 ${dd.length}件 ›</b><span>${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑':'確認待ち・原本確認済み・期限'}</span></button>
     <button class="related-btn" onclick="employeeAssets('${e.no}')"><b>貸与品 ${assets.length}件 ›</b><span>返却状況・管理番号</span></button>
-    <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>社内認定・制服 ›</b><span>英語/観光ドライバー・現在サイズ</span></button>
+    <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>乗務員認定・制服 ›</b><span>ゴールド・英語・観光 / 認定履歴</span></button>
     ${isFullCompanyAdmin()?`<button class="related-btn" onclick="employeeProcedures('${e.no}')"><b>休職・退職手続 ${pp.length}項目 ›</b><span>ログイン停止・引継ぎを確認</span></button>`:''}
     ${roleCanSeeSensitive()?`<button class="related-btn" onclick="employeeAdminOnly('${e.no}')"><b>管理者専用 ›</b><span>労働条件・保険・二種免許養成</span></button>`:''}
    </div></div></div>
@@ -3814,8 +3904,21 @@ function employeeDriverLedger(no){
 }
 function employeeCertUniform(no){
  if(!guardEmployeeView(no,'社内認定・制服'))return;
- let e=emp(no);dttl.textContent=`${e.name} の社内認定・制服`;
- dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button></div><div class="section"><h3>社内認定</h3><div>${e.companyCerts?.length?e.companyCerts.map(x=>`<span class="badge ok">${x}</span>`).join(' '):'登録なし'}<div class="mini">英語ドライバー・観光ドライバーは有効期限なし。</div></div></div><div class="section"><h3>現在の制服サイズ</h3><div class="infogrid"><div class="info"><label>ジャケット</label><b>${e.uniform?.jacket||'-'}</b></div><div class="info"><label>スラックス</label><b>${e.uniform?.slacks||'-'}</b></div><div class="info"><label>カッターシャツ</label><b>${e.uniform?.shirt||'-'}</b></div></div></div>`
+ let e=emp(no);if(!e)return;
+ ensureDriverCertificationFields();
+ let activeCount=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).length;
+ dttl.textContent=e.name+' の乗務員認定・制服';
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+no+'\')">← 社員詳細へ戻る</button></div>'+
+ '<div class="section"><h3>乗務員認定</h3><div>'+
+ '<div class="list-summary"><div><b>現在の認定 '+activeCount+'件</b><div class="mini">ゴールド・英語・観光を個別管理。外れた場合も履歴は残ります。</div></div><div class="toolbar">'+
+ (canEditEmployee(no)?'<button class="btn primary" onclick="openDriverCertificationForm(\''+no+'\')">認定を変更</button>':'')+
+ (canEditEmployee(no)&&driverCertActive(e,'gold')?'<button class="btn soft" onclick="openGoldReviewForm(\''+no+'\')">ゴールド継続確認</button>':'')+
+ '</div></div>'+
+ '<div class="readiness-grid" style="margin-top:10px">'+DRIVER_CERT_DEFS.map(def=>'<div class="ready-item '+(driverCertActive(e,def.key)?'ok':'')+'"><b>'+esc(def.label)+'</b><div class="mini">'+(driverCertActive(e,def.key)?'現在：認定中':'現在：未認定')+(def.key==='gold'?'<br>2026年10月運用開始予定':'')+'</div></div>').join('')+'</div>'+
+ '<details class="detail-fold" open><summary>認定・解除・継続の履歴</summary><div class="detail-fold-body">'+driverCertificationHistoryHtml(e)+'</div></details>'+
+ '</div></div>'+
+ '<div class="section"><h3>現在の制服サイズ</h3><div class="infogrid"><div class="info"><label>ジャケット</label><b>'+esc(e.uniform?.jacket||'-')+'</b></div><div class="info"><label>スラックス</label><b>'+esc(e.uniform?.slacks||'-')+'</b></div><div class="info"><label>カッターシャツ</label><b>'+esc(e.uniform?.shirt||'-')+'</b></div></div></div>';
+ showDetailModal()
 }
 function employeeAdminOnly(no){
  if(!roleCanSeeSensitive()||!inGrantedEmployeeScope(no)){alert('全社管理者専用です');return}let e=emp(no);dttl.textContent=`${e.name} の管理者専用情報`;
@@ -4395,7 +4498,7 @@ function renderVehicles(){
  let q=(document.getElementById('vehicleq')?.value||'').trim().toLowerCase(),date=document.getElementById('vehicleDate')?.value||'',status=document.getElementById('vehicleStatus')?.value||'',all=scopedVehicles().slice();
  let counts={active:all.filter(v=>v.status==='稼働').length,over:all.filter(v=>vehicleDeadlineState(v)==='over').length,soon:all.filter(v=>['today','soon'].includes(vehicleDeadlineState(v))).length,inactive:all.filter(v=>['休車','廃車'].includes(v.status)).length};
  let rows=all.filter(v=>{
-  let e=emp(v.employee_no),extra=vehicleAssignedEmployees(v).slice(1),text=[v.id,v.plate,v.callSign,v.model,v.assignmentMode,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept,...extra.flatMap(x=>[x.name,x.no,x.branch,x.dept])].join(' ').toLowerCase();
+  let e=emp(v.employee_no),extra=vehicleAssignedEmployees(v).slice(1),text=[v.id,v.plate,v.model,v.assignmentMode,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept,...extra.flatMap(x=>[x.name,x.no,x.branch,x.dept])].join(' ').toLowerCase();
   return (!q||text.includes(q))&&(!date||v.inspection===date)&&(!status||v.status===status)
  }).sort((a,b)=>deadlinePriority(a.inspection)-deadlinePriority(b.inspection)||String(a.plate).localeCompare(String(b.plate),'ja'));
  let summary=document.getElementById('vehicleSummary');
@@ -4404,7 +4507,7 @@ function renderVehicles(){
   let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v),canEdit=PREVIEW_ROLE==='管理者'&&v.employee_no&&canEditEmployee(v.employee_no);
   let op=`<div class="toolbar"><button class="btn soft" onclick="vehicleDetail('${v.id}')">開く</button>${canEdit?`<button class="btn soft" onclick="openVehicleForm(${idx})">編集</button>`:''}</div>`;
   let deadline=v.inspection?`${v.inspection} / ${deadlineBucketLabel(v.inspection)}`:'未設定';
-  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.callSign?'<div class="mini">号車 '+esc(v.callSign)+'</div>':''}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}<div class="mini">${esc(v.assignmentMode||'専属')}</div></td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''} / 利用登録 ${vehicleAssignedEmployeeNos(v).length}名</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
+  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}<div class="mini">${esc(v.assignmentMode||'専属')}</div></td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''} / 利用登録 ${vehicleAssignedEmployeeNos(v).length}名</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
  }).join('')
 }
 function vehicleOperationalChecklistHtml(v,e){
@@ -5124,14 +5227,14 @@ function openVehicleForm(idx=-1){
   let e=emp(fve.value);
   if(v&&!guardEmployeeEdit(v.employee_no,'車両記録'))return;
   if(!e||!guardEmployeeEdit(e.no,'車両記録'))return;
-  if(!requireInputs([{id:'fvp',label:'車両番号',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;
-  if(V.some((x,j)=>j!==idx&&String(x.plate).trim()===fvp.value.trim()))return alert('同じ車両番号が既に登録されています');
+  if(!requireInputs([{id:'fvp',label:'号車',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;\n  if(!/^\\d{3}$/.test(fvp.value.trim()))return alert('号車は3桁の数字で入力してください（例：801）');
+  if(V.some((x,j)=>j!==idx&&String(x.plate).trim()===fvp.value.trim()))return alert('同じ号車が既に登録されています');
   if(fvst.value==='廃車'&&!isFullCompanyAdmin())return alert('廃車は全社管理者のみ操作できます');
   let extraNos=vehicleAdditionalDriverNos().filter(no=>String(no)!==String(e.no));
-  let data={plate:fvp.value.trim(),callSign:fvcall.value.trim(),model:fvmodel.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,assignmentMode:fvmode.value,additionalEmployeeNos:extraNos,inspection:fvi.value,nextMaintenance:fvmaint.value,maintenanceNote:fvnote.value.trim(),status:fvst.value};
-  let beforeVehicle=v?{plate:v.plate,callSign:v.callSign||'',model:v.model||'',employee_no:v.employee_no,assignmentMode:v.assignmentMode||'専属',additionalEmployeeNos:(v.additionalEmployeeNos||[]).join(','),inspection:v.inspection,nextMaintenance:v.nextMaintenance||'',maintenanceNote:v.maintenanceNote||'',status:v.status}:null;
+  let data={plate:fvp.value.trim(),callSign:'',model:fvmodel.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,assignmentMode:fvmode.value,additionalEmployeeNos:extraNos,inspection:fvi.value,nextMaintenance:fvmaint.value,maintenanceNote:fvnote.value.trim(),status:fvst.value};
+  let beforeVehicle=v?{plate:v.plate,model:v.model||'',employee_no:v.employee_no,assignmentMode:v.assignmentMode||'専属',additionalEmployeeNos:(v.additionalEmployeeNos||[]).join(','),inspection:v.inspection,nextMaintenance:v.nextMaintenance||'',maintenanceNote:v.maintenanceNote||'',status:v.status}:null;
   let compareVehicle={...data,additionalEmployeeNos:extraNos.join(',')};
-  let vehicleLines=v?recordChangeLines(beforeVehicle,compareVehicle,{plate:'車両番号',callSign:'号車・呼称',model:'車種',employee_no:'主担当社員番号',assignmentMode:'配車形態',additionalEmployeeNos:'追加利用乗務員',inspection:'車検期限',nextMaintenance:'次回整備確認',maintenanceNote:'整備メモ',status:'状態'}):['車両番号：'+data.plate,'号車・呼称：'+(data.callSign||'未設定'),'車種：'+(data.model||'未設定'),'配車形態：'+data.assignmentMode,'主担当社員：'+e.no+' '+e.name,'追加利用乗務員：'+extraNos.length+'名','車検期限：'+data.inspection,'次回整備確認：'+(data.nextMaintenance||'未設定'),'状態：'+data.status];
+  let vehicleLines=v?recordChangeLines(beforeVehicle,compareVehicle,{plate:'号車',model:'車種',employee_no:'主担当社員番号',assignmentMode:'配車形態',additionalEmployeeNos:'追加利用乗務員',inspection:'車検期限',nextMaintenance:'次回整備確認',maintenanceNote:'整備メモ',status:'状態'}):['号車：'+data.plate,'車種：'+(data.model||'未設定'),'配車形態：'+data.assignmentMode,'主担当社員：'+e.no+' '+e.name,'追加利用乗務員：'+extraNos.length+'名','車検期限：'+data.inspection,'次回整備確認：'+(data.nextMaintenance||'未設定'),'状態：'+data.status];
   if(v&&!vehicleLines.length){closeForm();return}
   let vehicleWarnings=[];if(data.assignmentMode==='専属'&&extraNos.length)vehicleWarnings.push('配車形態が「専属」ですが追加利用乗務員が登録されています');if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.nextMaintenance&&days(data.nextMaintenance)<0)vehicleWarnings.push('次回整備確認日を超過しています');if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ')vehicleWarnings.push('担当社員が乗務不可または期限切れ状態です');else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常'))vehicleWarnings.push('担当社員の安全状態が要確認です');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
   if(!confirmFormSave(v?'車両変更の確認':'車両登録の確認',vehicleLines,vehicleWarnings))return;
@@ -5444,7 +5547,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v107';
+const RELEASE_VERSION='v108';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
@@ -5470,6 +5573,7 @@ function runBootMigrations(){
   ['苦情項目移行',ensureComplaintFields],
   ['資格項目移行',ensureQualifications],
   ['引継ぎ項目移行',ensureHandoffFields],
+  ['乗務員認定項目移行',ensureDriverCertificationFields],
   ['共通ID補完',ensureCoreRecordIds],
   ['資格書類リンク補完',ensureCredentialLinks],
   ['掲示・申請項目移行',ensureCommsFields],
