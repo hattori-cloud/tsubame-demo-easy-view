@@ -369,5 +369,4 @@ The first production/staging slice should intentionally stay small:
 
 ## 15. Out of scope
 
-- Eight integration is not part of this system.
 - PCA and アントレ remain planning items until their exact integration requirements are approved.
