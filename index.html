@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v105</title>
+<title>つばめ交通株式会社 社員一元管理システム v106</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,13 +548,14 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v105｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v106｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">権限確認（デモ）</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
 <div id="homeDailySummary" class="card general-restricted" style="margin:14px 0"></div>
+<div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
 
 <div class="card general-restricted home-simple-primary">
  <div class="list-summary"><div><h3 style="margin:0">今日の要対応</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高い案件から表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div>
@@ -2697,13 +2698,42 @@ const PRODUCTION_TECH_ARCHITECTURE=[
  {layer:'通知・定期処理',candidate:'Server-side scheduled job',status:'候補',reason:'資格期限・健康診断期限・未完了案件の通知を端末依存にしない',must:'重複送信防止、失敗記録、再実行、担当範囲'},
  {layer:'環境',candidate:'demo / staging / production 分離',status:'必須設計',reason:'架空データ検証と実社員データを混在させない',must:'別DB、別認証設定、別秘密情報、明確な画面表示'}
 ];
+const PRODUCTION_API_BLUEPRINT=[
+ {resource:'社員',table:'employees',list:'GET /api/v1/employees',create:'POST /api/v1/employees',update:'PATCH /api/v1/employees/{id}',special:'POST /api/v1/employees/{id}/transition',scope:'全社管理者／担当範囲／本人'},
+ {resource:'事故',table:'accidents',list:'GET /api/v1/accidents',create:'POST /api/v1/accidents',update:'PATCH /api/v1/accidents/{id}',special:'POST .../{id}/complete, /reopen',scope:'担当範囲の管理者'},
+ {resource:'ヒヤリ',table:'near_misses',list:'GET /api/v1/near-misses',create:'POST /api/v1/near-misses',update:'PATCH /api/v1/near-misses/{id}',special:'POST .../{id}/archive',scope:'担当範囲の管理者'},
+ {resource:'苦情',table:'complaints',list:'GET /api/v1/complaints',create:'POST /api/v1/complaints',update:'PATCH /api/v1/complaints/{id}',special:'POST .../{id}/complete, /reopen',scope:'担当範囲の管理者'},
+ {resource:'資格・書類',table:'qualifications / documents',list:'GET /api/v1/employees/{id}/credentials',create:'POST /api/v1/documents',update:'PATCH /api/v1/documents/{id}',special:'POST .../{id}/replace',scope:'カテゴリ＋担当範囲'},
+ {resource:'車両',table:'vehicles / vehicle_users',list:'GET /api/v1/vehicles',create:'POST /api/v1/vehicles',update:'PATCH /api/v1/vehicles/{id}',special:'POST .../{id}/assignments',scope:'担当範囲の管理者'},
+ {resource:'下書き',table:'drafts',list:'GET /api/v1/drafts',create:'PUT /api/v1/drafts/{kind}',update:'PUT /api/v1/drafts/{kind}',special:'DELETE /api/v1/drafts/{kind}',scope:'本人のみ'},
+ {resource:'監査',table:'audit_logs',list:'GET /api/v1/audit-logs',create:'サーバー内部のみ',update:'なし',special:'削除なし',scope:'全社管理者'}
+];
+const PRODUCTION_DB_RULES=[
+ '全業務テーブルに immutable UUID 主キー、created_at、updated_at、version を持たせる',
+ 'employee_no は業務キーとして UNIQUE。外部参照は内部 employee_id を使用する',
+ 'PATCH は version または If-Match を必須とし、競合は 409 Conflict で止める',
+ '業務記録の通常 DELETE は提供せず、archive / retire / inactive / 廃車等の状態遷移を使う',
+ '監査ログは追記専用。通常の業務トランザクションから更新・削除できない',
+ '証憑ファイル本体は非公開Object Storage、documents はメタ情報と storage_key を保持する',
+ '利用者の事業所×部署・安全判断権限は API ごとにサーバー側で再検証する',
+ '下書きは正式データと別テーブルにし、owner_user_id で本人だけが取得・更新・削除できる'
+];
+function showProductionApiBlueprint(){
+ if(!isFullCompanyAdmin())return alert('DB/API詳細は全社管理者のみ確認できます');
+ dttl.textContent='本番DB/API 実装ブループリント';
+ dbody.innerHTML=`<div class="spec-note">実装担当へ渡すためのAPI・テーブル対応案です。詳細SQLとAPI契約はリポジトリの docs/production-schema.sql と docs/api-contract.md に分離して管理します。</div>
+ <div class="table-card"><div class="tablewrap"><table><thead><tr><th>機能</th><th>テーブル</th><th>一覧</th><th>登録</th><th>更新</th><th>専用操作</th><th>権限</th></tr></thead><tbody>${PRODUCTION_API_BLUEPRINT.map(x=>`<tr><td><b>${esc(x.resource)}</b></td><td>${esc(x.table)}</td><td>${esc(x.list)}</td><td>${esc(x.create)}</td><td>${esc(x.update)}</td><td>${esc(x.special)}</td><td>${esc(x.scope)}</td></tr>`).join('')}</tbody></table></div></div>
+ <div class="section"><h3>DB/API共通ルール</h3>${PRODUCTION_DB_RULES.map((x,i)=>`<div class="row"><div><b>${i+1}. ${esc(x)}</b></div><span class="badge ok">設計</span></div>`).join('')}</div>
+ <div class="scope-note">本番実装時はこのブループリントをそのまま信用せず、stagingで権限・競合・監査・復元を自動テストしてからproductionへ昇格します。</div>`;
+ showDetailModal();audit('本番DB/APIブループリント確認','API資源 '+PRODUCTION_API_BLUEPRINT.length+'件',{entity_type:'system',entity_id:'api-blueprint'})
+}
 function showProductionTechArchitecture(){
  if(!isFullCompanyAdmin())return alert('本番技術構成案は全社管理者のみ確認できます');
  dttl.textContent='本番技術構成案';
  dbody.innerHTML=`<div class="spec-note">現時点の技術選定方針です。特定サービス名より「満たすべき条件」を先に固定し、認証方式・DB事業者・ファイル保存先は費用・運用・契約条件を確認して最終決定します。</div>
  <div class="table-card"><div class="tablewrap"><table><thead><tr><th>層</th><th>候補</th><th>状態</th><th>理由</th><th>必須条件</th></tr></thead><tbody>${PRODUCTION_TECH_ARCHITECTURE.map(x=>`<tr><td><b>${esc(x.layer)}</b></td><td>${esc(x.candidate)}</td><td>${esc(x.status)}</td><td>${esc(x.reason)}</td><td>${esc(x.must)}</td></tr>`).join('')}</tbody></table></div></div>
  <div class="section"><h3>基本構成</h3><div class="readiness-grid"><div class="ready-item ok"><b>ブラウザ</b><div class="mini">画面表示・入力だけ。実社員データの権限判断を信用しない</div></div><div class="ready-item ok"><b>API</b><div class="mini">認証・権限・入力検証・監査を強制</div></div><div class="ready-item ok"><b>DB</b><div class="mini">業務データと参照整合性を保持</div></div><div class="ready-item ok"><b>ファイル保存</b><div class="mini">証憑本体を非公開保存</div></div></div></div>
- <div class="scope-note">本番化の最初の技術作業は「認証＋API＋PostgreSQL」を一本通しで小さく作り、架空社員1名・事故1件で権限と監査を確認することを推奨します。その後に全モジュールへ展開します。</div>`;
+ <div class="toolbar" style="margin-top:10px"><button class="btn primary" onclick="showProductionApiBlueprint()">DB/API詳細を見る</button></div><div class="scope-note">本番化の最初の技術作業は「認証＋API＋PostgreSQL」を一本通しで小さく作り、架空社員1名・事故1件で権限と監査を確認することを推奨します。その後に全モジュールへ展開します。</div>`;
  showDetailModal();audit('本番技術構成案確認','技術レイヤー '+PRODUCTION_TECH_ARCHITECTURE.length+'件',{entity_type:'system',entity_id:'production-architecture'})
 }
 const PRODUCTION_IMPLEMENTATION_SPECS=[
@@ -3095,13 +3125,13 @@ function systemDiagnosticCheck(name,ok,detail,level='bad'){
 }
 function runSystemDiagnosticChecks(){
  let out=[];
- let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','foundationProgress','productionGate','homeDailySummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
+ let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','foundationProgress','productionGate','homeDailySummary','homeDraftSummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
  requiredIds.forEach(id=>out.push(systemDiagnosticCheck('画面ID '+id,!!document.getElementById(id),document.getElementById(id)?'存在':'見つかりません')));
  let idCounts={};
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -3283,6 +3313,7 @@ function renderHome(){
  if(scopeBar)scopeBar.innerHTML=`<div><strong>表示範囲：${esc(scopeName)}</strong><div class="mini">${esc(roleBadge.textContent)} の権限範囲</div></div><div class="home-scope-numbers"><span class="emp-chip">在籍 ${active.length}名</span><span class="badge ${safety?'warn':'ok'}">安全要確認 ${safety}名</span></div>`;
  let homeTodayDate=document.getElementById('homeTodayDate');if(homeTodayDate)homeTodayDate.textContent=appDateLabel(TODAY);
  renderHomeDailySummary();
+ renderHomeDraftSummary();
  let queue=actionQueueItems(),shownQueue=queue.slice(0,5),todayEl=document.getElementById('today');
  if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>優先対応 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・重大な品質エラーなどを優先'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
  (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main"><b>${esc(x.label)}</b><div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
@@ -4903,6 +4934,34 @@ function appendFormText(id,text){
 function safetyDraftKey(type){
  let actor=currentActorIdentity();return 'tsubameDemoDraft:'+String(actor?.id||PREVIEW_MODE)+':'+type
 }
+function safetyDraftInfo(type){
+ let raw='';try{raw=localStorage.getItem(safetyDraftKey(type))||''}catch(_){}
+ if(!raw)return null;
+ try{
+  let d=JSON.parse(raw),labels={accident:'事故',near:'ヒヤリ',complaint:'苦情'};
+  return {type,label:labels[type]||type,savedAt:d.savedAt||'',actor:d.actor||'',fieldCount:Object.keys(d.fields||{}).length}
+ }catch(_){return {type,label:type,savedAt:'',actor:'',fieldCount:0}}
+}
+function safetyDrafts(){
+ return ['accident','near','complaint'].map(safetyDraftInfo).filter(Boolean)
+}
+function openSafetyDraft(type){
+ if(type==='accident')openAccidentForm();
+ else if(type==='near')openNearForm();
+ else if(type==='complaint')openComplaintForm();
+ else return;
+ setTimeout(()=>restoreSafetyDraft(type),0)
+}
+function renderHomeDraftSummary(){
+ let el=document.getElementById('homeDraftSummary');if(!el)return;
+ if(PREVIEW_ROLE==='一般社員'){el.style.display='none';el.innerHTML='';return}
+ let rows=safetyDrafts();
+ if(!rows.length){el.style.display='none';el.innerHTML='';return}
+ el.style.display='';
+ el.innerHTML=`<div class="list-summary"><div><h3 style="margin:0">入力途中の下書き</h3><div class="mini">この端末・現在の利用者に保存された事故／ヒヤリ／苦情の下書きです。</div></div><span class="badge warn">${rows.length}件</span></div>
+ <div class="action-queue-list">${rows.map(x=>`<div class="action-queue-item warn"><div class="queue-main"><b>${esc(x.label)}の下書き</b><div class="mini">${x.savedAt?esc(new Intl.DateTimeFormat('ja-JP',{timeZone:APP_TIME_ZONE,dateStyle:'short',timeStyle:'short'}).format(new Date(x.savedAt))):'保存日時不明'} / 入力項目 ${x.fieldCount}</div></div><button class="btn primary" onclick="openSafetyDraft('${x.type}')">続きから入力</button></div>`).join('')}</div>
+ <div class="scope-note" style="margin-top:8px">共有デモの下書きはブラウザ内だけに保存されます。本番では利用者本人のサーバー側下書きへ移します。</div>`
+}
 function safetyDraftControls(type){
  let exists=false;try{exists=!!localStorage.getItem(safetyDraftKey(type))}catch(_){}
  return '<div class="toolbar" style="margin-top:8px"><button type="button" class="btn soft" onclick="saveSafetyDraft(\''+type+'\')">下書き保存</button><button type="button" class="btn soft" '+(exists?'':'disabled')+' onclick="restoreSafetyDraft(\''+type+'\')">下書き復元</button><button type="button" class="btn '+(exists?'warn':'soft')+'" '+(exists?'':'disabled')+' onclick="clearSafetyDraft(\''+type+'\')">下書き破棄</button></div>'
@@ -4916,6 +4975,7 @@ function collectSafetyDraft(){
 function saveSafetyDraft(type){
  try{
   localStorage.setItem(safetyDraftKey(type),JSON.stringify(collectSafetyDraft()));
+  renderHomeDraftSummary();
   alert('この端末のブラウザに下書きを保存しました。\n共有デモではサーバーには送信されません。')
  }catch(err){alert('下書きを保存できませんでした：'+String(err?.message||err))}
 }
@@ -4931,9 +4991,10 @@ function restoreSafetyDraft(type){
 function clearSafetyDraft(type){
  if(!confirm('この端末に保存した下書きを破棄しますか？'))return;
  try{localStorage.removeItem(safetyDraftKey(type))}catch(_){}
+ renderHomeDraftSummary();
  alert('下書きを破棄しました。')
 }
-function clearSafetyDraftAfterSave(type){try{localStorage.removeItem(safetyDraftKey(type))}catch(_){}}
+function clearSafetyDraftAfterSave(type){try{localStorage.removeItem(safetyDraftKey(type))}catch(_){}renderHomeDraftSummary()}
 function openAccidentForm(defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('事故登録は管理者のみ操作できます');return}
  let candidates=scopedEmployees().filter(e=>e.status==='在籍'&&['タクシー課','バス課'].includes(e.dept));
@@ -5383,7 +5444,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v105';
+const RELEASE_VERSION='v106';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
