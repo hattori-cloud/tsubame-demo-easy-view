@@ -682,7 +682,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  </div></details>
  <div id="nearSummary" class="list-summary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
+<div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>号車</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
 
 <div class="tabpane" id="safe-complaint">
 <div class="spec-note">現在のクレーム表をシステム化した共有デモです。受付・発生日時・乗務員・号車・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
@@ -720,6 +720,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="analysis-grid" style="margin-top:10px">
   <div class="analysis-card full"><h3>月別推移</h3><div id="analysisMonths"></div></div>
   <div class="analysis-card"><h3>社員別 事故・ヒヤリ件数</h3><div id="analysisEmployees"></div></div>
+  <div class="analysis-card"><h3>号車別 事故・ヒヤリ件数</h3><div id="analysisVehicles"></div></div>
   <div class="analysis-card"><h3>社員別 修理費</h3><div id="analysisEmployeeRepair"></div></div>
   <div class="analysis-card"><h3>ヒヤリ危険度</h3><div id="analysisRisk"></div></div>
   <div class="analysis-card"><h3>ヒヤリ発生時の行動</h3><div id="analysisSituation"></div></div>
@@ -1585,12 +1586,12 @@ function exportAccidentsCsv(){
  let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let header=['事故番号','発生日','曜日','発生時間','社員番号','システム連携ID','乗務員','区分','車両','運行時の状態','発生地区','事故形態・種類','過失率（自社側%）','相手修理','相手修理代','自社修理','自社修理代','修理費合計','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'];
  let data=rows.map(a=>[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||'']);
- downloadCsv('事故一覧_本番反映版_v91.csv',[header,...data]);
+ downloadCsv('事故一覧_本番反映版_v112.csv',[header,...data]);
  audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_本番反映版_v91.csv',[['番号','対応者','対応日','対応時間','課','号車','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_本番反映版_v112.csv',[['番号','対応者','対応日','対応時間','課','号車','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function exportNearMissesCsv(){
@@ -2149,7 +2150,7 @@ const DATA_MODEL_META={
  training:{required:'id / employee_id / course / status',indexes:'employee_id, due, status',history:'期限・完了'},
  assets:{required:'id / employee_id / item / status',indexes:'employee_id, status, return_due',history:'貸与・返却'},
  accidents:{required:'id / employee_id / occurred_at / summary / phase',indexes:'employee_id, occurred_at, phase, owner_user_id, due',history:'担当・期限・原因・再発防止・対応履歴・修理費・完了'},
- near_misses:{required:'id / employee_id / occurred_at / summary',indexes:'employee_id, occurred_at, risk_level',history:'分類・危険度・対策'},
+ near_misses:{required:'id / employee_id / occurred_at / summary',indexes:'employee_id, car_no, occurred_at, risk_level',history:'号車・分類・危険度・対策'},
  complaints:{required:'id / employee_id / received_at / summary / status',indexes:'employee_id, received_at, status, owner_user_id, followup_due',history:'担当・指導・期限・完了'},
  guidance:{required:'id / employee_id / date / type / summary',indexes:'employee_id, date, type',history:'担当・次回確認'},
  vehicles:{required:'id / plate(3桁号車) / status',indexes:'plate(unique), inspection_due, status, primary_employee_id',history:'号車・主担当・利用乗務員・状態・車検・整備'},
@@ -4090,6 +4091,10 @@ function renderSafetyAnalysis(){
  near.forEach(n=>{let k=String(n.employee_no),x=empMap[k]||(empMap[k]={acc:0,near:0});x.near++});
  let empTotals={};Object.entries(empMap).forEach(([id,v])=>{empTotals[(emp(id)?.name||id)+'（'+id+'）']=v.acc+v.near});
  let ee=document.getElementById('analysisEmployees');if(ee)ee.innerHTML=analysisBarsHtml(empTotals,10);
+ let vehicleTotals={};
+ accidents.forEach(a=>{let no=String(a.vehicle||'').trim();if(/^\d{3}$/.test(no))vehicleTotals[no+'号車']=(vehicleTotals[no+'号車']||0)+1});
+ near.forEach(n=>{let no=String(n.vehicle||'').trim();if(/^\d{3}$/.test(no))vehicleTotals[no+'号車']=(vehicleTotals[no+'号車']||0)+1});
+ let ev=document.getElementById('analysisVehicles');if(ev)ev.innerHTML=analysisBarsHtml(vehicleTotals,12);
  let repairByEmployee={};
  accidents.forEach(a=>{let label=(emp(a.employee_no)?.name||a.employee_no)+'（'+a.employee_no+'）';repairByEmployee[label]=(repairByEmployee[label]||0)+accidentTotalRepairCost(a)});
  let er=document.getElementById('analysisEmployeeRepair');if(er)er.innerHTML=analysisBarsHtml(repairByEmployee,10);
@@ -4115,7 +4120,7 @@ function renderSafetyAnalysis(){
    if(topSit)parts.push('ヒヤリで最も多い行動分類：'+topSit[0]+' '+topSit[1]+'件');
    if(topEmp)parts.push('事故＋ヒヤリ件数が最も多い社員：'+topEmp[0]+' '+topEmp[1]+'件')
   }
-  note.innerHTML='<b>分析メモ</b><br>'+parts.map(esc).join(' / ')+'<br><span class="mini">事故は月別・社員別に加え、社員別修理費・事故形態・発生地区・運行状態・時間帯・修理有無・修理費まで集計します。開始日と終了日を1年に設定すれば、その年の集計として確認できます。ヒヤリは報告書の分類項目を分析し、自由記述から原因を自動推測はしません。</span>'
+  note.innerHTML='<b>分析メモ</b><br>'+parts.map(esc).join(' / ')+'<br><span class="mini">事故は月別・社員別・号車別に加え、社員別修理費・事故形態・発生地区・運行状態・時間帯・修理有無・修理費まで集計します。開始日と終了日を1年に設定すれば、その年の集計として確認できます。ヒヤリは報告書の分類項目を分析し、自由記述から原因を自動推測はしません。</span>'
  }
 }
 function clearAllSafetySearch(){
@@ -4454,7 +4459,7 @@ function renderNear(){
  let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / 危険度「高い」 ${high}件 / 内容・分類項目まで検索できます</div></div>`;
  nearbody.innerHTML=rows.map(n=>{
   let tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4);
-  return `<tr><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)} / 号車 ${esc(n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'未設定')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div></td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">開く</button></td></tr>`;
+  return `<tr><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div></td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">開く</button></td></tr>`;
  }).join('')
 }
 function nearAnalysisChecklistHtml(n){
