@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v112 foundation build.
+Current application: v113 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v112 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v112.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v113.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -65,6 +65,7 @@ Current application: v112 foundation build.
 - v110 links the three-digit car number across vehicle, accident and complaint records and shows related safety/customer-response records from vehicle detail.
 - v111 standardizes user-facing vehicle terminology to 号車, adds three-digit registered-car suggestions and validation to accident/complaint entry, and makes Gold / English / Tourism certifications searchable from the home search.
 - v112 adds the same optional three-digit 号車 field to near-miss entry, search, detail, CSV, vehicle-related history, and car-number safety analysis.
+- v113 makes home car-number search easier to follow by showing the 号車 in accident/complaint/near-miss results, opening near-miss details directly, and showing related safety-record counts on vehicle results.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
