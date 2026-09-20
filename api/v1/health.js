@@ -10,12 +10,12 @@ module.exports=function handler(req,res){
   }
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v119',
+    release:'v120',
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
     business_api_enabled:false,
-    feature_set:'daily-safety-dashboard',
+    feature_set:'daily-work-deadline-dashboard',
     timestamp:new Date().toISOString()
   });
 };
