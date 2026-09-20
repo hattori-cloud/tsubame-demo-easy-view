@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v94 foundation build.
+Current application: v95 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v94 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v94.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v95.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -24,6 +24,10 @@ Current application: v94 foundation build.
 - Near-miss detail now checks analysis completeness without turning reports into manager-owned cases
 - Complaint detail highlights missing response/closure information such as rank, owner, follow-up and completion records
 - Employee create/edit flows warn about missing driver-critical deadlines and confirm the resulting safety state before save
+- Home daily summary now surfaces deadlines, stale work summaries, credential/document attention, and vehicle checks before opening each module
+- Work detail provides a dedicated employee-level view of restraint/overtime, posting freshness, next action, and health-check deadline without exposing medical results
+- Credential/document center supports attention filters for overdue items, missing evidence links, and pending document verification
+- Vehicle detail checks inspection date, vehicle status, assigned employee state, and driver eligibility together while keeping actual dispatch decisions in normal operations
 - Self-diagnostic results show Normal / Warning / Needs attention and are available from the System Foundation section
 
 Production note: the shared demo still uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
