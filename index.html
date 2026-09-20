@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v112</title>
+<title>つばめ交通株式会社 社員一元管理システム v113</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -4720,10 +4720,10 @@ function searchAll(){
  apps.forEach(a=>results.push({label:'申請',title:`${a.id} / ${a.type}`,sub:`${emp(a.employee_no)?.name||a.employee_no} / ${a.status}`,open:`go('comms');setTimeout(()=>applicationDetail('${a.id}'),40)`}));
  visibleNotices().filter(n=>[n.id,n.title,n.body,n.date].join(' ').toLowerCase().includes(q)).slice(0,3).forEach(n=>results.push({label:'掲示',title:n.title,sub:`${n.date} / ${commsTargetLabel(n)}`,open:`go('comms');setTimeout(()=>noticeDetail('${n.id}'),40)`}));
  if(PREVIEW_ROLE==='管理者'){
-  scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.vehicle,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
-  scopedComplaints().filter(c=>[c.id,c.responseDate,c.occurrenceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.rank].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(c=>results.push({label:'苦情',title:c.id,sub:`${c.driverName||c.name} / ${c.summary}`,open:`go('safe');setTimeout(()=>complaintDetail('${c.id}'),40)`}));
-  scopedNearMisses().filter(n=>[n.id,n.date,n.driver,n.vehicle,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(n=>results.push({label:'ヒヤリ',title:n.id,sub:`${n.driver} / 号車 ${n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'未設定'} / ${n.summary}`,open:`go('safe');safeTab('near');setTimeout(()=>{let el=document.getElementById('nearq');if(el){el.value='${n.id}';renderNear()}},40)`}));
-  scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>results.push({label:'車両',title:`${v.plate}号車`,sub:`管理番号 ${v.id} / ${v.service} / ${v.status}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`}));
+  scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.vehicle,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / 号車 ${a.vehicle&&a.vehicle!=='未設定'?a.vehicle:'未設定'} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
+  scopedComplaints().filter(c=>[c.id,c.responseDate,c.occurrenceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.rank].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(c=>results.push({label:'苦情',title:c.id,sub:`${c.driverName||c.name} / 号車 ${c.vehicle&&c.vehicle!=='未設定'?c.vehicle:'未設定'} / ${c.summary}`,open:`go('safe');setTimeout(()=>complaintDetail('${c.id}'),40)`}));
+  scopedNearMisses().filter(n=>[n.id,n.date,n.driver,n.vehicle,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(n=>results.push({label:'ヒヤリ',title:n.id,sub:`${n.driver} / 号車 ${n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'未設定'} / ${n.summary}`,open:`go('safe');safeTab('near');setTimeout(()=>nearDetail('${n.id}'),40)`}));
+  scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>{let rel=vehicleRelatedSafetyRecords(v);results.push({label:'車両',title:`${v.plate}号車`,sub:`管理番号 ${v.id} / ${v.service} / ${v.status} / 事故 ${rel.accidents.length}・苦情 ${rel.complaints.length}・ヒヤリ ${rel.near.length}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`})});
  }
  results=results.filter(r=>type==='all'||globalSearchGroup(r.label)===type);
  let total=results.length;results=results.slice(0,18);
@@ -5639,7 +5639,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v112';
+const RELEASE_VERSION='v113';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
