@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v95 foundation build.
+Current application: v96 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v95 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v95.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v96.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -28,6 +28,9 @@ Current application: v95 foundation build.
 - Work detail provides a dedicated employee-level view of restraint/overtime, posting freshness, next action, and health-check deadline without exposing medical results
 - Credential/document center supports attention filters for overdue items, missing evidence links, and pending document verification
 - Vehicle detail checks inspection date, vehicle status, assigned employee state, and driver eligibility together while keeping actual dispatch decisions in normal operations
+- Vehicle records now support call sign, model, next maintenance check, and a lightweight maintenance note with live pre-save warnings
+- Qualification rows show overdue/soon/missing-evidence counts and can jump directly into evidence document registration
+- Qualification and document forms now provide live deadline/evidence/linkage guidance while preserving separate qualification/document records
 - Self-diagnostic results show Normal / Warning / Needs attention and are available from the System Foundation section
 
 Production note: the shared demo still uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
