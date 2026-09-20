@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v110</title>
+<title>つばめ交通株式会社 社員一元管理システム v111</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -566,7 +566,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <div class="card general-restricted home-search-card">
  <div class="home-search-head"><div><h3>検索</h3><div class="mini">社員・事故・苦情・ヒヤリ・車両・資格・書類をまとめて検索できます。</div></div></div>
- <div class="home-search-row"><input id="gq" placeholder="氏名・社員番号・事故番号・車両番号など" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
+ <div class="home-search-row"><input id="gq" placeholder="氏名・社員番号・事故番号・号車・認定など" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
 </div>
 
@@ -685,11 +685,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
 
 <div class="tabpane" id="safe-complaint">
-<div class="spec-note">現在のクレーム表をシステム化した共有デモです。受付・発生日時・乗務員・車番・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
+<div class="spec-note">現在のクレーム表をシステム化した共有デモです。受付・発生日時・乗務員・号車・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
 <div class="safety-search-card">
  <div class="safety-search-title">苦情・お客様対応を検索</div>
  <div class="safety-search-main">
-  <input id="complaintq" type="text" placeholder="番号・乗務員名・社員番号・車番・内容・担当者で検索" oninput="renderComplaints()">
+  <input id="complaintq" type="text" placeholder="番号・乗務員名・社員番号・号車・内容・担当者で検索" oninput="renderComplaints()">
   <button class="btn soft" onclick="clearSafetySearch('complaint')">条件をクリア</button>
  </div>
  <div class="safety-search-sub"><span class="group-label">よく使う状態</span>
@@ -738,7 +738,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="vehicles">
-<div class="page-title"><div><h2>車両管理</h2><p>3桁の号車（車両番号）・車種・担当乗務員・車検期限・状態をまとめて管理します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
+<div class="page-title"><div><h2>車両管理</h2><p>3桁の号車・車種・担当乗務員・車検期限・状態をまとめて管理します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
 <div class="simple-note">車検期限の近い順に表示します。担当変更は履歴として残ります。</div>
 <div class="card" style="margin-top:12px">
  <div class="home-search-row">
@@ -750,7 +750,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="list-controls"><label class="mini">車検期限を指定</label><input id="vehicleDate" type="date" aria-label="車検期限で検索" onchange="renderVehicles()"></div></div></details>
  <div id="vehicleSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>管理番号</th><th>号車</th><th>区分</th><th>担当</th><th>車検期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
+<div class="table-card"><div class="tablewrap"><table><thead><tr><th>管理番号</th><th>号車（ナンバー）</th><th>区分</th><th>担当</th><th>車検期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
 </section>
 
 
@@ -1590,7 +1590,7 @@ function exportAccidentsCsv(){
 }
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_本番反映版_v91.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_本番反映版_v91.csv',[['番号','対応者','対応日','対応時間','課','号車','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
@@ -4574,7 +4574,7 @@ function vehicleDetail(id){
  let v=V.find(x=>x.id===id);if(!v)return;
  if(PREVIEW_ROLE!=='管理者'||!v.employee_no||!canAccess('vehicle','view',v.employee_no)){alert('現在の担当範囲ではこの車両を表示できません');return}
  let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v);
- dttl.textContent='車両詳細 '+v.id;
+ dttl.textContent='車両詳細 '+v.plate+'号車';
  let next=vehicleNextActionInfo(v);
  dbody.innerHTML=`<div class="detail-actions">${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
  ${state==='over'?`<div class="detail-alert danger">車検期限を ${Math.abs(days(v.inspection))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">車検期限は本日です。</div>':''}
@@ -4685,8 +4685,9 @@ function searchAll(){
  let q=(gq.value||'').trim().toLowerCase(),type=document.getElementById('gtype')?.value||'all';
  if(!q){gres.innerHTML='<div class="mini">検索語を入力すると候補を表示します。</div>';return}
  let results=[];
- scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license].join(' ').toLowerCase().includes(q)).slice(0,6).forEach(e=>{
-  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}`,open:`go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)`})
+ scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).slice(0,6).forEach(e=>{
+  let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・');
+  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${certs?' / 認定 '+certs:''}`,open:`go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)`})
  });
  let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4);
  quals.forEach(x=>results.push({label:'資格',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.name}`,sub:`${x.number||'番号未登録'} / 期限 ${x.expiry||'未設定'}`,open:`go('emp');setTimeout(()=>employeeQualification('${x.employee_no}'),40)`}));
@@ -4698,10 +4699,10 @@ function searchAll(){
  apps.forEach(a=>results.push({label:'申請',title:`${a.id} / ${a.type}`,sub:`${emp(a.employee_no)?.name||a.employee_no} / ${a.status}`,open:`go('comms');setTimeout(()=>applicationDetail('${a.id}'),40)`}));
  visibleNotices().filter(n=>[n.id,n.title,n.body,n.date].join(' ').toLowerCase().includes(q)).slice(0,3).forEach(n=>results.push({label:'掲示',title:n.title,sub:`${n.date} / ${commsTargetLabel(n)}`,open:`go('comms');setTimeout(()=>noticeDetail('${n.id}'),40)`}));
  if(PREVIEW_ROLE==='管理者'){
-  scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
+  scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.vehicle,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
   scopedComplaints().filter(c=>[c.id,c.responseDate,c.occurrenceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.rank].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(c=>results.push({label:'苦情',title:c.id,sub:`${c.driverName||c.name} / ${c.summary}`,open:`go('safe');setTimeout(()=>complaintDetail('${c.id}'),40)`}));
   scopedNearMisses().filter(n=>[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(n=>results.push({label:'ヒヤリ',title:n.id,sub:`${n.driver} / ${n.summary}`,open:`go('safe');safeTab('near');setTimeout(()=>{let el=document.getElementById('nearq');if(el){el.value='${n.id}';renderNear()}},40)`}));
-  scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>results.push({label:'車両',title:`${v.id} / ${v.plate}`,sub:`${v.service} / ${v.status}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`}));
+  scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>results.push({label:'車両',title:`${v.plate}号車`,sub:`管理番号 ${v.id} / ${v.service} / ${v.status}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`}));
  }
  results=results.filter(r=>type==='all'||globalSearchGroup(r.label)===type);
  let total=results.length;results=results.slice(0,18);
@@ -4916,7 +4917,7 @@ function openAccidentEdit(id){
  fbody.innerHTML=`<div class="formnote">${esc(a.id)} / ${esc(a.driver)}<br><b>完了にする場合は「原因・再発防止・対応履歴」の3項目が必須です。</b></div><div class="formgrid">
  <div class="employee-form-section"><h4>事故表項目</h4><p>事故一覧・検索・安全分析に使用します</p></div>
  <div class="field"><label>発生時間</label><input id="faetime" type="time" value="${esc(a.time||'')}"></div>
- <div class="field"><label>号車</label><input id="faevehicle" value="${esc(a.vehicle||'')}"></div>
+ <div class="field"><label>号車</label><input id="faevehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(normalizeVehicleNumberInput(a.vehicle))}" placeholder="例：801">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div>
  <div class="field"><label>運行時の状態</label><input id="faeoperation" value="${esc(a.operationState||'')}"></div>
  <div class="field"><label>発生地区</label><input id="faedistrict" value="${esc(a.district||'')}"></div>
  <div class="field wide"><label>事故形態・種類</label><input id="faetype" value="${esc(a.accidentType||'')}"></div>
@@ -4949,9 +4950,10 @@ function openAccidentEdit(id){
   if((opCost!==''&&Number(opCost)<0)||(ownCost!==''&&Number(ownCost)<0))return alert('修理代は0円以上で入力してください');
   if(!faeaddr.value.trim()||!faesummary.value.trim())return alert('事故場所と事故状況・概要は必須です');
   if(faep.value==='完了'){let missing=accidentCompletionMissing(nextCause,nextPrevention,nextHistory);if(missing.length)return alert('事故を完了にするには、次の項目を入力してください。\n\n・'+missing.join('\n・'))}
+  if(!validateVehicleNumberValue(faevehicle.value))return;
   let previousPhase=a.phase,previousOwner=a.owner||'',ownerSel=resolveManagerSelection(faeo.value);if(!ownerSel.id)return alert('担当者を選択してください');
   let before=JSON.stringify(a);
-  Object.assign(a,{time:faetime.value,vehicle:faevehicle.value.trim()||'未設定',operationState:faeoperation.value.trim()||'未設定',
+  Object.assign(a,{time:faetime.value,vehicle:normalizeVehicleNumberInput(faevehicle.value)||'未設定',operationState:faeoperation.value.trim()||'未設定',
    district:faedistrict.value.trim()||'未設定',accidentType:faetype.value.trim()||'未設定',faultRate:fault,
    opponentRepair:faeoprepair.value,opponentRepairCost:opCost,companyRepair:faeownrepair.value,companyRepairCost:ownCost,
    address:faeaddr.value.trim(),summary:faesummary.value.trim(),phase:faep.value,due:faed.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:faena.value.trim(),
@@ -5049,6 +5051,21 @@ function openEmployeeForm(){
   if(!save())return;closeForm();renderAll();employeeDetail(no)
  };
  form.classList.add('show')
+}
+function vehicleNumberDatalistHtml(){
+ let rows=V.filter(v=>v.status!=='廃車'&&/^\d{3}$/.test(String(v.plate||'').trim()))
+  .slice().sort((a,b)=>String(a.plate).localeCompare(String(b.plate),'ja',{numeric:true}));
+ return '<datalist id="vehicleNumberOptions">'+rows.map(v=>'<option value="'+esc(v.plate)+'">'+esc(v.plate)+'号車'+(v.model?' / '+esc(v.model):'')+'</option>').join('')+'</datalist>'
+}
+function normalizeVehicleNumberInput(value){
+ let s=String(value||'').trim();
+ return s==='未設定'?'':s
+}
+function validateVehicleNumberValue(value){
+ let s=normalizeVehicleNumberInput(value);
+ if(!s)return true;
+ if(!/^\d{3}$/.test(s)){alert('号車は3桁の数字で入力してください（例：801）');return false}
+ return true
 }
 function fillAccidentEmployeeDefaults(){
  let e=emp(document.getElementById('fae')?.value);if(!e)return;
@@ -5152,7 +5169,7 @@ function openAccidentForm(defaultNo=''){
  <div class="field"><label>乗務員<span class="req">必須</span></label><select id="fae" onchange="fillAccidentEmployeeDefaults()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)}</option>`).join('')}</select></div>
  <div class="field"><label>発生日<span class="req">必須</span></label><input id="fad" type="date" value="${TODAY}"></div>
  <div class="field"><label>発生時間</label><input id="fatime" type="time"></div>
- <div class="field"><label>号車</label><input id="fav" placeholder="登録済み担当車両があれば自動候補"></div>
+ <div class="field"><label>号車</label><input id="fav" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div>
 
  <div class="employee-form-section"><h4>2. 事故表項目</h4><p>現在の事故表と同じ考え方で記録します</p></div>
  <div class="field wide"><div class="simple-quick-actions"><span class="mini">運行状態：</span><button type="button" class="btn soft" onclick="setFormValue('faoperation','実車',false)">実車</button><button type="button" class="btn soft" onclick="setFormValue('faoperation','空車',false)">空車</button><button type="button" class="btn soft" onclick="setFormValue('faoperation','回送',false)">回送</button></div></div>
@@ -5184,13 +5201,14 @@ function openAccidentForm(defaultNo=''){
   let e=emp(fae.value),ownerSel=resolveManagerSelection(faowner.value);
   if(!e||!guardEmployeeEdit(e.no,'事故記録'))return;
   if(!requireInputs([{id:'fad',label:'発生日',value:fad.value},{id:'faowner',label:'担当者',value:ownerSel.id},{id:'faa',label:'事故場所',value:faa.value},{id:'fas',label:'事故状況・概要',value:fas.value}]))return;
+  if(!validateVehicleNumberValue(fav.value))return;
   let fault=fafault.value.trim(),opCost=faopcost.value.trim(),ownCost=faowncost.value.trim();
   if(fault!==''&&(Number(fault)<0||Number(fault)>100))return alert('過失率は0〜100で入力してください');
   if((opCost!==''&&Number(opCost)<0)||(ownCost!==''&&Number(ownCost)<0))return alert('修理代は0円以上で入力してください');
   let aid='A-2026-'+String(A.length+1).padStart(3,'0');
   let arec={
    id:aid,date:fad.value,time:fatime.value,employee_no:e.no,driver:e.name,service:e.dept==='バス課'?'バス':'タクシー',
-   vehicle:fav.value.trim()||'未設定',operationState:faoperation.value.trim()||'未設定',district:fadistrict.value.trim()||'未設定',
+   vehicle:normalizeVehicleNumberInput(fav.value)||'未設定',operationState:faoperation.value.trim()||'未設定',district:fadistrict.value.trim()||'未設定',
    accidentType:fatype.value.trim()||'未設定',faultRate:fault,
    opponentRepair:faoprepair.value,opponentRepairCost:opCost,companyRepair:faownrepair.value,companyRepairCost:ownCost,
    address:faa.value.trim(),summary:fas.value.trim(),phase:'初報',cause:'未登録',prevention:'未登録',responseHistory:'',
@@ -5248,7 +5266,7 @@ function openVehicleForm(idx=-1){
  fttl.textContent=v?'車両を編集・担当変更':'車両を登録';
  fbody.innerHTML=`<div class="formnote">${v?'担当管理者は担当範囲内で編集・担当変更できます。廃車は全社管理者のみ操作できます。':'担当範囲内の乗務社員を担当者として登録します。'}<br>号車・車種・整備確認は日常管理用の補助情報です。号車は3桁の数字で統一します。</div>
  <div id="vehicleFormGuide" class="detail-alert ok">保存前チェックを表示します。</div><div class="formgrid">
-  <div class="employee-form-section"><h4>車両識別</h4><p>社内では3桁の数字を「号車＝車両番号（ナンバー）」として管理します</p></div>
+  <div class="employee-form-section"><h4>車両識別</h4><p>社内では3桁の数字を「号車（ナンバー）」として管理します</p></div>
   <div class="field"><label>号車<span class="req">必須</span></label><input id="fvp" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" value="${esc(/^\d{3}$/.test(String(v?.plate||''))?v.plate:'')}" placeholder="例：801"><div class="mini">3桁の数字のみ。別のナンバープレート欄は持ちません。</div></div>
   <div class="field wide"><label>車種（任意）</label><input id="fvmodel" value="${esc(v?.model||'')}" placeholder="例：クラウン、JPN TAXI、アルファード"></div>
   <div class="employee-form-section"><h4>点検・運用</h4><p>期限と車両状態をまとめて確認</p></div>
@@ -5418,7 +5436,7 @@ function openComplaintForm(idx=-1,defaultNo=''){
  let opts=candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
  fbody.innerHTML=`<div class="formnote">紙のクレーム表を置き換える入力画面です。上から順番に入力すれば完了します。お客様名は仮名・匿名のみ入力してください。${safetyDraftControls('complaint')}</div><div class="form-save-guide">必須項目を確認し、未完了案件は「担当者・次回対応・フォロー期限」の不足も保存前に表示します。</div><div class="form-flow"><span>1 受付</span><span>2 対象</span><span>3 申告内容</span><span>4 対応</span><span>5 完了</span></div><div class="formgrid">
  <div class="employee-form-section"><h4>1. 受付</h4><p>誰が、いつ受け付けたか</p></div><div class="field"><label>対応者</label><input id="fcresp" value="${esc(rec?.responder||reviewer.name)}"></div><div class="field"><label>対応日<span class="req">必須</span></label><input id="fcdate" type="date" value="${esc(rec?.responseDate||rec?.date||TODAY)}"></div><div class="field"><label>対応時間</label><input id="fctime" type="time" value="${esc(rec?.responseTime||'')}"><div style="margin-top:6px"><button type="button" class="btn soft" onclick="setCurrentFormTime('fctime')">現在時刻</button></div></div><div class="field"><label>入力者（自動）</label><input id="fcinput" value="${esc(rec?.inputBy||reviewer.name)}" disabled></div>
- <div class="employee-form-section"><h4>2. 対象乗務員・車両</h4><p>乗務員を選ぶと課と氏名は自動保存。担当車両があれば号車も候補入力します</p></div><div class="field wide"><label>乗務員<span class="req">必須</span></label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>号車</label><input id="fcvehicle" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="登録車両から自動候補"></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
+ <div class="employee-form-section"><h4>2. 対象乗務員・車両</h4><p>乗務員を選ぶと課と氏名は自動保存。担当車両があれば号車も候補入力します</p></div><div class="field wide"><label>乗務員<span class="req">必須</span></label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>号車</label><input id="fcvehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
  <div class="employee-form-section"><h4>3. お客様からの申告</h4><p>発生日時を分けて後から検索しやすくします</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn danger" onclick="setFormValue('fcrank','A')">A</button><button type="button" class="btn warn" onclick="setFormValue('fcrank','B')">B</button><button type="button" class="btn soft" onclick="setFormValue('fcrank','C')">C</button></div><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
  <div class="employee-form-section"><h4>4. 指導・対応</h4><p>誰が何をして、次に何をするか</p></div><div class="field wide"><label>指導内容</label><textarea id="fcguide" style="min-height:120px" placeholder="本人確認、指導内容、お客様への対応など">${esc(rec?.guidanceContent||'')}</textarea></div><div class="field"><label>指導者</label><input id="fcinst" value="${esc(rec?.instructor||'')}"></div><div class="field"><label>指導日</label><input id="fcguided" type="date" value="${esc(rec?.guidanceDate||'')}"></div><div class="field"><label>指導時間</label><input id="fcguidet" type="time" value="${esc(rec?.guidanceTime||'')}"></div><div class="field"><label>担当者</label><select id="fcowner">${managerSelectOptions(rec?.ownerId,rec?.owner||reviewer.name)}</select></div><div class="field"><label>フォロー期限</label><input id="fcdue" type="date" value="${esc(rec?.followupDue||'')}"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',1)">明日</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',3)">3日後</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',7)">7日後</button></div></div><div class="field wide"><label>次回対応内容</label><input id="fcnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人再面談、お客様へ結果連絡"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fcnext','本人再面談')">本人再面談</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','お客様へ結果連絡')">結果連絡</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','運行状況確認')">運行確認</button></div></div>
  <div class="employee-form-section"><h4>5. 完了</h4><p>完了にすると完了日と確認者を自動記録します</p></div><div class="field"><label>状態</label><select id="fcst"><option>受付</option><option>確認中</option><option>対応中</option><option>完了</option></select></div></div>`;
@@ -5426,11 +5444,12 @@ function openComplaintForm(idx=-1,defaultNo=''){
  fce.value=String(selected.no);fcst.value=rec?.status||'受付';fcrank.value=['未判定','A','B','C'].includes(rec?.rank)?rec.rank:'未判定';if(!rec)fillComplaintEmployeeDefaults();updateComplaintRankGuide(false);
  fsave.onclick=()=>{
   let e=emp(fce.value);if(!e||!guardEmployeeEdit(e.no,'苦情／お客様対応'))return;if(!requireInputs([{id:'fcdate',label:'対応日',value:fcdate.value},{id:'fce',label:'乗務員',value:fce.value},{id:'fcs',label:'申告内容',value:fcs.value}]))return;
+  if(!validateVehicleNumberValue(fcvehicle.value))return;
   let ownerSel=resolveManagerSelection(fcowner.value);if(!ownerSel.id)return alert('担当者を選択してください');
-  let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:e.dept,vehicle:fcvehicle.value.trim()||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
+  let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:e.dept,vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
   if(data.status==='完了'&&data.rank==='未判定')return alert('完了にする前に、クレームランク A・B・C のいずれかを選択してください');
   let complaintWarnings=[];if(data.status!=='完了'){if(!data.owner)complaintWarnings.push('担当者が未設定です');if(!data.nextAction)complaintWarnings.push('次回対応内容が未設定です');if(!data.followupDue)complaintWarnings.push('フォロー期限が未設定です')}if(data.rank==='未判定')complaintWarnings.push('クレームランクが未判定です');
-  let complaintLines=rec?recordChangeLines({responseDate:rec.responseDate||rec.date,employee_no:rec.employee_no,vehicle:rec.vehicle,summary:rec.summary,rank:rec.rank,owner:rec.owner,nextAction:rec.nextAction,followupDue:rec.followupDue,status:rec.status},data,{responseDate:'対応日',employee_no:'対象社員',vehicle:'車番',summary:'申告内容',rank:'クレームランク',owner:'担当者',nextAction:'次回対応',followupDue:'フォロー期限',status:'状態'}):['対応日：'+data.responseDate,'対象社員：'+e.no+' '+e.name,'申告内容：'+data.summary,'ランク：'+complaintRankLabel(data.rank),'担当者：'+data.owner,'状態：'+data.status];
+  let complaintLines=rec?recordChangeLines({responseDate:rec.responseDate||rec.date,employee_no:rec.employee_no,vehicle:rec.vehicle,summary:rec.summary,rank:rec.rank,owner:rec.owner,nextAction:rec.nextAction,followupDue:rec.followupDue,status:rec.status},data,{responseDate:'対応日',employee_no:'対象社員',vehicle:'号車',summary:'申告内容',rank:'クレームランク',owner:'担当者',nextAction:'次回対応',followupDue:'フォロー期限',status:'状態'}):['対応日：'+data.responseDate,'対象社員：'+e.no+' '+e.name,'申告内容：'+data.summary,'ランク：'+complaintRankLabel(data.rank),'担当者：'+data.owner,'状態：'+data.status];
   if(rec&&!complaintLines.length){closeForm();return}
   if(!confirmFormSave(rec?'苦情・お客様対応の変更確認':'苦情・お客様対応の登録確認',complaintLines,complaintWarnings))return;
   let rid,action;if(rec){rid=rec.id;Object.assign(rec,data);touchRecord(rec,'complaint',false);action='苦情対応更新';if(prevStatus!=='完了'&&rec.status==='完了'){rec.completedDate=TODAY;rec.finalReviewerName=reviewer.name}else if(prevStatus==='完了'&&rec.status!=='完了'){rec.completedDate='';rec.finalReviewerName=''}}else{rid=nextRecordId('C',C);data.id=rid;touchRecord(data,'complaint',true);if(data.status==='完了'){data.completedDate=TODAY;data.finalReviewerName=reviewer.name}else{data.completedDate='';data.finalReviewerName=''}C.push(data);action='苦情対応登録'}
@@ -5589,7 +5608,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v110';
+const RELEASE_VERSION='v111';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
