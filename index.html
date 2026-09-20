@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v114</title>
+<title>つばめ交通株式会社 社員一元管理システム v115</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -3811,6 +3811,57 @@ function employeeAssignedVehicles(no){
  return V.filter(v=>v.status!=='廃車'&&vehicleAssignedEmployeeNos(v).includes(key)&&v.employee_no&&canAccess('vehicle','view',v.employee_no))
   .slice().sort((a,b)=>String(a.plate||'').localeCompare(String(b.plate||''),'ja',{numeric:true}))
 }
+function employeeDailyAttentionItems(no){
+ let e=emp(no);if(!e)return [];
+ let safeNo=String(no).replaceAll("'",""),items=[],push=(priority,tone,title,detail,open,label='確認')=>items.push({priority,tone,title,detail,open,label});
+ let elig=e.eligibility||e.driverLedger?.eligibility||'対象外',nearest=employeeNearestDeadline(e);
+ if(String(elig).includes('不可'))push(0,'danger','乗務可否を確認','現在：'+elig,"setEmployeeDetailTab('safety')",'安全を確認');
+ if(e.safetyState==='期限切れ')push(1,'danger','安全管理状態が期限切れ','期限更新・乗務可否を確認',"setEmployeeDetailTab('safety')",'安全を確認');
+ if(nearest&&nearest.n<=30){
+  let tone=nearest.n<0?'danger':'warn';
+  push(nearest.n<0?2:20,tone,nearest.label+(nearest.n<0?'が期限超過':'の期限が接近'),nearest.date+' / '+deadlineBucketLabel(nearest.date),"setEmployeeDetailTab('safety')",'期限を確認')
+ }
+ A.filter(a=>String(a.employee_no)===String(no)&&a.phase!=='完了'&&canAccess('accident','view',a.employee_no)).forEach(a=>{
+  let b=deadlineBucket(a.due),attention=!a.due||['over','today','7'].includes(b);
+  if(!attention)return;
+  let safeId=String(a.id||'').replaceAll("'","");
+  push(b==='over'?3:b==='today'?5:25,b==='over'?'danger':'warn','事故 '+a.id+' の対応確認',(a.nextAction||'次回対応未設定')+' / 期限 '+(a.due?deadlineBucketLabel(a.due):'未設定'),"accidentDetail('"+safeId+"')",'事故を開く')
+ });
+ C.filter(x=>String(x.employee_no)===String(no)&&x.status!=='完了'&&canAccess('complaint','view',x.employee_no)).forEach(x=>{
+  let b=deadlineBucket(x.followupDue),attention=!x.followupDue||['over','today','7'].includes(b)||x.rank==='A';
+  if(!attention)return;
+  let safeId=String(x.id||'').replaceAll("'","");
+  push(b==='over'?4:x.rank==='A'?6:b==='today'?7:26,b==='over'?'danger':'warn','苦情 '+x.id+' の対応確認',complaintRankLabel(x.rank||'未判定')+' / '+(x.nextAction||'次回対応未設定')+' / 期限 '+(x.followupDue?deadlineBucketLabel(x.followupDue):'未設定'),"complaintDetail('"+safeId+"')",'苦情を開く')
+ });
+ employeeAssignedVehicles(no).forEach(v=>{
+  let reasons=[],danger=false,warn=false,state=vehicleDeadlineState(v);
+  if(state==='over'){reasons.push('車検 '+deadlineBucketLabel(v.inspection));danger=true}
+  else if(['today','soon'].includes(state)){reasons.push('車検 '+deadlineBucketLabel(v.inspection));warn=true}
+  if(v.nextMaintenance){
+   let b=deadlineBucket(v.nextMaintenance);
+   if(b==='over'){reasons.push('整備確認 '+deadlineBucketLabel(v.nextMaintenance));danger=true}
+   else if(['today','7','30'].includes(b)){reasons.push('整備確認 '+deadlineBucketLabel(v.nextMaintenance));warn=true}
+  }
+  if(v.status!=='稼働'){reasons.push('状態 '+(v.status||'未設定'));warn=true}
+  if(!reasons.length)return;
+  let safeId=String(v.id||'').replaceAll("'","");
+  push(danger?8:30,danger?'danger':'warn',String(v.plate||'')+'号車を確認',reasons.join(' / '),"vehicleDetail('"+safeId+"')",'車両を開く')
+ });
+ let ot=Number(e.overtime||e.workSummary?.overtime||0),workState=workUpdateStatus(e);
+ if(ot>=45||workState==='更新確認'){
+  let detail=[];if(ot>=45)detail.push('残業 '+ot+'時間');if(workState==='更新確認')detail.push('勤務集計 更新確認');
+  push(ot>=60?9:35,ot>=60?'danger':'warn','勤務状況を確認',detail.join(' / '),"employeeHealthWork('"+safeNo+"')",'勤務を開く')
+ }
+ return items.sort((a,b)=>a.priority-b.priority||String(a.title).localeCompare(String(b.title),'ja'))
+}
+function employeeDailyAttentionHtml(no){
+ let items=employeeDailyAttentionItems(no),shown=items.slice(0,7),danger=items.filter(x=>x.tone==='danger').length;
+ if(!items.length)return '<div class="section"><h3>今日の確認ポイント</h3><div class="detail-alert ok"><b>現在、優先確認はありません。</b><div class="mini">通常の定期確認を続けてください。</div></div></div>';
+ return '<div class="section"><h3>今日の確認ポイント</h3><div class="list-summary"><div><b>優先確認 '+items.length+'件</b><div class="mini">乗務可否・期限・未完了案件・号車・勤務の順で、今見るべき項目をまとめています。</div></div><span class="badge '+(danger?'danger':'warn')+'">'+(danger?'最優先 '+danger+'件':'要確認')+'</span></div>'+
+  shown.map(x=>'<div class="row '+(x.tone==='danger'?'quality-bad':x.tone==='warn'?'quality-warn':'')+'"><div><b>'+esc(x.title)+'</b><div class="mini">'+esc(x.detail)+'</div></div><button class="btn '+(x.tone==='danger'?'danger':'soft')+'" onclick="'+x.open+'">'+esc(x.label)+'</button></div>').join('')+
+  (items.length>shown.length?'<div class="mini" style="margin-top:8px">優先度の高い7件を表示 / 全'+items.length+'件。各履歴・安全タブから残りを確認できます。</div>':'')+
+ '</div>'
+}
 function employeeOperationalOverviewHtml(no){
  let e=emp(no);if(!e)return '';
  let vehicles=employeeAssignedVehicles(no);
@@ -3870,6 +3921,7 @@ function employeeDetail(no){
  </div>
  <div class="detail-alert ${safetyClass}">${esc(alertText)}</div>
  ${(()=>{let n=employeeNextActionInfo(e);return commonNextActionPanelHtml(n.action,n.owner,n.due,n.tone)})()}
+ ${employeeDailyAttentionHtml(no)}
  ${employeeDetailAttentionHtml(no)}
  ${employeeOperationalOverviewHtml(no)}
  <div id="employeeDetailTabRoot">
@@ -5687,7 +5739,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v114';
+const RELEASE_VERSION='v115';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
