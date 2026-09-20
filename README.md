@@ -58,7 +58,7 @@ Current application: v106 foundation build.
 - Release/schema diagnostics now derive the app schema and self-test key from a shared release version constant
 - Safety-entry forms now support browser-local drafts for accident, near-miss and complaint input, with restore/discard controls and automatic draft removal after successful registration
 - Production technology architecture proposal separates Web/API, authentication, managed PostgreSQL, private object storage, audit logging, backups, scheduled jobs and environment isolation by responsibility and acceptance criteria
-- External-integration planning now covers PCA and アントレ only; Eight is out of scope
+- External-integration planning covers PCA and アントレ.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
