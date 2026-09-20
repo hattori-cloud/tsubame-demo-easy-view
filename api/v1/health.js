@@ -10,7 +10,7 @@ module.exports=function handler(req,res){
   }
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v107',
+    release:'v108',
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
