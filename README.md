@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v101 foundation build.
+Current application: v102 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v101 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v101.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v102.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -46,6 +46,9 @@ Current application: v101 foundation build.
 - Safety detail pages now prioritize the narrative and next action, while completion/analysis checklists auto-expand only when attention is needed
 - Employee detail tabs place safety before work/qualification/affiliation to match daily management priority without removing any information
 - Production API rules now define server-side validation, optimistic concurrency/version checks, reasoned reopen flows, soft-archive defaults, append-only audit logging and no normal hard-delete endpoint for core business records
+- Acceptance testing now has persistent demo-side results for authentication/scope, employee lifecycle, safety records, credentials/documents, vehicles, work, search, persistence, backup, desktop/mobile and audit behavior
+- Production migration gate reflects acceptance-test results, treating any UAT '要修正' item as a blocking condition
+- Common input forms include quick-fill controls for current time, accident operation/type/next action, near-miss risk, complaint rank and common driver-license names without removing free-text entry
 - Self-diagnostic results show Normal / Warning / Needs attention and are available from the System Foundation section
 
 Production note: the shared demo still uses fictional data and browser storage. Real employee data must wait for production authentication, server-side authorization, database, backup, and audit infrastructure.
