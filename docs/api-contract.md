@@ -1,4 +1,4 @@
-# Production API Contract Draft — v106
+# Production API Contract Draft — v112
 
 This document is an implementation draft for the production version of the Tsubame employee/operations system.
 
@@ -149,7 +149,7 @@ The server calculates related open accidents, complaints, vehicles, assets and t
 
 ### GET /api/v1/accidents
 
-Supports scoped search by employee, date range, phase, owner, due state and keyword.
+Supports scoped search by employee, three-digit car number, date range, phase, owner, due state and keyword.
 
 ### POST /api/v1/accidents
 
@@ -190,13 +190,13 @@ Administrative correction only. No normal DELETE endpoint.
 
 ### GET /api/v1/near-misses
 
-Supports employee, date range, risk level, cause side and keyword.
+Supports employee, three-digit car number, date range, risk level, cause side and keyword.
 
 ### POST /api/v1/near-misses
 ### PATCH /api/v1/near-misses/{id}
 ### POST /api/v1/near-misses/{id}/archive
 
-Near misses remain analysis/safety-learning records and do not require a manager-owned response workflow.
+Near misses remain analysis/safety-learning records and do not require a manager-owned response workflow. The optional `car_no` field uses the same three-digit company car number as accident, complaint and vehicle records.
 
 ## 6. Complaints
 
@@ -252,8 +252,7 @@ Returns a short-lived download authorization only after permission checks.
 
 Vehicle payload supports:
 
-- plate
-- call_sign
+- car_no (three digits, company car number / 号車)
 - model
 - service
 - status
