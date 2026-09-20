@@ -5206,9 +5206,8 @@ function openVehicleForm(idx=-1){
  fttl.textContent=v?'車両を編集・担当変更':'車両を登録';
  fbody.innerHTML=`<div class="formnote">${v?'担当管理者は担当範囲内で編集・担当変更できます。廃車は全社管理者のみ操作できます。':'担当範囲内の乗務社員を担当者として登録します。'}<br>号車・車種・整備確認は日常管理用の補助情報です。</div>
  <div id="vehicleFormGuide" class="detail-alert ok">保存前チェックを表示します。</div><div class="formgrid">
-  <div class="employee-form-section"><h4>車両識別</h4><p>管理番号とは別に、現場で使う号車・呼称も持てます</p></div>
-  <div class="field"><label>車両番号<span class="req">必須</span></label><input id="fvp" value="${esc(v?.plate||'')}"></div>
-  <div class="field"><label>号車・呼称（任意）</label><input id="fvcall" value="${esc(v?.callSign||'')}" placeholder="例：801"></div>
+  <div class="employee-form-section"><h4>車両識別</h4><p>社内では3桁の数字を「号車＝車両番号（ナンバー）」として管理します</p></div>
+  <div class="field"><label>号車<span class="req">必須</span></label><input id="fvp" inputmode="numeric" maxlength="3" pattern="[0-9]{3}" value="${esc(/^\d{3}$/.test(String(v?.plate||''))?v.plate:'')}" placeholder="例：801"><div class="mini">3桁の数字のみ。別のナンバープレート欄は持ちません。</div></div>
   <div class="field wide"><label>車種（任意）</label><input id="fvmodel" value="${esc(v?.model||'')}" placeholder="例：クラウン、JPN TAXI、アルファード"></div>
   <div class="employee-form-section"><h4>点検・運用</h4><p>期限と車両状態をまとめて確認</p></div>
   <div class="field"><label>車検期限<span class="req">必須</span></label><input id="fvi" type="date" value="${esc(v?.inspection||'')}" onchange="updateVehicleFormGuide()"></div>
@@ -5227,7 +5226,8 @@ function openVehicleForm(idx=-1){
   let e=emp(fve.value);
   if(v&&!guardEmployeeEdit(v.employee_no,'車両記録'))return;
   if(!e||!guardEmployeeEdit(e.no,'車両記録'))return;
-  if(!requireInputs([{id:'fvp',label:'号車',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;\n  if(!/^\\d{3}$/.test(fvp.value.trim()))return alert('号車は3桁の数字で入力してください（例：801）');
+  if(!requireInputs([{id:'fvp',label:'号車',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;
+  if(!/^\d{3}$/.test(fvp.value.trim()))return alert('号車は3桁の数字で入力してください（例：801）');
   if(V.some((x,j)=>j!==idx&&String(x.plate).trim()===fvp.value.trim()))return alert('同じ号車が既に登録されています');
   if(fvst.value==='廃車'&&!isFullCompanyAdmin())return alert('廃車は全社管理者のみ操作できます');
   let extraNos=vehicleAdditionalDriverNos().filter(no=>String(no)!==String(e.no));
