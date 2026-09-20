@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v108</title>
+<title>つばめ交通株式会社 社員一元管理システム v109</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -612,9 +612,9 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="simple-note" id="employeeDemoNote">共有デモ：初期サンプルは架空社員120名です。登録・復元後の人数は可変です。</div>
 <div class="card simple-filter-card">
  <div class="simple-filter-title"><div><h3>社員を検索</h3><div class="mini">普段は検索とクイック絞り込みだけで使えます。</div></div></div>
- <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
- <div class="simple-quick-actions"><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button></div>
- <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・在籍状態・期限状態）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select></div></div></details>
+ <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
+ <div class="simple-quick-actions"><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn" onclick="setEmployeeQuickFilter('cert-gold')">ゴールド</button><button class="btn" onclick="setEmployeeQuickFilter('cert-english')">英語</button><button class="btn" onclick="setEmployeeQuickFilter('cert-tourism')">観光</button><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button></div>
+ <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・在籍状態・期限状態・認定）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><select id="ecert" onchange="EMP_PAGE=1;renderEmp()"><option value="">全認定</option><option value="gold">ゴールド認定</option><option value="english">英語ドライバー</option><option value="tourism">観光ドライバー</option></select></div></div></details>
 </div>
 <div id="empListSummary" class="emp-list-summary"></div>
 <div class="table-card"><div class="table-head"><strong>社員一覧</strong><span class="mini">標準：安全優先順（期限切れ・乗務不可 → 30日以内 → 要確認 → 正常）</span></div><div class="tablewrap"><table><thead><tr><th>社員</th><th>事業所</th><th>部署</th><th>最優先期限</th><th>安全・乗務</th><th>状態</th><th>操作</th></tr></thead><tbody id="empbody"></tbody></table></div></div>
@@ -1320,6 +1320,11 @@ function driverCertBadgesHtml(e){
  let active=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key));
  return active.length?active.map(def=>'<span class="badge ok">'+esc(def.short)+'</span>').join(' '):''
 }
+function driverCertCount(key,list=scopedEmployees()){return list.filter(e=>driverCertActive(e,key)).length}
+function employeeCertSummaryHtml(list){
+ let parts=DRIVER_CERT_DEFS.map(def=>'<button class="btn soft" style="min-height:38px;padding:6px 10px" onclick="setEmployeeQuickFilter(\'cert-'+def.key+'\')">'+esc(def.short)+' '+driverCertCount(def.key,list)+'名</button>');
+ return '<div class="toolbar">'+parts.join('')+'</div>'
+}
 function driverCertificationHistoryHtml(e){
  let rows=Array.isArray(e?.driverCertificationHistory)?e.driverCertificationHistory:[];
  if(!rows.length)return '<div class="mini">認定・解除の履歴はまだありません。</div>';
@@ -1575,7 +1580,7 @@ function downloadCsv(filename,rows){
  let blob=new Blob([text],{type:'text/csv;charset=utf-8'});
  let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)
 }
-function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一覧_本番反映版_v91.csv',[['社員番号','氏名','事業所','部署','役職','状態','安全管理状態','乗務可否','免許・資格','免許期限','健康診断期限','適性診断','適性診断次回'],...rows.map(e=>[e.no,e.name,e.branch,e.dept,e.position||'',e.status,e.safetyState||'正常',e.eligibility||'対象外',e.license||'',e.licenseExpiry||'',e.health||'',e.aptitude||'',e.aptitudeNext||''])]);audit('CSV出力',`社員一覧 v53 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}名`)}
+function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一覧_本番反映版_v109.csv',[['社員番号','氏名','事業所','部署','役職','状態','安全管理状態','乗務可否','ゴールド認定','英語ドライバー','観光ドライバー','免許・資格','免許期限','健康診断期限','適性診断','適性診断次回'],...rows.map(e=>[e.no,e.name,e.branch,e.dept,e.position||'',e.status,e.safetyState||'正常',e.eligibility||'対象外',driverCertActive(e,'gold')?'認定中':'',driverCertActive(e,'english')?'認定中':'',driverCertActive(e,'tourism')?'認定中':'',e.license||'',e.licenseExpiry||'',e.health||'',e.aptitude||'',e.aptitudeNext||''])]);audit('CSV出力',`社員一覧 v109 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}名`)}
 function exportAccidentsCsv(){
  let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let header=['事故番号','発生日','曜日','発生時間','社員番号','システム連携ID','乗務員','区分','車両','運行時の状態','発生地区','事故形態・種類','過失率（自社側%）','相手修理','相手修理代','自社修理','自社修理代','修理費合計','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'];
@@ -3478,11 +3483,14 @@ function employeeSafetySort(a,b){
 
 
 function setEmployeeQuickFilter(kind){
- let q=document.getElementById('eq'),b=document.getElementById('eb'),d=document.getElementById('ed'),s=document.getElementById('es'),r=document.getElementById('erisk');
- if(q)q.value='';if(b)b.value='';if(d)d.value='';if(s)s.value='';if(r)r.value='';
+ let q=document.getElementById('eq'),b=document.getElementById('eb'),d=document.getElementById('ed'),s=document.getElementById('es'),r=document.getElementById('erisk'),cert=document.getElementById('ecert');
+ if(q)q.value='';if(b)b.value='';if(d)d.value='';if(s)s.value='';if(r)r.value='';if(cert)cert.value='';
  if(kind==='attention'&&r)r.value='attention';
  if(kind==='blocked'&&r)r.value='blocked';
  if(kind==='active'&&s)s.value='在籍';
+ if(kind==='cert-gold'&&cert)cert.value='gold';
+ if(kind==='cert-english'&&cert)cert.value='english';
+ if(kind==='cert-tourism'&&cert)cert.value='tourism';
  EMP_PAGE=1;renderEmp()
 }
 function renderEmployeeDataNotice(){
@@ -3492,13 +3500,13 @@ function renderEmployeeDataNotice(){
 }
 function renderEmp(){
  renderEmployeeDataNotice();
- let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',
-     filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)).sort(employeeSafetySort),
+ let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',certFilter=document.getElementById('ecert')?.value||'',
+     filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))).sort(employeeSafetySort),
      pages=Math.max(1,Math.ceil(filtered.length/EMP_PER_PAGE));
  EMP_PAGE=Math.min(Math.max(1,EMP_PAGE),pages);
  let start=(EMP_PAGE-1)*EMP_PER_PAGE,arr=filtered.slice(start,start+EMP_PER_PAGE);
  let summary=document.getElementById('empListSummary');
- if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length;summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopedEmployees().length}名 ・ 標準は安全優先順</div></div><div><span class="badge ${attention?'warn':'ok'}">要確認 ${attention}名</span></div>`}
+ if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length,scopeRows=scopedEmployees();summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopeRows.length}名 ・ 標準は安全優先順</div></div><div class="toolbar"><span class="badge ${attention?'warn':'ok'}">要確認 ${attention}名</span>${employeeCertSummaryHtml(scopeRows)}</div>`}
  empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),rowClass=(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:5px">${driverCertBadgesHtml(e)}</div>`:''}</td><td><span class="emp-chip">${esc(e.branch)}</span></td><td><span class="emp-chip">${esc(e.dept)}</span></td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td>${badge(e.status)}</td><td><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></td></tr>`}).join('');
  let mobile=document.getElementById('empMobileList');
  if(mobile){mobile.innerHTML=arr.length?arr.map(e=>`<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>事業所</label><b>${esc(e.branch)}</b></div><div><label>部署</label><b>${esc(e.dept)}</b></div></div><div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:6px">${driverCertBadgesHtml(e)}</div>`:''}<button class="btn soft" onclick="event.stopPropagation();employeeDetail('${e.no}')">開く</button></article>`).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
@@ -3884,12 +3892,12 @@ function employeeDetail(no){
    <div class="employee-history-summary">
     <div class="mini-card"><span class="mini">書類</span><b>${dd.length}件</b></div>
     <div class="mini-card"><span class="mini">貸与品</span><b>${assets.length}件</b></div>
-    <div class="mini-card"><span class="mini">社内認定</span><b>${e.companyCerts?.length||0}件</b></div>
+    <div class="mini-card"><span class="mini">乗務員認定</span><b>${DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).length}件</b></div>
    </div>
    <div class="section"><h3>書類・貸与品</h3><div><div class="related-grid">
     <button class="related-btn" onclick="employeeDocuments('${e.no}')"><b>書類 ${dd.length}件 ›</b><span>${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑':'確認待ち・原本確認済み・期限'}</span></button>
     <button class="related-btn" onclick="employeeAssets('${e.no}')"><b>貸与品 ${assets.length}件 ›</b><span>返却状況・管理番号</span></button>
-    <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>乗務員認定・制服 ›</b><span>ゴールド・英語・観光 / 認定履歴</span></button>
+    <button class="related-btn" onclick="employeeCertUniform('${e.no}')"><b>乗務員認定・制服 ›</b><span>ゴールド・英語・観光 / 現在状態と履歴</span></button>
     ${isFullCompanyAdmin()?`<button class="related-btn" onclick="employeeProcedures('${e.no}')"><b>休職・退職手続 ${pp.length}項目 ›</b><span>ログイン停止・引継ぎを確認</span></button>`:''}
     ${roleCanSeeSensitive()?`<button class="related-btn" onclick="employeeAdminOnly('${e.no}')"><b>管理者専用 ›</b><span>労働条件・保険・二種免許養成</span></button>`:''}
    </div></div></div>
@@ -5547,7 +5555,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v108';
+const RELEASE_VERSION='v109';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
