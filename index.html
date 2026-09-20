@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v115</title>
-<!-- production-sync:v115 -->
+<title>つばめ交通株式会社 社員一元管理システム v116</title>
+<!-- production-sync:v116 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -555,7 +555,6 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
-<div id="homeDailySummary" class="card general-restricted" style="margin:14px 0"></div>
 <div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
 
 <div class="card general-restricted home-simple-primary">
@@ -577,14 +576,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn primary admin-only" onclick="openAccidentForm()">＋ 事故登録</button>
   <button class="btn soft admin-only" onclick="openNearForm()">＋ ヒヤリ</button>
   <button class="btn soft admin-only" onclick="openComplaintForm()">＋ 苦情</button>
-  <button class="btn soft admin-only full-admin-only" onclick="openEmployeeForm()">＋ 社員登録</button>
   <button class="btn soft" onclick="go('emp')">社員一覧</button>
+  <button class="btn soft" onclick="go('safe')">運行・安全</button>
   <button class="btn soft" onclick="go('work')">期限・勤務</button>
-  <button class="btn soft" onclick="go('safe')">事故・苦情・ヒヤリ</button>
+ </div>
+ <details class="detail-fold" style="margin-top:10px"><summary>その他の操作</summary><div class="detail-fold-body"><div class="home-actions">
+  <button class="btn soft admin-only full-admin-only" onclick="openEmployeeForm()">＋ 社員登録</button>
   <button class="btn soft" onclick="go('vehicles')">車両管理</button>
   <button class="btn soft" onclick="go('comms')">掲示・申請</button>
   <button class="btn primary admin-only" onclick="go('manage')">管理</button>
- </div>
+ </div></div></details>
 </div>
 <div id="selfHomePanel" class="card self-only" style="margin-top:12px">
  <h3>自分の確認</h3>
@@ -3955,18 +3956,18 @@ function employeeDetail(no){
  ${(()=>{let n=employeeNextActionInfo(e);return commonNextActionPanelHtml(n.action,n.owner,n.due,n.tone)})()}
  ${employeeDailyAttentionHtml(no)}
  ${employeeDetailAttentionHtml(no)}
- ${employeeOperationalOverviewHtml(no)}
+ <details class="detail-fold"><summary>関連情報（号車・認定・安全記録）</summary><div class="detail-fold-body">${employeeOperationalOverviewHtml(no)}</div></details>
  <div id="employeeDetailTabRoot">
   <div class="employee-detail-tabs" role="tablist" aria-label="社員台帳 6区分">
-   <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="safety" onclick="setEmployeeDetailTab('safety')">安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
+   <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="safety" onclick="setEmployeeDetailTab('safety')">安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
+   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本</button>
    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="work" onclick="setEmployeeDetailTab('work')">勤務</button>
    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="qualification" onclick="setEmployeeDetailTab('qualification')">資格</button>
    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="affiliation" onclick="setEmployeeDetailTab('affiliation')">所属</button>
    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="documents" onclick="setEmployeeDetailTab('documents')">書類</button>
   </div>
 
-  <div class="employee-detail-panel active" data-panel="basic">
+  <div class="employee-detail-panel" data-panel="basic">
    <div class="section"><h3>基本</h3><div class="infogrid">
     <div class="info"><label>社員番号</label><b>${e.no}</b>${e.oldNos?.length?`<div class="mini">旧番号 ${e.oldNos.join('、')}</div>`:''}</div>
     <div class="info"><label>氏名</label><b>${esc(e.name)}（仮名）</b></div>
@@ -4001,7 +4002,7 @@ function employeeDetail(no){
    <div class="sensitive-note" style="margin-top:9px">健康診断は期限・受診予定のみ扱い、結果・病名などは表示しません。</div></div>
   </div>
 
-  <div class="employee-detail-panel" data-panel="safety">
+  <div class="employee-detail-panel active" data-panel="safety">
    <div class="section"><h3>安全</h3><div class="detail-kpi-grid">
     <div class="detail-kpi"><label>安全管理状態</label>${badge(e.safetyState||'正常')}</div>
     <div class="detail-kpi"><label>乗務可否</label>${badge(elig)}</div>
@@ -5771,7 +5772,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v115';
+const RELEASE_VERSION='v116';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
