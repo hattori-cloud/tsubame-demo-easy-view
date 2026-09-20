@@ -2953,7 +2953,7 @@ function runSystemSelfDiagnostic(){
 function renderFoundationStatus(){
  let el=document.getElementById('foundationStatus');if(!el)return;
  let quality=qualityIssues(),critical=quality.filter(x=>x.level==='bad').length,deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length;
- let structured=AUDIT.filter(x=>x.structured).length,mc=metadataCoverage(),moduleCount=coreRecordCollections().length;
+ let structured=AUDIT.filter(x=>x.structured).length,mc=metadataCoverage(),moduleCount=coreRecordCollections().length,relationIssues=relationIntegrityIssues();
  let grantedCount=grantedEmployees().length,displayCount=scopedEmployees().length;
  let storageErrors=STORAGE_HEALTH.readErrors.length+STORAGE_HEALTH.writeErrors.length,lastSaved=STORAGE_HEALTH.lastSave||localStorage.getItem('v68LAST_SAVE')||'この端末では未保存';
  let bootErrors=typeof BOOT_HEALTH!=='undefined'?BOOT_HEALTH.errors.length:0,bootSchema=typeof BOOT_HEALTH!=='undefined'?BOOT_HEALTH.schema:'未確認';
@@ -2967,6 +2967,7 @@ function renderFoundationStatus(){
   <div class="card metric"><small>権限ポリシー</small><b>${Object.keys(ACCESS_POLICY).length}</b><span>共通ルール</span></div>
   <div class="card metric"><small>共通メタ情報</small><b>${mc.meta}/${mc.total}</b><span>更新履歴あり ${mc.updated}件</span></div>
   <div class="card metric"><small>共通データ基盤</small><b>${moduleCount}</b><span>共通管理コレクション / ${esc(CORE_SCHEMA_VERSION)}</span></div>
+  <div class="card metric ${relationIssues.length?'warn':'ok'}"><small>参照整合性</small><b>${relationIssues.length}</b><span>${relationIssues.length?'参照切れ・重複を確認':'参照切れなし'}</span></div>
  </div>
  <div class="scope-note" style="margin-top:9px">権限判定は利用者に固定された担当範囲、事業所・部署セレクトは画面表示の絞り込みとして分離しています。共有デモはブラウザ保存です。破損した保存値はその項目だけ退避して初期値へ戻し、保存失敗も検知します。本運用では認証・DB・サーバー側権限制御・バックアップ・監査ログをサーバー側へ移します。</div>`
 }
