@@ -2027,6 +2027,26 @@ const DATA_MODEL=[
  {table:'users',label:'利用者',source:'USERS',pk:'id',parent:'employee_no → employees.no（一般社員）',purpose:'認証後の権限・担当範囲'},
  {table:'audit_logs',label:'監査ログ',source:'AUDIT',pk:'生成ID予定',parent:'actor/user + entity reference',purpose:'重要操作の追跡'}
 ];
+
+const DATA_MODEL_META={
+ employees:{required:'id / employee_no / name / status / office / department',indexes:'employee_no(unique), name, office+department, status',history:'所属・在籍状態・乗務可否'},
+ qualifications:{required:'id / employee_id / name / status',indexes:'employee_id, expiry, status',history:'期限・状態・証憑紐付け'},
+ documents:{required:'id / employee_id / category / name / status',indexes:'employee_id, category, expiry, status',history:'確認状態・関連資格'},
+ training:{required:'id / employee_id / course / status',indexes:'employee_id, due, status',history:'期限・完了'},
+ assets:{required:'id / employee_id / item / status',indexes:'employee_id, status, return_due',history:'貸与・返却'},
+ accidents:{required:'id / employee_id / occurred_at / summary / phase',indexes:'employee_id, occurred_at, phase, owner_user_id, due',history:'担当・期限・原因・再発防止・対応履歴・修理費・完了'},
+ near_misses:{required:'id / employee_id / occurred_at / summary',indexes:'employee_id, occurred_at, risk_level',history:'分類・危険度・対策'},
+ complaints:{required:'id / employee_id / received_at / summary / status',indexes:'employee_id, received_at, status, owner_user_id, followup_due',history:'担当・指導・期限・完了'},
+ guidance:{required:'id / employee_id / date / type / summary',indexes:'employee_id, date, type',history:'担当・次回確認'},
+ vehicles:{required:'id / plate / status',indexes:'plate(unique), call_sign, inspection_due, status, primary_employee_id',history:'主担当・利用乗務員・状態・車検・整備'},
+ applications:{required:'id / employee_id / type / status / applied_at',indexes:'employee_id, status, applied_at',history:'申請・承認・差戻し'},
+ notices:{required:'id / title / published_at / state',indexes:'published_at, state',history:'公開・停止'},
+ confirmations:{required:'id / title / due / state',indexes:'due, state',history:'回答状況'},
+ handoffs:{required:'id / case_type / case_id / to_user_id / status',indexes:'to_user_id, status, created_at',history:'担当変更・確認'},
+ users:{required:'id / state / role_level',indexes:'id(unique), employee_id, state, role_level',history:'有効停止・MFA・担当範囲・安全判断権限'},
+ audit_logs:{required:'id / occurred_at / actor_user_id / action / entity_type / entity_id',indexes:'occurred_at, actor_user_id, entity_type+entity_id',history:'追記専用・原則更新削除不可'}
+};
+function dataModelMeta(table){return DATA_MODEL_META[table]||{required:'要定義',indexes:'要定義',history:'要定義'}}
 function collectionBySource(name){
  return {E,QUAL,DOCS,TR,AS,A,N,C,GUIDANCE,V,APPLICATIONS,NOTICES,CONFIRMATIONS,HANDOFFS,USERS,AUDIT}[name]||[]
 }
@@ -2059,8 +2079,9 @@ function showDataModel(){
  dttl.textContent='本番DB移行・データ構造';
  dbody.innerHTML=`<div class="detail-alert ${issues.length?'warn':'ok'}"><b>参照整合性：</b> ${issues.length?'要確認 '+issues.length+'件':'現在のデモデータでは参照切れなし'}</div>
  <div class="section"><h3>移行原則</h3><div class="scope-note">社員番号を業務上の基準キーとして保持しつつ、DB内部では変更されない主キーも持たせます。事故・資格・書類・車両などは社員を参照し、利用者権限と監査ログは別テーブルに分離します。削除より「状態変更・履歴保持」を基本にします。</div></div>
- <div class="table-card"><div class="tablewrap"><table><thead><tr><th>テーブル候補</th><th>主キー</th><th>主な参照</th><th>用途</th><th>現在件数</th></tr></thead><tbody>${DATA_MODEL.map(m=>`<tr><td><b>${esc(m.label)}</b><div class="mini">${esc(m.table)}</div></td><td>${esc(m.pk)}</td><td>${esc(m.parent)}</td><td>${esc(m.purpose)}</td><td>${collectionBySource(m.source).length}</td></tr>`).join('')}</tbody></table></div></div>
+ <div class="table-card"><div class="tablewrap"><table><thead><tr><th>テーブル候補</th><th>主キー・参照</th><th>必須項目</th><th>検索索引候補</th><th>履歴対象</th><th>件数</th></tr></thead><tbody>${DATA_MODEL.map(m=>{let meta=dataModelMeta(m.table);return `<tr><td><b>${esc(m.label)}</b><div class="mini">${esc(m.table)} / ${esc(m.purpose)}</div></td><td>${esc(m.pk)}<div class="mini">${esc(m.parent)}</div></td><td>${esc(meta.required)}</td><td>${esc(meta.indexes)}</td><td>${esc(meta.history)}</td><td>${collectionBySource(m.source).length}</td></tr>`}).join('')}</tbody></table></div></div>
  <div class="section"><h3>参照チェック</h3>${issues.length?issues.map(x=>'<div class="row quality-warn"><div><b>'+esc(x)+'</b></div><span class="badge warn">要確認</span></div>').join(''):'<div class="notice"><div><b>参照切れ・主キー重複は検出されませんでした。</b><div class="mini">本番DB移行時にはDBの外部キー制約でも強制します。</div></div><span class="badge ok">OK</span></div>'}</div>
+ <div class="section"><h3>移行手順</h3><div class="readiness-grid"><div class="ready-item ok"><b>1. スキーマ作成</b><div class="mini">空の本番DBと制約を先に作る</div></div><div class="ready-item ok"><b>2. 架空データ移行試験</b><div class="mini">ID・参照・件数を照合</div></div><div class="ready-item ok"><b>3. 権限試験</b><div class="mini">担当外データがAPIで拒否されることを確認</div></div><div class="ready-item ok"><b>4. 本番データ投入</b><div class="mini">バックアップ後に段階投入・照合</div></div></div></div>
  <div class="section"><h3>本番で追加する制約</h3><div class="readiness-grid"><div class="ready-item ok"><b>主キー</b><div class="mini">全レコードを一意に識別</div></div><div class="ready-item ok"><b>外部キー</b><div class="mini">存在しない社員・利用者への参照を拒否</div></div><div class="ready-item ok"><b>履歴</b><div class="mini">更新者・更新日時・重要変更を保持</div></div><div class="ready-item ok"><b>権限</b><div class="mini">API・DB側で担当範囲を強制</div></div></div></div>`;
  showDetailModal();audit('本番DB移行設計確認','参照整合性 '+issues.length+'件',{entity_type:'system',entity_id:'data-model'})
 }
@@ -2907,7 +2928,7 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
