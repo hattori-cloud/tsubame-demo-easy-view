@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v97</title>
+<title>つばめ交通株式会社 社員一元管理システム v98</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,8 +548,8 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v97｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
-<header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
+<div class="demo">本番反映版 v98｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">権限確認（デモ）</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
@@ -791,7 +791,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <details class="manage-section full-admin-only" id="manage-system">
  <summary>会社設定・導入</summary>
  <div class="manage-section-body">
-  <div class="grid2"><div class="card"><h3>会社固有設定</h3><div id="companySpec" class="company-grid"></div></div><div class="card"><h3>利用者・権限</h3><div id="userSummary"></div><div class="toolbar" style="margin-top:9px"><button class="btn soft" onclick="showUsers()">利用者一覧</button><button class="btn soft" onclick="showAccessMatrix()">権限マトリクス</button></div></div></div>
+  <div class="grid2"><div class="card"><h3>会社固有設定</h3><div id="companySpec" class="company-grid"></div></div><div class="card"><h3>利用者・権限</h3><div id="userSummary"></div><div id="authReadiness" class="scope-note" style="margin-top:9px"></div><div class="toolbar" style="margin-top:9px"><button class="btn primary" onclick="showUsers()">利用者一覧</button><button class="btn soft" onclick="showAccessMatrix()">権限マトリクス</button><button class="btn soft" onclick="showLoginDesign()">本番ログイン設計</button></div></div></div>
   <div class="card" style="margin-top:12px"><h3>導入前チェック</h3><div id="readiness" class="readiness-grid"></div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">本番移行ゲート</h3><div class="mini">実社員データ投入前に、未完了条件と残作業をまとめて確認します。</div></div><button class="btn soft" onclick="showProductionGate()">条件を見る</button></div><div id="productionGate"></div></div>
   <div class="grid2" style="margin-top:12px"><div class="card"><h3>入力用Excel・一括取込</h3><div class="scope-note">未照合社員を自動作成せず、取込前チェック後に確定する設計です。</div><button class="btn soft" style="margin-top:9px" onclick="showImportSpec()">取込仕様を見る</button></div><div class="card"><h3>書類原本管理</h3><div id="documentLifecycle"></div></div></div>
@@ -1084,11 +1084,19 @@ let PREVIEW_MODE=localStorage.getItem('v67ROLE')||'full';
 if(!['full','scoped','self'].includes(PREVIEW_MODE)){PREVIEW_MODE='full';localStorage.setItem('v67ROLE',PREVIEW_MODE)}
 let PREVIEW_ROLE=PREVIEW_MODE==='self'?'一般社員':'管理者';
 const COMPANY_SPEC={offices:['本社','府中','馬木'],employment:['正社員','定時制','パート'],taxiSections:['タクシー1課','タクシー2課','タクシー3課'],workPatterns:['隔日勤務','日勤','夜勤'],companyCerts:['英語ドライバー','観光ドライバー']};
+const AUTH_CONFIG={connected:false,provider:'本番未選定',requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',note:'共有デモは認証なし。権限切替は画面確認専用'};
 const USERS=[
- {id:'EMP-1002',name:'検証管理者',role:'管理者',adminLevel:'full',safetyAuthority:false,scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1},
- {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0},
- {id:'ADMIN-OPS',name:'運行管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0},
- {id:'EMP-1001',employee_no:'1001',name:'安芸 太郎',role:'一般社員',adminLevel:'self',scope:'本人のみ',scopes:[],state:'有効',mfa:'未設定（デモ）',sessions:1}
+ {id:'EMP-1002',name:'検証全社管理者',role:'管理者',adminLevel:'full',safetyAuthority:false,scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1,authMethod:'本番未接続',loginKey:'ADM-01',lastLogin:'デモ確認中'},
+ {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-02',lastLogin:'未接続'},
+ {id:'ADMIN-OPS',name:'運行管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-03',lastLogin:'未接続'},
+ {id:'ADMIN-HQ',name:'本社管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'本社×総務課 / 本社×経理課 / 本社×人事広報',scopes:[{office:'本社',dept:'総務課'},{office:'本社',dept:'経理課'},{office:'本社',dept:'人事広報'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-04',lastLogin:'未接続'},
+ {id:'ADMIN-FUCHU',name:'府中管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'府中×タクシー課 / 府中×運行管理課',scopes:[{office:'府中',dept:'タクシー課'},{office:'府中',dept:'運行管理課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-05',lastLogin:'未接続'},
+ {id:'ADMIN-BUS',name:'バス管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×バス課 / 府中×バス課 / 馬木×バス課',scopes:[{office:'本社',dept:'バス課'},{office:'府中',dept:'バス課'},{office:'馬木',dept:'バス課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-06',lastLogin:'未接続'},
+ {id:'ADMIN-MAINT',name:'整備管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'本社×整備課 / 府中×整備課',scopes:[{office:'本社',dept:'整備課'},{office:'府中',dept:'整備課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-07',lastLogin:'未接続'},
+ {id:'ADMIN-GEN',name:'総務管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'本社×総務課 / 府中×総務課',scopes:[{office:'本社',dept:'総務課'},{office:'府中',dept:'総務課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-08',lastLogin:'未接続'},
+ {id:'ADMIN-HR',name:'人事担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'本社×人事広報',scopes:[{office:'本社',dept:'人事広報'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-09',lastLogin:'未接続'},
+ {id:'ADMIN-RESERVE',name:'予備管理アカウント（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'担当未設定',scopes:[],state:'停止',mfa:'未設定',sessions:0,authMethod:'本番未接続',loginKey:'ADM-10',lastLogin:'未接続'},
+ {id:'EMP-1001',employee_no:'1001',name:'安芸 太郎',role:'一般社員',adminLevel:'self',scope:'本人のみ',scopes:[],state:'有効',mfa:'未設定（デモ）',sessions:1,authMethod:'本番未接続',loginKey:'EMP-1001',lastLogin:'デモ確認中'}
 ];
 function currentPreviewUser(){
  if(PREVIEW_MODE==='full')return USERS.find(u=>u.id==='EMP-1002');
@@ -1110,6 +1118,7 @@ function resolveManagerSelection(id){
 function managerCanCoverEmployee(manager,no){
  let e=emp(String(no));if(!manager||!e)return false;
  if(manager.adminLevel==='full')return true;
+ if(manager.state!=='有効')return false;
  let scopes=Array.isArray(manager.scopes)?manager.scopes:[];
  return scopes.some(s=>(!s.office||s.office===e.branch)&&(!s.dept||s.dept===e.dept))
 }
@@ -1711,7 +1720,7 @@ function openQualityIssue(index){
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v97.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ downloadCsv('データ品質チェック_本番反映版_v98.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
  audit('CSV出力','データ品質チェック / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
@@ -2451,9 +2460,12 @@ function renderCompanySpec(){
  <div class="company-item"><span class="mini">社員番号範囲</span><b>${empNos.length?empNos[0]+' ～ '+empNos[empNos.length-1]:'未登録'}</b></div>
  <div class="company-item"><span class="mini">マイナンバー</span><b>保存しない</b></div>`;
  let roles=['全社管理者','担当管理者','一般社員'],activeUsers=USERS.filter(u=>u.state==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
+ let adminAll=USERS.filter(u=>u.role==='管理者'),mfaMissing=adminAll.filter(u=>u.state==='有効'&&!userMfaReady(u)).length,scopeMissing=adminAll.filter(u=>u.state==='有効'&&u.adminLevel==='scoped'&&!(u.scopes||[]).length).length;
  userSummary.innerHTML=`<div class="row"><div><b>${roles.length}権限</b><div class="mini">${roles.map(esc).join(' / ')}</div></div><span class="badge ok">共通権限ポリシー</span></div>
- <div class="row"><div><b>有効利用者 ${activeUsers.length}名</b><div class="mini">管理者 ${managers.length}名 / 一般社員 ${activeUsers.filter(u=>u.role==='一般社員').length}名</div></div><span class="badge ok">状態確認</span></div>
- <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。社員番号・所属変更・休職/退職・権限設定は全社管理者のみです。安全管理状態・乗務可否は安全判断権限を付与された安全管理／運行管理担当者のみ変更できます。</div></div><span class="badge ok">固定範囲</span></div>`;
+ <div class="row"><div><b>管理者台帳 ${adminAll.length}名</b><div class="mini">有効 ${managers.length}名 / 停止 ${adminAll.length-managers.length}名 / MFA未設定 ${mfaMissing}名 / 担当範囲未設定 ${scopeMissing}名</div></div><span class="badge ${mfaMissing||scopeMissing?'warn':'ok'}">台帳確認</span></div>
+ <div class="row"><div><b>本番認証</b><div class="mini">${AUTH_CONFIG.connected?'接続済み':'未接続'}。画面の権限確認はログイン機能ではありません。</div></div><span class="badge ${AUTH_CONFIG.connected?'ok':'danger'}">${AUTH_CONFIG.connected?'接続済み':'停止条件'}</span></div>
+ <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。安全判断権限は別付与です。</div></div><span class="badge ok">固定範囲</span></div>`;
+ renderAuthReadiness();
  readiness.innerHTML=productionGateItems().map(x=>`<div class="ready-item ${x.level}"><b>${x.name}</b><div class="mini">${x.status}</div></div>`).join('');
  documentLifecycle.innerHTML=DOCS.slice().sort((a,b)=>{
   let sa=a.status==='原本確認済み'?1:0,sb=b.status==='原本確認済み'?1:0;
@@ -2465,7 +2477,7 @@ function productionGateItems(){
  return [
   {name:'実サーバーHTTPS',status:'未確認',level:'bad',next:'本番ホスティングと証明書を確定'},
   {name:'実VPN・スマホ疎通',status:'未確認',level:'bad',next:'社内外ネットワークから実機疎通試験'},
-  {name:'MFA本番必須化',status:'未確認',level:'bad',next:'本番認証で多要素認証を必須化'},
+  {name:'本番認証・利用者照合',status:'未接続',level:'bad',next:'本人認証＋会社の利用許可台帳＋MFAをサーバー側で接続'},
   {name:'サーバー側権限制御',status:'未実装',level:'bad',next:'画面だけでなくAPI・DBでも権限を強制'},
   {name:'本番データベース',status:'未接続',level:'bad',next:'ブラウザ保存から本番DBへ移行'},
   {name:'別故障領域バックアップ',status:'実設備で未確認',level:'bad',next:'自動バックアップと復旧試験を実施'},
@@ -2509,7 +2521,69 @@ function showAccessMatrix(){
  dbody.innerHTML=`<div class="spec-note">画面表示の絞り込みとは別に、利用者へ固定された権限ルールを一覧化しています。本番では同じ判定をAPI・データ保存側でも強制します。</div><div class="permission-matrix-note"><div><b>全社管理者</b><div class="mini">全社操作。安全判断権限は別付与。</div></div><div><b>担当管理者</b><div class="mini">割当済みの事業所 × 部署だけ。</div></div><div><b>一般社員</b><div class="mini">本人向け情報だけ。</div></div></div><div class="table-card"><div class="tablewrap"><table><thead><tr><th>情報</th><th>閲覧</th><th>更新・その他操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
  showDetailModal()
 }
-function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認・変更できます');return}dttl.textContent='利用者・権限設定（全社管理者専用）';dbody.innerHTML=`<div class="spec-note">v91本番反映版では権限を利用者に固定します。全社管理者は全社、担当管理者は割り当て済みの複数範囲だけ、一般社員は本人だけです。安全判断権限は別に付与し、全社管理者であっても自動では付与しません。</div>`+USERS.map(u=>`<div class="row"><div><b>${u.id} ${esc(u.name)}</b><div class="mini">${u.adminLevel==='full'?'全社管理者':u.adminLevel==='scoped'?'担当管理者':'一般社員'} / ${u.scope} / 安全判断 ${u.safetyAuthority?'可':'なし'} / MFA ${u.mfa} / セッション ${u.sessions}</div></div>${badge(u.state)}</div>`).join('');showDetailModal()}
+function userRoleLabel(u){return u?.adminLevel==='full'?'全社管理者':u?.adminLevel==='scoped'?'担当管理者':'一般社員'}
+function userMfaReady(u){return String(u?.mfa||'').includes('設定済')}
+function userAccessWarnings(u){
+ let out=[];
+ if(u.state!=='有効')out.push('アカウント停止中');
+ if(AUTH_CONFIG.requireMfa&&!userMfaReady(u))out.push('MFA未設定');
+ if(u.adminLevel==='scoped'&&!(u.scopes||[]).length)out.push('担当範囲未設定');
+ if(u.role==='管理者'&&u.adminLevel!=='full'&&u.scope==='全社')out.push('担当管理者に全社表記');
+ return out
+}
+function renderAuthReadiness(){
+ let el=document.getElementById('authReadiness');if(!el)return;
+ let admins=USERS.filter(u=>u.role==='管理者'),active=admins.filter(u=>u.state==='有効'),mfaMissing=active.filter(u=>!userMfaReady(u)).length,scopeMissing=active.filter(u=>u.adminLevel==='scoped'&&!(u.scopes||[]).length).length;
+ el.innerHTML='<b>認証基盤：'+(AUTH_CONFIG.connected?'接続済み':'未接続（デモ）')+'</b><br>管理者台帳 '+admins.length+'名 / 有効 '+active.length+'名 / MFA未設定 '+mfaMissing+'名 / 担当範囲未設定 '+scopeMissing+'名<br><span class="mini">現在の「権限確認」はログインではありません。本番では認証成功後にこの利用者台帳と権限範囲をサーバー側で照合します。</span>'
+}
+function showUserAccessDetail(id){
+ if(!isFullCompanyAdmin())return alert('利用者設定は全社管理者のみ確認できます');
+ let u=USERS.find(x=>x.id===id);if(!u)return;
+ let warnings=userAccessWarnings(u),scopes=(u.scopes||[]);
+ dttl.textContent='利用者詳細 '+u.id;
+ dbody.innerHTML=`<div class="detail-primary"><h3>アカウント</h3><div class="detail-primary-grid">
+  <div class="detail-primary-item"><label>利用者</label><b>${esc(u.name)}</b></div>
+  <div class="detail-primary-item"><label>権限</label><b>${esc(userRoleLabel(u))}</b></div>
+  <div class="detail-primary-item"><label>状態</label>${badge(u.state)}</div>
+  <div class="detail-primary-item"><label>認証</label><b>${esc(u.authMethod||'本番未接続')}</b></div>
+  <div class="detail-primary-item"><label>MFA</label><b>${esc(u.mfa||'未設定')}</b></div>
+  <div class="detail-primary-item"><label>安全判断権限</label><b>${u.safetyAuthority?'あり':'なし'}</b></div>
+ </div></div>
+ ${warnings.length?'<div class="detail-alert warn"><b>確認事項：</b> '+warnings.map(esc).join(' / ')+'</div>':'<div class="detail-alert ok">利用者台帳上の大きな警告はありません。</div>'}
+ <div class="section"><h3>担当範囲</h3>${u.adminLevel==='full'?'<div class="row"><b>全社</b><span class="badge ok">固定</span></div>':scopes.length?scopes.map(s=>'<div class="row"><div><b>'+esc((s.office||'全事業所')+' × '+(s.dept||'全部署'))+'</b></div><span class="badge ok">許可</span></div>').join(''):'<div class="notice"><div><b>担当範囲が未設定です。</b><div class="mini">本番ではログインできても業務データを表示しない状態にします。</div></div><span class="badge warn">要設定</span></div>'}</div>
+ <div class="section"><h3>ログイン運用情報</h3><div class="infogrid"><div class="info"><label>ログイン識別子（架空）</label><b>${esc(u.loginKey||'-')}</b></div><div class="info"><label>最終ログイン</label><b>${esc(u.lastLogin||'未接続')}</b></div><div class="info"><label>セッション</label><b>${Number(u.sessions||0)}</b></div></div><div class="scope-note" style="margin-top:9px">共有デモでは認証・セッションは実動していません。本番ではサーバー側で管理します。</div></div>`;
+ showDetailModal()
+}
+function renderUserRows(){
+ let el=document.getElementById('userRows');if(!el)return;
+ let q=(document.getElementById('userQ')?.value||'').trim().toLowerCase(),role=document.getElementById('userRoleFilter')?.value||'all',state=document.getElementById('userStateFilter')?.value||'all';
+ let rows=USERS.filter(u=>(role==='all'||userRoleLabel(u)===role)&&(state==='all'||u.state===state)&&(!q||[u.id,u.name,u.scope,u.loginKey,userRoleLabel(u)].join(' ').toLowerCase().includes(q)));
+ el.innerHTML=rows.length?rows.map(u=>{let w=userAccessWarnings(u);return `<div class="row ${w.length?'quality-warn':''}"><div><b>${esc(u.id)} ${esc(u.name)}</b><div class="mini">${esc(userRoleLabel(u))} / ${esc(u.scope||'未設定')} / MFA ${esc(u.mfa||'未設定')} / 安全判断 ${u.safetyAuthority?'あり':'なし'}</div><div class="mini">認証 ${esc(u.authMethod||'本番未接続')} / セッション ${Number(u.sessions||0)}${w.length?' / 要確認 '+w.map(esc).join('・'):''}</div></div><div class="toolbar">${badge(u.state)}<button class="btn soft" onclick="showUserAccessDetail('${u.id}')">詳細</button></div></div>`}).join(''):'<div class="mini">条件に該当する利用者はいません。</div>'
+}
+function showLoginDesign(){
+ if(!isFullCompanyAdmin())return alert('本番ログイン設計は全社管理者のみ確認できます');
+ dttl.textContent='本番ログイン・アカウント設計';
+ dbody.innerHTML=`<div class="detail-alert warn"><b>現在：</b>共有デモには本物のログイン機能は接続していません。「権限確認（デモ）」は画面テスト専用です。</div>
+ <div class="section"><h3>本番で必須にする流れ</h3><div class="readiness-grid">
+  <div class="ready-item ok"><b>1. 本人認証</b><div class="mini">会社が承認した認証方式でログイン</div></div>
+  <div class="ready-item ok"><b>2. 利用者許可</b><div class="mini">この利用者台帳に有効アカウントがあることを確認</div></div>
+  <div class="ready-item ok"><b>3. MFA</b><div class="mini">管理者は多要素認証を必須化</div></div>
+  <div class="ready-item ok"><b>4. 権限範囲</b><div class="mini">全社または事業所×部署の割当範囲をサーバー側で強制</div></div>
+  <div class="ready-item ok"><b>5. セッション</b><div class="mini">失効・ログアウト・停止をサーバー側で管理</div></div>
+  <div class="ready-item ok"><b>6. 監査</b><div class="mini">ログイン・権限変更・重要操作を監査ログへ保存</div></div>
+ </div></div>
+ <div class="section"><h3>認証方式</h3><div class="scope-note">方式はまだ確定していません。Googleアカウントを使う場合も、Googleにログインできただけでは入れず、会社側の利用許可台帳に登録されたアカウントだけ通す設計にします。社員ID＋パスワード方式を選ぶ場合も、共有パスワードは禁止し、個人アカウント＋MFAを前提にします。</div></div>
+ <div class="section"><h3>現在の停止条件</h3><div class="row quality-bad"><div><b>本番認証未接続</b><div class="mini">実社員データ投入前に解消が必要</div></div><span class="badge danger">停止条件</span></div><div class="row quality-bad"><div><b>サーバー側権限制御未実装</b><div class="mini">画面を隠すだけではなく、API・DBでも拒否する必要があります</div></div><span class="badge danger">停止条件</span></div></div>`;
+ showDetailModal()
+}
+function showUsers(){
+ if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認できます');return}
+ dttl.textContent='利用者・権限設定（全社管理者専用）';
+ dbody.innerHTML=`<div class="spec-note">管理者約10名での利用を想定した架空アカウント台帳です。本番では認証サービスのアカウントとこの台帳をサーバー側で照合します。</div>
+ <div class="deadline-toolbar"><input id="userQ" placeholder="利用者ID・氏名・担当範囲で検索" oninput="renderUserRows()"><select id="userRoleFilter" onchange="renderUserRows()"><option value="all">全権限</option><option>全社管理者</option><option>担当管理者</option><option>一般社員</option></select><select id="userStateFilter" onchange="renderUserRows()"><option value="all">全状態</option><option>有効</option><option>停止</option></select></div>
+ <div id="userRows"></div>`;
+ showDetailModal();renderUserRows()
+}
 function showImportSpec(){if(!isFullCompanyAdmin()){alert('一括取込仕様は全社管理者のみ確認できます');return}dttl.textContent='入力用Excel・取込仕様';dbody.innerHTML=`<div class="section"><h3>入力用Excel</h3><div>11シート。取込対象は「社員基本」「資格技能」「労務・保険」「制服・二種免許」「健康診断」「勤務・残業」「事故」「退職者」の8シートです。</div></div><div class="section"><h3>安全条件</h3><div>社員コードで結び付け、空欄は既存値を保持。未照合の詳細行から社員を自動作成しません。管理者限定の機密シートを含みます。</div></div><div class="section"><h3>本番</h3><div>取込前チェック、別管理者承認、変更前バックアップ、監査を経て確定します。</div></div>`;showDetailModal()}
 
 
@@ -2765,13 +2839,13 @@ function systemDiagnosticCheck(name,ok,detail,level='bad'){
 }
 function runSystemDiagnosticChecks(){
  let out=[];
- let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
+ let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','authReadiness','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
  requiredIds.forEach(id=>out.push(systemDiagnosticCheck('画面ID '+id,!!document.getElementById(id),document.getElementById(id)?'存在':'見つかりません')));
  let idCounts={};
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -2780,14 +2854,14 @@ function runSystemDiagnosticChecks(){
  let collections=coreRecordCollections();
  let badCollections=collections.filter(x=>!Array.isArray(x.list)).map(x=>x.type);
  out.push(systemDiagnosticCheck('共通データコレクション',badCollections.length===0,badCollections.length?'配列ではない：'+badCollections.join('、'):collections.length+'コレクション正常'));
- out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v97.0','現在 '+APP_DATA_SCHEMA));
+ out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v98.0','現在 '+APP_DATA_SCHEMA));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
  out.push(systemDiagnosticCheck('起動・データ移行',bootOk,typeof BOOT_HEALTH==='undefined'?'BOOT_HEALTHなし':BOOT_HEALTH.errors.length?BOOT_HEALTH.errors.map(x=>x.label+': '+x.message).join(' / '):'起動処理 '+BOOT_HEALTH.steps.length+'項目完了'));
  let officeRuleOk=allowedDepartmentsForOffice('府中').includes('バス課')&&allowedDepartmentsForOffice('本社').includes('バス課')&&allowedDepartmentsForOffice('馬木').length===1&&allowedDepartmentsForOffice('馬木')[0]==='バス課';
  out.push(systemDiagnosticCheck('事業所・部署ルール',officeRuleOk,officeRuleOk?'本社・府中は各部署 / 馬木はバス課のみ':'会社固有ルールと一致しません'));
  let storageOk=false,storageDetail='';
- let testKey='v97SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
+ let testKey='v98SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
  try{
   localStorage.setItem(testKey,testValue);
   storageOk=localStorage.getItem(testKey)===testValue;
@@ -4980,7 +5054,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v97.0';
+const APP_DATA_SCHEMA='v98.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
