@@ -3290,8 +3290,8 @@ function complaintManagementChecklistHtml(c){
   {label:'完了記録',ok:open||!!c.completedDate&&!!c.finalReviewerName,note:open?'未完了':((c.completedDate||'日付未記録')+' / '+(c.finalReviewerName||'確認者未記録'))}
  ];
  let missing=checks.filter(x=>!x.ok).length;
- return `<div class="section"><h3>対応・完了チェック</h3><div class="list-summary"><div><b>${missing?'確認が必要 '+missing+'件':'主要な対応項目は揃っています'}</b><div class="mini">担当・期限・指導内容・完了記録の抜けを確認します。</div></div><span class="badge ${missing?'warn':'ok'}">${missing?'要確認 '+missing:'OK'}</span></div>
- <div class="readiness-grid">${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${esc(x.note)}</div></div>`).join('')}</div></div>`
+ return `<details class="detail-fold" ${missing?'open':''}><summary>対応・完了チェック ${missing?'（要確認 '+missing+'件）':'（確認済み）'}</summary><div class="detail-fold-body"><div class="list-summary"><div><b>${missing?'確認が必要 '+missing+'件':'主要な対応項目は揃っています'}</b><div class="mini">担当・期限・指導内容・完了記録の抜けを確認します。</div></div><span class="badge ${missing?'warn':'ok'}">${missing?'要確認 '+missing:'OK'}</span></div>
+ <div class="readiness-grid">${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${esc(x.note)}</div></div>`).join('')}</div></div></details>`
 }
 function complaintDetail(id){
  let c=C.find(x=>x.id===id);if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
@@ -3307,8 +3307,8 @@ function complaintDetail(id){
   <div class="detail-primary-item"><label>担当者</label><b>${esc(c.owner||'未設定')}</b></div>
   <div class="detail-primary-item"><label>フォロー期限</label><b>${esc(c.followupDue||'未設定')}</b></div>
  </div></div>
- ${complaintManagementChecklistHtml(c)}
  <div class="section"><h3>お客様申告・内容</h3><div class="acc-v50-text">${esc(c.summary||'未登録')}</div></div>
+ ${complaintManagementChecklistHtml(c)}
  ${c.status!=='完了'&&canEditEmployee(c.employee_no)?`<div class="section"><h3>対応メモを追記</h3><textarea id="complaintQuickNote" placeholder="例：お客様へ連絡、本人聞き取り、指導結果"></textarea><div style="text-align:right;margin-top:8px"><button class="btn primary" onclick="appendCaseNote('苦情','${c.id}','complaintQuickNote')">対応メモを追記</button></div></div>`:''}
  <details class="detail-fold" open><summary>指導・次回対応</summary><div class="detail-fold-body"><div class="grid2"><div class="section"><h3>指導内容</h3><div class="acc-v50-text">${esc(c.guidanceContent||'未登録')}</div></div><div class="section"><h3>次回対応内容</h3><div class="acc-v50-text">${esc(c.nextAction||'未登録')}</div></div></div></div></details>
  <details class="detail-fold"><summary>対応の時系列</summary><div class="detail-fold-body">${caseTimelineHtml('苦情',c)}</div></details>
@@ -4064,12 +4064,12 @@ function accidentManagementChecklistHtml(a){
   {label:'フォロー期限',ok:a.phase==='完了'||!!a.due,note:a.phase==='完了'?'完了済み':(a.due||'未設定')},
   {label:'修理状況',ok:accidentRepairLabel(a.opponentRepair)!=='未確定'&&accidentRepairLabel(a.companyRepair)!=='未確定',note:'相手 '+accidentRepairLabel(a.opponentRepair)+' / 自社 '+accidentRepairLabel(a.companyRepair)}
  ];
- let attention=checks.filter(x=>!x.ok).length;
- return `<div class="section"><h3>完了・管理チェック</h3><div class="list-summary"><div><b>${completion.length?'完了条件 未充足 '+completion.length+'件':'完了条件は入力済み'}</b><div class="mini">完了必須：原因・再発防止・対応履歴</div></div><div class="toolbar"><span class="badge ${completion.length?'danger':'ok'}">完了条件 ${completion.length?'未充足':'OK'}</span><span class="badge ${attention?'warn':'ok'}">管理確認 ${attention}件</span></div></div>
+ let attention=checks.filter(x=>!x.ok).length,needsOpen=completion.length||attention;
+ return `<details class="detail-fold" ${needsOpen?'open':''}><summary>完了・管理チェック ${needsOpen?'（要確認）':'（確認済み）'}</summary><div class="detail-fold-body"><div class="list-summary"><div><b>${completion.length?'完了条件 未充足 '+completion.length+'件':'完了条件は入力済み'}</b><div class="mini">完了必須：原因・再発防止・対応履歴</div></div><div class="toolbar"><span class="badge ${completion.length?'danger':'ok'}">完了条件 ${completion.length?'未充足':'OK'}</span><span class="badge ${attention?'warn':'ok'}">管理確認 ${attention}件</span></div></div>
  <div class="readiness-grid">
   ${['原因','再発防止','対応履歴'].map(x=>`<div class="ready-item ${completion.includes(x)?'bad':'ok'}"><b>${x}</b><div class="mini">${completion.includes(x)?'完了前に入力が必要':'入力済み'}</div></div>`).join('')}
   ${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${x.ok?'確認済み':'要確認'} / ${esc(x.note)}</div></div>`).join('')}
- </div></div>`
+ </div></div></details>`
 }
 function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  if(PREVIEW_ROLE!=='管理者'){alert('事故詳細は管理者のみ確認できます');return}
@@ -4092,8 +4092,8 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
   <div class="detail-primary-item"><label>事故場所</label><b>${esc(a.address||'未設定')}</b></div>
   <div class="detail-primary-item"><label>修理費合計</label><b>${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</b></div>
  </div></div>
- ${accidentManagementChecklistHtml(a)}
  <div class="section"><h3>事故概要</h3><div class="acc-v50-text">${esc(a.summary||'未登録')}</div></div>
+ ${accidentManagementChecklistHtml(a)}
  <div class="grid2">
   <div class="section"><h3>原因</h3><div class="acc-v50-text">${esc(a.cause||'未登録')}</div></div>
   <div class="section"><h3>再発防止</h3><div class="acc-v50-text">${esc(a.prevention||'未登録')}</div></div>
@@ -4139,8 +4139,8 @@ function nearAnalysisChecklistHtml(n){
   {label:'教育事項',ok:!!String(n.education||'').trim(),note:n.education?'記録あり':'未登録'}
  ];
  let missing=checks.filter(x=>!x.ok).length;
- return `<div class="section"><h3>安全分析の入力状況</h3><div class="list-summary"><div><b>${missing?'分析項目 要確認 '+missing+'件':'分析に必要な主要項目は入力済み'}</b><div class="mini">ヒヤリは管理案件ではなく、傾向分析と安全教育に使う報告記録として確認します。</div></div><span class="badge ${missing?'warn':'ok'}">${missing?'要確認 '+missing:'入力済み'}</span></div>
- <div class="readiness-grid">${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${esc(x.note)}</div></div>`).join('')}</div></div>`
+ return `<details class="detail-fold" ${missing?'open':''}><summary>安全分析の入力状況 ${missing?'（要確認 '+missing+'件）':'（入力済み）'}</summary><div class="detail-fold-body"><div class="list-summary"><div><b>${missing?'分析項目 要確認 '+missing+'件':'分析に必要な主要項目は入力済み'}</b><div class="mini">ヒヤリは管理案件ではなく、傾向分析と安全教育に使う報告記録として確認します。</div></div><span class="badge ${missing?'warn':'ok'}">${missing?'要確認 '+missing:'入力済み'}</span></div>
+ <div class="readiness-grid">${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${esc(x.note)}</div></div>`).join('')}</div></div></details>`
 }
 function nearDetail(id){
  let n=N.find(x=>x.id===id);if(!n||!guardManagementRecord('near_miss',n.employee_no,'ヒヤリハット'))return;
@@ -4155,9 +4155,9 @@ function nearDetail(id){
   <div class="detail-primary-item"><label>原因側</label><b>${esc(n.causeSide||'未設定')}</b></div>
   <div class="detail-primary-item"><label>記入日</label><b>${esc(n.reportDate||'未設定')}</b></div>
  </div></div>
- ${nearAnalysisChecklistHtml(n)}
  <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>
  <div class="section"><h3>改善・今後の対策</h3><div class="acc-v50-text">${esc(n.prevention||'未登録')}</div></div>
+ ${nearAnalysisChecklistHtml(n)}
  <details class="detail-fold"><summary>状況分類</summary><div class="detail-fold-body"><div class="infogrid">
    <div class="info"><label>場所</label>${nearTagsHtml(n.locationTags)}</div>
    <div class="info"><label>行動</label>${nearTagsHtml(n.situationTags)}</div>
