@@ -10,12 +10,12 @@ module.exports=function handler(req,res){
   }
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v111',
+    release:'v112',
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
     business_api_enabled:false,
-    feature_set:'car-number-certification-search',
+    feature_set:'near-miss-car-number-linkage',
     timestamp:new Date().toISOString()
   });
 };
