@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v108 foundation build.
+Current application: v109 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -61,6 +61,7 @@ Current application: v108 foundation build.
 - External-integration planning covers PCA and アントレ.
 - v107 starts the production API implementation with a fail-closed security foundation, a no-business-data health endpoint, and a protected probe that refuses access until real identity verification is implemented.
 - v108 unifies the taxi-company vehicle identifier as a single three-digit car number and adds history-based Gold / English / Tourism driver certifications. Gold is marked as planned for October 2026; detailed qualification rules are intentionally not hard-coded yet.
+- v109 adds one-tap employee filtering and counts for Gold / English / Tourism certifications, plus current certification columns in the employee CSV.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
