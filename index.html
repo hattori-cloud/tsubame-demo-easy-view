@@ -2004,6 +2004,61 @@ function restoreSystemBackup(){
   }
  }
 }
+const DATA_MODEL=[
+ {table:'employees',label:'社員',source:'E',pk:'no',parent:'-',purpose:'本人・所属・安全・勤務の基準'},
+ {table:'qualifications',label:'資格',source:'QUAL',pk:'id',parent:'employee_no → employees.no',purpose:'資格・免許・期限'},
+ {table:'documents',label:'書類',source:'DOCS',pk:'id',parent:'employee_no → employees.no / qualification_id → qualifications.id',purpose:'証憑・本人確認等'},
+ {table:'training',label:'安全指導',source:'TR',pk:'id',parent:'employee_no → employees.no',purpose:'安全指導・適性フォロー'},
+ {table:'assets',label:'貸与品',source:'AS',pk:'id',parent:'employee_no → employees.no',purpose:'貸与・返却'},
+ {table:'accidents',label:'事故',source:'A',pk:'id',parent:'employee_no → employees.no / ownerId → users.id',purpose:'事故対応・修理費・完了管理'},
+ {table:'near_misses',label:'ヒヤリ',source:'N',pk:'id',parent:'employee_no → employees.no',purpose:'安全分析'},
+ {table:'complaints',label:'苦情',source:'C',pk:'id',parent:'employee_no → employees.no / ownerId → users.id',purpose:'お客様対応'},
+ {table:'guidance',label:'面談・指導',source:'GUIDANCE',pk:'id',parent:'employee_no → employees.no',purpose:'面談・事故後指導'},
+ {table:'vehicles',label:'車両',source:'V',pk:'id',parent:'employee_no / additionalEmployeeNos → employees.no',purpose:'車検・整備・利用乗務員'},
+ {table:'applications',label:'申請',source:'APPLICATIONS',pk:'id',parent:'employee_no → employees.no',purpose:'本人申請・承認'},
+ {table:'notices',label:'掲示',source:'NOTICES',pk:'id',parent:'-',purpose:'社内掲示'},
+ {table:'confirmations',label:'一斉確認',source:'CONFIRMATIONS',pk:'id',parent:'-',purpose:'回答回収'},
+ {table:'handoffs',label:'案件引継ぎ',source:'HANDOFFS',pk:'id',parent:'toManagerId → users.id',purpose:'担当変更の確認'},
+ {table:'users',label:'利用者',source:'USERS',pk:'id',parent:'employee_no → employees.no（一般社員）',purpose:'認証後の権限・担当範囲'},
+ {table:'audit_logs',label:'監査ログ',source:'AUDIT',pk:'生成ID予定',parent:'actor/user + entity reference',purpose:'重要操作の追跡'}
+];
+function collectionBySource(name){
+ return {E,QUAL,DOCS,TR,AS,A,N,C,GUIDANCE,V,APPLICATIONS,NOTICES,CONFIRMATIONS,HANDOFFS,USERS,AUDIT}[name]||[]
+}
+function relationIntegrityIssues(){
+ let issues=[],employeeNos=new Set(E.map(e=>String(e.no))),userIds=new Set(USERS.map(u=>String(u.id))),qualIds=new Set(QUAL.map(q=>String(q.id))),docIds=new Set(DOCS.map(d=>String(d.id)));
+ const employeeRef=(list,label)=>list.forEach(x=>{if(x.employee_no&&!employeeNos.has(String(x.employee_no)))issues.push(label+' '+(x.id||'IDなし')+' → 存在しない社員 '+x.employee_no)});
+ employeeRef(QUAL,'資格');employeeRef(DOCS,'書類');employeeRef(TR,'安全指導');employeeRef(AS,'貸与品');employeeRef(A,'事故');employeeRef(N,'ヒヤリ');employeeRef(C,'苦情');employeeRef(GUIDANCE,'面談');employeeRef(APPLICATIONS,'申請');employeeRef(V,'車両');
+ V.forEach(v=>(v.additionalEmployeeNos||[]).forEach(no=>{if(!employeeNos.has(String(no)))issues.push('車両 '+v.id+' → 存在しない追加利用乗務員 '+no)}));
+ QUAL.forEach(q=>{if(q.document_id&&!docIds.has(String(q.document_id)))issues.push('資格 '+q.id+' → 存在しない書類 '+q.document_id)});
+ DOCS.forEach(d=>{if(d.qualification_id&&!qualIds.has(String(d.qualification_id)))issues.push('書類 '+d.id+' → 存在しない資格 '+d.qualification_id)});
+ A.forEach(a=>{if(a.ownerId&&!userIds.has(String(a.ownerId)))issues.push('事故 '+a.id+' → 存在しない利用者 '+a.ownerId)});
+ C.forEach(x=>{if(x.ownerId&&!userIds.has(String(x.ownerId)))issues.push('苦情 '+x.id+' → 存在しない利用者 '+x.ownerId)});
+ HANDOFFS.forEach(h=>{if(h.toManagerId&&!userIds.has(String(h.toManagerId)))issues.push('引継ぎ '+h.id+' → 存在しない引継ぎ先 '+h.toManagerId)});
+ USERS.filter(u=>u.employee_no).forEach(u=>{if(!employeeNos.has(String(u.employee_no)))issues.push('利用者 '+u.id+' → 存在しない社員 '+u.employee_no)});
+ DATA_MODEL.forEach(m=>{
+  if(m.pk==='生成ID予定')return;
+  let list=collectionBySource(m.source),ids=list.map(x=>String(x[m.pk]??'')).filter(Boolean),dup=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))];
+  if(dup.length)issues.push(m.label+' 主キー重複：'+dup.join('、'))
+ });
+ return issues
+}
+function renderDataModelSummary(){
+ let el=document.getElementById('dataModelSummary');if(!el)return;
+ let issues=relationIntegrityIssues(),records=DATA_MODEL.reduce((n,m)=>n+collectionBySource(m.source).length,0);
+ el.innerHTML='<b>本番DB候補：'+DATA_MODEL.length+'テーブル / 現在 '+records+'レコード相当</b><br>参照整合性 '+(issues.length?'要確認 '+issues.length+'件':'正常')+'<br><span class="mini">現在はブラウザ配列・localStorageです。本番では主キー、外部キー、権限、監査をDB/API側へ移します。</span>'
+}
+function showDataModel(){
+ if(!isFullCompanyAdmin())return alert('本番DB移行設計は全社管理者のみ確認できます');
+ let issues=relationIntegrityIssues();
+ dttl.textContent='本番DB移行・データ構造';
+ dbody.innerHTML=`<div class="detail-alert ${issues.length?'warn':'ok'}"><b>参照整合性：</b> ${issues.length?'要確認 '+issues.length+'件':'現在のデモデータでは参照切れなし'}</div>
+ <div class="section"><h3>移行原則</h3><div class="scope-note">社員番号を業務上の基準キーとして保持しつつ、DB内部では変更されない主キーも持たせます。事故・資格・書類・車両などは社員を参照し、利用者権限と監査ログは別テーブルに分離します。削除より「状態変更・履歴保持」を基本にします。</div></div>
+ <div class="table-card"><div class="tablewrap"><table><thead><tr><th>テーブル候補</th><th>主キー</th><th>主な参照</th><th>用途</th><th>現在件数</th></tr></thead><tbody>${DATA_MODEL.map(m=>`<tr><td><b>${esc(m.label)}</b><div class="mini">${esc(m.table)}</div></td><td>${esc(m.pk)}</td><td>${esc(m.parent)}</td><td>${esc(m.purpose)}</td><td>${collectionBySource(m.source).length}</td></tr>`).join('')}</tbody></table></div></div>
+ <div class="section"><h3>参照チェック</h3>${issues.length?issues.map(x=>'<div class="row quality-warn"><div><b>'+esc(x)+'</b></div><span class="badge warn">要確認</span></div>').join(''):'<div class="notice"><div><b>参照切れ・主キー重複は検出されませんでした。</b><div class="mini">本番DB移行時にはDBの外部キー制約でも強制します。</div></div><span class="badge ok">OK</span></div>'}</div>
+ <div class="section"><h3>本番で追加する制約</h3><div class="readiness-grid"><div class="ready-item ok"><b>主キー</b><div class="mini">全レコードを一意に識別</div></div><div class="ready-item ok"><b>外部キー</b><div class="mini">存在しない社員・利用者への参照を拒否</div></div><div class="ready-item ok"><b>履歴</b><div class="mini">更新者・更新日時・重要変更を保持</div></div><div class="ready-item ok"><b>権限</b><div class="mini">API・DB側で担当範囲を強制</div></div></div></div>`;
+ showDetailModal();audit('本番DB移行設計確認','参照整合性 '+issues.length+'件',{entity_type:'system',entity_id:'data-model'})
+}
 function coreSaveItems(){
  return [
   ['v45E',E],['v23E',E],['v23A',A],['v23V',V],['v46NEAR',N],['v46COMPLAINT',C],
@@ -2481,7 +2536,7 @@ function productionGateItems(){
   {name:'実VPN・スマホ疎通',status:'未確認',level:'bad',next:'社内外ネットワークから実機疎通試験'},
   {name:'本番認証・利用者照合',status:'未接続',level:'bad',next:'本人認証＋会社の利用許可台帳＋MFAをサーバー側で接続'},
   {name:'サーバー側権限制御',status:'未実装',level:'bad',next:'画面だけでなくAPI・DBでも権限を強制'},
-  {name:'本番データベース',status:'未接続',level:'bad',next:'ブラウザ保存から本番DBへ移行'},
+  {name:'本番データベース',status:'未接続（構造設計済み）',level:'bad',next:'主キー・外部キー・履歴・権限を持つ本番DBへ移行'},
   {name:'別故障領域バックアップ',status:'実設備で未確認',level:'bad',next:'自動バックアップと復旧試験を実施'},
   {name:'監査ログのサーバー保存',status:'未接続',level:'bad',next:'操作履歴を改変困難な保存先へ記録'},
   {name:'保存年限・紙原本方針',status:'会社承認待ち',level:'warn',next:'保存年限と原本保管ルールを決裁'},
@@ -2841,13 +2896,13 @@ function systemDiagnosticCheck(name,ok,detail,level='bad'){
 }
 function runSystemDiagnosticChecks(){
  let out=[];
- let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','authReadiness','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
+ let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','authReadiness','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
  requiredIds.forEach(id=>out.push(systemDiagnosticCheck('画面ID '+id,!!document.getElementById(id),document.getElementById(id)?'存在':'見つかりません')));
  let idCounts={};
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -2856,6 +2911,8 @@ function runSystemDiagnosticChecks(){
  let collections=coreRecordCollections();
  let badCollections=collections.filter(x=>!Array.isArray(x.list)).map(x=>x.type);
  out.push(systemDiagnosticCheck('共通データコレクション',badCollections.length===0,badCollections.length?'配列ではない：'+badCollections.join('、'):collections.length+'コレクション正常'));
+ let relationIssues=relationIntegrityIssues();
+ out.push(systemDiagnosticCheck('データ参照整合性',relationIssues.length===0,relationIssues.length?relationIssues.slice(0,5).join(' / ')+(relationIssues.length>5?' ほか'+(relationIssues.length-5)+'件':''):'外部参照・主キー重複なし','warn'));
  out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v99.0','現在 '+APP_DATA_SCHEMA));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
@@ -5054,7 +5111,7 @@ fsave.addEventListener('click',()=>{FORM_SAVE_ATTEMPT=true;setTimeout(()=>{FORM_
 window.addEventListener('beforeunload',e=>{if(form.classList.contains('show')&&FORM_DIRTY){e.preventDefault();e.returnValue=''}});
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
-function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
+function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
 const APP_DATA_SCHEMA='v99.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
