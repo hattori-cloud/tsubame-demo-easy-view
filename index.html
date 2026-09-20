@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v95</title>
+<title>つばめ交通株式会社 社員一元管理システム v96</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,7 +548,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v95｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v96｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -1711,7 +1711,7 @@ function openQualityIssue(index){
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v95.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ downloadCsv('データ品質チェック_本番反映版_v96.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
  audit('CSV出力','データ品質チェック / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
@@ -2771,7 +2771,7 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -2780,14 +2780,14 @@ function runSystemDiagnosticChecks(){
  let collections=coreRecordCollections();
  let badCollections=collections.filter(x=>!Array.isArray(x.list)).map(x=>x.type);
  out.push(systemDiagnosticCheck('共通データコレクション',badCollections.length===0,badCollections.length?'配列ではない：'+badCollections.join('、'):collections.length+'コレクション正常'));
- out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v95.0','現在 '+APP_DATA_SCHEMA));
+ out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v96.0','現在 '+APP_DATA_SCHEMA));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
  out.push(systemDiagnosticCheck('起動・データ移行',bootOk,typeof BOOT_HEALTH==='undefined'?'BOOT_HEALTHなし':BOOT_HEALTH.errors.length?BOOT_HEALTH.errors.map(x=>x.label+': '+x.message).join(' / '):'起動処理 '+BOOT_HEALTH.steps.length+'項目完了'));
  let officeRuleOk=allowedDepartmentsForOffice('府中').includes('バス課')&&allowedDepartmentsForOffice('本社').includes('バス課')&&allowedDepartmentsForOffice('馬木').length===1&&allowedDepartmentsForOffice('馬木')[0]==='バス課';
  out.push(systemDiagnosticCheck('事業所・部署ルール',officeRuleOk,officeRuleOk?'本社・府中は各部署 / 馬木はバス課のみ':'会社固有ルールと一致しません'));
  let storageOk=false,storageDetail='';
- let testKey='v95SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
+ let testKey='v96SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
  try{
   localStorage.setItem(testKey,testValue);
   storageOk=localStorage.getItem(testKey)===testValue;
@@ -3180,21 +3180,34 @@ function nextDocumentId(no){
  });
  return prefix+String(max+1).padStart(2,'0')
 }
-function openDocumentForm(no,idx=-1){
+function updateDocumentFormGuide(){
+ let el=document.getElementById('documentFormGuide');if(!el)return;
+ let cat=document.getElementById('fdcat')?.value||'',qid=document.getElementById('fdqual')?.value||'',status=document.getElementById('fdstatus')?.value||'',exp=document.getElementById('fdexp')?.value||'';
+ let notes=[],warn=false,danger=false;
+ if(cat==='資格証憑'&&!qid){notes.push('資格証憑ですが関連資格が未選択');warn=true}
+ if(qid&&cat!=='資格証憑'){notes.push('関連資格が選択されていますが書類区分が資格証憑ではありません');warn=true}
+ if(exp){let n=days(exp);if(n<0){notes.push('書類期限が'+Math.abs(n)+'日超過');danger=true}else if(n<=30){notes.push('書類期限まで'+n+'日');warn=true}}
+ if(status!=='原本確認済み'){notes.push('確認状態：'+(status||'未設定'));warn=true}
+ el.className='detail-alert '+(danger?'danger':warn?'warn':'ok');
+ el.innerHTML='<b>書類チェック：</b> '+esc(notes.length?notes.join(' / '):'関連資格・確認状態ともに確認済み');
+}
+function openDocumentForm(no,idx=-1,qualificationId=''){
  if(!guardEmployeeEdit(no,'書類'))return;
  let e=emp(no),d=idx>=0?DOCS[idx]:null;if(!e)return;
  if(d&&d.employee_no!==String(no)){alert('書類の対象社員が一致しません');return}
+ let preQ=qualificationId?QUAL.find(q=>q.id===qualificationId&&String(q.employee_no)===String(no)):null;
+ if(qualificationId&&!preQ)return alert('関連資格が見つかりません');
  fttl.textContent=d?'書類情報を編集':'書類を登録';
- fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。</div><div class="formgrid">
-  <div class="field"><label>書類区分</label><select id="fdcat"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>
+ fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。${preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':''}</div><div id="documentFormGuide" class="detail-alert ok">書類チェックを表示します。</div><div class="formgrid">
+  <div class="field"><label>書類区分</label><select id="fdcat" onchange="updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>
   <div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>
   <div class="field wide"><label>ファイル名（架空）</label><input id="fdname"></div>
   <div class="field"><label>登録日</label><input id="fddate" type="date"></div>
-  <div class="field"><label>期限（任意）</label><input id="fdexp" type="date"></div>
-  <div class="field"><label>確認状態</label><select id="fdstatus"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div>
-  <div class="field wide"><label>関連資格（任意）</label><select id="fdqual">${qualificationOptionsForDocument(no,d?.qualification_id||'')}</select><div class="mini">資格証憑の場合に関連資格を選択できます。その他の書類では未選択で構いません。</div></div>
+  <div class="field"><label>期限（任意）</label><input id="fdexp" type="date" onchange="updateDocumentFormGuide()"></div>
+  <div class="field"><label>確認状態</label><select id="fdstatus" onchange="updateDocumentFormGuide()"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div>
+  <div class="field wide"><label>関連資格（任意）</label><select id="fdqual" onchange="updateDocumentFormGuide()">${qualificationOptionsForDocument(no,d?.qualification_id||preQ?.id||'')}</select><div class="mini">資格証憑の場合に関連資格を選択できます。その他の書類では未選択で構いません。</div></div>
  </div>`;
- fdcat.value=d?d.category:'その他';fdkind.value=d?d.kind:'pdf';fdname.value=d?d.name:'';fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry||'':'';fdstatus.value=d?d.status||'確認待ち':'確認待ち';
+ fdcat.value=d?d.category:(preQ?'資格証憑':'その他');fdkind.value=d?d.kind:'pdf';fdname.value=d?d.name:(preQ?preQ.name+' 証憑':'');fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry||(preQ?.expiry||''):'';fdstatus.value=d?d.status||'確認待ち':'確認待ち';if(preQ)fdqual.value=preQ.id;updateDocumentFormGuide();
  fsave.onclick=()=>{
   if(!guardEmployeeEdit(no,'書類'))return;
   if(!fdname.value.trim()||!fddate.value)return alert('ファイル名と登録日を入力してください');
@@ -3207,7 +3220,7 @@ function openDocumentForm(no,idx=-1){
   }
   touchRecord(target,'document',!d);
   audit(action,id+' '+rec.name+(target.qualification_id?' / 関連資格 '+(QUAL.find(q=>q.id===target.qualification_id)?.name||target.qualification_id):''),{employee_no:String(no),entity_type:'document',entity_id:id});
-  if(!save())return;closeForm();renderAll();employeeDocuments(no)
+  if(!save())return;closeForm();renderAll();if(qualificationId)employeeQualification(no);else employeeDocuments(no)
  };
  form.classList.add('show')
 }
@@ -3501,8 +3514,9 @@ function employeeQualification(no,page=1){
  let e=emp(no),rows=QUAL.filter(x=>x.employee_no===no).sort((a,b)=>String(a.expiry).localeCompare(String(b.expiry))),per=10,pages=Math.max(1,Math.ceil(rows.length/per));
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の資格`;
- dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openQualificationRecordForm('${no}')">＋ 資格を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">資格 ${rows.length}件</div><div class="mini">期限の近い順に表示</div></div></div>`+
- (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q);return `<div class="row"><div><b>${esc(q.name)}</b><div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(q)}">${esc(qualificationEvidenceLabel(q))}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
+ let expired=rows.filter(q=>q.expiry&&days(q.expiry)<0).length,soon=rows.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length,missingEvidence=rows.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
+ dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openQualificationRecordForm('${no}')">＋ 資格を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">資格 ${rows.length}件</div><div class="mini">期限の近い順に表示</div></div><div class="simple-status-line"><span class="simple-status-chip ${expired?'danger':''}">期限超過 ${expired}</span><span class="simple-status-chip ${soon?'warn':''}">30日以内 ${soon}</span><span class="simple-status-chip ${missingEvidence?'warn':''}">証憑未紐付け ${missingEvidence}</span></div></div>`+
+ (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q);return `<div class="row"><div><b>${esc(q.name)}</b><div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(q)}">${esc(qualificationEvidenceLabel(q))}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>${q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)?`<button class="btn warn" onclick="openDocumentForm('${no}',-1,'${q.id}')">証憑を登録</button>`:''}`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeQualification('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeQualification('${no}',${page+1})">次へ →</button></div>`:'')
 }
 function employeeAssets(no,page=1){
@@ -4002,7 +4016,7 @@ function renderVehicles(){
  let q=(document.getElementById('vehicleq')?.value||'').trim().toLowerCase(),date=document.getElementById('vehicleDate')?.value||'',status=document.getElementById('vehicleStatus')?.value||'',all=scopedVehicles().slice();
  let counts={active:all.filter(v=>v.status==='稼働').length,over:all.filter(v=>vehicleDeadlineState(v)==='over').length,soon:all.filter(v=>['today','soon'].includes(vehicleDeadlineState(v))).length,inactive:all.filter(v=>['休車','廃車'].includes(v.status)).length};
  let rows=all.filter(v=>{
-  let e=emp(v.employee_no),text=[v.id,v.plate,v.service,v.status,v.inspection,e?.name,e?.no,e?.branch,e?.dept].join(' ').toLowerCase();
+  let e=emp(v.employee_no),text=[v.id,v.plate,v.callSign,v.model,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept].join(' ').toLowerCase();
   return (!q||text.includes(q))&&(!date||v.inspection===date)&&(!status||v.status===status)
  }).sort((a,b)=>deadlinePriority(a.inspection)-deadlinePriority(b.inspection)||String(a.plate).localeCompare(String(b.plate),'ja'));
  let summary=document.getElementById('vehicleSummary');
@@ -4011,17 +4025,18 @@ function renderVehicles(){
   let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v),canEdit=PREVIEW_ROLE==='管理者'&&v.employee_no&&canEditEmployee(v.employee_no);
   let op=`<div class="toolbar"><button class="btn soft" onclick="vehicleDetail('${v.id}')">開く</button>${canEdit?`<button class="btn soft" onclick="openVehicleForm(${idx})">編集</button>`:''}</div>`;
   let deadline=v.inspection?`${v.inspection} / ${deadlineBucketLabel(v.inspection)}`:'未設定';
-  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}</td><td>${esc(v.service)}</td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''}</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
+  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.callSign?'<div class="mini">号車 '+esc(v.callSign)+'</div>':''}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}</td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''}</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
  }).join('')
 }
 function vehicleOperationalChecklistHtml(v,e){
  let inspectionOk=!!v.inspection&&days(v.inspection)>=0;
  let assigned=!!e,activeEmployee=!!e&&e.status==='在籍';
  let driverOk=!!e&&!String(e.eligibility||'').includes('不可')&&e.safetyState!=='期限切れ';
- let vehicleActive=v.status==='稼働';
+ let vehicleActive=v.status==='稼働',maintenanceOk=!v.nextMaintenance||days(v.nextMaintenance)>=0;
  let checks=[
   {label:'車検期限',ok:inspectionOk,note:v.inspection?(inspectionOk?deadlineBucketLabel(v.inspection):Math.abs(days(v.inspection))+'日超過'):'未設定'},
   {label:'車両状態',ok:vehicleActive,note:v.status||'未設定'},
+  {label:'次回整備確認',ok:maintenanceOk,note:v.nextMaintenance?(maintenanceOk?deadlineBucketLabel(v.nextMaintenance):Math.abs(days(v.nextMaintenance))+'日超過'):'任意・未設定'},
   {label:'担当社員',ok:assigned&&activeEmployee,note:e?(e.no+' '+e.name+' / '+e.status):'未設定'},
   {label:'担当乗務員の安全状態',ok:driverOk,note:e?('乗務可否 '+(e.eligibility||'対象外')+' / '+(e.safetyState||'正常')):'担当社員未設定'}
  ];
@@ -4042,11 +4057,15 @@ function vehicleDetail(id){
  <div class="detail-primary"><h3>車両情報</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>管理番号</label><b>${esc(v.id)}</b></div>
   <div class="detail-primary-item"><label>車両番号</label><b>${esc(v.plate)}</b></div>
+  <div class="detail-primary-item"><label>号車・呼称</label><b>${esc(v.callSign||'未設定')}</b></div>
+  <div class="detail-primary-item"><label>車種</label><b>${esc(v.model||'未設定')}</b></div>
   <div class="detail-primary-item"><label>状態</label>${badge(v.status)}</div>
   <div class="detail-primary-item"><label>区分</label><b>${esc(v.service)}</b></div>
   <div class="detail-primary-item"><label>担当社員</label><b>${e?esc(e.no+' '+e.name):'未設定'}</b></div>
   <div class="detail-primary-item"><label>車検期限</label><b>${esc(v.inspection||'未設定')}</b><div class="mini">${v.inspection?esc(deadlineBucketLabel(v.inspection)):''}</div></div>
+  <div class="detail-primary-item"><label>次回整備確認</label><b>${esc(v.nextMaintenance||'未設定')}</b><div class="mini">${v.nextMaintenance?esc(deadlineBucketLabel(v.nextMaintenance)):'任意'}</div></div>
  </div></div>
+ ${v.maintenanceNote?`<div class="section"><h3>次回整備メモ</h3><div class="acc-v50-text">${esc(v.maintenanceNote)}</div></div>`:''}
  ${vehicleOperationalChecklistHtml(v,e)}
  <details class="detail-fold"><summary>担当・所属の詳細</summary><div class="detail-fold-body"><div class="complaint-detail-grid">
   <div class="complaint-box"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'-'}</b></div>
@@ -4279,20 +4298,30 @@ function openTrainingRecordForm(no,idx=-1){
  fttl.textContent=t?'安全指導を編集':'安全指導を追加';fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>安全指導・適性診断</label><input id="ftrc" value="${esc(t?.course||'')}" placeholder="例：事故惹起者安全指導"></div><div class="field"><label>期限</label><input id="ftrd" type="date" value="${esc(t?.due||'')}"></div><div class="field"><label>状態</label><select id="ftrs"><option>未完了</option><option>完了</option></select></div></div>`;ftrs.value=t?.status||'未完了';
  fsave.onclick=()=>{if(!guardEmployeeEdit(no,'安全指導'))return;if(!ftrc.value.trim())return alert('安全指導名を入力してください');if(ftrs.value!=='完了'&&!ftrd.value)return alert('未完了の安全指導には期限を入力してください');let rec={employee_no:no,course:ftrc.value.trim(),due:ftrd.value,status:ftrs.value};let rid;if(t){rid=t.id;Object.assign(t,rec);touchRecord(t,'training',false)}else{rid=nextRecordId('T',TR);rec.id=rid;touchRecord(rec,'training',true);TR.push(rec)}audit(t?'安全指導更新':'安全指導登録',`${no} ${rec.course}`,{employee_no:no,entity_type:'training',entity_id:rid});if(!save())return;closeForm();renderAll();employeeTraining(no)};form.classList.add('show')
 }
+function updateQualificationFormGuide(){
+ let el=document.getElementById('qualificationFormGuide');if(!el)return;
+ let exp=document.getElementById('fqexp')?.value||'',ev=document.getElementById('fqev')?.value||'',doc=document.getElementById('fqdoc')?.value||'';
+ let notes=[],danger=false,warn=false;
+ if(exp){let n=days(exp);if(n<0){notes.push('期限を'+Math.abs(n)+'日超過');danger=true}else if(n<=30){notes.push('期限まで'+n+'日');warn=true}}
+ else notes.push('期限なし／未設定');
+ if(ev==='必要'&&!doc){notes.push('証憑が必要ですが未紐付け');warn=true}
+ el.className='detail-alert '+(danger?'danger':warn?'warn':'ok');
+ el.innerHTML='<b>資格チェック：</b> '+esc(notes.join(' / '))+'<div class="mini">状態は保存時に期限から自動補正します。</div>';
+}
 function openQualificationRecordForm(no,idx=-1){
  if(!guardEmployeeEdit(no,'資格'))return;
  let e=emp(no),q=idx>=0?QUAL[idx]:null;
  if(q&&q.employee_no!==String(no)){alert('資格情報の対象社員が一致しません');return}
  fttl.textContent=q?'資格を編集':'資格を追加';
- fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>資格情報と証憑は別データとして管理し、必要な場合だけ紐づけます。</div><div class="formgrid">
+ fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>資格情報と証憑は別データとして管理し、必要な場合だけ紐づけます。</div><div id="qualificationFormGuide" class="detail-alert ok">資格チェックを表示します。</div><div class="formgrid">
   <div class="field wide"><label>資格名</label><input id="fqname" value="${esc(q?.name||'')}"></div>
   <div class="field"><label>証番号</label><input id="fqnum" value="${esc(q?.number||'')}"></div>
-  <div class="field"><label>期限／次回管理日（任意）</label><input id="fqexp" type="date" value="${esc(q?.expiry||'')}"></div>
+  <div class="field"><label>期限／次回管理日（任意）</label><input id="fqexp" type="date" value="${esc(q?.expiry||'')}" onchange="updateQualificationFormGuide()"></div>
   <div class="field"><label>状態</label><select id="fqst"><option>有効</option><option>要確認</option><option>期限切れ</option><option>未設定</option></select></div>
-  <div class="field"><label>証憑管理</label><select id="fqev"><option>未設定</option><option>必要</option><option>不要</option></select></div>
-  <div class="field wide"><label>証憑書類</label><select id="fqdoc">${documentOptionsForQualification(no,q?.document_id||'')}</select><div class="mini">「資格証憑」区分の書類だけ表示します。</div></div>
+  <div class="field"><label>証憑管理</label><select id="fqev" onchange="updateQualificationFormGuide()"><option>未設定</option><option>必要</option><option>不要</option></select></div>
+  <div class="field wide"><label>証憑書類</label><select id="fqdoc" onchange="updateQualificationFormGuide()">${documentOptionsForQualification(no,q?.document_id||'')}</select><div class="mini">「資格証憑」区分の書類だけ表示します。</div></div>
  </div>`;
- fqst.value=q?.status||'有効';fqev.value=q?.evidenceRequirement||'未設定';
+ fqst.value=q?.status||'有効';fqev.value=q?.evidenceRequirement||'未設定';updateQualificationFormGuide();
  fsave.onclick=()=>{
   if(!guardEmployeeEdit(no,'資格'))return;
   if(!fqname.value.trim())return alert('資格名を入力してください');
@@ -4553,6 +4582,22 @@ function openAccidentForm(defaultNo=''){
  };
  form.classList.add('show')
 }
+function updateVehicleFormGuide(){
+ let el=document.getElementById('vehicleFormGuide');if(!el)return;
+ let e=emp(document.getElementById('fve')?.value||''),inspection=document.getElementById('fvi')?.value||'',status=document.getElementById('fvst')?.value||'',maint=document.getElementById('fvmaint')?.value||'';
+ let notes=[],danger=false,warn=false;
+ if(inspection){let n=days(inspection);if(n<0){notes.push('車検期限が'+Math.abs(n)+'日超過');danger=true}else if(n<=30){notes.push('車検期限まで'+n+'日');warn=true}}
+ else{notes.push('車検期限が未設定');warn=true}
+ if(e){
+  if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ'){notes.push('担当社員は乗務不可／期限切れ状態');danger=true}
+  else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常')){notes.push('担当社員の安全状態が要確認');warn=true}
+ }else{notes.push('担当社員が未設定');warn=true}
+ if(maint){let n=days(maint);if(n<0){notes.push('次回整備確認日を'+Math.abs(n)+'日超過');warn=true}else if(n<=30){notes.push('次回整備確認まで'+n+'日');warn=true}}
+ if(status&&status!=='稼働')notes.push('車両状態：'+status);
+ let cls=danger?'danger':warn?'warn':'ok';
+ el.className='detail-alert '+cls;
+ el.innerHTML='<b>保存前チェック：</b> '+esc(notes.length?notes.join(' / '):'登録情報上の大きな警告はありません');
+}
 function openVehicleForm(idx=-1){
  if(PREVIEW_ROLE!=='管理者'){alert('車両登録・編集は管理者のみ操作できます');return}
  let v=idx>=0?V[idx]:null;
@@ -4562,9 +4607,23 @@ function openVehicleForm(idx=-1){
  if(v&&!candidates.some(e=>e.no===String(v.employee_no))){alert('現在の担当範囲ではこの車両を編集できません');return}
  let statuses=isFullCompanyAdmin()?['稼働','点検予定','休車','廃車']:['稼働','点検予定','休車'];
  fttl.textContent=v?'車両を編集・担当変更':'車両を登録';
- fbody.innerHTML=`<div class="formnote">${v?'担当管理者は担当範囲内で編集・担当変更できます。廃車は全社管理者のみ操作できます。':'担当範囲内の乗務社員を担当者として登録します。'}</div><div class="form-save-guide">車両番号・車検期限・担当社員は保存前に確認します。</div><div class="formgrid"><div class="employee-form-section"><h4>車両・担当</h4><p>日常的に変更する4項目だけを表示します</p></div><div class="field"><label>車両番号<span class="req">必須</span></label><input id="fvp" value="${esc(v?.plate||'')}"></div><div class="field"><label>車検期限<span class="req">必須</span></label><input id="fvi" type="date" value="${esc(v?.inspection||'')}"></div><div class="field"><label>担当社員<span class="req">必須</span></label><select id="fve">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('')}</select></div><div class="field"><label>状態</label><select id="fvst">${statuses.map(s=>`<option>${s}</option>`).join('')}</select></div></div>`;
- organizeCurrentFormSections({open:[0]});
+ fbody.innerHTML=`<div class="formnote">${v?'担当管理者は担当範囲内で編集・担当変更できます。廃車は全社管理者のみ操作できます。':'担当範囲内の乗務社員を担当者として登録します。'}<br>号車・車種・整備確認は日常管理用の補助情報です。</div>
+ <div id="vehicleFormGuide" class="detail-alert ok">保存前チェックを表示します。</div><div class="formgrid">
+  <div class="employee-form-section"><h4>車両識別</h4><p>管理番号とは別に、現場で使う号車・呼称も持てます</p></div>
+  <div class="field"><label>車両番号<span class="req">必須</span></label><input id="fvp" value="${esc(v?.plate||'')}"></div>
+  <div class="field"><label>号車・呼称（任意）</label><input id="fvcall" value="${esc(v?.callSign||'')}" placeholder="例：801"></div>
+  <div class="field wide"><label>車種（任意）</label><input id="fvmodel" value="${esc(v?.model||'')}" placeholder="例：クラウン、JPN TAXI、アルファード"></div>
+  <div class="employee-form-section"><h4>点検・運用</h4><p>期限と車両状態をまとめて確認</p></div>
+  <div class="field"><label>車検期限<span class="req">必須</span></label><input id="fvi" type="date" value="${esc(v?.inspection||'')}" onchange="updateVehicleFormGuide()"></div>
+  <div class="field"><label>次回整備確認（任意）</label><input id="fvmaint" type="date" value="${esc(v?.nextMaintenance||'')}" onchange="updateVehicleFormGuide()"></div>
+  <div class="field"><label>状態</label><select id="fvst" onchange="updateVehicleFormGuide()">${statuses.map(s=>`<option>${s}</option>`).join('')}</select></div>
+  <div class="field wide"><label>整備メモ（任意）</label><textarea id="fvnote" placeholder="例：次回入庫時にタイヤ確認">${esc(v?.maintenanceNote||'')}</textarea><div class="mini">日々の整備記録そのものを置き換える欄ではなく、次回確認事項のメモとして使います。</div></div>
+  <div class="employee-form-section"><h4>担当</h4><p>担当乗務員の安全状態も同時に確認します</p></div>
+  <div class="field wide"><label>担当社員<span class="req">必須</span></label><select id="fve" onchange="updateVehicleFormGuide()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)} / 乗務可否 ${esc(e.eligibility||'対象外')}</option>`).join('')}</select></div>
+ </div>`;
+ organizeCurrentFormSections({open:[0,1,2]});
  if(v){fve.value=String(v.employee_no);fvst.value=statuses.includes(v.status)?v.status:'稼働'}
+ updateVehicleFormGuide();
  fsave.onclick=()=>{
   let e=emp(fve.value);
   if(v&&!guardEmployeeEdit(v.employee_no,'車両記録'))return;
@@ -4572,10 +4631,10 @@ function openVehicleForm(idx=-1){
   if(!requireInputs([{id:'fvp',label:'車両番号',value:fvp.value},{id:'fvi',label:'車検期限',value:fvi.value},{id:'fve',label:'担当社員',value:fve.value}]))return;
   if(V.some((x,j)=>j!==idx&&String(x.plate).trim()===fvp.value.trim()))return alert('同じ車両番号が既に登録されています');
   if(fvst.value==='廃車'&&!isFullCompanyAdmin())return alert('廃車は全社管理者のみ操作できます');
-  let data={plate:fvp.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,inspection:fvi.value,status:fvst.value};
-  let vehicleLines=v?recordChangeLines({plate:v.plate,employee_no:v.employee_no,inspection:v.inspection,status:v.status},data,{plate:'車両番号',employee_no:'担当社員番号',inspection:'車検期限',status:'状態'}):['車両番号：'+data.plate,'担当社員：'+e.no+' '+e.name,'車検期限：'+data.inspection,'状態：'+data.status];
+  let data={plate:fvp.value.trim(),callSign:fvcall.value.trim(),model:fvmodel.value.trim(),service:e.dept==='バス課'?'バス':'タクシー',employee_no:e.no,inspection:fvi.value,nextMaintenance:fvmaint.value,maintenanceNote:fvnote.value.trim(),status:fvst.value};
+  let vehicleLines=v?recordChangeLines({plate:v.plate,callSign:v.callSign||'',model:v.model||'',employee_no:v.employee_no,inspection:v.inspection,nextMaintenance:v.nextMaintenance||'',maintenanceNote:v.maintenanceNote||'',status:v.status},data,{plate:'車両番号',callSign:'号車・呼称',model:'車種',employee_no:'担当社員番号',inspection:'車検期限',nextMaintenance:'次回整備確認',maintenanceNote:'整備メモ',status:'状態'}):['車両番号：'+data.plate,'号車・呼称：'+(data.callSign||'未設定'),'車種：'+(data.model||'未設定'),'担当社員：'+e.no+' '+e.name,'車検期限：'+data.inspection,'次回整備確認：'+(data.nextMaintenance||'未設定'),'状態：'+data.status];
   if(v&&!vehicleLines.length){closeForm();return}
-  let vehicleWarnings=[];if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
+  let vehicleWarnings=[];if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.nextMaintenance&&days(data.nextMaintenance)<0)vehicleWarnings.push('次回整備確認日を超過しています');if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ')vehicleWarnings.push('担当社員が乗務不可または期限切れ状態です');else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常'))vehicleWarnings.push('担当社員の安全状態が要確認です');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
   if(!confirmFormSave(v?'車両変更の確認':'車両登録の確認',vehicleLines,vehicleWarnings))return;
   if(v){
    let oldNo=v.employee_no,oldPlate=v.plate,oldStatus=v.status,oldEmployee=emp(oldNo),actor=currentActorIdentity();
@@ -4590,7 +4649,7 @@ function openVehicleForm(idx=-1){
    let vid=nextRecordId('V',V);data.id=vid;data.assignmentHistory=[];data.currentAssignedDate=TODAY;touchRecord(data,'vehicle',true);V.push(data);
    audit('車両登録',`${vid} ${data.plate}`,{employee_no:e.no,entity_type:'vehicle',entity_id:vid})
   }
-  if(!save())return;closeForm();renderAll()
+  if(!save())return;closeForm();renderAll();if(v)vehicleDetail(v.id)
  };
  form.classList.add('show')
 }
@@ -4870,7 +4929,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v95.0';
+const APP_DATA_SCHEMA='v96.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
