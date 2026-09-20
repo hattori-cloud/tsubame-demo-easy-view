@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v89</title>
+<title>つばめ交通株式会社 社員一元管理システム v90</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,7 +548,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v89｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v90｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -1321,6 +1321,31 @@ let PROCEDURES=safeStorageRead('v30PROCEDURES',{});
 
 
 let RECENT=safeStorageRead('v29RECENT',[]);
+let AUDIT_FLUSH_TIMER=null;
+function persistAuditStandalone(){
+ AUDIT_FLUSH_TIMER=null;
+ let oldRaw=null;
+ try{
+  oldRaw=localStorage.getItem('v29AUDIT');
+  let nextRaw=JSON.stringify(AUDIT);
+  localStorage.setItem('v29AUDIT',nextRaw);
+  if(localStorage.getItem('v29AUDIT')!==nextRaw)throw new Error('監査ログの書込み後確認に失敗しました')
+  return true
+ }catch(err){
+  try{
+   if(oldRaw===null)localStorage.removeItem('v29AUDIT');else localStorage.setItem('v29AUDIT',oldRaw);
+   AUDIT=oldRaw===null?[]:JSON.parse(oldRaw)
+  }catch(_){}
+  STORAGE_HEALTH.writeErrors.push({key:'v29AUDIT',message:String(err?.message||err),time:new Date().toISOString()});
+  STORAGE_HEALTH.lastError='監査ログ保存';
+  renderAudit();
+  return false
+ }
+}
+function scheduleAuditPersistence(){
+ if(AUDIT_FLUSH_TIMER!==null)return;
+ AUDIT_FLUSH_TIMER=setTimeout(()=>persistAuditStandalone(),0)
+}
 function audit(action,detailText,meta={}){
  let employeeNo=String(meta.employee_no||'');
  if(!employeeNo){
@@ -1347,8 +1372,8 @@ function audit(action,detailText,meta={}){
   structured:true
  });
  AUDIT=AUDIT.slice(0,120);
- localStorage.setItem('v29AUDIT',JSON.stringify(AUDIT));
- renderAudit()
+ renderAudit();
+ scheduleAuditPersistence()
 }
 function ensureAuditMetadata(){
  let changed=false;
@@ -1435,17 +1460,17 @@ function downloadCsv(filename,rows){
  let blob=new Blob([text],{type:'text/csv;charset=utf-8'});
  let u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=filename;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),500)
 }
-function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一覧_本番反映版_v89.csv',[['社員番号','氏名','事業所','部署','役職','状態','安全管理状態','乗務可否','免許・資格','免許期限','健康診断期限','適性診断','適性診断次回'],...rows.map(e=>[e.no,e.name,e.branch,e.dept,e.position||'',e.status,e.safetyState||'正常',e.eligibility||'対象外',e.license||'',e.licenseExpiry||'',e.health||'',e.aptitude||'',e.aptitudeNext||''])]);audit('CSV出力',`社員一覧 v53 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}名`)}
+function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一覧_本番反映版_v90.csv',[['社員番号','氏名','事業所','部署','役職','状態','安全管理状態','乗務可否','免許・資格','免許期限','健康診断期限','適性診断','適性診断次回'],...rows.map(e=>[e.no,e.name,e.branch,e.dept,e.position||'',e.status,e.safetyState||'正常',e.eligibility||'対象外',e.license||'',e.licenseExpiry||'',e.health||'',e.aptitude||'',e.aptitudeNext||''])]);audit('CSV出力',`社員一覧 v53 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}名`)}
 function exportAccidentsCsv(){
  let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let header=['事故番号','発生日','曜日','発生時間','社員番号','システム連携ID','乗務員','区分','車両','運行時の状態','発生地区','事故形態・種類','過失率（自社側%）','相手修理','相手修理代','自社修理','自社修理代','修理費合計','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'];
  let data=rows.map(a=>[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||'']);
- downloadCsv('事故一覧_本番反映版_v89.csv',[header,...data]);
+ downloadCsv('事故一覧_本番反映版_v90.csv',[header,...data]);
  audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
- downloadCsv('クレーム一覧_本番反映版_v89.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
+ downloadCsv('クレーム一覧_本番反映版_v90.csv',[['番号','対応者','対応日','対応時間','課','車番','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
@@ -1530,7 +1555,7 @@ function openDeadlineCenter(filter='all'){
 }
 function exportDeadlinesCsv(){
  let rows=collectDeadlines();
- downloadCsv('期限一覧_本番反映版_v89.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
+ downloadCsv('期限一覧_本番反映版_v90.csv',[['社員番号','社員名','区分','対象','期限','残日数','緊急度','確認担当','次の対応','データ元'],...rows.map(x=>[x.no||'',x.employee_name||'',x.type,x.label,x.due,x.n,x.bucket,x.responsible,x.action,x.source])]);
  audit('CSV出力',`期限一覧 v62 / ${rows.length}件`)
 }
 function qualityIssues(){
@@ -1684,7 +1709,7 @@ function openQualityIssue(index){
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v89.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ downloadCsv('データ品質チェック_本番反映版_v90.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
  audit('CSV出力','データ品質チェック / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
@@ -1792,7 +1817,7 @@ function printDetail(){
  .employee-detail-tab{font-size:.72rem;padding-left:2px;padding-right:2px}
  .employee-detail-tab .tab-alert{font-size:.6rem}
 }
-</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v89 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
+</style></head><body><h1>${esc(title)}</h1><div class="printmeta">社員一元管理システム v90 / ${esc(scope)} / 印刷日時 ${esc(printed)} / ${esc(printMode)}</div>${body}</body></html>`);
  w.document.close();w.focus();setTimeout(()=>w.print(),350);audit('印刷',title+(isEmployeeDetail?' / 3タブ全出力':' / 現在の詳細'))
 }
 
@@ -1805,7 +1830,7 @@ const SYSTEM_BACKUP_KEYS=[...SYSTEM_BACKUP_ARRAY_KEYS,...SYSTEM_BACKUP_OBJECT_KE
 let PENDING_SYSTEM_BACKUP=null;
 function systemBackupData(){return {v45E:E,v23A:A,v23V:V,v46NEAR:N,v46COMPLAINT:C,v23TR:TR,v23AS:AS,v28QUAL:QUAL,v24MAILLOG:MAILLOG,v29AUDIT:AUDIT,v30FAVORITES:FAVORITES,v30GUIDANCE:GUIDANCE,v30DOCS:DOCS,v29RECENT:RECENT,v65APPLICATIONS:APPLICATIONS,v65NOTICES:NOTICES,v65CONFIRMATIONS:CONFIRMATIONS,v68HANDOFFS:HANDOFFS,v24NS:NS,v30PROCEDURES:PROCEDURES}}
 function systemBackupCounts(data){let count=k=>Array.isArray(data?.[k])?data[k].length:0;return {employees:count('v45E'),accidents:count('v23A'),near:count('v46NEAR'),complaints:count('v46COMPLAINT'),vehicles:count('v23V'),documents:count('v30DOCS')}}
-function systemBackupPayload(){let data=systemBackupData();return {format:SYSTEM_BACKUP_FORMAT,app:'tsubame-demo-easy-view',version:'v89',schema:APP_DATA_SCHEMA,coreSchema:CORE_SCHEMA_VERSION,employeeDataVersion:EMPLOYEE_DATA_VERSION,exportedAt:new Date().toISOString(),counts:systemBackupCounts(data),data}}
+function systemBackupPayload(){let data=systemBackupData();return {format:SYSTEM_BACKUP_FORMAT,app:'tsubame-demo-easy-view',version:'v90',schema:APP_DATA_SCHEMA,coreSchema:CORE_SCHEMA_VERSION,employeeDataVersion:EMPLOYEE_DATA_VERSION,exportedAt:new Date().toISOString(),counts:systemBackupCounts(data),data}}
 function backupDuplicateValues(list,getter){
  let seen=new Set(),dups=new Set();
  (list||[]).forEach(x=>{let v=String(getter(x)||'').trim();if(!v)return;if(seen.has(v))dups.add(v);else seen.add(v)});
@@ -1890,7 +1915,7 @@ async function prepareSystemRestore(input){
   setSystemBackupStatus('<b>復元前チェックOK</b><br>出力日時 '+esc(String(payload.exportedAt||'不明').replace('T',' ').slice(0,19))+' / アプリ '+esc(payload.schema||'不明')+' / 共通データ '+esc(payload.coreSchema||'旧形式')+'<br>社員 '+c.employees+'名 / 事故 '+c.accidents+'件 / 苦情 '+c.complaints+'件 / ヒヤリ '+c.near+'件 / 車両 '+c.vehicles+'件'+warn,check.warnings.length?'warn':'')
  }catch(err){setSystemBackupStatus('<b>JSONを読み込めません。</b><br>'+esc(String(err?.message||err)),'danger')}
 }
-const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v89RESTORED_SOURCE_SCHEMA','v89RESTORED_CORE_SCHEMA','v70LAST_RESTORE'];
+const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v90RESTORED_SOURCE_SCHEMA','v90RESTORED_CORE_SCHEMA','v70LAST_RESTORE'];
 function captureSystemStorageSnapshot(){
  let keys=[...new Set([...SYSTEM_BACKUP_KEYS,...SYSTEM_RESTORE_EXTRA_KEYS])],snapshot={};
  keys.forEach(k=>{snapshot[k]=localStorage.getItem(k)});
@@ -1926,7 +1951,7 @@ function verifyStoredRestoreData(expected){
   if(JSON.stringify(legacy)!==JSON.stringify(expected.v45E))errors.push('v23E：社員台帳の互換保存が一致しません')
  }catch(err){errors.push('v23E：'+String(err?.message||err))}
  if(!errors.length){
-  let payload={format:SYSTEM_BACKUP_FORMAT,app:'tsubame-demo-easy-view',version:'v89',schema:APP_DATA_SCHEMA,coreSchema:CORE_SCHEMA_VERSION,data:read.data};
+  let payload={format:SYSTEM_BACKUP_FORMAT,app:'tsubame-demo-easy-view',version:'v90',schema:APP_DATA_SCHEMA,coreSchema:CORE_SCHEMA_VERSION,data:read.data};
   let check=validateSystemBackupPayload(payload);
   if(!check.ok)errors.push(...check.errors.map(x=>'再検証：'+x))
  }
@@ -1949,8 +1974,8 @@ function restoreSystemBackup(){
   if(!verified.ok)throw new Error('書込み後チェックに失敗しました：'+verified.errors.join(' / '));
   localStorage.setItem('v45EmployeeDataVersion',EMPLOYEE_DATA_VERSION);
   localStorage.setItem('v68SCHEMA',APP_DATA_SCHEMA);
-  localStorage.setItem('v89RESTORED_SOURCE_SCHEMA',String(PENDING_SYSTEM_BACKUP.schema||''));
-  localStorage.setItem('v89RESTORED_CORE_SCHEMA',String(PENDING_SYSTEM_BACKUP.coreSchema||'legacy'));
+  localStorage.setItem('v90RESTORED_SOURCE_SCHEMA',String(PENDING_SYSTEM_BACKUP.schema||''));
+  localStorage.setItem('v90RESTORED_CORE_SCHEMA',String(PENDING_SYSTEM_BACKUP.coreSchema||'legacy'));
   let actor=currentActorIdentity(),now=new Date(),restoredAudit=Array.isArray(data.v29AUDIT)?data.v29AUDIT.slice(0,119):[];
   restoredAudit.unshift({time:appNowLabel(now),time_iso:now.toISOString(),action:'システムバックアップ復元',detail:'共有デモデータのバックアップを復元 / 書込み後再検証OK',employee_no:'',entity_type:'system',entity_id:'backup',actor_id:actor.id,actor_name:actor.name,actor_role:actor.role,scope_office:'',scope_dept:'',structured:true});
   localStorage.setItem('v29AUDIT',JSON.stringify(restoredAudit.slice(0,120)));
@@ -1970,7 +1995,7 @@ function coreSaveItems(){
  return [
   ['v45E',E],['v23E',E],['v23A',A],['v23V',V],['v46NEAR',N],['v46COMPLAINT',C],
   ['v23TR',TR],['v23AS',AS],['v28QUAL',QUAL],['v24NS',NS],['v30FAVORITES',FAVORITES],
-  ['v30GUIDANCE',GUIDANCE],['v30DOCS',DOCS],['v30PROCEDURES',PROCEDURES],
+  ['v30GUIDANCE',GUIDANCE],['v30DOCS',DOCS],['v30PROCEDURES',PROCEDURES],['v29AUDIT',AUDIT],
   ['v65APPLICATIONS',APPLICATIONS],['v65NOTICES',NOTICES],['v65CONFIRMATIONS',CONFIRMATIONS],['v68HANDOFFS',HANDOFFS]
  ]
 }
@@ -1998,6 +2023,7 @@ function verifyCoreSave(items){
  return errors
 }
 function save(){
+ if(AUDIT_FLUSH_TIMER!==null){clearTimeout(AUDIT_FLUSH_TIMER);AUDIT_FLUSH_TIMER=null}
  let items=coreSaveItems(),snapshot;
  try{
   snapshot=captureCoreSaveSnapshot(items);
@@ -2366,7 +2392,7 @@ function noticeDetail(id){
 function markNoticeRead(id){
  if(PREVIEW_ROLE!=='一般社員')return;
  let n=NOTICES.find(x=>x.id===id),no=currentSelfNo();if(!n||!commsVisibleToSelf(n))return;
- if(!n.readBy.includes(no)){n.readBy.push(no);if(!save())return;audit('掲示既読',id,{employee_no:no,entity_type:'notice',entity_id:id})}
+ if(!n.readBy.includes(no)){n.readBy.push(no);audit('掲示既読',id,{employee_no:no,entity_type:'notice',entity_id:id});if(!save())return}
  renderComms();noticeDetail(id)
 }
 function confirmationDetail(id){
@@ -2381,7 +2407,7 @@ function confirmationDetail(id){
 function answerConfirmation(id){
  if(PREVIEW_ROLE!=='一般社員')return;
  let c=CONFIRMATIONS.find(x=>x.id===id),no=currentSelfNo();if(!c||!commsVisibleToSelf(c))return;
- c.responses[no]={date:TODAY,answer:'確認済み'};if(!save())return;audit('一斉確認回答',id,{employee_no:no,entity_type:'confirmation',entity_id:id});renderComms();confirmationDetail(id)
+ c.responses[no]={date:TODAY,answer:'確認済み'};audit('一斉確認回答',id,{employee_no:no,entity_type:'confirmation',entity_id:id});if(!save())return;renderComms();confirmationDetail(id)
 }
 function openApplicationForm(){
  if(PREVIEW_ROLE!=='一般社員'){alert('本人変更申請は一般社員の本人画面から行います');return}
@@ -2391,7 +2417,7 @@ function openApplicationForm(){
  fsave.onclick=()=>{
   if(!fappdetail.value.trim())return alert('申請内容を入力してください');
   let id=nextRecordId('APP',APPLICATIONS),rec={id,employee_no:no,type:fapptype.value,status:'申請中',date:TODAY,detail:fappdetail.value.trim(),updatedDate:TODAY,reviewedBy:''};
-  touchRecord(rec,'application',true);APPLICATIONS.push(rec);if(!save())return;audit('本人申請登録',id+' '+rec.type,{employee_no:no,entity_type:'application',entity_id:id});closeForm();renderAll();applicationDetail(id)
+  touchRecord(rec,'application',true);APPLICATIONS.push(rec);audit('本人申請登録',id+' '+rec.type,{employee_no:no,entity_type:'application',entity_id:id});if(!save())return;closeForm();renderAll();applicationDetail(id)
  };
  form.classList.add('show')
 }
@@ -2407,7 +2433,7 @@ function applicationDetail(id){
 function updateApplicationStatus(id,status){
  if(PREVIEW_ROLE!=='管理者')return;
  let a=APPLICATIONS.find(x=>x.id===id);if(!a||!canAccess('application','edit',a.employee_no))return;
- let actor=currentActorIdentity();a.status=status;a.updatedDate=TODAY;a.reviewedBy=actor.name;touchRecord(a,'application',false);if(!save())return;audit('申請状態更新',id+' '+status,{employee_no:a.employee_no,entity_type:'application',entity_id:id});renderComms();applicationDetail(id)
+ let actor=currentActorIdentity();a.status=status;a.updatedDate=TODAY;a.reviewedBy=actor.name;touchRecord(a,'application',false);audit('申請状態更新',id+' '+status,{employee_no:a.employee_no,entity_type:'application',entity_id:id});if(!save())return;renderComms();applicationDetail(id)
 }
 function renderCompanySpec(){
  let active=E.filter(e=>e.status==='在籍'),taxi=active.filter(e=>e.dept==='タクシー課').length,bus=active.filter(e=>e.dept==='バス課').length;
@@ -2449,7 +2475,7 @@ function showAccessMatrix(){
  dbody.innerHTML=`<div class="spec-note">画面表示の絞り込みとは別に、利用者へ固定された権限ルールを一覧化しています。本番では同じ判定をAPI・データ保存側でも強制します。</div><div class="permission-matrix-note"><div><b>全社管理者</b><div class="mini">全社操作。安全判断権限は別付与。</div></div><div><b>担当管理者</b><div class="mini">割当済みの事業所 × 部署だけ。</div></div><div><b>一般社員</b><div class="mini">本人向け情報だけ。</div></div></div><div class="table-card"><div class="tablewrap"><table><thead><tr><th>情報</th><th>閲覧</th><th>更新・その他操作</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
  showDetailModal()
 }
-function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認・変更できます');return}dttl.textContent='利用者・権限設定（全社管理者専用）';dbody.innerHTML=`<div class="spec-note">v89本番反映版では権限を利用者に固定します。全社管理者は全社、担当管理者は割り当て済みの複数範囲だけ、一般社員は本人だけです。安全判断権限は別に付与し、全社管理者であっても自動では付与しません。</div>`+USERS.map(u=>`<div class="row"><div><b>${u.id} ${esc(u.name)}</b><div class="mini">${u.adminLevel==='full'?'全社管理者':u.adminLevel==='scoped'?'担当管理者':'一般社員'} / ${u.scope} / 安全判断 ${u.safetyAuthority?'可':'なし'} / MFA ${u.mfa} / セッション ${u.sessions}</div></div>${badge(u.state)}</div>`).join('');showDetailModal()}
+function showUsers(){if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認・変更できます');return}dttl.textContent='利用者・権限設定（全社管理者専用）';dbody.innerHTML=`<div class="spec-note">v90本番反映版では権限を利用者に固定します。全社管理者は全社、担当管理者は割り当て済みの複数範囲だけ、一般社員は本人だけです。安全判断権限は別に付与し、全社管理者であっても自動では付与しません。</div>`+USERS.map(u=>`<div class="row"><div><b>${u.id} ${esc(u.name)}</b><div class="mini">${u.adminLevel==='full'?'全社管理者':u.adminLevel==='scoped'?'担当管理者':'一般社員'} / ${u.scope} / 安全判断 ${u.safetyAuthority?'可':'なし'} / MFA ${u.mfa} / セッション ${u.sessions}</div></div>${badge(u.state)}</div>`).join('');showDetailModal()}
 function showImportSpec(){if(!isFullCompanyAdmin()){alert('一括取込仕様は全社管理者のみ確認できます');return}dttl.textContent='入力用Excel・取込仕様';dbody.innerHTML=`<div class="section"><h3>入力用Excel</h3><div>11シート。取込対象は「社員基本」「資格技能」「労務・保険」「制服・二種免許」「健康診断」「勤務・残業」「事故」「退職者」の8シートです。</div></div><div class="section"><h3>安全条件</h3><div>社員コードで結び付け、空欄は既存値を保持。未照合の詳細行から社員を自動作成しません。管理者限定の機密シートを含みます。</div></div><div class="section"><h3>本番</h3><div>取込前チェック、別管理者承認、変更前バックアップ、監査を経て確定します。</div></div>`;showDetailModal()}
 
 
@@ -2701,7 +2727,7 @@ function renderFoundationStatus(){
   <div class="card metric ${storageErrors?'danger':'ok'}"><small>ブラウザ保存</small><b>${storageErrors?'要確認':'正常'}</b><span>${storageErrors?storageErrors+'件の読込・保存異常':'トランザクション保存 / 最終 '+esc(String(lastSaved).replace('T',' ').slice(0,19))}</span></div>
   <div class="card metric ${bootErrors?'danger':'ok'}"><small>起動・データ移行</small><b>${bootErrors?'要確認':'正常'}</b><span>スキーマ ${esc(bootSchema)}${bootErrors?' / '+bootErrors+'件失敗':''}</span></div>
   <div class="card metric ${over?'danger':''}"><small>期限超過</small><b>${over}</b><span>全モジュール共通判定</span></div>
-  <div class="card metric"><small>監査履歴</small><b>${structured}</b><span>操作記録</span></div>
+  <div class="card metric"><small>監査履歴</small><b>${structured}</b><span>業務保存と同時確定 / 出力系は単独保存</span></div>
   <div class="card metric"><small>権限ポリシー</small><b>${Object.keys(ACCESS_POLICY).length}</b><span>共通ルール</span></div>
   <div class="card metric"><small>共通メタ情報</small><b>${mc.meta}/${mc.total}</b><span>更新履歴あり ${mc.updated}件</span></div>
   <div class="card metric"><small>共通データ基盤</small><b>${moduleCount}</b><span>共通管理コレクション / ${esc(CORE_SCHEMA_VERSION)}</span></div>
@@ -3809,7 +3835,7 @@ function renderDept(){
   return `<div class="dept-card"><div class="mini">${d}</div><b>${es.length}名</b><div class="mini">期限要確認 ${due}件 / 安全指導未完了 ${training}件 / 申請待ち ${apps}件</div></div>`
  }).join('')
 }
-function setNotifySetting(key,checked){if(!isFullCompanyAdmin()){alert('通知ルールの変更は全社管理者のみ操作できます');renderNotify();return}NS[key]=checked;if(!save())return;audit('通知ルール変更',key+'='+checked)}
+function setNotifySetting(key,checked){if(!isFullCompanyAdmin()){alert('通知ルールの変更は全社管理者のみ操作できます');renderNotify();return}NS[key]=checked;audit('通知ルール変更',key+'='+checked);if(!save())return}
 function renderNotify(){
  let opts=[['license','資格期限'],['health','健康診断期限'],['training','安全指導期限'],['vehicle','車検・点検期限'],['accident','事故フォロー期限'],['task','手続・タスク期限']];
  notifySettings.innerHTML=opts.map(x=>`<div class="setting"><div><b>${x[1]}</b><div class="mini">対象者へ自動メール通知</div></div><label><input class="toggle" type="checkbox" ${NS[x[0]]?'checked':''} onchange="setNotifySetting('${x[0]}',this.checked)"> 有効</label></div>`).join('');
@@ -4583,7 +4609,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v89.0';
+const APP_DATA_SCHEMA='v90.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
