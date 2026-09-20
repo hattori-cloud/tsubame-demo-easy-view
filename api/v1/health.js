@@ -15,6 +15,7 @@ module.exports=function handler(req,res){
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
     business_api_enabled:false,
+    feature_set:'car-number-certification-search',
     timestamp:new Date().toISOString()
   });
 };
