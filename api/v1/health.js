@@ -10,12 +10,12 @@ module.exports=function handler(req,res){
   }
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v116',
+    release:'v117',
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
     business_api_enabled:false,
-    feature_set:'simplified-home-safety-first-employee-detail',
+    feature_set:'taxi-driver-operational-snapshot',
     timestamp:new Date().toISOString()
   });
 };
