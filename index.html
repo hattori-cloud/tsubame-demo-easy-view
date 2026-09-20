@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v91</title>
+<title>つばめ交通株式会社 社員一元管理システム v92</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,7 +548,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v91｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v92｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">画面確認</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -792,6 +792,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="manage-section-body">
   <div class="grid2"><div class="card"><h3>会社固有設定</h3><div id="companySpec" class="company-grid"></div></div><div class="card"><h3>利用者・権限</h3><div id="userSummary"></div><div class="toolbar" style="margin-top:9px"><button class="btn soft" onclick="showUsers()">利用者一覧</button><button class="btn soft" onclick="showAccessMatrix()">権限マトリクス</button></div></div></div>
   <div class="card" style="margin-top:12px"><h3>導入前チェック</h3><div id="readiness" class="readiness-grid"></div></div>
+  <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">本番移行ゲート</h3><div class="mini">実社員データ投入前に、未完了条件と残作業をまとめて確認します。</div></div><button class="btn soft" onclick="showProductionGate()">条件を見る</button></div><div id="productionGate"></div></div>
   <div class="grid2" style="margin-top:12px"><div class="card"><h3>入力用Excel・一括取込</h3><div class="scope-note">未照合社員を自動作成せず、取込前チェック後に確定する設計です。</div><button class="btn soft" style="margin-top:9px" onclick="showImportSpec()">取込仕様を見る</button></div><div class="card"><h3>書類原本管理</h3><div id="documentLifecycle"></div></div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">システム基盤状態</h3><div class="mini">画面・関数・権限・保存領域の自己診断も実行できます。</div></div><button class="btn soft" onclick="runSystemSelfDiagnostic()">自己診断を実行</button></div><div id="foundationStatus"></div><div id="selfDiagnosticSummary" class="scope-note" style="margin-top:10px">自己診断：未実行</div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">システムバックアップ（共有デモ）</h3><div class="mini">ブラウザ保存データをJSONで退避・復元します。</div></div><span class="badge warn">全社管理者のみ</span></div><div class="toolbar"><button class="btn primary" onclick="exportSystemBackup()">バックアップを書き出す</button><button class="btn soft" onclick="document.getElementById('systemBackupFile').click()">バックアップを選択</button><input id="systemBackupFile" type="file" accept=".json,application/json" style="display:none" onchange="prepareSystemRestore(this)"><button id="systemRestoreBtn" class="btn danger" disabled onclick="restoreSystemBackup()">確認したバックアップを復元</button></div><div id="systemBackupStatus" class="scope-note" style="margin-top:10px">復元前に形式・社員番号重複・参照切れ・ID重複・所属ルールを確認し、復元後も再検証します。失敗時は自動で元データへ戻します。</div></div>
@@ -2452,12 +2453,44 @@ function renderCompanySpec(){
  userSummary.innerHTML=`<div class="row"><div><b>${roles.length}権限</b><div class="mini">${roles.map(esc).join(' / ')}</div></div><span class="badge ok">共通権限ポリシー</span></div>
  <div class="row"><div><b>有効利用者 ${activeUsers.length}名</b><div class="mini">管理者 ${managers.length}名 / 一般社員 ${activeUsers.filter(u=>u.role==='一般社員').length}名</div></div><span class="badge ok">状態確認</span></div>
  <div class="row"><div><b>管理者の権限範囲</b><div class="mini">利用者に割り当てた複数の「事業所 × 部署」を先に強制し、その内側だけ表示絞込できます。社員番号・所属変更・休職/退職・権限設定は全社管理者のみです。安全管理状態・乗務可否は安全判断権限を付与された安全管理／運行管理担当者のみ変更できます。</div></div><span class="badge ok">固定範囲</span></div>`;
- readiness.innerHTML=[['実サーバーHTTPS','未確認','bad'],['実VPN・スマホ疎通','未確認','bad'],['MFA本番必須化','未確認','bad'],['別故障領域バックアップ','実設備で未確認','bad'],['保存年限・紙原本方針','会社承認待ち','warn'],['実社員データ照合','未実施','bad'],['PC/スマホ実機受入','未完了','warn'],['PCA・アントレ・Eight','正式仕様未確定','warn'],['匿名開発版','検証資材あり','ok']].map(x=>`<div class="ready-item ${x[2]}"><b>${x[0]}</b><div class="mini">${x[1]}</div></div>`).join('');
+ readiness.innerHTML=productionGateItems().map(x=>`<div class="ready-item ${x.level}"><b>${x.name}</b><div class="mini">${x.status}</div></div>`).join('');
  documentLifecycle.innerHTML=DOCS.slice().sort((a,b)=>{
   let sa=a.status==='原本確認済み'?1:0,sb=b.status==='原本確認済み'?1:0;
   if(sa!==sb)return sa-sb;
   return deadlinePriority(a.expiry)-deadlinePriority(b.expiry)
  }).slice(0,8).map(d=>`<div class="row"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)}${d.expiry?' / 期限 '+esc(d.expiry):''}</div></div><span class="badge ${d.status==='原本確認済み'?'ok':'warn'}">${esc(d.status||'確認待ち')}</span></div>`).join('')
+}
+function productionGateItems(){
+ return [
+  {name:'実サーバーHTTPS',status:'未確認',level:'bad',next:'本番ホスティングと証明書を確定'},
+  {name:'実VPN・スマホ疎通',status:'未確認',level:'bad',next:'社内外ネットワークから実機疎通試験'},
+  {name:'MFA本番必須化',status:'未確認',level:'bad',next:'本番認証で多要素認証を必須化'},
+  {name:'サーバー側権限制御',status:'未実装',level:'bad',next:'画面だけでなくAPI・DBでも権限を強制'},
+  {name:'本番データベース',status:'未接続',level:'bad',next:'ブラウザ保存から本番DBへ移行'},
+  {name:'別故障領域バックアップ',status:'実設備で未確認',level:'bad',next:'自動バックアップと復旧試験を実施'},
+  {name:'監査ログのサーバー保存',status:'未接続',level:'bad',next:'操作履歴を改変困難な保存先へ記録'},
+  {name:'保存年限・紙原本方針',status:'会社承認待ち',level:'warn',next:'保存年限と原本保管ルールを決裁'},
+  {name:'実社員データ照合',status:'未実施',level:'bad',next:'社員番号・所属・資格を投入前照合'},
+  {name:'PC/スマホ実機受入',status:'未完了',level:'warn',next:'管理者と現場端末で受入試験'},
+  {name:'PCA・アントレ・Eight',status:'正式仕様未確定',level:'warn',next:'連携範囲と責任分界を確定'},
+  {name:'匿名開発版',status:'検証資材あり',level:'ok',next:'継続して架空データのみで検証'}
+ ]
+}
+function renderProductionGate(){
+ let el=document.getElementById('productionGate');if(!el)return;
+ let items=productionGateItems(),bad=items.filter(x=>x.level==='bad').length,warn=items.filter(x=>x.level==='warn').length,ok=items.filter(x=>x.level==='ok').length;
+ let ready=bad===0;
+ el.innerHTML=`<div class="list-summary"><div><b>${ready?'本番移行条件を満たしています':'本番移行はまだ開始しません'}</b><div class="mini">${ready?'重大な未完了条件はありません。':'重大な未完了 '+bad+'件を解消するまで、実社員データは投入しません。'}</div></div><div class="toolbar"><span class="badge ${ready?'ok':'danger'}">${ready?'移行可':'停止条件 '+bad+'件'}</span><span class="badge ${warn?'warn':'ok'}">要確認 ${warn}</span><span class="badge ok">済み ${ok}</span></div></div>
+ <div class="scope-note">現在の共有版は機能検証用です。本番認証・サーバー側権限・DB・バックアップ・監査基盤が揃うまでは架空データだけで確認します。</div>`;
+}
+function showProductionGate(){
+ if(!isFullCompanyAdmin())return alert('本番移行ゲートは全社管理者のみ確認できます');
+ let items=productionGateItems();
+ dttl.textContent='本番移行ゲート';
+ dbody.innerHTML=`<div class="spec-note">「bad」は実社員データ投入前の停止条件、「warn」は運用開始前に決める確認事項です。</div>`+
+ items.map((x,i)=>`<div class="row ${x.level==='bad'?'quality-bad':x.level==='warn'?'quality-warn':''}"><div><b>${i+1}. ${esc(x.name)}</b><div class="mini">現在：${esc(x.status)}<br>次に行うこと：${esc(x.next)}</div></div><span class="badge ${x.level==='bad'?'danger':x.level==='warn'?'warn':'ok'}">${x.level==='bad'?'停止条件':x.level==='warn'?'要確認':'済み'}</span></div>`).join('');
+ showDetailModal();
+ audit('本番移行ゲート確認','停止条件 '+items.filter(x=>x.level==='bad').length+'件',{entity_type:'system',entity_id:'production-gate'})
 }
 function accessPolicyRuleLabel(rule){
  return {full_admin:'全社管理者のみ',admin_scope:'担当範囲の管理者',self_or_scope:'本人または担当範囲',document_rule:'書類カテゴリ＋担当範囲'}[rule]||'―'
@@ -4665,9 +4698,9 @@ fsave.addEventListener('click',()=>{FORM_SAVE_ATTEMPT=true;setTimeout(()=>{FORM_
 window.addEventListener('beforeunload',e=>{if(form.classList.contains('show')&&FORM_DIRTY){e.preventDefault();e.returnValue=''}});
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
-function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
+function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v91.0';
+const APP_DATA_SCHEMA='v92.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
