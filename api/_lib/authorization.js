@@ -6,6 +6,7 @@ function resolveCurrentUser(identity){
   const user=findUserBySubject(identity.subject);
   if(!user)throw new AuthError(403,'USER_NOT_REGISTERED','このアカウントは利用者台帳に登録されていません');
   if(user.state!=='active')throw new AuthError(403,'USER_SUSPENDED','このアカウントは停止されています');
+  if(user.mfa_required&&!identity.mfa)throw new AuthError(403,'MFA_REQUIRED','管理者アカウントはMFA確認が必要です');
   return user
 }
 function canAccessEmployee(user,employee){
