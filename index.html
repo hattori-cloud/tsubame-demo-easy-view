@@ -614,10 +614,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="card simple-filter-card">
  <div class="simple-filter-title"><div><h3>社員を検索</h3><div class="mini">普段は検索とクイック絞り込みだけで使えます。</div></div></div>
  <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
- <div class="simple-quick-actions"><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn" onclick="setEmployeeQuickFilter('cert-gold')">ゴールド</button><button class="btn" onclick="setEmployeeQuickFilter('cert-english')">英語</button><button class="btn" onclick="setEmployeeQuickFilter('cert-tourism')">観光</button><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button></div>
- <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・在籍状態・期限状態・認定）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="attention">要確認のみ</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><select id="ecert" onchange="EMP_PAGE=1;renderEmp()"><option value="">全認定</option><option value="gold">ゴールド認定</option><option value="english">英語ドライバー</option><option value="tourism">観光ドライバー</option></select></div></div></details>
+ <div class="simple-quick-actions"><button class="btn primary" onclick="setEmployeeQuickFilter('daily')">今日確認</button><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">期限・安全要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn" onclick="setEmployeeQuickFilter('cert-gold')">ゴールド</button><button class="btn" onclick="setEmployeeQuickFilter('cert-english')">英語</button><button class="btn" onclick="setEmployeeQuickFilter('cert-tourism')">観光</button><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button></div>
+ <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・在籍状態・期限状態・認定）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="daily">今日確認あり</option><option value="attention">期限・安全要確認</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><select id="ecert" onchange="EMP_PAGE=1;renderEmp()"><option value="">全認定</option><option value="gold">ゴールド認定</option><option value="english">英語ドライバー</option><option value="tourism">観光ドライバー</option></select></div></div></details>
 </div>
 <div id="empListSummary" class="emp-list-summary"></div>
+<div id="empTodaySummary" class="card" style="margin:12px 0"></div>
 <div class="table-card"><div class="table-head"><strong>社員一覧</strong><span class="mini">標準：安全優先順（期限切れ・乗務不可 → 30日以内 → 要確認 → 正常）</span></div><div class="tablewrap"><table><thead><tr><th>社員</th><th>事業所</th><th>部署</th><th>最優先期限</th><th>安全・乗務</th><th>状態</th><th>操作</th></tr></thead><tbody id="empbody"></tbody></table></div></div>
 <div id="empMobileList" class="emp-mobile-list"></div><div id="empPager" class="emp-pager"></div></section>
 
@@ -3234,13 +3235,13 @@ function systemDiagnosticCheck(name,ok,detail,level='bad'){
 }
 function runSystemDiagnosticChecks(){
  let out=[];
- let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','foundationProgress','productionGate','homeDailySummary','homeDraftSummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
+ let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','foundationProgress','productionGate','homeDailySummary','homeDraftSummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','empTodaySummary','companySpec','auditHistory'];
  requiredIds.forEach(id=>out.push(systemDiagnosticCheck('画面ID '+id,!!document.getElementById(id),document.getElementById(id)?'存在':'見つかりません')));
  let idCounts={};
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -3404,6 +3405,7 @@ function renderHomeDailySummary(){
  let qAttention=quals.filter(q=>(q.expiry&&days(q.expiry)<=30)||(q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q))).length;
  let pendingDocs=DOCS.filter(d=>canViewDocumentRecord(d)&&d.status!=='原本確認済み').length;
  let vehicleAttention=scopedVehicles().filter(v=>['over','today','soon'].includes(vehicleDeadlineState(v))||v.status!=='稼働').length;
+ let dailyEmployees=scopedEmployees().filter(e=>e.status!=='退職'&&employeeDailyAttentionItems(e.no).length).length;
  let queue=actionQueueItems(),urgent=queue.filter(x=>x.urgency==='danger').length;
  el.innerHTML=`<div class="list-summary"><div><h3 style="margin:0">今日の確認サマリー</h3><div class="mini">案件だけでなく、勤務・資格書類・車両の確認漏れも入口で把握します。</div></div><span class="badge ${urgent?'danger':queue.length?'warn':'ok'}">優先対応 ${queue.length}件</span></div>
  <div class="deadline-grid">
@@ -3412,6 +3414,7 @@ function renderHomeDailySummary(){
   <button class="deadline-kpi ${staleWork?'soon':''}" onclick="go('work')"><small>勤務更新確認</small><b>${staleWork}</b><span class="mini">最終計上・集計</span></button>
   <button class="deadline-kpi ${qAttention+pendingDocs?'soon':''}" onclick="openCredentialCenter()"><small>資格・書類</small><b>${qAttention+pendingDocs}</b><span class="mini">期限・証憑・原本</span></button>
   <button class="deadline-kpi ${vehicleAttention?'soon':''}" onclick="go('vehicles')"><small>車両確認</small><b>${vehicleAttention}</b><span class="mini">車検・状態</span></button>
+  <button class="deadline-kpi ${dailyEmployees?'soon':''}" onclick="go('emp');setTimeout(()=>setEmployeeQuickFilter('daily'),40)"><small>要確認社員</small><b>${dailyEmployees}</b><span class="mini">安全・案件・号車・勤務</span></button>
  </div>`
 }
 function renderHome(){
@@ -3462,8 +3465,33 @@ function employeeNearestDeadline(e){
  items=items.filter(x=>Number.isFinite(x.n)).sort((a,b)=>deadlinePriority(a.date)-deadlinePriority(b.date)||a.n-b.n);
  return items[0]||null
 }
+function employeeDailyAttentionMeta(e){
+ let items=employeeDailyAttentionItems(e.no),danger=items.filter(x=>x.tone==='danger').length;
+ return {items,count:items.length,danger,first:items.length?Number(items[0].priority):999}
+}
+function employeeDailyAttentionCompare(a,b){
+ let aa=employeeDailyAttentionMeta(a),bb=employeeDailyAttentionMeta(b);
+ if(aa.first!==bb.first)return aa.first-bb.first;
+ if(aa.danger!==bb.danger)return bb.danger-aa.danger;
+ if(aa.count!==bb.count)return bb.count-aa.count;
+ return employeeSafetySort(a,b)
+}
+function renderEmployeeTodaySummary(list=scopedEmployees()){
+ let el=document.getElementById('empTodaySummary');if(!el)return;
+ if(PREVIEW_ROLE==='一般社員'){el.style.display='none';el.innerHTML='';return}
+ let rows=list.filter(e=>e.status!=='退職').map(e=>({e,meta:employeeDailyAttentionMeta(e)})).filter(x=>x.meta.count).sort((a,b)=>employeeDailyAttentionCompare(a.e,b.e));
+ let urgent=rows.filter(x=>x.meta.danger).length,shown=rows.slice(0,6);
+ el.style.display='';
+ el.innerHTML='<div class="list-summary"><div><h3 style="margin:0">今日確認する社員</h3><div class="mini">期限だけでなく、未完了事故・苦情、担当号車、勤務状況まで含めて優先順に表示します。</div></div><div class="toolbar"><span class="badge '+(urgent?'danger':rows.length?'warn':'ok')+'">'+rows.length+'名</span><button class="btn soft" onclick="setEmployeeQuickFilter(\'daily\')">全員を見る</button></div></div>'+
+  (shown.length?shown.map(x=>{
+    let first=x.meta.items[0],safeNo=String(x.e.no).replaceAll("'","");
+    return '<div class="row '+(x.meta.danger?'quality-bad':'quality-warn')+'"><div><b>'+esc(x.e.no)+' '+esc(x.e.name)+'</b><div class="mini">'+esc(x.e.branch)+' / '+esc(x.e.dept)+' / 確認 '+x.meta.count+'件'+(x.meta.danger?' / 最優先 '+x.meta.danger+'件':'')+'</div><div class="mini"><b>最初に：</b>'+esc(first.title)+' — '+esc(first.detail)+'</div></div><button class="btn '+(x.meta.danger?'danger':'soft')+'" onclick="employeeDetail(\''+safeNo+'\')">社員詳細</button></div>'
+  }).join(''):'<div class="notice"><div><b>現在、今日優先して確認する社員はいません。</b><div class="mini">通常の定期確認を続けてください。</div></div><span class="badge ok">OK</span></div>')+
+  (rows.length>shown.length?'<div class="mini" style="margin-top:8px">上位6名を表示 / 対象 '+rows.length+'名。「全員を見る」で今日確認ありの社員だけに絞れます。</div>':'')
+}
 function employeeRiskMatch(e,risk){
  if(!risk)return true;
+ if(risk==='daily')return employeeDailyAttentionItems(e.no).length>0;
  let d=employeeNearestDeadline(e),n=d?d.n:9999;
  if(risk==='expired')return e.safetyState==='期限切れ'||n<0;
  if(risk==='soon')return (n>=0&&n<=30)||e.safetyState==='期限30日以内';
@@ -3499,6 +3527,7 @@ function employeeSafetySort(a,b){
 function setEmployeeQuickFilter(kind){
  let q=document.getElementById('eq'),b=document.getElementById('eb'),d=document.getElementById('ed'),s=document.getElementById('es'),r=document.getElementById('erisk'),cert=document.getElementById('ecert');
  if(q)q.value='';if(b)b.value='';if(d)d.value='';if(s)s.value='';if(r)r.value='';if(cert)cert.value='';
+ if(kind==='daily'&&r)r.value='daily';
  if(kind==='attention'&&r)r.value='attention';
  if(kind==='blocked'&&r)r.value='blocked';
  if(kind==='active'&&s)s.value='在籍';
@@ -3515,12 +3544,14 @@ function renderEmployeeDataNotice(){
 function renderEmp(){
  renderEmployeeDataNotice();
  let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',certFilter=document.getElementById('ecert')?.value||'',
-     filtered=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))).sort(employeeSafetySort),
+     baseRows=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))),
+     filtered=baseRows.sort(risk==='daily'?employeeDailyAttentionCompare:employeeSafetySort),
      pages=Math.max(1,Math.ceil(filtered.length/EMP_PER_PAGE));
  EMP_PAGE=Math.min(Math.max(1,EMP_PAGE),pages);
  let start=(EMP_PAGE-1)*EMP_PER_PAGE,arr=filtered.slice(start,start+EMP_PER_PAGE);
  let summary=document.getElementById('empListSummary');
- if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length,scopeRows=scopedEmployees();summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopeRows.length}名 ・ 標準は安全優先順</div></div><div class="toolbar"><span class="badge ${attention?'warn':'ok'}">要確認 ${attention}名</span>${employeeCertSummaryHtml(scopeRows)}</div>`}
+ if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length,scopeRows=scopedEmployees(),daily=scopeRows.filter(e=>e.status!=='退職'&&employeeRiskMatch(e,'daily')).length;summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopeRows.length}名 ・ ${risk==='daily'?'今日は総合優先順':'標準は安全優先順'}</div></div><div class="toolbar"><button class="btn ${daily?'warn':'soft'}" style="min-height:38px;padding:6px 10px" onclick="setEmployeeQuickFilter('daily')">今日確認 ${daily}名</button><span class="badge ${attention?'warn':'ok'}">期限・安全 ${attention}名</span>${employeeCertSummaryHtml(scopeRows)}</div>`}
+ renderEmployeeTodaySummary(scopedEmployees());
  empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),rowClass=(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:5px">${driverCertBadgesHtml(e)}</div>`:''}</td><td><span class="emp-chip">${esc(e.branch)}</span></td><td><span class="emp-chip">${esc(e.dept)}</span></td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td>${badge(e.status)}</td><td><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></td></tr>`}).join('');
  let mobile=document.getElementById('empMobileList');
  if(mobile){mobile.innerHTML=arr.length?arr.map(e=>`<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>事業所</label><b>${esc(e.branch)}</b></div><div><label>部署</label><b>${esc(e.dept)}</b></div></div><div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div>${driverCertBadgesHtml(e)?`<div style="margin-top:6px">${driverCertBadgesHtml(e)}</div>`:''}<button class="btn soft" onclick="event.stopPropagation();employeeDetail('${e.no}')">開く</button></article>`).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
