@@ -1,5 +1,5 @@
 -- つばめ交通 社員一元管理システム
--- Production PostgreSQL schema draft / v106
+-- Production PostgreSQL schema draft / v112
 -- IMPORTANT: schema only. No real employee data belongs in this repository.
 
 create extension if not exists pgcrypto;
@@ -124,7 +124,3278 @@ create table accidents (
   employee_id uuid not null references employees(id),
   occurred_on date not null,
   occurred_time time,
+  car_no text check (car_no is null or car_no ~ '^[0-9]{3}
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  car_no text check (car_no is null or car_no ~ '^[0-9]{3}
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  car_no text check (car_no is null or car_no ~ '^[0-9]{3}
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  car_no text not null unique check (car_no ~ '^[0-9]{3}
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_car_no_idx on accidents (car_no, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_car_no_idx on near_misses (car_no, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_car_no_idx on complaints (car_no, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_car_no_idx on vehicles (car_no);
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
   vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  operation_state text,
+  district text,
+  accident_type text,
+  fault_rate integer check (fault_rate between 0 and 100),
+  opponent_repair_status text,
+  opponent_repair_cost integer check (opponent_repair_cost >= 0),
+  company_repair_status text,
+  company_repair_cost integer check (company_repair_cost >= 0),
+  address text not null,
+  summary text not null,
+  phase text not null default 'initial',
+  cause text,
+  prevention text,
+  response_history text,
+  owner_user_id uuid references users(id),
+  next_action text,
+  followup_due date,
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table near_misses (
+  id uuid primary key default gen_random_uuid(),
+  report_no text not null unique,
+  employee_id uuid not null references employees(id),
+  occurred_on date not null,
+  occurred_time time,
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
+  summary text not null,
+  prevention text,
+  education text,
+  risk_level text,
+  cause_side text,
+  location_tags jsonb not null default '[]'::jsonb,
+  situation_tags jsonb not null default '[]'::jsonb,
+  road_tags jsonb not null default '[]'::jsonb,
+  target_tags jsonb not null default '[]'::jsonb,
+  internal_factors jsonb not null default '[]'::jsonb,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table complaints (
+  id uuid primary key default gen_random_uuid(),
+  complaint_no text not null unique,
+  employee_id uuid not null references employees(id),
+  responded_on date not null,
+  responded_time time,
+  responder text,
+  occurrence_date date,
+  occurrence_time time,
+  vehicle_text text,
+  customer_alias text,
+  summary text not null,
+  rank text not null default 'unrated',
+  owner_user_id uuid references users(id),
+  guidance_content text,
+  next_action text,
+  followup_due date,
+  status text not null default 'open',
+  completed_at timestamptz,
+  completed_by_user_id uuid references users(id),
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table guidance_records (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  guidance_on date not null,
+  type text not null,
+  summary text not null,
+  owner text not null,
+  next_review date,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicles (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_no text not null unique,
+  plate text not null unique,
+  call_sign text,
+  model text,
+  service text,
+  status text not null default 'active',
+  assignment_mode text not null default 'dedicated',
+  primary_employee_id uuid references employees(id),
+  inspection_due date not null,
+  next_maintenance_due date,
+  maintenance_note text,
+  archived_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table vehicle_users (
+  id uuid primary key default gen_random_uuid(),
+  vehicle_id uuid not null references vehicles(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  role text not null check (role in ('primary','additional')),
+  assigned_on date not null default current_date,
+  ended_on date,
+  created_at timestamptz not null default now(),
+  unique (vehicle_id, employee_id, role, assigned_on)
+);
+
+create table applications (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  type text not null,
+  status text not null default 'submitted',
+  payload jsonb not null default '{}'::jsonb,
+  applied_at timestamptz not null default now(),
+  decided_at timestamptz,
+  decided_by_user_id uuid references users(id),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table notices (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text not null,
+  state text not null default 'draft',
+  published_at timestamptz,
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table confirmations (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  body text,
+  due date,
+  state text not null default 'open',
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1
+);
+
+create table handoffs (
+  id uuid primary key default gen_random_uuid(),
+  case_type text not null,
+  case_id uuid not null,
+  from_user_id uuid references users(id),
+  to_user_id uuid not null references users(id),
+  status text not null default 'pending',
+  note text,
+  created_at timestamptz not null default now(),
+  acknowledged_at timestamptz
+);
+
+create table drafts (
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid not null references users(id) on delete cascade,
+  kind text not null check (kind in ('accident','near_miss','complaint')),
+  payload jsonb not null default '{}'::jsonb,
+  saved_at timestamptz not null default now(),
+  version integer not null default 1,
+  unique (owner_user_id, kind)
+);
+
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
+  entity_type text not null,
+  entity_id uuid not null,
+  actor_user_id uuid references users(id),
+  action text not null,
+  before_data jsonb,
+  after_data jsonb,
+  reason text,
+  occurred_at timestamptz not null default now()
+);
+
+create table audit_logs (
+  id uuid primary key default gen_random_uuid(),
+  occurred_at timestamptz not null default now(),
+  actor_user_id uuid references users(id),
+  action text not null,
+  entity_type text not null,
+  entity_id text not null,
+  employee_id uuid references employees(id),
+  result text not null default 'success',
+  request_id text,
+  summary text
+);
+
+create index employees_scope_idx on employees (office, department, lifecycle_status);
+create index employees_name_idx on employees (name);
+create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
+
+create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
+create index documents_employee_idx on documents (employee_id, category, status);
+create index documents_expiry_idx on documents (expiry);
+create index safety_training_due_idx on safety_training (employee_id, status, due);
+
+create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc);
+create index accidents_phase_due_idx on accidents (phase, followup_due);
+create index accidents_owner_idx on accidents (owner_user_id, phase);
+
+create index near_misses_employee_date_idx on near_misses (employee_id, occurred_on desc);
+create index near_misses_risk_idx on near_misses (risk_level, occurred_on desc);
+
+create index complaints_employee_date_idx on complaints (employee_id, responded_on desc);
+create index complaints_status_due_idx on complaints (status, followup_due);
+create index complaints_owner_idx on complaints (owner_user_id, status);
+
+create index vehicles_status_due_idx on vehicles (status, inspection_due);
+create index vehicles_primary_employee_idx on vehicles (primary_employee_id);
+create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on);
+
+create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
+create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at);
+create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
+create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
+create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
+
+-- API update pattern:
+-- update accidents
+-- set summary = $1, updated_at = now(), version = version + 1
+-- where id = $2 and version = $3;
+-- If row_count = 0, return HTTP 409 Conflict rather than overwriting another user's changes.
+
+-- Core business records should not expose normal DELETE endpoints.
+-- Use explicit state transitions such as retire/archive/complete/reopen/廃車.
+-- Drafts are the exception: a user may delete only their own draft.
+),
   operation_state text,
   district text,
   accident_type text,
