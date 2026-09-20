@@ -3847,7 +3847,7 @@ function employeeNearMisses(no){
  let e=emp(no),rows=N.filter(x=>String(x.employee_no)===String(no)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  dttl.textContent=(e?e.name:no)+' のヒヤリハット';
  let safeNo=String(no).replaceAll("'",'');
- dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+safeNo+'\')">← 社員詳細へ戻る</button>'+(canEditEmployee(no)?'<button class="btn primary" onclick="openNearForm(-1)">＋ 新規登録</button>':'')+'</div>'+
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+safeNo+'\')">← 社員詳細へ戻る</button>'+(canEditEmployee(no)?'<button class="btn primary" onclick="openNearForm(-1,\''+safeNo+'\')">＋ 新規登録</button>':'')+'</div>'+
   '<div class="list-summary"><div><div class="related-title">ヒヤリハット '+rows.length+'件</div><div class="mini">直近90日 '+rows.filter(x=>x.date&&(-days(x.date))>=0&&(-days(x.date))<=90).length+'件 / 号車・危険度・内容を社員単位で確認</div></div></div>'+
   (rows.length?rows.map(n=>'<div class="row"><div><b>'+esc(n.date||'未設定')+' / '+esc(n.id)+'</b><div class="mini">号車 '+esc(n.vehicle||'未設定')+' / 危険度 '+esc(n.riskLevel||'未設定')+' / '+esc(n.summary||'')+'</div></div><button class="btn soft" onclick="nearDetail(\''+String(n.id||'').replaceAll("'",'')+'\')">開く</button></div>').join(''):'<div class="mini">ヒヤリハット記録はありません。</div>')
 }
@@ -5427,7 +5427,7 @@ function fillNearEmployeeDefaults(){
   if(v)vehicle.value=v.plate
  }
 }
-function openNearForm(idx=-1){
+function openNearForm(idx=-1,defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('ヒヤリハット登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?N[idx]:null;
  if(rec&&!guardEmployeeEdit(rec.employee_no,'ヒヤリハット'))return;
@@ -5460,7 +5460,7 @@ function openNearForm(idx=-1){
   <div class="field wide"><label>改善・今後の対策</label><textarea id="fnprevention" placeholder="再発防止、運行上の改善点など">${esc(rec?.prevention||'')}</textarea></div>
  </div>`;
  organizeCurrentFormSections({order:[0,3,1,2],open:[0,3]});
- fne.value=String(rec?rec.employee_no:candidates[0].no);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';if(!rec)fillNearEmployeeDefaults();
+ let nearDefaultNo=rec?String(rec.employee_no):(candidates.find(x=>String(x.no)===String(defaultNo))?.no||candidates[0].no);fne.value=String(nearDefaultNo);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';if(!rec)fillNearEmployeeDefaults();
  fsave.onclick=()=>{
   let e=emp(fne.value);if(!e||!guardEmployeeEdit(e.no,'ヒヤリハット'))return;
   if(!fnd.value||!fns.value.trim())return alert('ヒヤリ発生日と内容を入力してください');
