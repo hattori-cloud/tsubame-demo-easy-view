@@ -4358,6 +4358,15 @@ function openSafetyExportMenu(){
  dbody.innerHTML='<div class="spec-note">現在の担当範囲内だけを出力します。</div><div class="home-actions"><button class="btn primary" onclick="exportAccidentsCsv()">事故CSV</button><button class="btn soft" onclick="exportNearMissesCsv()">ヒヤリハットCSV</button><button class="btn soft" onclick="exportComplaintsCsv()">苦情・お客様対応CSV</button></div>';
  showDetailModal()
 }
+function openSafetyToday(){
+ let accidents=scopedAccidents().filter(x=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(x));
+ let complaints=scopedComplaints().filter(x=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(x));
+ let accToday=accidents.filter(a=>accidentDeadlineState(a)==='today').length;
+ let compToday=complaints.filter(x=>complaintState(x)==='today').length;
+ if(accToday){safeTab('acc');ACC_FILTER='today';ACC_PAGE=1;renderAcc();return}
+ if(compToday){safeTab('complaint');COMPLAINT_FILTER='all';renderComplaints();return}
+ safeTab('acc');ACC_FILTER='all';ACC_PAGE=1;renderAcc()
+}
 function renderSafetyOverview(){
  let el=document.getElementById('safetyOverview');if(!el)return;
  if(PREVIEW_ROLE!=='管理者'){el.innerHTML='';el.style.display='none';return}
@@ -4370,7 +4379,7 @@ function renderSafetyOverview(){
  el.innerHTML=`<button class="safety-overview-card ${accOver?'danger':accOpen?'warn':''}" onclick="safeTab('acc');ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>事故 要対応</small><b>${accOpen}</b><span class="mini">期限超過 ${accOver}件</span></button>
  <button class="safety-overview-card ${compOver?'danger':compOpen?'warn':''}" onclick="safeTab('complaint');COMPLAINT_FILTER='open';renderComplaints()"><small>苦情 要対応</small><b>${compOpen}</b><span class="mini">期限超過 ${compOver}件</span></button>
  <button class="safety-overview-card ${nearHigh?'warn':''}" onclick="safeTab('near');if(document.getElementById('nearRisk')){document.getElementById('nearRisk').value='高い';renderNear()}"><small>高危険ヒヤリ</small><b>${nearHigh}</b><span class="mini">全報告 ${near.length}件</span></button>
- <button class="safety-overview-card ${today?'warn':''}" onclick="safeTab('acc');ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${today}</b><span class="mini">事故 ${accToday} / 苦情 ${compToday}</span></button>`
+ <button class="safety-overview-card ${today?'warn':''}" onclick="openSafetyToday()"><small>本日期限</small><b>${today}</b><span class="mini">事故 ${accToday} / 苦情 ${compToday}</span></button>`
 }
 function clearSafetySearch(kind){
  if(kind==='accident'){
