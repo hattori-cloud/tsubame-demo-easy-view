@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v111</title>
+<title>つばめ交通株式会社 社員一元管理システム v112</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -670,7 +670,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="safety-search-card">
  <div class="safety-search-title">ヒヤリハットを検索</div>
  <div class="safety-search-main">
-  <input id="nearq" type="text" placeholder="番号・社員名・社員番号・内容・場所・行動・原因などで検索" oninput="renderNear()">
+  <input id="nearq" type="text" placeholder="番号・社員名・社員番号・号車・内容・場所・行動・原因などで検索" oninput="renderNear()">
   <select id="nearRisk" onchange="renderNear()"><option value="">全危険度</option><option>高い</option><option>中程度</option><option>低い</option><option>未設定</option></select>
   <button class="btn soft" onclick="clearSafetySearch('near')">条件をクリア</button>
  </div>
@@ -1022,7 +1022,7 @@ function ensureNearMissWorkflowFields(){
  let changed=false;
  N.forEach(n=>{
   [['locationTags',[]],['situationTags',[]],['roadTags',[]],['targetTags',[]],['internalFactors',[]]].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}});
-  [['reportDate',n.date||''],['time',''],['causeSide','未設定'],['riskLevel','未設定'],['education',''],['prevention','']].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}})
+  [['reportDate',n.date||''],['time',''],['vehicle',''],['causeSide','未設定'],['riskLevel','未設定'],['education',''],['prevention','']].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}})
  });
  if(changed)localStorage.setItem('v46NEAR',JSON.stringify(N))
 }
@@ -1592,6 +1592,18 @@ function exportComplaintsCsv(){
  let rows=scopedComplaints().slice().sort((a,b)=>String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date)));
  downloadCsv('クレーム一覧_本番反映版_v91.csv',[['番号','対応者','対応日','対応時間','課','号車','乗務員名','お客様名（仮名・匿名）','発生日','発生時間','内容','入力者','指導内容','クレームランク','指導者','指導日','指導時間','担当者','次回対応','フォロー期限','状態','完了日','完了確認者'],...rows.map(c=>[c.id,c.responder||'',c.responseDate||c.date,c.responseTime||'',c.dept||'',c.vehicle||'',c.driverName||c.name,c.customerName||'',c.occurrenceDate||'',c.occurrenceTime||'',c.summary||'',c.inputBy||'',c.guidanceContent||'',complaintRankLabel(c.rank||'未判定'),c.instructor||'',c.guidanceDate||'',c.guidanceTime||'',c.owner||'',c.nextAction||'',c.followupDue||'',c.status||'',c.completedDate||'',c.finalReviewerName||''])]);
  audit('CSV出力',`クレーム一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
+}
+function exportNearMissesCsv(){
+ let rows=scopedNearMisses().slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ let header=['番号','記入日','発生日','発生時間','社員番号','乗務員','号車','危険度','原因側','場所','行動','道路・周囲','危険対象','内的要因','内容','教育事項','改善・今後の対策'];
+ let data=rows.map(n=>[
+  n.id,n.reportDate||'',n.date||'',n.time||'',n.employee_no,n.driver||'',n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'',
+  n.riskLevel||'',n.causeSide||'',(n.locationTags||[]).join(' / '),(n.situationTags||[]).join(' / '),
+  (n.roadTags||[]).join(' / '),(n.targetTags||[]).join(' / '),(n.internalFactors||[]).join(' / '),
+  n.summary||'',n.education||'',n.prevention||''
+ ]);
+ downloadCsv('ヒヤリハット一覧_本番反映版_v112.csv',[header,...data]);
+ audit('CSV出力',`ヒヤリハット一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
 function collectDeadlines(){
  let rows=[];
@@ -4113,7 +4125,7 @@ function clearAllSafetySearch(){
 }
 function openSafetyExportMenu(){
  dttl.textContent='運行・安全 CSV出力';
- dbody.innerHTML='<div class="spec-note">現在の担当範囲内だけを出力します。</div><div class="home-actions"><button class="btn primary" onclick="exportAccidentsCsv()">事故CSV</button><button class="btn soft" onclick="exportComplaintsCsv()">苦情・お客様対応CSV</button></div>';
+ dbody.innerHTML='<div class="spec-note">現在の担当範囲内だけを出力します。</div><div class="home-actions"><button class="btn primary" onclick="exportAccidentsCsv()">事故CSV</button><button class="btn soft" onclick="exportNearMissesCsv()">ヒヤリハットCSV</button><button class="btn soft" onclick="exportComplaintsCsv()">苦情・お客様対応CSV</button></div>';
  showDetailModal()
 }
 function renderSafetyOverview(){
@@ -4435,14 +4447,14 @@ function renderNear(){
  risk=document.getElementById('nearRisk')?.value||'',cause=document.getElementById('nearCause')?.value||'',
  all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let rows=all.filter(n=>{
-  let text=[n.id,n.date,n.time,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
+  let text=[n.id,n.date,n.time,n.vehicle,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
   return (!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
  });
  let high=rows.filter(n=>n.riskLevel==='高い').length;
  let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / 危険度「高い」 ${high}件 / 内容・分類項目まで検索できます</div></div>`;
  nearbody.innerHTML=rows.map(n=>{
   let tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4);
-  return `<tr><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div></td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">開く</button></td></tr>`;
+  return `<tr><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${esc(n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)} / 号車 ${esc(n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'未設定')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div></td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">開く</button></td></tr>`;
  }).join('')
 }
 function nearAnalysisChecklistHtml(n){
@@ -4467,6 +4479,7 @@ function nearDetail(id){
   <div class="detail-primary-item"><label>発生日時</label><b>${esc(n.date||'未設定')} ${esc(n.time||'')}</b></div>
   <div class="detail-primary-item"><label>対象社員</label><b>${esc(n.employee_no)} ${esc(n.driver||e?.name||'')}</b></div>
   <div class="detail-primary-item"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'未設定'}</b></div>
+  <div class="detail-primary-item"><label>号車</label>${vehicleNumberLinkHtml(n.vehicle)}</div>
   <div class="detail-primary-item"><label>危険度</label>${badge(n.riskLevel||'未設定')}</div>
   <div class="detail-primary-item"><label>原因側</label><b>${esc(n.causeSide||'未設定')}</b></div>
   <div class="detail-primary-item"><label>記入日</label><b>${esc(n.reportDate||'未設定')}</b></div>
@@ -4519,21 +4532,24 @@ function vehicleNumberLinkHtml(value){
 }
 function vehicleRelatedSafetyRecords(v){
  let plate=String(v?.plate||'').trim();
- if(!plate)return {accidents:[],complaints:[]};
+ if(!plate)return {accidents:[],complaints:[],near:[]};
  let accidents=A.filter(a=>String(a.vehicle||'').trim()===plate&&canAccess('accident','view',a.employee_no))
   .slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  let complaints=C.filter(x=>String(x.vehicle||'').trim()===plate&&canAccess('complaint','view',x.employee_no))
   .slice().sort((a,b)=>String(b.responseDate||b.date||'').localeCompare(String(a.responseDate||a.date||'')));
- return {accidents,complaints}
+ let near=N.filter(n=>String(n.vehicle||'').trim()===plate&&canAccess('near_miss','view',n.employee_no))
+  .slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ return {accidents,complaints,near}
 }
 function vehicleRelatedSafetyHtml(v){
  let rel=vehicleRelatedSafetyRecords(v),rows=[
   ...rel.accidents.slice(0,8).map(a=>({kind:'事故',date:a.date||'',id:a.id,summary:a.summary||'',open:"accidentDetail('"+String(a.id).replaceAll("'","")+"')",status:a.phase||''})),
-  ...rel.complaints.slice(0,8).map(x=>({kind:'苦情',date:x.occurrenceDate||x.responseDate||x.date||'',id:x.id,summary:x.summary||'',open:"complaintDetail('"+String(x.id).replaceAll("'","")+"')",status:x.status||''}))
+  ...rel.complaints.slice(0,8).map(x=>({kind:'苦情',date:x.occurrenceDate||x.responseDate||x.date||'',id:x.id,summary:x.summary||'',open:"complaintDetail('"+String(x.id).replaceAll("'","")+"')",status:x.status||''})),
+  ...rel.near.slice(0,8).map(n=>({kind:'ヒヤリ',date:n.date||'',id:n.id,summary:n.summary||'',open:"nearDetail('"+String(n.id).replaceAll("'","")+"')",status:n.riskLevel||''}))
  ].sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,12);
  return '<div class="section"><h3>この号車の安全・お客様対応記録</h3><div>'+
-  '<div class="list-summary"><div><b>事故 '+rel.accidents.length+'件 / 苦情 '+rel.complaints.length+'件</b><div class="mini">号車が3桁で一致する記録だけを表示します。ヒヤリハットは現在号車項目がないため自動紐づけしません。</div></div></div>'+
-  (rows.length?rows.map(r=>'<div class="row"><div><b>'+esc(r.date)+' / '+esc(r.kind)+' '+esc(r.id)+'</b><div class="mini">'+esc(r.summary)+'</div></div><div class="toolbar">'+badge(r.status||'')+'<button class="btn soft" onclick="'+r.open+'">開く</button></div></div>').join(''):'<div class="mini">この号車に紐づく事故・苦情記録はありません。</div>')+
+  '<div class="list-summary"><div><b>事故 '+rel.accidents.length+'件 / 苦情 '+rel.complaints.length+'件 / ヒヤリ '+rel.near.length+'件</b><div class="mini">号車が3桁で一致する安全・お客様対応記録を表示します。</div></div></div>'+
+  (rows.length?rows.map(r=>'<div class="row"><div><b>'+esc(r.date)+' / '+esc(r.kind)+' '+esc(r.id)+'</b><div class="mini">'+esc(r.summary)+'</div></div><div class="toolbar">'+badge(r.status||'')+'<button class="btn soft" onclick="'+r.open+'">開く</button></div></div>').join(''):'<div class="mini">この号車に紐づく事故・苦情・ヒヤリ記録はありません。</div>')+
  '</div></div>'
 }
 function renderVehicles(){
@@ -4701,7 +4717,7 @@ function searchAll(){
  if(PREVIEW_ROLE==='管理者'){
   scopedAccidents().filter(a=>[a.id,a.date,a.driver,a.vehicle,a.address,a.summary,a.owner,a.nextAction].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(a=>results.push({label:'事故',title:a.id,sub:`${a.driver} / ${a.summary}`,open:`go('safe');setTimeout(()=>accidentDetail('${a.id}'),40)`}));
   scopedComplaints().filter(c=>[c.id,c.responseDate,c.occurrenceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.rank].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(c=>results.push({label:'苦情',title:c.id,sub:`${c.driverName||c.name} / ${c.summary}`,open:`go('safe');setTimeout(()=>complaintDetail('${c.id}'),40)`}));
-  scopedNearMisses().filter(n=>[n.id,n.date,n.driver,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(n=>results.push({label:'ヒヤリ',title:n.id,sub:`${n.driver} / ${n.summary}`,open:`go('safe');safeTab('near');setTimeout(()=>{let el=document.getElementById('nearq');if(el){el.value='${n.id}';renderNear()}},40)`}));
+  scopedNearMisses().filter(n=>[n.id,n.date,n.driver,n.vehicle,n.summary,n.action,n.owner].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(n=>results.push({label:'ヒヤリ',title:n.id,sub:`${n.driver} / 号車 ${n.vehicle&&n.vehicle!=='未設定'?n.vehicle:'未設定'} / ${n.summary}`,open:`go('safe');safeTab('near');setTimeout(()=>{let el=document.getElementById('nearq');if(el){el.value='${n.id}';renderNear()}},40)`}));
   scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>results.push({label:'車両',title:`${v.plate}号車`,sub:`管理番号 ${v.id} / ${v.service} / ${v.status}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`}));
  }
  results=results.filter(r=>type==='all'||globalSearchGroup(r.label)===type);
@@ -5350,6 +5366,14 @@ function nearTagsHtml(values){
  let arr=Array.isArray(values)?values:[];
  return arr.length?'<div class="near-tag-list">'+arr.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')+'</div>':'<span class="mini">未設定</span>'
 }
+function fillNearEmployeeDefaults(){
+ let e=emp(document.getElementById('fne')?.value);if(!e)return;
+ let vehicle=document.getElementById('fnvehicle');
+ if(vehicle&&!vehicle.value.trim()){
+  let v=V.find(x=>x.employee_no===e.no&&x.status!=='廃車');
+  if(v)vehicle.value=v.plate
+ }
+}
 function openNearForm(idx=-1){
  if(PREVIEW_ROLE!=='管理者'){alert('ヒヤリハット登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?N[idx]:null;
@@ -5362,10 +5386,11 @@ function openNearForm(idx=-1){
  fbody.innerHTML=`<div class="formnote">現在使用中の「ヒヤリ・ハット（危険予知）報告書」をもとにしています。ヒヤリは管理案件ではなく、安全分析に使う報告記録として保存します。${safetyDraftControls('near')}</div>
  <div class="form-flow"><span>1 記入・発生</span><span>2 状況</span><span>3 原因・危険度</span><span>4 内容・対策</span></div><div class="formgrid">
   <div class="employee-form-section"><h4>1. 記入者・発生日時</h4><p>所属・氏名は社員台帳から自動取得します</p></div>
-  <div class="field wide"><label>対象社員<span class="req">必須</span></label><select id="fne">${opts}</select></div>
+  <div class="field wide"><label>対象社員<span class="req">必須</span></label><select id="fne" onchange="fillNearEmployeeDefaults()">${opts}</select></div>
   <div class="field"><label>記入日</label><input id="fnreport" type="date" value="${esc(rec?.reportDate||TODAY)}"></div>
   <div class="field"><label>ヒヤリ発生日<span class="req">必須</span></label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
   <div class="field"><label>発生時間</label><input id="fntime" type="time" value="${esc(rec?.time||'')}"><div style="margin-top:6px"><button type="button" class="btn soft" onclick="setCurrentFormTime('fntime')">現在時刻</button></div></div>
+  <div class="field"><label>号車</label><input id="fnvehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div>
   <div class="employee-form-section"><h4>2. ヒヤリ時の状況</h4><p>該当する項目を複数選択できます</p></div>
   <div class="field wide"><div class="simple-quick-actions"><span class="mini">よくある状況：</span><button type="button" class="btn soft" onclick="applyNearPreset('back')">バック時</button><button type="button" class="btn soft" onclick="applyNearPreset('turn')">右左折</button><button type="button" class="btn soft" onclick="applyNearPreset('boarding')">乗降時</button><button type="button" class="btn soft" onclick="applyNearPreset('lane')">進路変更</button></div><div class="mini">押した後にチェック項目を自由に追加・変更できます。</div></div>
   <div class="field wide"><label>場所</label>${nearOptionHtml('nearLocation',NEAR_OPTIONS.location,rec?.locationTags)}</div>
@@ -5382,11 +5407,12 @@ function openNearForm(idx=-1){
   <div class="field wide"><label>改善・今後の対策</label><textarea id="fnprevention" placeholder="再発防止、運行上の改善点など">${esc(rec?.prevention||'')}</textarea></div>
  </div>`;
  organizeCurrentFormSections({order:[0,3,1,2],open:[0,3]});
- fne.value=String(rec?rec.employee_no:candidates[0].no);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';
+ fne.value=String(rec?rec.employee_no:candidates[0].no);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';if(!rec)fillNearEmployeeDefaults();
  fsave.onclick=()=>{
   let e=emp(fne.value);if(!e||!guardEmployeeEdit(e.no,'ヒヤリハット'))return;
   if(!fnd.value||!fns.value.trim())return alert('ヒヤリ発生日と内容を入力してください');
-  let data={reportDate:fnreport.value||TODAY,date:fnd.value,time:fntime.value,employee_no:e.no,driver:e.name,
+  if(!validateVehicleNumberValue(fnvehicle.value))return;
+  let data={reportDate:fnreport.value||TODAY,date:fnd.value,time:fntime.value,vehicle:normalizeVehicleNumberInput(fnvehicle.value)||'未設定',employee_no:e.no,driver:e.name,
    locationTags:nearChecked('nearLocation'),situationTags:nearChecked('nearSituation'),roadTags:nearChecked('nearRoad'),targetTags:nearChecked('nearTarget'),
    causeSide:fnside.value,internalFactors:nearChecked('nearInternal'),riskLevel:fnrisk.value,
    summary:fns.value.trim(),education:fneducation.value.trim(),prevention:fnprevention.value.trim(),action:'記録済み'},rid;
@@ -5608,7 +5634,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v111';
+const RELEASE_VERSION='v112';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
