@@ -2047,6 +2047,32 @@ const DATA_MODEL_META={
  audit_logs:{required:'id / occurred_at / actor_user_id / action / entity_type / entity_id',indexes:'occurred_at, actor_user_id, entity_type+entity_id',history:'追記専用・原則更新削除不可'}
 };
 function dataModelMeta(table){return DATA_MODEL_META[table]||{required:'要定義',indexes:'要定義',history:'要定義'}}
+
+const DATA_WRITE_RULES=[
+ {name:'新規登録',rule:'サーバー側で必須・参照・権限を再検証し、作成者・作成日時を自動記録',level:'ok'},
+ {name:'通常更新',rule:'updated_at と version を使い、古い画面からの上書きは競合として止める',level:'ok'},
+ {name:'重要項目変更',rule:'所属・在籍状態・乗務可否・担当・期限・完了・修理費などは変更前後を履歴へ残す',level:'ok'},
+ {name:'完了済み案件',rule:'事故・苦情は直接書換えず、再開理由を記録してから再編集できる形にする',level:'ok'},
+ {name:'削除',rule:'社員・事故・ヒヤリ・苦情・車両・資格は原則物理削除しない。状態変更・無効化・廃車・退職で保持',level:'ok'},
+ {name:'書類差替え',rule:'旧書類を消さず無効化／差替え履歴を残し、新しい証憑へ参照を切替える',level:'ok'},
+ {name:'監査ログ',rule:'追記専用。業務画面から更新・削除できない保存領域へ記録',level:'ok'},
+ {name:'一括取込',rule:'取込バッチIDを付け、事前検証・件数照合・ロールバック単位を明確にする',level:'ok'}
+];
+const API_OPERATION_RULES=[
+ {method:'GET',path:'/api/{resource}',rule:'ログイン利用者の担当範囲だけ返す'},
+ {method:'GET',path:'/api/{resource}/{id}',rule:'担当外・権限外は存在していても拒否'},
+ {method:'POST',path:'/api/{resource}',rule:'作成権限＋入力検証＋参照整合性を確認'},
+ {method:'PATCH',path:'/api/{resource}/{id}',rule:'version 必須。競合時は上書きせず再読込を要求'},
+ {method:'POST',path:'/api/{resource}/{id}/complete',rule:'完了条件を再検証し、確認者・完了日時を自動記録'},
+ {method:'POST',path:'/api/{resource}/{id}/reopen',rule:'再開理由を必須化し監査ログへ記録'},
+ {method:'POST',path:'/api/{resource}/{id}/archive',rule:'削除の代わりに無効化。参照中なら影響を確認'},
+ {method:'DELETE',path:'原則使用しない',rule:'業務記録には公開しない。運用誤登録の特殊対応のみ別手順'}
+];
+function dataWritePolicyHtml(){
+ return `<div class="section"><h3>更新・削除・履歴ルール</h3><div class="scope-note">本番では「画面でできたから保存できる」ではなく、API側でも同じルールを強制します。重要記録は消すより状態を変えて履歴を残します。</div>
+ <div class="readiness-grid" style="margin-top:9px">${DATA_WRITE_RULES.map(x=>`<div class="ready-item ${x.level}"><b>${esc(x.name)}</b><div class="mini">${esc(x.rule)}</div></div>`).join('')}</div></div>
+ <div class="section"><h3>API操作ルール</h3><div class="tablewrap"><table><thead><tr><th>操作</th><th>API候補</th><th>サーバー側ルール</th></tr></thead><tbody>${API_OPERATION_RULES.map(x=>`<tr><td><b>${esc(x.method)}</b></td><td>${esc(x.path)}</td><td>${esc(x.rule)}</td></tr>`).join('')}</tbody></table></div></div>`
+}
 function collectionBySource(name){
  return {E,QUAL,DOCS,TR,AS,A,N,C,GUIDANCE,V,APPLICATIONS,NOTICES,CONFIRMATIONS,HANDOFFS,USERS,AUDIT}[name]||[]
 }
@@ -2071,7 +2097,7 @@ function relationIntegrityIssues(){
 function renderDataModelSummary(){
  let el=document.getElementById('dataModelSummary');if(!el)return;
  let issues=relationIntegrityIssues(),records=DATA_MODEL.reduce((n,m)=>n+collectionBySource(m.source).length,0);
- el.innerHTML='<b>本番DB候補：'+DATA_MODEL.length+'テーブル / 現在 '+records+'レコード相当</b><br>参照整合性 '+(issues.length?'要確認 '+issues.length+'件':'正常')+'<br><span class="mini">現在はブラウザ配列・localStorageです。本番では主キー、外部キー、権限、監査をDB/API側へ移します。</span>'
+ el.innerHTML='<b>本番DB候補：'+DATA_MODEL.length+'テーブル / 現在 '+records+'レコード相当</b><br>参照整合性 '+(issues.length?'要確認 '+issues.length+'件':'正常')+' / 更新・削除・履歴ルール 設計済み<br><span class="mini">現在はブラウザ配列・localStorageです。本番では主キー、外部キー、権限、監査をDB/API側へ移します。</span>'
 }
 function showDataModel(){
  if(!isFullCompanyAdmin())return alert('本番DB移行設計は全社管理者のみ確認できます');
@@ -2081,6 +2107,7 @@ function showDataModel(){
  <div class="section"><h3>移行原則</h3><div class="scope-note">社員番号を業務上の基準キーとして保持しつつ、DB内部では変更されない主キーも持たせます。事故・資格・書類・車両などは社員を参照し、利用者権限と監査ログは別テーブルに分離します。削除より「状態変更・履歴保持」を基本にします。</div></div>
  <div class="table-card"><div class="tablewrap"><table><thead><tr><th>テーブル候補</th><th>主キー・参照</th><th>必須項目</th><th>検索索引候補</th><th>履歴対象</th><th>件数</th></tr></thead><tbody>${DATA_MODEL.map(m=>{let meta=dataModelMeta(m.table);return `<tr><td><b>${esc(m.label)}</b><div class="mini">${esc(m.table)} / ${esc(m.purpose)}</div></td><td>${esc(m.pk)}<div class="mini">${esc(m.parent)}</div></td><td>${esc(meta.required)}</td><td>${esc(meta.indexes)}</td><td>${esc(meta.history)}</td><td>${collectionBySource(m.source).length}</td></tr>`}).join('')}</tbody></table></div></div>
  <div class="section"><h3>参照チェック</h3>${issues.length?issues.map(x=>'<div class="row quality-warn"><div><b>'+esc(x)+'</b></div><span class="badge warn">要確認</span></div>').join(''):'<div class="notice"><div><b>参照切れ・主キー重複は検出されませんでした。</b><div class="mini">本番DB移行時にはDBの外部キー制約でも強制します。</div></div><span class="badge ok">OK</span></div>'}</div>
+ ${dataWritePolicyHtml()}
  <div class="section"><h3>移行手順</h3><div class="readiness-grid"><div class="ready-item ok"><b>1. スキーマ作成</b><div class="mini">空の本番DBと制約を先に作る</div></div><div class="ready-item ok"><b>2. 架空データ移行試験</b><div class="mini">ID・参照・件数を照合</div></div><div class="ready-item ok"><b>3. 権限試験</b><div class="mini">担当外データがAPIで拒否されることを確認</div></div><div class="ready-item ok"><b>4. 本番データ投入</b><div class="mini">バックアップ後に段階投入・照合</div></div></div></div>
  <div class="section"><h3>本番で追加する制約</h3><div class="readiness-grid"><div class="ready-item ok"><b>主キー</b><div class="mini">全レコードを一意に識別</div></div><div class="ready-item ok"><b>外部キー</b><div class="mini">存在しない社員・利用者への参照を拒否</div></div><div class="ready-item ok"><b>履歴</b><div class="mini">更新者・更新日時・重要変更を保持</div></div><div class="ready-item ok"><b>権限</b><div class="mini">API・DB側で担当範囲を強制</div></div></div></div>`;
  showDetailModal();audit('本番DB移行設計確認','参照整合性 '+issues.length+'件',{entity_type:'system',entity_id:'data-model'})
@@ -2928,7 +2955,7 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
