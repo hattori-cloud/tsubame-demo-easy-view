@@ -1,6 +1,6 @@
 /**
  * Production API security foundation.
- * v107: fail closed until a real identity provider/session verifier is configured.
+ * v108: fail closed until a real identity provider/session verifier is configured.
  * IMPORTANT: Never trust role/scope values sent by the browser.
  */
 function applySecurityHeaders(res){
@@ -18,7 +18,7 @@ function errorBody(code,message,id){
   return {error:{code,message,request_id:id}};
 }
 function productionAuthConfigured(){
-  return Boolean(process.env.TSUBAME_AUTH_ISSUER && process.env.TSUBAME_AUTH_AUDIENCE);
+  return Boolean(process.env.TSUBAME_AUTH_ISSUER && process.env.TSUBAME_AUTH_AUDIENCE && process.env.TSUBAME_AUTH_JWKS_URL);
 }
 function rejectUntilAuthConfigured(req,res){
   const id=requestId(req);
