@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v101</title>
+<title>つばめ交通株式会社 社員一元管理システム v102</title>
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
 *{box-sizing:border-box}html{font-size:var(--fs)}body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Yu Gothic UI","Meiryo",sans-serif;line-height:1.68}
@@ -548,7 +548,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.safety-overview{grid-template-columns:1fr}.quick-strip{grid-template-columns:1fr}.manager-workload-grid{grid-template-columns:1fr}}
 </style>
 </head><body>
-<div class="demo">本番反映版 v101｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
+<div class="demo">本番反映版 v102｜社内運用候補｜初期サンプル120名（架空）｜登録・復元後は人数可変｜本番DB・認証接続前は実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">本番反映版（架空データ）｜事業所と部署を分離｜安全・資格・健康期限を一元確認</div></div><div class="control-panel"><div class="control-row"><span class="control-label">権限確認（デモ）</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
@@ -800,6 +800,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="grid2"><div class="card"><h3>会社固有設定</h3><div id="companySpec" class="company-grid"></div></div><div class="card"><h3>利用者・権限</h3><div id="userSummary"></div><div id="authReadiness" class="scope-note" style="margin-top:9px"></div><div class="toolbar" style="margin-top:9px"><button class="btn primary" onclick="showUsers()">利用者一覧</button><button class="btn soft" onclick="showAccessMatrix()">権限マトリクス</button><button class="btn soft" onclick="showLoginDesign()">本番ログイン設計</button></div></div></div>
   <div class="card" style="margin-top:12px"><h3>導入前チェック</h3><div id="readiness" class="readiness-grid"></div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">本番移行ゲート</h3><div class="mini">実社員データ投入前に、未完了条件と残作業をまとめて確認します。</div></div><button class="btn soft" onclick="showProductionGate()">条件を見る</button></div><div id="productionGate"></div></div>
+  <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">受入テスト</h3><div class="mini">管理者・現場端末で、本番前に確認すべき操作を記録します。</div></div><button class="btn primary" onclick="showUatChecklist()">テスト項目を開く</button></div><div id="uatSummary" class="scope-note" style="margin-top:9px"></div></div>
   <div class="grid2" style="margin-top:12px"><div class="card"><h3>入力用Excel・一括取込</h3><div class="scope-note">未照合社員を自動作成せず、取込前チェック後に確定する設計です。</div><button class="btn soft" style="margin-top:9px" onclick="showImportSpec()">取込仕様を見る</button></div><div class="card"><h3>書類原本管理</h3><div id="documentLifecycle"></div></div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">本番DB移行設計</h3><div class="mini">社員を親キーに、事故・資格・書類・車両などの参照関係を確認します。</div></div><button class="btn primary" onclick="showDataModel()">データ構造を見る</button></div><div id="dataModelSummary" class="scope-note" style="margin-top:9px"></div></div>
   <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">システム基盤状態</h3><div class="mini">画面・関数・権限・保存領域・参照整合性の自己診断も実行できます。</div></div><button class="btn soft" onclick="runSystemSelfDiagnostic()">自己診断を実行</button></div><div id="foundationStatus"></div><div id="selfDiagnosticSummary" class="scope-note" style="margin-top:10px">自己診断：未実行</div></div>
@@ -1727,7 +1728,7 @@ function openQualityIssue(index){
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v101.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ downloadCsv('データ品質チェック_本番反映版_v102.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
  audit('CSV出力','データ品質チェック / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
@@ -2583,6 +2584,55 @@ function renderCompanySpec(){
   return deadlinePriority(a.expiry)-deadlinePriority(b.expiry)
  }).slice(0,8).map(d=>`<div class="row"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)}${d.expiry?' / 期限 '+esc(d.expiry):''}</div></div><span class="badge ${d.status==='原本確認済み'?'ok':'warn'}">${esc(d.status||'確認待ち')}</span></div>`).join('')
 }
+const UAT_ITEMS=[
+ {id:'AUTH-01',group:'認証・権限',name:'全社管理者で全社データを確認できる'},
+ {id:'AUTH-02',group:'認証・権限',name:'担当管理者が担当外社員を表示・更新できない'},
+ {id:'AUTH-03',group:'認証・権限',name:'一般社員は本人向け情報だけ表示される'},
+ {id:'EMP-01',group:'社員',name:'社員登録・編集・異動・休職・退職の引継ぎが記録できる'},
+ {id:'SAFE-01',group:'安全',name:'事故登録→対応更新→完了まで通せる'},
+ {id:'SAFE-02',group:'安全',name:'ヒヤリ登録と分析項目の確認ができる'},
+ {id:'SAFE-03',group:'安全',name:'苦情登録→担当・期限→完了まで通せる'},
+ {id:'DOC-01',group:'資格・書類',name:'資格と証憑を登録・紐付け・差替えできる'},
+ {id:'VEH-01',group:'車両',name:'専属・共用・予備車・代車と複数利用乗務員を扱える'},
+ {id:'WORK-01',group:'勤務',name:'勤務集計と期限警告を社員単位で確認できる'},
+ {id:'SEARCH-01',group:'検索',name:'社員・事故・ヒヤリ・苦情・車両を検索・絞り込みできる'},
+ {id:'DATA-01',group:'データ',name:'保存後の再読込で内容が維持される'},
+ {id:'DATA-02',group:'データ',name:'バックアップ→復元→自己診断が通る'},
+ {id:'MOBILE-01',group:'端末',name:'PCブラウザで主要操作が崩れない'},
+ {id:'MOBILE-02',group:'端末',name:'スマホで閲覧・主要入力ができる'},
+ {id:'AUDIT-01',group:'監査',name:'重要操作が操作履歴に残る'}
+];
+let UAT_RESULTS=(()=>{try{return JSON.parse(localStorage.getItem('v102UAT')||'{}')}catch(_){return {}}})();
+function uatCounts(){
+ let pass=0,fix=0,notRun=0;
+ UAT_ITEMS.forEach(x=>{let s=UAT_RESULTS[x.id]?.status||'未実施';if(s==='合格')pass++;else if(s==='要修正')fix++;else notRun++});
+ return {pass,fix,notRun,total:UAT_ITEMS.length}
+}
+function saveUat(){localStorage.setItem('v102UAT',JSON.stringify(UAT_RESULTS))}
+function setUatResult(id,status){
+ let prev=UAT_RESULTS[id]||{};UAT_RESULTS[id]={...prev,status,date:TODAY,actor:currentActorIdentity().name};saveUat();renderUatSummary();renderUatRows()
+}
+function setUatNote(id,note){
+ let prev=UAT_RESULTS[id]||{};UAT_RESULTS[id]={...prev,note:String(note||'').trim()};saveUat()
+}
+function renderUatSummary(){
+ let el=document.getElementById('uatSummary');if(!el)return;
+ let n=uatCounts(),tone=n.fix?'danger':n.notRun?'warn':'ok';
+ el.innerHTML='<b>受入テスト '+n.pass+'/'+n.total+' 合格</b> / 未実施 '+n.notRun+' / 要修正 '+n.fix+'<br><span class="badge '+tone+'">'+(n.fix?'修正あり':n.notRun?'テスト継続中':'全項目合格')+'</span><span class="mini">　共有デモ内の記録です。本番環境では実端末・実認証・実DBで再実施します。</span>'
+}
+function renderUatRows(){
+ let el=document.getElementById('uatRows');if(!el)return;
+ let group=document.getElementById('uatGroup')?.value||'all';
+ let rows=UAT_ITEMS.filter(x=>group==='all'||x.group===group);
+ el.innerHTML=rows.map(x=>{let r=UAT_RESULTS[x.id]||{},s=r.status||'未実施';return `<div class="row ${s==='要修正'?'quality-bad':s==='未実施'?'quality-warn':''}"><div style="flex:1"><b>${esc(x.id)} / ${esc(x.name)}</b><div class="mini">${esc(x.group)}${r.date?' / '+esc(r.date)+' / '+esc(r.actor||''):''}</div><input style="margin-top:6px;width:100%" placeholder="確認メモ（任意）" value="${esc(r.note||'')}" onchange="setUatNote('${x.id}',this.value)"></div><select onchange="setUatResult('${x.id}',this.value)"><option ${s==='未実施'?'selected':''}>未実施</option><option ${s==='合格'?'selected':''}>合格</option><option ${s==='要修正'?'selected':''}>要修正</option></select></div>`}).join('')
+}
+function showUatChecklist(){
+ if(!isFullCompanyAdmin())return alert('受入テストは全社管理者のみ確認できます');
+ let groups=[...new Set(UAT_ITEMS.map(x=>x.group))];
+ dttl.textContent='本番前 受入テスト';
+ dbody.innerHTML=`<div class="spec-note">共有デモで機能確認を行い、本番認証・DB接続後に同じ項目を実環境で再確認します。「要修正」が1件でもある間は本番移行しません。</div><div class="deadline-toolbar"><select id="uatGroup" onchange="renderUatRows()"><option value="all">全カテゴリ</option>${groups.map(g=>'<option>'+esc(g)+'</option>').join('')}</select></div><div id="uatRows"></div>`;
+ showDetailModal();renderUatRows();audit('受入テスト確認','テスト項目 '+UAT_ITEMS.length+'件',{entity_type:'system',entity_id:'uat'})
+}
 function productionGateItems(){
  return [
   {name:'実サーバーHTTPS',status:'未確認',level:'bad',next:'本番ホスティングと証明書を確定'},
@@ -2594,7 +2644,7 @@ function productionGateItems(){
   {name:'監査ログのサーバー保存',status:'未接続',level:'bad',next:'操作履歴を改変困難な保存先へ記録'},
   {name:'保存年限・紙原本方針',status:'会社承認待ち',level:'warn',next:'保存年限と原本保管ルールを決裁'},
   {name:'実社員データ照合',status:'未実施',level:'bad',next:'社員番号・所属・資格を投入前照合'},
-  {name:'PC/スマホ実機受入',status:'未完了',level:'warn',next:'管理者と現場端末で受入試験'},
+  ...(()=>{let n=uatCounts();return [{name:'PC/スマホ実機受入',status:n.fix?'要修正 '+n.fix+'件':n.notRun?'未実施 '+n.notRun+'件':'共有デモ内は合格',level:n.fix?'bad':n.notRun?'warn':'ok',next:'本番環境で管理者・現場端末の受入テストを再実施'}]})(),
   {name:'PCA・アントレ・Eight',status:'正式仕様未確定',level:'warn',next:'連携範囲と責任分界を確定'},
   {name:'匿名開発版',status:'検証資材あり',level:'ok',next:'継続して架空データのみで検証'}
  ]
@@ -2949,13 +2999,13 @@ function systemDiagnosticCheck(name,ok,detail,level='bad'){
 }
 function runSystemDiagnosticChecks(){
  let out=[];
- let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','authReadiness','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
+ let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','productionGate','homeDailySummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','companySpec','auditHistory'];
  requiredIds.forEach(id=>out.push(systemDiagnosticCheck('画面ID '+id,!!document.getElementById(id),document.getElementById(id)?'存在':'見つかりません')));
  let idCounts={};
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -2966,14 +3016,14 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('共通データコレクション',badCollections.length===0,badCollections.length?'配列ではない：'+badCollections.join('、'):collections.length+'コレクション正常'));
  let relationIssues=relationIntegrityIssues();
  out.push(systemDiagnosticCheck('データ参照整合性',relationIssues.length===0,relationIssues.length?relationIssues.slice(0,5).join(' / ')+(relationIssues.length>5?' ほか'+(relationIssues.length-5)+'件':''):'外部参照・主キー重複なし','warn'));
- out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v101.0','現在 '+APP_DATA_SCHEMA));
+ out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA==='v102.0','現在 '+APP_DATA_SCHEMA));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
  out.push(systemDiagnosticCheck('起動・データ移行',bootOk,typeof BOOT_HEALTH==='undefined'?'BOOT_HEALTHなし':BOOT_HEALTH.errors.length?BOOT_HEALTH.errors.map(x=>x.label+': '+x.message).join(' / '):'起動処理 '+BOOT_HEALTH.steps.length+'項目完了'));
  let officeRuleOk=allowedDepartmentsForOffice('府中').includes('バス課')&&allowedDepartmentsForOffice('本社').includes('バス課')&&allowedDepartmentsForOffice('馬木').length===1&&allowedDepartmentsForOffice('馬木')[0]==='バス課';
  out.push(systemDiagnosticCheck('事業所・部署ルール',officeRuleOk,officeRuleOk?'本社・府中は各部署 / 馬木はバス課のみ':'会社固有ルールと一致しません'));
  let storageOk=false,storageDetail='';
- let testKey='v101SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
+ let testKey='v102SELFTEST_'+Date.now(),testValue='ok-'+Math.random().toString(36).slice(2);
  try{
   localStorage.setItem(testKey,testValue);
   storageOk=localStorage.getItem(testKey)===testValue;
@@ -4736,6 +4786,20 @@ function fillAccidentEmployeeDefaults(){
   vehicle.value=v?.plate||''
  }
 }
+function setFormValue(id,value,fire=true){
+ let el=document.getElementById(id);if(!el)return;el.value=value;
+ if(fire)el.dispatchEvent(new Event('change',{bubbles:true}))
+}
+function setCurrentFormTime(id){
+ let parts=new Intl.DateTimeFormat('en-GB',{timeZone:APP_TIME_ZONE,hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()).split(':');
+ setFormValue(id,(parts[0]||'00')+':'+(parts[1]||'00'),false)
+}
+function appendFormText(id,text){
+ let el=document.getElementById(id);if(!el)return;
+ let current=String(el.value||'').trim();
+ el.value=current?(current+' / '+text):text;
+ el.dispatchEvent(new Event('input',{bubbles:true}))
+}
 function openAccidentForm(defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('事故登録は管理者のみ操作できます');return}
  let candidates=scopedEmployees().filter(e=>e.status==='在籍'&&['タクシー課','バス課'].includes(e.dept));
@@ -5165,9 +5229,9 @@ fsave.addEventListener('click',()=>{FORM_SAVE_ATTEMPT=true;setTimeout(()=>{FORM_
 window.addEventListener('beforeunload',e=>{if(form.classList.contains('show')&&FORM_DIRTY){e.preventDefault();e.returnValue=''}});
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
-function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
+function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const APP_DATA_SCHEMA='v101.0';
+const APP_DATA_SCHEMA='v102.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
  try{
