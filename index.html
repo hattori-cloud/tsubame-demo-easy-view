@@ -2687,6 +2687,29 @@ function showFoundationProgress(){
  <div class="section"><h3>本番移行で残るもの</h3>${p.gates.filter(x=>x.level!=='ok').map(x=>`<div class="row ${x.level==='bad'?'quality-bad':'quality-warn'}"><div><b>${esc(x.name)}</b><div class="mini">${esc(x.next)}</div></div><span class="badge ${x.level==='bad'?'danger':'warn'}">${x.level==='bad'?'停止条件':'要確認'}</span></div>`).join('')}</div>`;
  showDetailModal()
 }
+const PRODUCTION_IMPLEMENTATION_SPECS=[
+ {gate:'実サーバーHTTPS',component:'公開基盤',implementation:'本番用ドメインを確定し、HTTPS強制・証明書自動更新・HTTPからHTTPSへの転送を設定。デモURLとは環境を分離する。',acceptance:'本番URLで有効な証明書を確認し、HTTPアクセスがHTTPSへ転送される。管理画面・APIも同一方針。'},
+ {gate:'実VPN・スマホ疎通',component:'ネットワーク',implementation:'社内PC・社外スマホからの利用経路を決める。VPN必須にするか、インターネット公開＋強固な認証にするかを確定し、端末別の接続条件を文書化する。',acceptance:'会社が許可したPC・スマホで接続でき、許可していない経路では想定どおり拒否される。'},
+ {gate:'本番認証・利用者照合',component:'認証',implementation:'個人単位の認証を接続し、認証後に会社の利用者台帳で有効状態を照合。管理者MFAを必須にし、停止アカウントは即時拒否する。共有IDは使わない。',acceptance:'有効利用者のみログイン可。未登録・停止利用者は拒否。管理者はMFAなしで利用不可。ログイン／ログアウトを監査記録できる。'},
+ {gate:'サーバー側権限制御',component:'API権限',implementation:'現在の事業所×部署・全社管理者・一般社員本人のみ・安全判断権限をAPIミドルウェアで再実装。画面の非表示だけに依存しない。',acceptance:'URLやAPIを直接指定しても担当外データは取得・更新不可。全社管理者／担当管理者／一般社員のUATをすべて通す。'},
+ {gate:'本番データベース',component:'DB',implementation:'本番DBを作成し、内部不変ID、employee_no一意制約、外部キー、created_at/updated_at/version、状態管理、変更履歴を実装。現在のDATA_MODELを移行元仕様として使う。',acceptance:'架空データを移行し件数一致・参照切れ0・主キー重複0。競合更新が上書きされず、権限外更新も拒否される。'},
+ {gate:'別故障領域バックアップ',component:'バックアップ',implementation:'本番DBとは別の障害領域へ自動バックアップを保存し、保持期間・暗号化・復旧手順を決定。復旧試験を定期実施できる形にする。',acceptance:'検証用バックアップから別環境へ復元し、件数・参照・主要画面を照合。復旧手順と実施結果を記録する。'},
+ {gate:'監査ログのサーバー保存',component:'監査',implementation:'actor_user_id、日時、操作、対象種別・ID、変更概要、結果をサーバー側で追記保存。通常の業務画面から更新・削除できない領域に分離する。',acceptance:'社員・権限・事故・苦情・車両などの重要変更が必ず記録され、一般の更新APIから監査ログを書換え・削除できない。'},
+ {gate:'保存年限・紙原本方針',component:'運用ルール',implementation:'事故・苦情・資格証憑・健康関連期限・監査ログ等について保存年限と紙原本の要否を会社で決裁し、書類区分ごとのルール表にする。',acceptance:'対象データごとに保存年限・原本要否・廃棄手順・閲覧権限が承認済み文書で定義されている。'},
+ {gate:'実社員データ照合',component:'データ移行',implementation:'社員番号を基準に、社員基本・所属・免許資格・期限・車両担当等を取込前検証。未照合行を自動新規作成せず、差分一覧を管理者確認する。',acceptance:'取込前後で社員件数・社員番号・所属・主要期限を照合し、未照合・重複・参照切れが0または承認済み例外として記録される。'},
+ {gate:'PC/スマホ実機受入',component:'受入試験',implementation:'現在のUAT 16項目を本番認証・本番DB・実端末で再実施。管理者PC、現場スマホの主要ブラウザで登録・検索・詳細・権限を確認する。',acceptance:'要修正0件。認証・権限・社員・安全・車両・資格・保存・監査を含む全必須項目が合格。'},
+ {gate:'PCA・アントレ・Eight',component:'外部連携',implementation:'各サービスごとに連携目的、方向、項目、更新主体、失敗時の扱い、個人情報範囲を先に確定し、正式仕様がない連携は本番初期範囲から外す。',acceptance:'サービスごとに責任分界・連携項目・同期方向・エラー処理・運用担当が承認されている。'}
+];
+function productionImplementationSpec(gate){return PRODUCTION_IMPLEMENTATION_SPECS.find(x=>x.gate===gate)}
+function showProductionImplementationSpecs(){
+ if(!isFullCompanyAdmin())return alert('本番実装仕様は全社管理者のみ確認できます');
+ let gates=productionGateItems().filter(x=>x.level!=='ok');
+ dttl.textContent='本番移行 停止条件の実装仕様';
+ dbody.innerHTML=`<div class="spec-note">ここは「残っていること」ではなく「何を実装し、何を確認できたら解除するか」を定義します。実装前に方式・担当・費用を決裁し、本番環境で合格条件を確認します。</div>`+
+ gates.map((g,i)=>{let s=productionImplementationSpec(g.name);return `<div class="section"><div class="list-summary"><div><h3 style="margin:0">${i+1}. ${esc(g.name)}</h3><div class="mini">${esc(s?.component||'運用')} / 現在：${esc(g.status)}</div></div><span class="badge ${g.level==='bad'?'danger':'warn'}">${g.level==='bad'?'停止条件':'要確認'}</span></div><div class="info" style="margin-top:8px"><label>実装内容</label><div>${esc(s?.implementation||g.next)}</div></div><div class="info" style="margin-top:8px"><label>解除・合格条件</label><div>${esc(s?.acceptance||'会社承認と実環境確認を完了')}</div></div></div>`}).join('')+
+ `<div class="scope-note">順序は、認証・権限・DB・監査・バックアップを先に構築し、架空データで試験した後に実社員データ照合と実機UATへ進むのが安全です。</div>`;
+ showDetailModal();audit('本番実装仕様確認','未完了条件 '+gates.length+'件',{entity_type:'system',entity_id:'production-spec'})
+}
 function productionGateItems(){
  return [
   {name:'実サーバーHTTPS',status:'未確認',level:'bad',next:'本番ホスティングと証明書を確定'},
@@ -2714,7 +2737,7 @@ function showProductionGate(){
  if(!isFullCompanyAdmin())return alert('本番移行ゲートは全社管理者のみ確認できます');
  let items=productionGateItems();
  dttl.textContent='本番移行ゲート';
- dbody.innerHTML=`<div class="spec-note">「bad」は実社員データ投入前の停止条件、「warn」は運用開始前に決める確認事項です。</div>`+
+ dbody.innerHTML=`<div class="spec-note">「bad」は実社員データ投入前の停止条件、「warn」は運用開始前に決める確認事項です。<div style="margin-top:8px"><button class="btn primary" onclick="showProductionImplementationSpecs()">解除条件・実装仕様を見る</button></div></div>`+
  items.map((x,i)=>`<div class="row ${x.level==='bad'?'quality-bad':x.level==='warn'?'quality-warn':''}"><div><b>${i+1}. ${esc(x.name)}</b><div class="mini">現在：${esc(x.status)}<br>次に行うこと：${esc(x.next)}</div></div><span class="badge ${x.level==='bad'?'danger':x.level==='warn'?'warn':'ok'}">${x.level==='bad'?'停止条件':x.level==='warn'?'要確認':'済み'}</span></div>`).join('');
  showDetailModal();
  audit('本番移行ゲート確認','停止条件 '+items.filter(x=>x.level==='bad').length+'件',{entity_type:'system',entity_id:'production-gate'})
@@ -3059,7 +3082,7 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','renderHomeDailySummary','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
