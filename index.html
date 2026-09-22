@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v125</title>
-<!-- production-sync:v125 -->
+<title>つばめ交通株式会社 社員一元管理システム v126</title>
+<!-- production-sync:v126 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v126 direct global search */
+.search-result-group{display:grid;gap:6px;margin:10px 0 13px}
+.search-result-group-head{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:0 2px;color:#31596b}
+.search-result-group-head b{font-size:.78rem}.search-result-group-head span{font-size:.66rem;font-weight:900;color:#6d818b}
+.search-result-card{width:100%;border:1px solid #d4e2e8;border-radius:11px;background:#fff;padding:10px 11px;display:flex;justify-content:space-between;align-items:center;gap:10px;text-align:left;cursor:pointer}
+.search-result-card:hover,.search-result-card:focus-visible{border-color:#82b6ca;background:#f6fbfd;box-shadow:0 3px 11px rgba(22,56,76,.07);outline:none}
+.search-result-main{display:grid;gap:3px;min-width:0}.search-result-title{color:#173f57}.search-result-sub{font-size:.7rem;font-weight:800;color:#607783;line-height:1.4}
+.search-result-open{flex:0 0 auto;color:#075b88;font-size:.72rem;font-weight:950}
+@media(max-width:560px){.search-result-card{align-items:flex-start}.search-result-open{padding-top:3px}}
 
 /* v125 employee-name navigation */
 .employee-name-link{font-weight:950;font-size:inherit;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}
@@ -5100,13 +5110,42 @@ function globalSearchGroup(label){
 function globalSearchTypeLabel(type){
  return {all:'すべて',employee:'社員',safety:'安全記録',qualification:'資格・書類',vehicle:'車両',application:'申請',comms:'掲示'}[type]||'すべて'
 }
+function globalSearchSectionLabel(group){
+ return {employee:'社員',safety:'運行・安全',vehicle:'車両',qualification:'資格・書類',application:'申請',comms:'掲示',other:'その他'}[group]||'その他'
+}
+function globalSearchScore(result,q){
+ let needle=String(q||'').trim().toLowerCase(),title=String(result?.title||'').toLowerCase(),sub=String(result?.sub||'').toLowerCase();
+ if(!needle)return 0;
+ let score=0;
+ if(title===needle)score+=100;
+ if(title.startsWith(needle))score+=55;
+ if(title.includes(needle))score+=30;
+ if(sub.includes(needle))score+=10;
+ if(result?.label==='社員'&&/^\d+$/.test(needle)&&title.startsWith(needle+' '))score+=80;
+ if(result?.label==='車両'&&/^\d{3}$/.test(needle)&&title.startsWith(needle+'号車'))score+=95;
+ if(['事故','苦情','ヒヤリ'].includes(result?.label)&&title.toLowerCase()===needle)score+=90;
+ return score
+}
+function renderGlobalSearchResults(results,type,total,q){
+ let visible=results.slice(0,18),order=['employee','safety','vehicle','qualification','application','comms','other'];
+ let summary='<div class="search-result-summary"><div><b>'+esc(globalSearchTypeLabel(type))+'の検索結果</b><div class="mini">'+total+'件'+(total>18?'（先頭18件を表示）':'')+' / 結果を押すと詳細を開きます</div></div>'+(type!=='all'?'<button class="btn soft" onclick="document.getElementById(\'gtype\').value=\'all\';searchAll()">すべてに戻す</button>':'')+'</div>';
+ if(!visible.length)return summary+'<div class="mini">該当する情報はありません。</div>';
+ let sections=order.map(group=>{
+  let items=visible.filter(r=>globalSearchGroup(r.label)===group);
+  if(!items.length)return '';
+  return '<section class="search-result-group"><div class="search-result-group-head"><b>'+esc(globalSearchSectionLabel(group))+'</b><span>'+items.length+'件</span></div>'+
+   items.map(r=>'<button type="button" class="search-result-card" onclick="'+r.open+'"><span class="search-result-main"><span><span class="search-kind-pill">'+esc(r.label)+'</span><b class="search-result-title">'+esc(r.title)+'</b></span><span class="search-result-sub">'+esc(r.sub)+'</span></span><span class="search-result-open">詳細 ›</span></button>').join('')+
+  '</section>'
+ }).join('');
+ return summary+sections
+}
 function searchAll(){
  let q=(gq.value||'').trim().toLowerCase(),type=document.getElementById('gtype')?.value||'all';
  if(!q){gres.innerHTML='<div class="mini">検索語を入力すると候補を表示します。</div>';return}
  let results=[];
- scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).slice(0,6).forEach(e=>{
-  let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・');
-  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${certs?' / 認定 '+certs:''}`,open:`go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)`})
+ scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).slice(0,6).forEach(e=>{
+  let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・'),cars=employeeAssignedVehicles(e.no).map(v=>v.plate).filter(Boolean);
+  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)`})
  });
  let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4);
  quals.forEach(x=>results.push({label:'資格',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.name}`,sub:`${x.number||'番号未登録'} / 期限 ${x.expiry||'未設定'}`,open:`go('emp');setTimeout(()=>employeeQualification('${x.employee_no}'),40)`}));
@@ -5124,9 +5163,9 @@ function searchAll(){
   scopedVehicles().filter(v=>[v.id,v.plate,v.service,v.status,emp(v.employee_no)?.name||''].join(' ').toLowerCase().includes(q)).slice(0,4).forEach(v=>{let rel=vehicleRelatedSafetyRecords(v);results.push({label:'車両',title:`${v.plate}号車`,sub:`管理番号 ${v.id} / ${v.service} / ${v.status} / 事故 ${rel.accidents.length}・苦情 ${rel.complaints.length}・ヒヤリ ${rel.near.length}`,open:`go('vehicles');setTimeout(()=>vehicleDetail('${v.id}'),40)`})});
  }
  results=results.filter(r=>type==='all'||globalSearchGroup(r.label)===type);
- let total=results.length;results=results.slice(0,18);
- let summary=`<div class="search-result-summary"><div><b>${esc(globalSearchTypeLabel(type))}の検索結果</b><div class="mini">${total}件${total>18?'（先頭18件を表示）':''}</div></div>${type!=='all'?'<button class="btn soft" onclick="document.getElementById(\'gtype\').value=\'all\';searchAll()">すべてに戻す</button>':''}</div>`;
- gres.innerHTML=results.length?summary+results.map(r=>`<div class="row"><div><span class="search-kind-pill">${esc(r.label)}</span><b>${esc(r.title)}</b><div class="mini">${esc(r.sub)}</div></div><button class="btn soft" onclick="${r.open}">開く</button></div>`).join(''):summary+'<div class="mini">該当する情報はありません。</div>'
+ results.sort((a,b)=>globalSearchScore(b,q)-globalSearchScore(a,q));
+ let total=results.length;
+ gres.innerHTML=renderGlobalSearchResults(results,type,total,q)
 }
 function openEmployeeEdit(no){
  if(!canEditEmployee(no)){alert('現在の担当範囲ではこの社員を編集できません');return}
@@ -6037,7 +6076,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v125';
+const RELEASE_VERSION='v126';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
