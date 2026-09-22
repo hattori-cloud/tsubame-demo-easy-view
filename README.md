@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v124 foundation build.
+Current application: v125 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v124 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v124.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v125.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -77,6 +77,7 @@ Current application: v124 foundation build.
 - v122 makes Vehicle Management operationally car-number-first: adds active/overdue/30-day/attention overview cards, prioritizes the 3-digit car number in lists, shows assigned driver and Gold/English/Tourism certification badges together, adds direct employee navigation, includes certification in vehicle search, and provides a mobile vehicle-card layout.
 - v123 fixes the Work screen map-callback syntax error that prevented all client-side click handlers from starting, validates the full inline JavaScript before deployment, and moves global search directly below the Home morning status cards with clearer employee/car-number/case-number guidance.
 - v124 simplifies safety-entry workflow without removing data fields: accident entry opens initial facts, situation and follow-up first while analysis/repair remain collapsed; near-miss entry prioritizes employee/date/content before classification; complaint entry opens reception/target/statement for new records and keeps guidance/completion collapsed until follow-up.
+- v125 standardizes employee-name navigation: names in accident, near-miss, complaint, work-attention, health-check, safety-training and vehicle mobile views open the corresponding employee detail, while existing employee/vehicle links remain intact.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
