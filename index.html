@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v128</title>
-<!-- production-sync:v128 -->
+<title>つばめ交通株式会社 社員一元管理システム v129</title>
+<!-- production-sync:v129 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,23 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v129 role-aware home action center */
+.home-action-center{margin-top:14px}
+.home-action-center-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+.home-action-center-head h3{margin:0;color:#173f57}
+.home-action-section{border-top:1px solid #e1eaee;padding-top:11px;margin-top:11px}
+.home-action-section:first-of-type{border-top:0;padding-top:0;margin-top:0}
+.home-action-section-title{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:8px}
+.home-action-section-title b{color:#31596b;font-size:.83rem}.home-action-section-title span{font-size:.67rem;font-weight:850;color:#6c818b}
+.home-action-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.home-action-tile{border:1px solid #d2e0e6;border-radius:12px;background:#fff;padding:11px;text-align:left;min-height:88px;cursor:pointer}
+.home-action-tile:hover{background:#f4fafc;border-color:#8ebccf;box-shadow:0 3px 10px rgba(22,56,76,.06)}
+.home-action-tile b{display:block;color:#173f57;font-size:.9rem;margin-bottom:4px}.home-action-tile span{display:block;color:#607783;font-size:.67rem;font-weight:800;line-height:1.35}
+.home-action-tile.primary-tile{border-left:6px solid #2a87ad;background:#f5fbfe}
+.home-action-other{margin-top:10px}
+@media(max-width:850px){.home-action-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.home-action-grid{grid-template-columns:1fr}.home-action-section-title{align-items:flex-start;flex-direction:column;gap:2px}.home-action-tile{min-height:74px}}
 
 /* v128 recent detail shortcuts */
 .home-recent-details{margin:0 0 14px;padding:12px}
@@ -710,19 +727,27 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <div id="homeHandoffCard" class="card general-restricted" style="display:none;margin:14px 0"><div class="list-summary"><div><h3 style="margin:0">新しい引継ぎ</h3><div class="mini">自分に担当変更された案件です。</div></div><span id="homeHandoffCount" class="handoff-unread">0</span></div><div id="homeHandoffRows"></div></div>
 
-<div class="card general-restricted home-simple-actions">
- <h3>よく使う操作</h3>
- <div class="home-actions">
-  <button class="btn primary admin-only" onclick="openAccidentForm()">＋ 事故登録</button>
-  <button class="btn soft admin-only" onclick="openNearForm()">＋ ヒヤリ</button>
-  <button class="btn soft admin-only" onclick="openComplaintForm()">＋ 苦情</button>
-  <button class="btn soft" onclick="go('emp')">社員一覧</button>
-  <button class="btn soft" onclick="go('safe')">運行・安全</button>
-  <button class="btn soft" onclick="go('work')">期限・勤務</button>
+<div class="card general-restricted home-simple-actions home-action-center">
+ <div class="home-action-center-head"><div><h3>よく使う操作</h3><div class="mini">登録と確認を分けています。普段使う操作だけここから開けます。</div></div></div>
+ <div class="home-action-section admin-only">
+  <div class="home-action-section-title"><b>登録する</b><span>安全記録はここからすぐ入力</span></div>
+  <div class="home-action-grid home-action-grid-register">
+   <button class="home-action-tile primary-tile" onclick="openAccidentForm()"><b>＋ 事故</b><span>事故の初報・対応記録</span></button>
+   <button class="home-action-tile" onclick="openNearForm()"><b>＋ ヒヤリ</b><span>危険予知・ヒヤリ報告</span></button>
+   <button class="home-action-tile" onclick="openComplaintForm()"><b>＋ 苦情</b><span>お客様対応・指導記録</span></button>
+   <button class="home-action-tile full-admin-only" onclick="openEmployeeForm()"><b>＋ 社員</b><span>社員台帳へ新規登録</span></button>
+  </div>
  </div>
- <details class="detail-fold" style="margin-top:10px"><summary>その他の操作</summary><div class="detail-fold-body"><div class="home-actions">
-  <button class="btn soft admin-only full-admin-only" onclick="openEmployeeForm()">＋ 社員登録</button>
-  <button class="btn soft" onclick="go('vehicles')">車両管理</button>
+ <div class="home-action-section">
+  <div class="home-action-section-title"><b>確認する</b><span>日常確認する画面へ移動</span></div>
+  <div class="home-action-grid">
+   <button class="home-action-tile" onclick="go('emp')"><b>社員一覧</b><span>社員・号車・認定を確認</span></button>
+   <button class="home-action-tile" onclick="go('vehicles')"><b>車両管理</b><span>号車・車検・担当を確認</span></button>
+   <button class="home-action-tile" onclick="go('safe')"><b>運行・安全</b><span>事故・ヒヤリ・苦情</span></button>
+   <button class="home-action-tile" onclick="go('work')"><b>期限・勤務</b><span>期限・残業・健診を確認</span></button>
+  </div>
+ </div>
+ <details class="detail-fold home-action-other"><summary>その他の操作</summary><div class="detail-fold-body"><div class="home-actions">
   <button class="btn soft" onclick="go('comms')">掲示・申請</button>
   <button class="btn primary admin-only" onclick="go('manage')">管理</button>
  </div></div></details>
@@ -6145,7 +6170,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v128';
+const RELEASE_VERSION='v129';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){

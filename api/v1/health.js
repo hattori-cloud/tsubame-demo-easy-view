@@ -10,12 +10,12 @@ module.exports=function handler(req,res){
   }
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v128',
+    release:'v129',
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:productionAuthConfigured(),
     business_api_enabled:false,
-    feature_set:'recent-detail-shortcuts',
+    feature_set:'role-aware-home-action-center',
     timestamp:new Date().toISOString()
   });
 };
