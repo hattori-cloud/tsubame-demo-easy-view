@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v120</title>
-<!-- production-sync:v120 -->
+<title>つばめ交通株式会社 社員一元管理システム v121</title>
+<!-- production-sync:v121 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,22 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v121 morning home dashboard */
+.home-morning-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 9px;padding:0 2px}
+.home-morning-head h3{margin:0;color:#173f57;font-size:1.08rem}
+.home-morning-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:14px}
+.home-morning-card{border:1px solid #cfdfe7;border-radius:13px;background:#fff;padding:12px;text-align:left;min-height:98px;cursor:pointer;transition:box-shadow .15s ease,transform .15s ease}
+.home-morning-card:hover{box-shadow:0 5px 16px rgba(22,56,76,.10);transform:translateY(-1px)}
+.home-morning-card small{display:block;color:#687e89;font-weight:950;line-height:1.3}
+.home-morning-card b{display:block;color:#173f57;font-size:1.65rem;line-height:1.1;margin:4px 0}
+.home-morning-card span{display:block;color:#607783;font-size:.67rem;font-weight:850;line-height:1.35}
+.home-morning-card.ok{border-left:6px solid #65a679;background:#f8fcf9}
+.home-morning-card.warn{border-left:6px solid #d4aa26;background:#fffdf3}
+.home-morning-card.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
+@media(max-width:1000px){.home-morning-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.home-morning-grid{grid-template-columns:1fr 1fr}.home-morning-head{align-items:flex-start}}
+@media(max-width:420px){.home-morning-grid{grid-template-columns:1fr}}
 
 /* v120 daily work/deadline dashboard */
 .work-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 14px}
@@ -613,10 +629,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
+<div id="homeDailySummary" class="general-restricted"></div>
 <div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
 
 <div class="card general-restricted home-simple-primary">
- <div class="list-summary"><div><h3 style="margin:0">今日の要対応</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高い案件から表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div>
+ <div class="list-summary"><div><h3 style="margin:0">まず確認する項目</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高いものを最大5件だけ表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div>
  <div id="today" class="notice-list"></div>
 </div>
 
@@ -3475,26 +3492,32 @@ function injectActionQueueNav(){
  dbody.prepend(bar)
 }
 
+function openHomeSafetyCases(){
+ let accidents=scopedAccidents().filter(a=>a.phase!=='完了');
+ let complaints=scopedComplaints().filter(x=>x.status!=='完了');
+ go('safe');
+ setTimeout(()=>{
+  if(accidents.length){safeTab('acc');ACC_FILTER='open';ACC_PAGE=1;renderAcc();return}
+  safeTab('complaint');COMPLAINT_FILTER='open';renderComplaints()
+ },30)
+}
 function renderHomeDailySummary(){
  let el=document.getElementById('homeDailySummary');if(!el)return;
  if(PREVIEW_ROLE==='一般社員'){el.innerHTML='';el.style.display='none';return}
  el.style.display='';
+ let employees=scopedEmployees().filter(e=>e.status==='在籍');
+ let blocked=employees.filter(e=>String(e.eligibility||'').includes('不可')).length;
  let deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length,todayN=deadlines.filter(x=>x.bucket==='today').length;
- let workRows=scopedEmployees().filter(e=>e.status!=='退職'),staleWork=workRows.filter(e=>workUpdateStatus(e)==='更新確認').length;
- let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no));
- let qAttention=quals.filter(q=>(q.expiry&&days(q.expiry)<=30)||(q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q))).length;
- let pendingDocs=DOCS.filter(d=>canViewDocumentRecord(d)&&d.status!=='原本確認済み').length;
- let vehicleAttention=scopedVehicles().filter(v=>['over','today','soon'].includes(vehicleDeadlineState(v))||v.status!=='稼働').length;
- let dailyEmployees=scopedEmployees().filter(e=>e.status!=='退職'&&employeeDailyAttentionItems(e.no).length).length;
- let queue=actionQueueItems(),urgent=queue.filter(x=>x.urgency==='danger').length;
- el.innerHTML=`<div class="list-summary"><div><h3 style="margin:0">今日の確認サマリー</h3><div class="mini">案件だけでなく、勤務・資格書類・車両の確認漏れも入口で把握します。</div></div><span class="badge ${urgent?'danger':queue.length?'warn':'ok'}">優先対応 ${queue.length}件</span></div>
- <div class="deadline-grid">
-  <button class="deadline-kpi ${over?'over':''}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${over}</b><span class="mini">全モジュール</span></button>
-  <button class="deadline-kpi ${todayN?'soon':''}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${todayN}</b><span class="mini">今日中に確認</span></button>
-  <button class="deadline-kpi ${staleWork?'soon':''}" onclick="go('work')"><small>勤務更新確認</small><b>${staleWork}</b><span class="mini">最終計上・集計</span></button>
-  <button class="deadline-kpi ${qAttention+pendingDocs?'soon':''}" onclick="openCredentialCenter()"><small>資格・書類</small><b>${qAttention+pendingDocs}</b><span class="mini">期限・証憑・原本</span></button>
-  <button class="deadline-kpi ${vehicleAttention?'soon':''}" onclick="go('vehicles')"><small>車両確認</small><b>${vehicleAttention}</b><span class="mini">車検・状態</span></button>
-  <button class="deadline-kpi ${dailyEmployees?'soon':''}" onclick="go('emp');setTimeout(()=>setEmployeeQuickFilter('daily'),40)"><small>要確認社員</small><b>${dailyEmployees}</b><span class="mini">安全・案件・号車・勤務</span></button>
+ let accidents=scopedAccidents().filter(a=>a.phase!=='完了').length,complaints=scopedComplaints().filter(x=>x.status!=='完了').length,openCases=accidents+complaints;
+ let workAttention=workAttentionRows().length;
+ let total=blocked+over+todayN+openCases+workAttention;
+ el.innerHTML=`<div class="home-morning-head"><div><h3>今日の状況</h3><div class="mini">赤・黄の項目から確認すれば、朝の全体確認ができます。</div></div><span class="badge ${blocked||over?'danger':total?'warn':'ok'}">${total?'要確認あり':'大きな警告なし'}</span></div>
+ <div class="home-morning-grid">
+  <button class="home-morning-card ${blocked?'danger':'ok'}" onclick="go('emp');setTimeout(()=>setEmployeeQuickFilter('blocked'),40)"><small>乗務不可</small><b>${blocked}</b><span>免許・安全状態など</span></button>
+  <button class="home-morning-card ${over?'danger':'ok'}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${over}</b><span>全管理項目</span></button>
+  <button class="home-morning-card ${todayN?'warn':'ok'}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${todayN}</b><span>今日中に確認</span></button>
+  <button class="home-morning-card ${openCases?'warn':'ok'}" onclick="openHomeSafetyCases()"><small>事故・苦情 未完了</small><b>${openCases}</b><span>事故 ${accidents} / 苦情 ${complaints}</span></button>
+  <button class="home-morning-card ${workAttention?'warn':'ok'}" onclick="openWorkAttentionCenter()"><small>勤務 要確認</small><b>${workAttention}</b><span>残業・集計更新</span></button>
  </div>`
 }
 function renderHome(){
@@ -5913,7 +5936,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v120';
+const RELEASE_VERSION='v121';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
