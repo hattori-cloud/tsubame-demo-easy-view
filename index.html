@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v123</title>
-<!-- production-sync:v123 -->
+<title>つばめ交通株式会社 社員一元管理システム v124</title>
+<!-- production-sync:v124 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,13 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v124 fast safety entry */
+.quick-entry-banner{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid #b9d7e6;border-left:6px solid #4d9abc;background:#f5fbfe;border-radius:11px;padding:10px 12px;margin:0 0 10px;color:#31596b}
+.quick-entry-banner b{font-size:.82rem;color:#173f57}.quick-entry-banner span{font-size:.7rem;font-weight:850;text-align:right}
+#form .form-fold[open]>summary{background:#f2f9fc}
+#form .form-fold:not([open])>summary{background:#fafcfd}
+@media(max-width:620px){.quick-entry-banner{align-items:flex-start;flex-direction:column}.quick-entry-banner span{text-align:left}}
 
 /* v123 click recovery + home search */
 .home-search-top{margin-top:2px;margin-bottom:14px}
@@ -5560,33 +5567,33 @@ function openAccidentForm(defaultNo=''){
  let candidates=scopedEmployees().filter(e=>e.status==='在籍'&&['タクシー課','バス課'].includes(e.dept));
  if(!candidates.length){alert('現在の担当範囲に事故登録対象の乗務社員がいません');return}
  fttl.textContent='事故を登録';setFormSaveLabel('事故を登録する');
- fbody.innerHTML=`<div class="formnote">現在使用中の事故一覧表の項目を、月別・社員別・事故形態別・修理費まで分析できる形で登録します。${safetyDraftControls('accident')}</div><div class="form-save-guide">必須項目は赤い「必須」表示です。登録前に入力内容と未設定の管理項目を確認します。</div>
- <div class="form-flow"><span>1 対象・日時</span><span>2 事故表項目</span><span>3 修理・損害</span><span>4 状況</span><span>5 担当・次回対応</span></div><div class="formgrid">
- <div class="employee-form-section"><h4>1. 対象・日時</h4><p>曜日は発生日から自動計算します</p></div>
+ fbody.innerHTML=`<div class="formnote">事故の初報は「乗務員・発生日・事故場所・事故概要・担当者」まで入力すれば登録できます。事故形態や修理費は、確認後に追記できます。${safetyDraftControls('accident')}</div><div class="quick-entry-banner"><b>初回は必須項目を先に入力</b><span>分析項目・修理費は後から追加できます。</span></div><div class="form-save-guide">赤い「必須」を先に入力し、保存前の確認画面で未設定項目を確認します。</div>
+ <div class="form-flow"><span>1 対象・日時</span><span>2 事故状況</span><span>3 担当・次回対応</span><span>4 分析項目</span><span>5 修理・損害</span></div><div class="formgrid">
+ <div class="employee-form-section"><h4>対象・日時</h4><p>乗務員・発生日・号車を最初に確認します</p></div>
  <div class="field wide"><div class="simple-quick-actions"><button type="button" class="btn soft" onclick="setCurrentFormTime('fatime')">現在時刻</button><button type="button" class="btn soft" onclick="setFormValue('fad',TODAY,false)">発生日を今日</button></div></div>
  <div class="field"><label>乗務員<span class="req">必須</span></label><select id="fae" onchange="fillAccidentEmployeeDefaults()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)}</option>`).join('')}</select></div>
  <div class="field"><label>発生日<span class="req">必須</span></label><input id="fad" type="date" value="${TODAY}"></div>
  <div class="field"><label>発生時間</label><input id="fatime" type="time"></div>
  <div class="field"><label>号車</label><input id="fav" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div>
 
- <div class="employee-form-section"><h4>2. 事故表項目</h4><p>現在の事故表と同じ考え方で記録します</p></div>
+ <div class="employee-form-section"><h4>分析項目</h4><p>事故形態・運行状態など、確認後でも追記できます</p></div>
  <div class="field wide"><div class="simple-quick-actions"><span class="mini">運行状態：</span><button type="button" class="btn soft" onclick="setFormValue('faoperation','実車',false)">実車</button><button type="button" class="btn soft" onclick="setFormValue('faoperation','空車',false)">空車</button><button type="button" class="btn soft" onclick="setFormValue('faoperation','回送',false)">回送</button></div></div>
  <div class="field"><label>運行時の状態</label><input id="faoperation" placeholder="例：実車・空車・回送など"></div>
  <div class="field"><label>発生地区</label><input id="fadistrict" placeholder="例：中区・府中町など"></div>
  <div class="field wide"><label>事故形態・種類</label><input id="fatype" placeholder="例：バック接触、人身、追突など"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormValue('fatype','バック接触',false)">バック接触</button><button type="button" class="btn soft" onclick="setFormValue('fatype','追突',false)">追突</button><button type="button" class="btn soft" onclick="setFormValue('fatype','側面接触',false)">側面接触</button><button type="button" class="btn soft" onclick="setFormValue('fatype','人身',false)">人身</button></div></div>
  <div class="field"><label>過失率（自社側 %）</label><input id="fafault" type="number" min="0" max="100" step="1" placeholder="例：30"></div>
 
- <div class="employee-form-section"><h4>3. 修理・損害</h4><p>金額が未確定なら空欄のまま登録し、後から更新できます</p></div>
+ <div class="employee-form-section"><h4>修理・損害</h4><p>見積前は未確定・空欄のままで登録できます</p></div>
  <div class="field"><label>相手修理</label><select id="faoprepair"><option>未確定</option><option>あり</option><option>なし</option></select></div>
  <div class="field"><label>相手修理代（円）</label><input id="faopcost" type="number" min="0" step="1" placeholder="例：120000"></div>
  <div class="field"><label>自社修理</label><select id="faownrepair"><option>未確定</option><option>あり</option><option>なし</option></select></div>
  <div class="field"><label>自社修理代（円）</label><input id="faowncost" type="number" min="0" step="1" placeholder="例：85000"></div>
 
- <div class="employee-form-section"><h4>4. 状況</h4><p>場所と事故状況を具体的に記録します</p></div>
+ <div class="employee-form-section"><h4>事故状況</h4><p>事故場所と、分かっている事実を簡潔に入力します</p></div>
  <div class="field wide"><label>事故場所<span class="req">必須</span></label><input id="faa" placeholder="例：○○交差点付近"></div>
  <div class="field wide"><label>事故状況・概要<span class="req">必須</span></label><textarea id="fas" style="min-height:140px" placeholder="発生状況、相手方の有無、確認できた事実など"></textarea></div>
 
- <div class="employee-form-section"><h4>5. 担当・次回対応</h4><p>誰が、いつまでに、何をするか</p></div>
+ <div class="employee-form-section"><h4>担当・次回対応</h4><p>初報後に誰が何を確認するかを決めます</p></div>
  <div class="field"><label>担当者<span class="req">必須</span></label><select id="faowner">${managerSelectOptions(currentAccidentReviewer().id,currentAccidentReviewer().name)}</select></div>
  <div class="field"><label>フォロー期限</label><input id="fadu" type="date"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormDateOffset('fadu',1)">明日</button><button type="button" class="btn soft" onclick="setFormDateOffset('fadu',3)">3日後</button><button type="button" class="btn soft" onclick="setFormDateOffset('fadu',7)">7日後</button></div></div>
  <div class="field wide"><label>次回対応内容</label><input id="fanext" placeholder="例：本人聞き取り、ドラレコ確認"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fanext','本人聞き取り')">本人聞き取り</button><button type="button" class="btn soft" onclick="appendFormText('fanext','ドラレコ確認')">ドラレコ確認</button><button type="button" class="btn soft" onclick="appendFormText('fanext','修理見積確認')">修理見積</button><button type="button" class="btn soft" onclick="appendFormText('fanext','相手方連絡')">相手方連絡</button></div></div>
@@ -5765,30 +5772,30 @@ function openNearForm(idx=-1,defaultNo=''){
  if(!candidates.length){alert('現在の担当範囲に登録対象社員がいません');return}
  fttl.textContent=rec?'ヒヤリハット報告を編集':'ヒヤリハット報告を登録';setFormSaveLabel(rec?'変更を保存する':'報告を登録する');
  let opts=candidates.map(e=>`<option value="${esc(e.no)}">${esc(e.no)} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
- fbody.innerHTML=`<div class="formnote">現在使用中の「ヒヤリ・ハット（危険予知）報告書」をもとにしています。ヒヤリは管理案件ではなく、安全分析に使う報告記録として保存します。${safetyDraftControls('near')}</div>
- <div class="form-flow"><span>1 記入・発生</span><span>2 状況</span><span>3 原因・危険度</span><span>4 内容・対策</span></div><div class="formgrid">
-  <div class="employee-form-section"><h4>1. 記入者・発生日時</h4><p>所属・氏名は社員台帳から自動取得します</p></div>
+ fbody.innerHTML=`<div class="formnote">ヒヤリは管理案件ではなく、安全分析に使う報告記録です。まず「対象社員・発生日・内容」を登録し、状況や原因は分かる範囲で追加できます。${safetyDraftControls('near')}</div><div class="quick-entry-banner"><b>最低限3点で報告できます</b><span>対象社員・発生日・ヒヤリ内容。分類は後から追加できます。</span></div>
+ <div class="form-flow"><span>1 対象・発生</span><span>2 内容</span><span>3 原因・危険度</span><span>4 詳細状況</span></div><div class="formgrid">
+  <div class="employee-form-section"><h4>対象・発生日時</h4><p>所属・氏名は社員台帳から自動取得します</p></div>
   <div class="field wide"><label>対象社員<span class="req">必須</span></label><select id="fne" onchange="fillNearEmployeeDefaults()">${opts}</select></div>
   <div class="field"><label>記入日</label><input id="fnreport" type="date" value="${esc(rec?.reportDate||TODAY)}"></div>
   <div class="field"><label>ヒヤリ発生日<span class="req">必須</span></label><input id="fnd" type="date" value="${esc(rec?rec.date:TODAY)}"></div>
   <div class="field"><label>発生時間</label><input id="fntime" type="time" value="${esc(rec?.time||'')}"><div style="margin-top:6px"><button type="button" class="btn soft" onclick="setCurrentFormTime('fntime')">現在時刻</button></div></div>
   <div class="field"><label>号車</label><input id="fnvehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div>
-  <div class="employee-form-section"><h4>2. ヒヤリ時の状況</h4><p>該当する項目を複数選択できます</p></div>
+  <div class="employee-form-section"><h4>詳細状況</h4><p>分析用の項目です。分かる範囲で選択します</p></div>
   <div class="field wide"><div class="simple-quick-actions"><span class="mini">よくある状況：</span><button type="button" class="btn soft" onclick="applyNearPreset('back')">バック時</button><button type="button" class="btn soft" onclick="applyNearPreset('turn')">右左折</button><button type="button" class="btn soft" onclick="applyNearPreset('boarding')">乗降時</button><button type="button" class="btn soft" onclick="applyNearPreset('lane')">進路変更</button></div><div class="mini">押した後にチェック項目を自由に追加・変更できます。</div></div>
   <div class="field wide"><label>場所</label>${nearOptionHtml('nearLocation',NEAR_OPTIONS.location,rec?.locationTags)}</div>
   <div class="field wide"><label>何をしていた時か</label>${nearOptionHtml('nearSituation',NEAR_OPTIONS.situation,rec?.situationTags)}</div>
   <div class="field wide"><label>道路・周囲の状況</label>${nearOptionHtml('nearRoad',NEAR_OPTIONS.road,rec?.roadTags)}</div>
   <div class="field wide"><label>危険を感じた対象</label>${nearOptionHtml('nearTarget',NEAR_OPTIONS.target,rec?.targetTags)}</div>
-  <div class="employee-form-section"><h4>3. 原因・危険度</h4><p>あとで原因別・危険度別に分析できます</p></div>
+  <div class="employee-form-section"><h4>原因・危険度</h4><p>危険度が高い場合は優先して確認できます</p></div>
   <div class="field"><label>原因はどちら側か</label><select id="fnside"><option>未設定</option><option>自分</option><option>相手</option><option>双方</option><option>その他</option></select></div>
   <div class="field"><label>事故につながる可能性</label><select id="fnrisk"><option>未設定</option><option>高い</option><option>中程度</option><option>低い</option></select><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn danger" onclick="setFormValue('fnrisk','高い')">高い</button><button type="button" class="btn warn" onclick="setFormValue('fnrisk','中程度')">中程度</button><button type="button" class="btn soft" onclick="setFormValue('fnrisk','低い')">低い</button></div></div>
   <div class="field wide"><label>内的要因</label>${nearOptionHtml('nearInternal',NEAR_OPTIONS.internal,rec?.internalFactors)}</div>
-  <div class="employee-form-section"><h4>4. 内容・教育・改善</h4><p>危険だった状況と、今後どうするかを残します</p></div>
+  <div class="employee-form-section"><h4>ヒヤリ内容・対策</h4><p>危険だった状況をまず記録し、教育・対策は必要に応じて追記します</p></div>
   <div class="field wide"><label>ヒヤリ・ハット内容<span class="req">必須</span></label><textarea id="fns" style="min-height:160px" placeholder="できるだけ具体的に記入してください">${esc(rec?rec.summary:'')}</textarea></div>
   <div class="field wide"><label>教育事項</label><textarea id="fneducation" placeholder="本人へ伝えたこと、今後指導する内容など">${esc(rec?.education||'')}</textarea></div>
   <div class="field wide"><label>改善・今後の対策</label><textarea id="fnprevention" placeholder="再発防止、運行上の改善点など">${esc(rec?.prevention||'')}</textarea></div>
  </div>`;
- organizeCurrentFormSections({order:[0,3,1,2],open:[0,3]});
+ organizeCurrentFormSections({order:[0,3,2,1],open:[0,3]});
  let nearDefaultNo=rec?String(rec.employee_no):(candidates.find(x=>String(x.no)===String(defaultNo))?.no||candidates[0].no);fne.value=String(nearDefaultNo);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';if(!rec)fillNearEmployeeDefaults();
  fsave.onclick=()=>{
   let e=emp(fne.value);if(!e||!guardEmployeeEdit(e.no,'ヒヤリハット'))return;
@@ -5842,13 +5849,13 @@ function openComplaintForm(idx=-1,defaultNo=''){
  let reviewer=currentAccidentReviewer(),selected=rec?emp(rec.employee_no):(candidates.find(e=>e.no===String(defaultNo))||candidates[0]);
  fttl.textContent=rec?'クレーム／お客様対応を編集':'クレーム／お客様対応を登録';setFormSaveLabel(rec?'変更を保存する':'苦情・お客様対応を登録する');
  let opts=candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</option>`).join('');
- fbody.innerHTML=`<div class="formnote">紙のクレーム表を置き換える入力画面です。上から順番に入力すれば完了します。お客様名は仮名・匿名のみ入力してください。${safetyDraftControls('complaint')}</div><div class="form-save-guide">必須項目を確認し、未完了案件は「担当者・次回対応・フォロー期限」の不足も保存前に表示します。</div><div class="form-flow"><span>1 受付</span><span>2 対象</span><span>3 申告内容</span><span>4 対応</span><span>5 完了</span></div><div class="formgrid">
- <div class="employee-form-section"><h4>1. 受付</h4><p>誰が、いつ受け付けたか</p></div><div class="field"><label>対応者</label><input id="fcresp" value="${esc(rec?.responder||reviewer.name)}"></div><div class="field"><label>対応日<span class="req">必須</span></label><input id="fcdate" type="date" value="${esc(rec?.responseDate||rec?.date||TODAY)}"></div><div class="field"><label>対応時間</label><input id="fctime" type="time" value="${esc(rec?.responseTime||'')}"><div style="margin-top:6px"><button type="button" class="btn soft" onclick="setCurrentFormTime('fctime')">現在時刻</button></div></div><div class="field"><label>入力者（自動）</label><input id="fcinput" value="${esc(rec?.inputBy||reviewer.name)}" disabled></div>
- <div class="employee-form-section"><h4>2. 対象乗務員・車両</h4><p>乗務員を選ぶと課と氏名は自動保存。担当車両があれば号車も候補入力します</p></div><div class="field wide"><label>乗務員<span class="req">必須</span></label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>号車</label><input id="fcvehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
- <div class="employee-form-section"><h4>3. お客様からの申告</h4><p>発生日時を分けて後から検索しやすくします</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn danger" onclick="setFormValue('fcrank','A')">A</button><button type="button" class="btn warn" onclick="setFormValue('fcrank','B')">B</button><button type="button" class="btn soft" onclick="setFormValue('fcrank','C')">C</button></div><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
- <div class="employee-form-section"><h4>4. 指導・対応</h4><p>誰が何をして、次に何をするか</p></div><div class="field wide"><label>指導内容</label><textarea id="fcguide" style="min-height:120px" placeholder="本人確認、指導内容、お客様への対応など">${esc(rec?.guidanceContent||'')}</textarea></div><div class="field"><label>指導者</label><input id="fcinst" value="${esc(rec?.instructor||'')}"></div><div class="field"><label>指導日</label><input id="fcguided" type="date" value="${esc(rec?.guidanceDate||'')}"></div><div class="field"><label>指導時間</label><input id="fcguidet" type="time" value="${esc(rec?.guidanceTime||'')}"></div><div class="field"><label>担当者</label><select id="fcowner">${managerSelectOptions(rec?.ownerId,rec?.owner||reviewer.name)}</select></div><div class="field"><label>フォロー期限</label><input id="fcdue" type="date" value="${esc(rec?.followupDue||'')}"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',1)">明日</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',3)">3日後</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',7)">7日後</button></div></div><div class="field wide"><label>次回対応内容</label><input id="fcnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人再面談、お客様へ結果連絡"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fcnext','本人再面談')">本人再面談</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','お客様へ結果連絡')">結果連絡</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','運行状況確認')">運行確認</button></div></div>
- <div class="employee-form-section"><h4>5. 完了</h4><p>完了にすると完了日と確認者を自動記録します</p></div><div class="field"><label>状態</label><select id="fcst"><option>受付</option><option>確認中</option><option>対応中</option><option>完了</option></select></div></div>`;
- organizeCurrentFormSections({open:[0,1,2,3]});
+ fbody.innerHTML=`<div class="formnote">苦情・お客様対応は、まず受付内容を記録し、その後の指導・回答・完了まで同じ記録に追記します。お客様名は仮名・匿名のみ入力してください。${safetyDraftControls('complaint')}</div><div class="quick-entry-banner"><b>受付時は3項目を優先</b><span>対応日・対象乗務員・申告内容。担当やフォロー期限は保存前に不足を確認できます。</span></div><div class="form-save-guide">初回は受付情報を先に登録し、指導・対応・完了情報は案件の進行に合わせて追記できます。</div><div class="form-flow"><span>1 受付</span><span>2 対象</span><span>3 申告内容</span><span>4 指導・対応</span><span>5 完了</span></div><div class="formgrid">
+ <div class="employee-form-section"><h4>受付</h4><p>誰が、いつ受け付けたか</p></div><div class="field"><label>対応者</label><input id="fcresp" value="${esc(rec?.responder||reviewer.name)}"></div><div class="field"><label>対応日<span class="req">必須</span></label><input id="fcdate" type="date" value="${esc(rec?.responseDate||rec?.date||TODAY)}"></div><div class="field"><label>対応時間</label><input id="fctime" type="time" value="${esc(rec?.responseTime||'')}"><div style="margin-top:6px"><button type="button" class="btn soft" onclick="setCurrentFormTime('fctime')">現在時刻</button></div></div><div class="field"><label>入力者（自動）</label><input id="fcinput" value="${esc(rec?.inputBy||reviewer.name)}" disabled></div>
+ <div class="employee-form-section"><h4>対象乗務員・車両</h4><p>乗務員を選ぶと課・氏名・担当号車を補助入力します</p></div><div class="field wide"><label>乗務員<span class="req">必須</span></label><select id="fce" onchange="fillComplaintEmployeeDefaults()">${opts}</select></div><div class="field"><label>号車</label><input id="fcvehicle" inputmode="numeric" maxlength="3" list="vehicleNumberOptions" value="${esc(rec?.vehicle&&rec.vehicle!=='未設定'?rec.vehicle:'')}" placeholder="例：801 / 登録済み号車から候補">${vehicleNumberDatalistHtml()}<div class="mini">3桁の号車。登録済み号車から選択できます。</div></div><div class="field"><label>お客様名（仮名・匿名）</label><input id="fccustomer" value="${esc(rec?.customerName||'匿名')}" placeholder="匿名でも可"></div>
+ <div class="employee-form-section"><h4>お客様からの申告</h4><p>受付時点で分かっている内容を記録します</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn danger" onclick="setFormValue('fcrank','A')">A</button><button type="button" class="btn warn" onclick="setFormValue('fcrank','B')">B</button><button type="button" class="btn soft" onclick="setFormValue('fcrank','C')">C</button></div><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
+ <div class="employee-form-section"><h4>指導・対応</h4><p>受付後の確認・指導・回答を追記します</p></div><div class="field wide"><label>指導内容</label><textarea id="fcguide" style="min-height:120px" placeholder="本人確認、指導内容、お客様への対応など">${esc(rec?.guidanceContent||'')}</textarea></div><div class="field"><label>指導者</label><input id="fcinst" value="${esc(rec?.instructor||'')}"></div><div class="field"><label>指導日</label><input id="fcguided" type="date" value="${esc(rec?.guidanceDate||'')}"></div><div class="field"><label>指導時間</label><input id="fcguidet" type="time" value="${esc(rec?.guidanceTime||'')}"></div><div class="field"><label>担当者</label><select id="fcowner">${managerSelectOptions(rec?.ownerId,rec?.owner||reviewer.name)}</select></div><div class="field"><label>フォロー期限</label><input id="fcdue" type="date" value="${esc(rec?.followupDue||'')}"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',1)">明日</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',3)">3日後</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',7)">7日後</button></div></div><div class="field wide"><label>次回対応内容</label><input id="fcnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人再面談、お客様へ結果連絡"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fcnext','本人再面談')">本人再面談</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','お客様へ結果連絡')">結果連絡</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','運行状況確認')">運行確認</button></div></div>
+ <div class="employee-form-section"><h4>完了</h4><p>対応が終わった時に完了へ変更します</p></div><div class="field"><label>状態</label><select id="fcst"><option>受付</option><option>確認中</option><option>対応中</option><option>完了</option></select></div></div>`;
+ organizeCurrentFormSections({open:rec?[0,1,2,3,4]:[0,1,2]});
  fce.value=String(selected.no);fcst.value=rec?.status||'受付';fcrank.value=['未判定','A','B','C'].includes(rec?.rank)?rec.rank:'未判定';if(!rec)fillComplaintEmployeeDefaults();updateComplaintRankGuide(false);
  fsave.onclick=()=>{
   let e=emp(fce.value);if(!e||!guardEmployeeEdit(e.no,'苦情／お客様対応'))return;if(!requireInputs([{id:'fcdate',label:'対応日',value:fcdate.value},{id:'fce',label:'乗務員',value:fce.value},{id:'fcs',label:'申告内容',value:fcs.value}]))return;
@@ -6016,7 +6023,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v123';
+const RELEASE_VERSION='v124';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
