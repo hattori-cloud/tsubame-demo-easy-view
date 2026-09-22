@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v122 foundation build.
+Current application: v123 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v122 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v122.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v123.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -75,6 +75,7 @@ Current application: v122 foundation build.
 - v120 makes the Work/Deadlines screen a daily management dashboard: puts overdue, due-today, due-within-30-days, and work-time-attention counts at the top; shows only employees needing attention; separates overtime/update checks from general employee lists; and keeps health/training follow-up directly accessible.
 - v121 turns the Home screen into a 30-second morning check: prominently shows driving-blocked employees, overdue items, due-today items, open accident/complaint cases, and work-attention employees, then limits the detailed priority queue to the top five actions.
 - v122 makes Vehicle Management operationally car-number-first: adds active/overdue/30-day/attention overview cards, prioritizes the 3-digit car number in lists, shows assigned driver and Gold/English/Tourism certification badges together, adds direct employee navigation, includes certification in vehicle search, and provides a mobile vehicle-card layout.
+- v123 fixes the Work screen map-callback syntax error that prevented all client-side click handlers from starting, validates the full inline JavaScript before deployment, and moves global search directly below the Home morning status cards with clearer employee/car-number/case-number guidance.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures

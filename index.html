@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v122</title>
-<!-- production-sync:v122 -->
+<title>つばめ交通株式会社 社員一元管理システム v123</title>
+<!-- production-sync:v123 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v123 click recovery + home search */
+.home-search-top{margin-top:2px;margin-bottom:14px}
+.home-search-top .home-search-head h3{margin:0}
+.home-search-top .home-search-hints{margin-top:9px}
+@media(max-width:600px){.home-search-top .home-search-head .badge{display:none}}
 
 /* v122 vehicle operations list */
 .vehicle-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
@@ -644,6 +650,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
 <div id="homeDailySummary" class="general-restricted"></div>
+<div class="card general-restricted home-search-card home-search-top">
+ <div class="home-search-head"><div><h3>すぐ検索</h3><div class="mini">社員名・社員番号・3桁の号車・事故番号・苦情・ヒヤリ・認定などをここから探せます。</div></div><span class="badge ok">ホーム検索</span></div>
+ <div class="home-search-row"><input id="gq" placeholder="例：1001 / 安芸 / 801 / A-2026-001 / ゴールド" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
+ <div class="home-search-hints"><span>氏名</span><span>社員番号</span><span>3桁号車</span><span>事故番号</span><span>ゴールド・英語・観光</span></div>
+ <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
+</div>
 <div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
 
 <div class="card general-restricted home-simple-primary">
@@ -652,12 +664,6 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 </div>
 
 <div id="homeHandoffCard" class="card general-restricted" style="display:none;margin:14px 0"><div class="list-summary"><div><h3 style="margin:0">新しい引継ぎ</h3><div class="mini">自分に担当変更された案件です。</div></div><span id="homeHandoffCount" class="handoff-unread">0</span></div><div id="homeHandoffRows"></div></div>
-
-<div class="card general-restricted home-search-card">
- <div class="home-search-head"><div><h3>検索</h3><div class="mini">社員・乗務員認定・事故・苦情・ヒヤリ・号車・資格・書類をまとめて検索できます。</div></div></div>
- <div class="home-search-row"><input id="gq" placeholder="氏名・社員番号・事故番号・号車・認定など" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
- <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
-</div>
 
 <div class="card general-restricted home-simple-actions">
  <h3>よく使う操作</h3>
@@ -2666,7 +2672,7 @@ function renderWork(){
   return `<div class="row work-priority-row ${cls}"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${esc(e.branch)} / ${esc(e.dept)}</div><div class="work-reason-line">${reasons.map(x=>'<span>'+esc(x)+'</span>').join('')}</div><div class="mini"><b>次の対応：</b>${esc(workNextActionText(e))}</div></div><button class="btn primary" onclick="employeeHealthWork('${e.no}')">社員確認</button></div>`
  }).join(''):'<div class="work-clear-state">現在、優先して確認する勤務・期限項目はありません。</div>';
  let workAttention=workAttentionRows().slice(0,10);
- workRows.innerHTML=workAttention.length?workAttention.map(e=>{let w=e.workSummary||{},update=workUpdateStatus(e),age=workPostedAge(e),updateClass=update==='更新確認'?'warn':'ok';return `<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${esc(e.workPattern||'通常勤務')} / 拘束 ${esc(w.restraint??'-')}時間 / 残業 ${Number(e.overtime||0)}時間</div><div class="mini">最終計上 ${esc(w.lastPosted||'未登録')}（${age===null?'日数不明':age+'日前'}）</div></div><div class="toolbar"><span class="badge ${Number(e.overtime)>=55?'danger':Number(e.overtime)>=45?'warn':'ok'}">${overtimeStatus(e.overtime)}</span><span class="badge ${updateClass}">${update}</span><button class="btn soft" onclick="employeeHealthWork('${e.no}')">確認</button></div></div>`).join(''):'<div class="work-clear-state">勤務時間・集計の要確認者はいません。</div>';
+ workRows.innerHTML=workAttention.length?workAttention.map(e=>{let w=e.workSummary||{},update=workUpdateStatus(e),age=workPostedAge(e),updateClass=update==='更新確認'?'warn':'ok';return `<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${esc(e.workPattern||'通常勤務')} / 拘束 ${esc(w.restraint??'-')}時間 / 残業 ${Number(e.overtime||0)}時間</div><div class="mini">最終計上 ${esc(w.lastPosted||'未登録')}（${age===null?'日数不明':age+'日前'}）</div></div><div class="toolbar"><span class="badge ${Number(e.overtime)>=55?'danger':Number(e.overtime)>=45?'warn':'ok'}">${overtimeStatus(e.overtime)}</span><span class="badge ${updateClass}">${update}</span><button class="btn soft" onclick="employeeHealthWork('${e.no}')">確認</button></div></div>`}).join(''):'<div class="work-clear-state">勤務時間・集計の要確認者はいません。</div>';
  let healthRows=rows.filter(e=>e.health).sort((a,b)=>deadlinePriority(a.health)-deadlinePriority(b.health)||days(a.health)-days(b.health)).slice(0,8);
  let nightCount=rows.filter(e=>e.workPattern==='夜勤').length;
  healthSchedule.innerHTML=`<div class="scope-note" style="margin-bottom:8px">期限登録 ${rows.filter(e=>e.health).length}名 / 夜勤 ${nightCount}名。健診結果の内容は扱いません。</div>`+(healthRows.length?healthRows.map(e=>`<div class="row"><div><b>${esc(e.name)}</b><div class="mini">${esc(e.workPattern||'通常勤務')} / 期限 ${e.health} / ${deadlineBucketLabel(e.health)}</div></div><button class="btn soft" onclick="employeeHealthWork('${e.no}')">確認</button></div>`).join(''):'<div class="mini">健康診断期限が登録された社員はいません。</div>');
@@ -6010,7 +6016,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v122';
+const RELEASE_VERSION='v123';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
