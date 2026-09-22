@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v126</title>
-<!-- production-sync:v126 -->
-<!-- production-redeploy:v126 -->
+<title>つばめ交通株式会社 社員一元管理システム v127</title>
+<!-- production-sync:v127 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -307,6 +306,13 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v127 related-detail navigation */
+.detail-employee-link{font-size:1rem}
+.vehicle-detail-driver-line{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.detail-primary-item .detail-employee-link{display:inline-flex;margin-top:2px}
+.detail-actions{align-items:center}
+@media(max-width:560px){.vehicle-detail-driver-line{align-items:flex-start}.detail-actions .btn{flex:1 1 auto}}
 
 /* v126 direct global search */
 .search-result-group{display:grid;gap:6px;margin:10px 0 13px}
@@ -3812,12 +3818,12 @@ function complaintManagementChecklistHtml(c){
 function complaintDetail(id){
  let c=C.find(x=>x.id===id);if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
  let idx=C.indexOf(c),state=complaintState(c);dttl.textContent='クレーム詳細 '+c.id;
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('complaint')">← 苦情一覧</button>${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">苦情対応を編集</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('complaint')">苦情一覧へ</button>${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">苦情対応を編集</button>`:''}</div>
  ${caseActionPanelHtml('苦情',c)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
  <div class="detail-primary"><h3>重要情報</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>対応日時</label><b>${esc(c.responseDate||c.date)} ${esc(c.responseTime||'')}</b></div>
-  <div class="detail-primary-item"><label>対象社員</label><b>${esc(c.employee_no)} ${esc(c.driverName||c.name||'未設定')}</b></div>
+  <div class="detail-primary-item"><label>対象社員</label>${employeeNameLinkHtml(c.employee_no,c.driverName||c.name||'未設定','detail-employee-link')}<div class="mini">社員番号 ${esc(c.employee_no)}</div></div>
   <div class="detail-primary-item"><label>状態</label>${badge(c.status||'受付')}</div>
   <div class="detail-primary-item"><label>クレームランク</label>${complaintRankChip(c.rank||'未判定')}</div>
   <div class="detail-primary-item"><label>担当者</label><b>${esc(c.owner||'未設定')}</b></div>
@@ -4762,12 +4768,12 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  let state=accidentDeadlineState(a),n=a.due?days(a.due):9999;
  dttl.textContent='事故詳細 '+a.id;
  dbody.innerHTML=`${backNo?`<div class="backbar"><button class="btn soft" onclick="employeeAccidents('${backNo}',${backPage},'${backFilter}')">← 事故履歴一覧へ戻る</button><button class="btn" onclick="employeeDetail('${backNo}')">社員詳細へ戻る</button></div>`:''}
- <div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('acc')">← 事故一覧</button>${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEdit('${a.id}')">事故対応を編集</button>`:''}</div>
+ <div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('acc')">事故一覧へ</button>${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEdit('${a.id}')">事故対応を編集</button>`:''}</div>
  ${caseActionPanelHtml('事故',a)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(n)}日超過しています（${esc(a.due)}）</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。対応状況を確認してください。</div>':''}
  <div class="detail-primary"><h3>重要情報</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>発生日</label><b>${esc(a.date)} ${esc(a.time||'')}</b></div>
-  <div class="detail-primary-item"><label>対象社員</label><b>${esc(a.employee_no)} ${esc(a.driver)}</b></div>
+  <div class="detail-primary-item"><label>対象社員</label>${employeeNameLinkHtml(a.employee_no,a.driver,'detail-employee-link')}<div class="mini">社員番号 ${esc(a.employee_no)}</div></div>
   <div class="detail-primary-item"><label>状態</label>${badge(a.phase)}</div>
   <div class="detail-primary-item"><label>担当者</label><b>${esc(a.owner||'未設定')}</b></div>
   <div class="detail-primary-item"><label>フォロー期限</label><b>${esc(a.due||'未設定')}</b></div>
@@ -4830,10 +4836,10 @@ function nearDetail(id){
  let n=N.find(x=>x.id===id);if(!n||!guardManagementRecord('near_miss',n.employee_no,'ヒヤリハット'))return;
  let idx=N.indexOf(n),e=emp(n.employee_no);
  dttl.textContent='ヒヤリハット詳細 '+n.id;
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="returnToSafetyList('near')">← ヒヤリ一覧</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">報告内容を編集</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('near')">ヒヤリ一覧へ</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">報告内容を編集</button>`:''}</div>
  <div class="detail-primary"><h3>報告の要点</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>発生日時</label><b>${esc(n.date||'未設定')} ${esc(n.time||'')}</b></div>
-  <div class="detail-primary-item"><label>対象社員</label><b>${esc(n.employee_no)} ${esc(n.driver||e?.name||'')}</b></div>
+  <div class="detail-primary-item"><label>対象社員</label>${employeeNameLinkHtml(n.employee_no,n.driver||e?.name||'','detail-employee-link')}<div class="mini">社員番号 ${esc(n.employee_no)}</div></div>
   <div class="detail-primary-item"><label>所属</label><b>${e?esc(e.branch+' / '+e.dept):'未設定'}</b></div>
   <div class="detail-primary-item"><label>号車</label>${vehicleNumberLinkHtml(n.vehicle)}</div>
   <div class="detail-primary-item"><label>危険度</label>${badge(n.riskLevel||'未設定')}</div>
@@ -5006,7 +5012,7 @@ function vehicleDetail(id){
  let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v);
  dttl.textContent='車両詳細 '+v.plate+'号車';
  let next=vehicleNextActionInfo(v);
- dbody.innerHTML=`<div class="detail-actions">${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button>${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
  ${state==='over'?`<div class="detail-alert danger">車検期限を ${Math.abs(days(v.inspection))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">車検期限は本日です。</div>':''}
  ${commonNextActionPanelHtml(next.action,next.owner,next.due,next.tone)}
  <div class="detail-primary"><h3>車両情報</h3><div class="detail-primary-grid">
@@ -5016,13 +5022,13 @@ function vehicleDetail(id){
   <div class="detail-primary-item"><label>状態</label>${badge(v.status)}</div>
   <div class="detail-primary-item"><label>区分</label><b>${esc(v.service)}</b></div>
   <div class="detail-primary-item"><label>配車形態</label><b>${esc(v.assignmentMode||'専属')}</b></div>
-  <div class="detail-primary-item"><label>主担当社員</label><b>${e?esc(e.no+' '+e.name):'未設定'}</b></div>
+  <div class="detail-primary-item"><label>主担当社員</label>${e?employeeNameLinkHtml(e.no,e.name,'detail-employee-link'):'<b>未設定</b>'}${e?'<div class="mini">社員番号 '+esc(e.no)+'</div>':''}</div>
   <div class="detail-primary-item"><label>利用登録</label><b>${vehicleAssignedEmployeeNos(v).length}名</b></div>
   <div class="detail-primary-item"><label>車検期限</label><b>${esc(v.inspection||'未設定')}</b><div class="mini">${v.inspection?esc(deadlineBucketLabel(v.inspection)):''}</div></div>
   <div class="detail-primary-item"><label>次回整備確認</label><b>${esc(v.nextMaintenance||'未設定')}</b><div class="mini">${v.nextMaintenance?esc(deadlineBucketLabel(v.nextMaintenance)):'任意'}</div></div>
  </div></div>
  ${v.maintenanceNote?`<div class="section"><h3>次回整備メモ</h3><div class="acc-v50-text">${esc(v.maintenanceNote)}</div></div>`:''}
- <div class="section"><h3>利用登録乗務員</h3>${vehicleAssignedEmployees(v).map((x,i)=>`<div class="row"><div><b>${i===0?'主担当':'追加'} / ${esc(x.no)} ${esc(x.name)}</b><div class="mini">${esc(x.branch)} / ${esc(x.dept)} / ${esc(x.status)} / 乗務可否 ${esc(x.eligibility||'対象外')}</div>${driverCertBadgesHtml(x)?`<div style="margin-top:5px">${driverCertBadgesHtml(x)}</div>`:''}</div><div class="toolbar">${badge(x.safetyState||'正常')}<button class="btn soft" onclick="employeeDetail('${x.no}')">社員詳細</button></div></div>`).join('')||'<div class="mini">登録なし</div>'}</div>
+ <div class="section"><h3>利用登録乗務員</h3>${vehicleAssignedEmployees(v).map((x,i)=>`<div class="row"><div><div class="vehicle-detail-driver-line"><span class="badge">${i===0?'主担当':'追加'}</span>${employeeNameLinkHtml(x.no,x.name,'detail-employee-link')}<span class="mini">社員番号 ${esc(x.no)}</span></div><div class="mini">${esc(x.branch)} / ${esc(x.dept)} / ${esc(x.status)} / 乗務可否 ${esc(x.eligibility||'対象外')}</div>${driverCertBadgesHtml(x)?`<div style="margin-top:5px">${driverCertBadgesHtml(x)}</div>`:''}</div><div class="toolbar">${badge(x.safetyState||'正常')}<button class="btn soft" onclick="employeeDetail('${x.no}')">社員詳細</button></div></div>`).join('')||'<div class="mini">登録なし</div>'}</div>
  ${vehicleRelatedSafetyHtml(v)}
  ${vehicleOperationalChecklistHtml(v,e)}
  <details class="detail-fold"><summary>担当・所属の詳細</summary><div class="detail-fold-body"><div class="complaint-detail-grid">
@@ -5950,7 +5956,7 @@ function saveDetailState(){
 function updateDetailCloseLabels(){
  let nested=DETAIL_HISTORY.length>0;
  detail.querySelectorAll('button[onclick="closeDetail()"]').forEach(btn=>{
-   btn.textContent=nested?'← 1つ前へ':'閉じる'
+   btn.textContent=nested?'← 1つ前へ':'← 元の画面へ'
  });
  let foot=detail.querySelector('.mfoot');
  if(foot){
@@ -5960,7 +5966,7 @@ function updateDetailCloseLabels(){
      hint.className='detail-navhint';
      foot.insertBefore(hint,foot.firstChild)
    }
-   hint.textContent=nested?'前に見ていた詳細へ戻ります':'閉じると元の一覧・位置へ戻ります'
+   hint.textContent=nested?'前に見ていた詳細へ戻ります':'元の一覧・検索結果・位置へ戻ります'
  }
 }
 function showDetailModal(){
@@ -6033,7 +6039,7 @@ detail.addEventListener('click',e=>{
    if(!text.includes('社員詳細へ戻る')&&DETAIL_HISTORY.length)DETAIL_HISTORY.pop();
    return
  }
- if(/employeeAccidents|employeeComplaints|employeeNearMisses|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showManagerWorkload|openCaseReassign|openBulkManagerHandoff|openHandoffNotice|openHandoffCase|showQualityDetails|showUsers|showImportSpec/.test(code)){
+ if(/employeeDetail|vehicleDetail|employeeAccidents|employeeComplaints|employeeNearMisses|employeeTraining|employeeQualification|employeeAssets|employeeGuidance|guidanceDetail|employeeDocuments|employeeProcedures|employeeDriverLedger|employeeCertUniform|employeeAdminOnly|employeeHealthWork|accidentDetail|complaintDetail|nearDetail|deadlineOpen|showManagerWorkload|openCaseReassign|openBulkManagerHandoff|openHandoffNotice|openHandoffCase|showQualityDetails|showUsers|showImportSpec/.test(code)){
    saveDetailState()
  }
 },true);
@@ -6077,7 +6083,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v126';
+const RELEASE_VERSION='v127';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
