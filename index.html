@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v121</title>
-<!-- production-sync:v121 -->
+<title>つばめ交通株式会社 社員一元管理システム v122</title>
+<!-- production-sync:v122 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,20 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v122 vehicle operations list */
+.vehicle-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.vehicle-overview-card{border:1px solid #cfdfe7;border-radius:13px;background:#fff;padding:12px;text-align:left;min-height:96px;cursor:pointer}
+.vehicle-overview-card small{display:block;color:#687e89;font-weight:950}.vehicle-overview-card b{display:block;font-size:1.6rem;color:#173f57;line-height:1.1;margin:4px 0}.vehicle-overview-card span{display:block;color:#607783;font-size:.68rem;font-weight:850}
+.vehicle-overview-card.warn{border-left:6px solid #d4aa26;background:#fffdf3}.vehicle-overview-card.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
+.vehicle-number-main{border:0;background:transparent;color:#075b88;font-size:1.25rem;font-weight:950;padding:0;text-align:left}.vehicle-number-main span{font-size:.72rem;margin-left:2px;color:#5e7682}
+.vehicle-driver-name{font-size:.92rem}.vehicle-driver-certs{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}.vehicle-driver-certs .badge{padding:4px 7px;font-size:.66rem}
+.vehicle-driver-missing{display:inline-flex;border:1px solid #e4cf8a;background:#fff9df;color:#765b00;border-radius:8px;padding:5px 7px;font-size:.72rem;font-weight:950}
+.vehicle-mobile-list{display:none}.vehicle-mobile-card{border:1px solid #d5e2e8;border-radius:14px;background:#fff;padding:13px;box-shadow:0 4px 14px rgba(22,56,76,.05)}.vehicle-mobile-card.warn{border-left:6px solid #d4aa26}.vehicle-mobile-card.danger{border-left:6px solid #ca5f5f;background:#fff9f9}
+.vehicle-mobile-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.vehicle-mobile-number{font-size:1.35rem;font-weight:950;color:#075b88}.vehicle-mobile-number span{font-size:.72rem;margin-left:2px;color:#607783}
+.vehicle-mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:9px 0}.vehicle-mobile-grid>div{border:1px solid #e0e9ed;border-radius:9px;padding:8px;background:#fbfdfe}.vehicle-mobile-grid label{display:block;font-size:.65rem;font-weight:900;color:#6b808b}.vehicle-mobile-grid b{display:block;color:#244b60}.vehicle-mobile-grid span{font-size:.66rem;color:#667d89;font-weight:850}.vehicle-mobile-card>.btn{width:100%;margin-top:9px}
+@media(max-width:900px){.vehicle-overview{grid-template-columns:1fr 1fr}.vehicle-table{display:none}.vehicle-mobile-list{display:grid;gap:10px}}
+@media(max-width:480px){.vehicle-overview{grid-template-columns:1fr}.vehicle-mobile-grid{grid-template-columns:1fr}}
 
 /* v121 morning home dashboard */
 .home-morning-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin:0 0 9px;padding:0 2px}
@@ -819,19 +833,21 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="vehicles">
-<div class="page-title"><div><h2>車両管理</h2><p>3桁の号車・車種・担当乗務員・車検期限・状態をまとめて管理します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
-<div class="simple-note">車検期限の近い順に表示します。担当変更は履歴として残ります。</div>
+<div class="page-title"><div><h2>車両管理</h2><p>3桁の号車を基準に、担当乗務員・認定・車検・整備状態を確認します。</p></div><button class="btn primary" onclick="openVehicleForm()">＋ 車両を登録</button></div>
+<div class="simple-note">号車を探して、車両状態と担当乗務員をすぐ確認できます。担当変更は履歴として残ります。</div>
+<div id="vehicleOverview" class="vehicle-overview"></div>
 <div class="card" style="margin-top:12px">
  <div class="home-search-row">
-  <input id="vehicleq" placeholder="管理番号・号車・車種・担当社員で検索" oninput="renderVehicles()">
-  <select id="vehicleStatus" onchange="renderVehicles()"><option value="">全状態</option><option>稼働</option><option>点検予定</option><option>休車</option><option>廃車</option></select>
+  <input id="vehicleq" placeholder="号車・車種・担当社員・認定で検索" oninput="renderVehicles()">
+  <select id="vehicleStatus" onchange="VEHICLE_QUICK_FILTER='all';renderVehicles()"><option value="">全状態</option><option>稼働</option><option>点検予定</option><option>休車</option><option>廃車</option></select>
   <button class="btn soft" onclick="clearVehicleSearch()">検索解除</button>
  </div>
- <div class="simple-quick-actions"><button class="btn soft" onclick="vehicleStatus.value='稼働';renderVehicles()">稼働</button><button class="btn warn" onclick="vehicleStatus.value='点検予定';renderVehicles()">点検予定</button><button class="btn soft" onclick="vehicleStatus.value='休車';renderVehicles()">休車</button><button class="btn" onclick="vehicleStatus.value='';renderVehicles()">全車両</button></div>
+ <div class="simple-quick-actions"><button class="btn warn" onclick="setVehicleQuickFilter('attention')">要確認</button><button class="btn soft" onclick="setVehicleQuickFilter('active')">稼働</button><button class="btn warn" onclick="setVehicleQuickFilter('inspection')">点検予定</button><button class="btn soft" onclick="setVehicleQuickFilter('rest')">休車</button><button class="btn" onclick="setVehicleQuickFilter('all')">全車両</button></div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="list-controls"><label class="mini">車検期限を指定</label><input id="vehicleDate" type="date" aria-label="車検期限で検索" onchange="renderVehicles()"></div></div></details>
  <div id="vehicleSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>管理番号</th><th>号車（ナンバー）</th><th>区分</th><th>担当</th><th>車検期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
+<div class="table-card vehicle-table"><div class="tablewrap"><table><thead><tr><th>号車</th><th>担当乗務員・認定</th><th>車両情報</th><th>車検・整備</th><th>状態</th><th>操作</th></tr></thead><tbody id="vehiclebody"></tbody></table></div></div>
+<div id="vehicleMobileList" class="vehicle-mobile-list"></div>
 </section>
 
 
@@ -1040,7 +1056,7 @@ function vehicleAssignmentHistoryHtml(v){
 }
 function clearVehicleSearch(){
  let q=document.getElementById('vehicleq'),d=document.getElementById('vehicleDate'),s=document.getElementById('vehicleStatus');
- if(q)q.value='';if(d)d.value='';if(s)s.value='';renderVehicles()
+ if(q)q.value='';if(d)d.value='';if(s)s.value='';VEHICLE_QUICK_FILTER='all';renderVehicles()
 }
 let N=safeStorageRead('v46NEAR',null)||[{id:'H-001',date:'2026-09-16',employee_no:'1008',driver:'己斐 彩',summary:'後退時に歩行者へ接近（架空）',action:'面談予定'}];
 let C=safeStorageRead('v46COMPLAINT',null)||[{id:'C-001',date:'2026-09-14',employee_no:'1006',name:'江波 直子',summary:'言葉遣いについてのご意見（架空）',status:'対応中'}];
@@ -4854,21 +4870,79 @@ function vehicleRelatedSafetyHtml(v){
   (rows.length?rows.map(r=>'<div class="row"><div><b>'+esc(r.date)+' / '+esc(r.kind)+' '+esc(r.id)+'</b><div class="mini">'+esc(r.summary)+'</div></div><div class="toolbar">'+badge(r.status||'')+'<button class="btn soft" onclick="'+r.open+'">開く</button></div></div>').join(''):'<div class="mini">この号車に紐づく事故・苦情・ヒヤリ記録はありません。</div>')+
  '</div></div>'
 }
+let VEHICLE_QUICK_FILTER='all';
+function setVehicleQuickFilter(kind='all'){
+ VEHICLE_QUICK_FILTER=['all','attention','active','inspection','rest'].includes(kind)?kind:'all';
+ let status=document.getElementById('vehicleStatus');
+ if(status){
+  status.value=VEHICLE_QUICK_FILTER==='active'?'稼働':VEHICLE_QUICK_FILTER==='inspection'?'点検予定':VEHICLE_QUICK_FILTER==='rest'?'休車':''
+ }
+ renderVehicles()
+}
+function vehicleNeedsAttention(v){
+ let state=vehicleDeadlineState(v);
+ return ['over','today','soon'].includes(state)||v.status!=='稼働'||!v.employee_no
+}
+function vehicleDriverSummaryHtml(v){
+ let drivers=vehicleAssignedEmployees(v),primary=drivers[0]||null;
+ if(!primary)return '<div class="vehicle-driver-missing">担当未設定</div><div class="mini">乗務員の登録を確認</div>';
+ let safeNo=String(primary.no).replaceAll("'","");
+ let certs=driverCertBadgesHtml(primary);
+ return '<button class="link vehicle-driver-name" onclick="employeeDetail(\''+safeNo+'\')">'+esc(primary.name)+'</button>'+
+  '<div class="mini">社員番号 '+esc(primary.no)+' / '+esc(primary.branch)+' / '+esc(primary.dept)+'</div>'+
+  (certs?'<div class="vehicle-driver-certs">'+certs+'</div>':'<div class="mini">乗務員認定なし</div>')+
+  (drivers.length>1?'<div class="mini">ほか利用登録 '+(drivers.length-1)+'名</div>':'')
+}
 function renderVehicles(){
  let q=(document.getElementById('vehicleq')?.value||'').trim().toLowerCase(),date=document.getElementById('vehicleDate')?.value||'',status=document.getElementById('vehicleStatus')?.value||'',all=scopedVehicles().slice();
- let counts={active:all.filter(v=>v.status==='稼働').length,over:all.filter(v=>vehicleDeadlineState(v)==='over').length,soon:all.filter(v=>['today','soon'].includes(vehicleDeadlineState(v))).length,inactive:all.filter(v=>['休車','廃車'].includes(v.status)).length};
+ let counts={
+  active:all.filter(v=>v.status==='稼働').length,
+  over:all.filter(v=>vehicleDeadlineState(v)==='over').length,
+  soon:all.filter(v=>['today','soon'].includes(vehicleDeadlineState(v))).length,
+  attention:all.filter(vehicleNeedsAttention).length
+ };
  let rows=all.filter(v=>{
-  let e=emp(v.employee_no),extra=vehicleAssignedEmployees(v).slice(1),text=[v.id,v.plate,v.model,v.assignmentMode,v.service,v.status,v.inspection,v.nextMaintenance,e?.name,e?.no,e?.branch,e?.dept,...extra.flatMap(x=>[x.name,x.no,x.branch,x.dept])].join(' ').toLowerCase();
-  return (!q||text.includes(q))&&(!date||v.inspection===date)&&(!status||v.status===status)
- }).sort((a,b)=>deadlinePriority(a.inspection)-deadlinePriority(b.inspection)||String(a.plate).localeCompare(String(b.plate),'ja'));
+  let assigned=vehicleAssignedEmployees(v),certLabels=assigned.flatMap(e=>DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label));
+  let text=[v.id,v.plate,v.model,v.assignmentMode,v.service,v.status,v.inspection,v.nextMaintenance,...assigned.flatMap(e=>[e.name,e.no,e.branch,e.dept]),...certLabels].join(' ').toLowerCase();
+  let quick=VEHICLE_QUICK_FILTER==='attention'?vehicleNeedsAttention(v):
+    VEHICLE_QUICK_FILTER==='active'?v.status==='稼働':
+    VEHICLE_QUICK_FILTER==='inspection'?v.status==='点検予定':
+    VEHICLE_QUICK_FILTER==='rest'?v.status==='休車':true;
+  return quick&&(!q||text.includes(q))&&(!date||v.inspection===date)&&(!status||v.status===status)
+ }).sort((a,b)=>{
+  let rank=v=>vehicleDeadlineState(v)==='over'?0:vehicleDeadlineState(v)==='today'?1:vehicleDeadlineState(v)==='soon'?2:v.status!=='稼働'?3:!v.employee_no?4:5;
+  return rank(a)-rank(b)||deadlinePriority(a.inspection)-deadlinePriority(b.inspection)||String(a.plate).localeCompare(String(b.plate),'ja')
+ });
+ let overview=document.getElementById('vehicleOverview');
+ if(overview)overview.innerHTML=`<button class="vehicle-overview-card" onclick="setVehicleQuickFilter('active')"><small>稼働</small><b>${counts.active}</b><span>現在稼働中</span></button>
+ <button class="vehicle-overview-card ${counts.over?'danger':''}" onclick="VEHICLE_QUICK_FILTER='attention';vehicleStatus.value='';renderVehicles()"><small>車検期限超過</small><b>${counts.over}</b><span>最優先で確認</span></button>
+ <button class="vehicle-overview-card ${counts.soon?'warn':''}" onclick="VEHICLE_QUICK_FILTER='attention';vehicleStatus.value='';renderVehicles()"><small>車検30日以内</small><b>${counts.soon}</b><span>本日・近日を含む</span></button>
+ <button class="vehicle-overview-card ${counts.attention?'warn':''}" onclick="setVehicleQuickFilter('attention')"><small>要確認車両</small><b>${counts.attention}</b><span>期限・状態・担当未設定</span></button>`;
  let summary=document.getElementById('vehicleSummary');
- if(summary)summary.innerHTML=`<div class="simple-status-line"><span class="simple-status-chip">表示 ${rows.length} / 全 ${all.length}台</span><span class="simple-status-chip ${counts.over?'danger':''}">期限超過 ${counts.over}</span><span class="simple-status-chip ${counts.soon?'warn':''}">30日以内 ${counts.soon}</span><span class="simple-status-chip">休車・廃車 ${counts.inactive}</span></div>`;
+ if(summary)summary.innerHTML=`<div class="simple-status-line"><span class="simple-status-chip">表示 ${rows.length} / 全 ${all.length}台</span><span class="simple-status-chip ${counts.over?'danger':''}">期限超過 ${counts.over}</span><span class="simple-status-chip ${counts.soon?'warn':''}">30日以内 ${counts.soon}</span><span class="simple-status-chip ${counts.attention?'warn':''}">要確認 ${counts.attention}</span></div>`;
  vehiclebody.innerHTML=rows.map(v=>{
-  let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v),canEdit=PREVIEW_ROLE==='管理者'&&v.employee_no&&canEditEmployee(v.employee_no);
-  let op=`<div class="toolbar"><button class="btn soft" onclick="vehicleDetail('${v.id}')">開く</button>${canEdit?`<button class="btn soft" onclick="openVehicleForm(${idx})">編集</button>`:''}</div>`;
-  let deadline=v.inspection?`${v.inspection} / ${deadlineBucketLabel(v.inspection)}`:'未設定';
-  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}"><td><b>${esc(v.id)}</b></td><td>${esc(v.plate)}${v.model?'<div class="mini">'+esc(v.model)+'</div>':''}</td><td>${esc(v.service)}<div class="mini">${esc(v.assignmentMode||'専属')}</div></td><td>${e?esc(e.no+' '+e.name):'未設定'}<div class="mini">${e?esc(e.branch+' / '+e.dept):''} / 利用登録 ${vehicleAssignedEmployeeNos(v).length}名</div></td><td>${esc(deadline)}</td><td>${badge(v.status)}</td><td>${op}</td></tr>`
- }).join('')
+  let idx=V.indexOf(v),state=vehicleDeadlineState(v),canEdit=PREVIEW_ROLE==='管理者'&&v.employee_no&&canEditEmployee(v.employee_no);
+  let safeId=String(v.id).replaceAll("'","");
+  let op=`<div class="toolbar"><button class="btn primary" onclick="vehicleDetail('${safeId}')">詳細</button>${canEdit?`<button class="btn soft" onclick="openVehicleForm(${idx})">編集</button>`:''}</div>`;
+  let deadline=v.inspection?`${v.inspection}<div class="mini">${deadlineBucketLabel(v.inspection)}</div>`:'<span class="vehicle-driver-missing">車検期限未設定</span>';
+  let maintenance=v.nextMaintenance?'<div class="mini">次回整備 '+esc(v.nextMaintenance)+'</div>':'';
+  return `<tr class="${state==='over'?'complaint-row-over':state==='today'||state==='soon'?'complaint-row-today':''}">
+   <td><button class="vehicle-number-main" onclick="vehicleDetail('${safeId}')">${esc(v.plate)}<span>号車</span></button><div class="mini">${esc(v.id)}</div></td>
+   <td>${vehicleDriverSummaryHtml(v)}</td>
+   <td><b>${esc(v.model||'車種未設定')}</b><div class="mini">${esc(v.service)} / ${esc(v.assignmentMode||'専属')}</div></td>
+   <td>${deadline}${maintenance}</td>
+   <td>${badge(v.status)}</td><td>${op}</td></tr>`
+ }).join('');
+ let mobile=document.getElementById('vehicleMobileList');
+ if(mobile)mobile.innerHTML=rows.length?rows.map(v=>{
+  let state=vehicleDeadlineState(v),drivers=vehicleAssignedEmployees(v),primary=drivers[0]||null,safeId=String(v.id).replaceAll("'","");
+  return `<article class="vehicle-mobile-card ${state==='over'?'danger':state==='today'||state==='soon'?'warn':''}" onclick="vehicleDetail('${safeId}')">
+   <div class="vehicle-mobile-top"><div><div class="vehicle-mobile-number">${esc(v.plate)}<span>号車</span></div><div class="mini">${esc(v.model||'車種未設定')} / ${esc(v.service)}</div></div>${badge(v.status)}</div>
+   <div class="vehicle-mobile-grid"><div><label>担当</label><b>${primary?esc(primary.name):'未設定'}</b></div><div><label>車検期限</label><b>${v.inspection?esc(v.inspection):'未設定'}</b><span>${v.inspection?esc(deadlineBucketLabel(v.inspection)):''}</span></div></div>
+   ${primary&&driverCertBadgesHtml(primary)?'<div class="vehicle-driver-certs">'+driverCertBadgesHtml(primary)+'</div>':''}
+   <button class="btn primary" onclick="event.stopPropagation();vehicleDetail('${safeId}')">車両詳細</button>
+  </article>`
+ }).join(''):'<div class="emp-mobile-empty">条件に該当する車両はありません。</div>'
 }
 function vehicleOperationalChecklistHtml(v,e){
  let inspectionOk=!!v.inspection&&days(v.inspection)>=0;
@@ -5936,7 +6010,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v121';
+const RELEASE_VERSION='v122';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
