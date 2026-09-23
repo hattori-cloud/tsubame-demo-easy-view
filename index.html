@@ -5279,6 +5279,7 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
  applyDocumentRuleToForm(false);
  if(!full){
   [fdstatus,fdorig,fdsecurity,fdaccess,fdpaper,fdretain].forEach(x=>x.disabled=true);
+  [...fdcat.options].forEach(o=>{if(documentRule(o.value).securityClass==='厳格')o.disabled=true});
   if(!newPlain)fdcat.disabled=true
  }
  updateDocumentFormGuide();
@@ -5286,6 +5287,7 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
   if(d&&!canEditDocumentRecord(d))return alert('この書類を更新する権限がありません');
   if(!d&&!canRegisterDocumentForEmployee(no))return alert('現在の担当範囲では書類を登録できません');
   if(!fdname.value.trim()||!fddate.value)return alert('書類名と登録日を入力してください');
+  if(documentRule(fdcat.value).securityClass==='厳格'&&!isFullCompanyAdmin())return alert('厳格書類の登録は全社管理者のみです');
   if(fdqual.value&&fdcat.value!=='資格証憑'&&!confirm('関連資格が選択されていますが、書類区分が「資格証憑」ではありません。このまま保存しますか？'))return;
   if(fdstatus.value==='原本確認済み'&&!canVerifyOriginalDocument())return alert('原本確認済みにできるのは全社管理者だけです');
   if(fdsecurity.value==='厳格'&&fdaccess.value!=='全社管理者のみ')return alert('厳格書類は「全社管理者のみ」にしてください');
