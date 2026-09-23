@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v182 foundation build.
+Current application: v183 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -161,4 +161,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v180 centralizes sensitive-data guardrails. The work-summary XLSX preflight rejects columns that appear to contain My Number/personal number, insurance or pension identifiers, salary/payment fields, bank-account fields, diagnosis results or disease history. The shared demo also scans stored business objects for forbidden/restricted key names during system self-diagnostics. The production gate explicitly keeps sensitive information separation as a blocking item until server-side field/API authorization is implemented.
 - v181 adds Node regression tests for production authorization behavior. The tests cover full-company, assigned-scope, Fuchu-scope, self-service and pagination behavior, including the rule that request filters cannot expand a user's fixed server-side scope.
 - v182 strengthens the work-summary XLSX preflight as a true blocking gate instead of a loose warning pass. It now rejects duplicate employee rows, negative/out-of-range work values, invalid target-month/date formats and over-5000-row files; separates blocking issues from 45/55/60-hour warnings; scans the first 20 rows of every worksheet for sensitive headers; exposes a `can_commit` readiness flag while still persisting nothing; and adds regression tests for valid files, duplicates, missing columns, invalid values and sensitive columns on secondary sheets.
+- v183 adds a shared server-side optimistic-concurrency guard for future production writes. Strong ETags are formatted centrally, versioned mutations must provide `If-Match`, missing preconditions return 428, weak/wildcard tags are rejected, and stale versions return 409 instead of silently overwriting newer data. Employee GET now uses the shared ETag helper, and regression tests cover the concurrency rules. No production write endpoint is enabled yet; writes remain fail-closed until a durable database adapter is connected.
 
