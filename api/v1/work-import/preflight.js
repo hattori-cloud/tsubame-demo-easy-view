@@ -5,6 +5,14 @@ const {applySecurityHeaders,requestId}=require('../../_lib/security');
 const {resolveCurrentUser}=require('../../_lib/authorization');
 
 const MAX_FILE_BYTES=4*1024*1024;
+const SENSITIVE_HEADER_PATTERNS=[
+  /マイナンバー|個人番号/i,
+  /健康保険.*(番号|記号)|保険番号/i,
+  /雇用保険.*番号|基礎年金.*番号|年金番号/i,
+  /給与|基本給|賃金|賞与額/i,
+  /口座番号|銀行口座/i,
+  /診断結果|病名|既往歴|治療内容/i
+];
 const FIELD_ALIASES={
   employee_no:['社員番号','社員コード','社員no','社員ｎｏ','従業員番号','従業員コード'],
   month:['対象月','年月','計上月','勤務月'],
@@ -93,6 +101,8 @@ module.exports=async function handler(req,res){
     });
     if(!chosen)throw new AuthError(422,'NO_WORKSHEET','ワークシートが見つかりません');
 
+    const sensitiveHeaders=chosen.headers.filter(h=>SENSITIVE_HEADER_PATTERNS.some(re=>re.test(String(h||''))));
+    if(sensitiveHeaders.length)throw new AuthError(422,'SENSITIVE_COLUMNS_NOT_ALLOWED','勤務集計ファイルに取込対象外の機密列があります：'+sensitiveHeaders.slice(0,8).join('、'));
     const required=['employee_no','restraint','remaining','overtime','last_posted'];
     const missing=required.filter(k=>!chosen.map[k]);
     const rows=[],issues=[];
