@@ -4782,12 +4782,15 @@ function populateSafetyAnalysisFilters(){
  let wEl=document.getElementById('analysisWorkplace'),dEl=document.getElementById('analysisDept'),eEl=document.getElementById('analysisEmployee'),vEl=document.getElementById('analysisVehicle');
  let currentW=wEl?.value||'',currentD=dEl?.value||'',currentE=eEl?.value||'',currentV=vEl?.value||'';
  setOptions('analysisWorkplace',employees.map(e=>e.workplace||e.branch||''),'全事業所',currentW);
+ currentW=wEl?.value||'';
  let deptEmployees=currentW?employees.filter(e=>String(e.workplace||e.branch||'')===currentW):employees;
  setOptions('analysisDept',deptEmployees.map(e=>e.dept||''),'全部署',currentD);
+ currentD=dEl?.value||'';
  let filteredEmployees=deptEmployees.filter(e=>!currentD||String(e.dept||'')===currentD).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
  if(eEl){
   eEl.innerHTML='<option value="">全社員</option>'+filteredEmployees.map(e=>'<option value="'+esc(e.no)+'">'+esc(e.no)+' '+esc(e.name)+'</option>').join('');
-  if(filteredEmployees.some(e=>String(e.no)===currentE))eEl.value=currentE
+  if(filteredEmployees.some(e=>String(e.no)===currentE))eEl.value=currentE;
+  currentE=eEl.value||''
  }
  let vehicleValues=records.filter(r=>{
   let e=safetyAnalysisRecordEmployee(r);
