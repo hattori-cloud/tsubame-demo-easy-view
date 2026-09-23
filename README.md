@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v192 foundation build.
+Current application: v193 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -185,3 +185,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v191 completes another long-term-history finding from the annual internal load test by paging employee-specific complaint history at 25 rows. The annual test baseline now also includes approximately 20 accidents per month / 240 per year. See `docs/annual-internal-test-v191.md` for the consolidated one-year and five-year capacity findings.
 
 - v192 keeps long-term retained employee data out of the normal daily view: the Employee page defaults to active employees, adds an explicit Retired quick filter, and keeps Clear on the active-staff view. Manager Home also adds a monthly near-miss quota card showing taxi-driver 0/1-report shortages so the 2-per-month rule is visible without opening the full 4,800-row annual history.
+
+- v193 adds a monthly accident-management dashboard for the roughly 20-accident-per-month operating baseline. Managers can choose a month and see total accidents, open cases, overdue follow-up, management-attention count, repair-cost total, and affected employees, then filter the accident list to that month. Month/employee grouped accident cards also show overdue items, management-attention counts, and repair-cost totals.
