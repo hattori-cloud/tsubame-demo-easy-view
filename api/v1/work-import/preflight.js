@@ -56,6 +56,14 @@ function numberValue(v){
   const n=Number(cleaned);
   return Number.isFinite(n)?n:null
 }
+function numberCellValue(cell){
+  const raw=cellValue(cell);
+  if(typeof raw==='number'&&Number.isFinite(raw)){
+    const fmt=String(cell?.numFmt||'').toLowerCase();
+    if(/\[h\]|h+:mm|h:mm/.test(fmt))return raw*24
+  }
+  return numberValue(raw)
+}
 function validDateParts(y,m,d){
   if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||m<1||m>12||d<1||d>31)return false;
   const dt=new Date(Date.UTC(y,m-1,d));
@@ -160,9 +168,9 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
       row:r,
       employee_no:employeeNo,
       month:chosen.map.month?String(cellValue(row.getCell(chosen.map.month))).trim():'',
-      restraint:chosen.map.restraint?numberValue(cellValue(row.getCell(chosen.map.restraint))):null,
-      remaining:chosen.map.remaining?numberValue(cellValue(row.getCell(chosen.map.remaining))):null,
-      overtime:chosen.map.overtime?numberValue(cellValue(row.getCell(chosen.map.overtime))):null,
+      restraint:chosen.map.restraint?numberCellValue(row.getCell(chosen.map.restraint)):null,
+      remaining:chosen.map.remaining?numberCellValue(row.getCell(chosen.map.remaining)):null,
+      overtime:chosen.map.overtime?numberCellValue(row.getCell(chosen.map.overtime)):null,
       last_posted:chosen.map.last_posted?dateValue(cellValue(row.getCell(chosen.map.last_posted))):''
     };
     item.month=monthValue(item.month,item.last_posted);
@@ -231,4 +239,4 @@ module.exports=async function handler(req,res){
     return sendApiError(req,res,err)
   }
 };
-module.exports._test={parseWorkbookBuffer,normalizeHeader,headerMap,numberValue,dateValue,monthValue,isValidIsoDate,isValidYearMonth,workbookSensitiveHeaders};
+module.exports._test={parseWorkbookBuffer,normalizeHeader,headerMap,numberValue,numberCellValue,dateValue,monthValue,isValidIsoDate,isValidYearMonth,workbookSensitiveHeaders};
