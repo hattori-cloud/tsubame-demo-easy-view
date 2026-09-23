@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v163</title>
-<!-- production-sync:v163 -->
+<title>つばめ交通株式会社 社員一元管理システム v164</title>
+<!-- production-sync:v164 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -484,6 +484,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .work-overview-card span{display:block;color:#607783;font-size:.7rem;font-weight:850}
 .work-overview-card.warn{border-left:7px solid #d4aa26;background:#fffdf3}
 .work-overview-card.danger{border-left:7px solid #ca5f5f;background:#fff8f8}
+.work-action-guide{display:grid;gap:5px;margin-top:7px}.work-action-guide>div{display:grid;grid-template-columns:94px minmax(0,1fr);gap:8px;align-items:start;font-size:.76rem;line-height:1.45;color:#405d6a;font-weight:820}.work-action-guide>div>span{display:inline-flex;align-items:center;justify-content:center;min-height:26px;border-radius:999px;background:#eef6f9;color:#2d596d;font-size:.66rem;font-weight:950;padding:3px 7px}.work-action-guide b{color:#214f64}.work-priority-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center}.work-priority-actions .btn{min-height:46px}.work-subsection-note{border-left:4px solid #a8c9d9;background:#f7fbfd;border-radius:8px;padding:8px 10px;margin:8px 0 10px;color:#526e7a;font-size:.72rem;font-weight:820}@media(max-width:680px){.work-action-guide>div{grid-template-columns:82px minmax(0,1fr)}.work-priority-actions{width:100%}.work-priority-actions .btn{flex:1}}
 .work-reason-line{display:flex;gap:5px;flex-wrap:wrap;margin:6px 0}
 .work-reason-line span{display:inline-flex;border:1px solid #d6e2e8;border-radius:999px;background:#f7fafb;padding:3px 7px;font-size:.67rem;font-weight:900;color:#4e6875}
 .work-priority-row.warn .work-reason-line span{background:#fff8df;border-color:#e5d18e;color:#715800}
@@ -1067,7 +1068,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類の確認</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
-<div class="simple-note">まず「今日・期限超過・30日以内・勤務時間要確認」を確認し、必要な社員だけ詳細を開きます。</div>
+<div class="simple-note">上から「期限超過 → 本日期限 → 30日以内 → 勤務時間要確認」の順で確認します。各社員には「なぜ確認するか」と「次にすること」を表示します。</div>
 <div id="workOverview" class="work-overview" aria-label="期限・勤務サマリー"></div>
 <div class="card simple-work-top">
  <div class="list-summary"><div><h3 style="margin:0">優先対応者</h3><div id="workKpis" class="simple-status-line"></div></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button></div></div>
@@ -2073,6 +2074,7 @@ function deadlineFilterMatch(date,filter){
  let b=deadlineBucket(date);
  if(filter==='all')return b!=='none';
  if(filter==='over'||filter==='today')return b===filter;
+ if(filter==='within30')return b==='7'||b==='30';
  if(filter==='7')return b==='7';
  if(filter==='30')return b==='30';
  if(filter==='60')return b==='60';
@@ -2246,6 +2248,7 @@ function openDeadlineCenter(filter='all'){
   <button class="btn ${filter==='all'?'active':''}" onclick="openDeadlineCenter('all')">すべて</button>
   <button class="btn ${filter==='over'?'active':''}" onclick="openDeadlineCenter('over')">期限超過</button>
   <button class="btn ${filter==='today'?'active':''}" onclick="openDeadlineCenter('today')">本日</button>
+  <button class="btn ${filter==='within30'?'active':''}" onclick="openDeadlineCenter('within30')">30日以内</button>
   <button class="btn ${filter==='7'?'active':''}" onclick="openDeadlineCenter('7')">1〜7日</button>
   <button class="btn ${filter==='30'?'active':''}" onclick="openDeadlineCenter('30')">8〜30日</button>
   <button class="btn ${filter==='60'?'active':''}" onclick="openDeadlineCenter('60')">31〜60日</button>
@@ -3161,8 +3164,8 @@ function workAttentionRows(){
 function openWorkAttentionCenter(){
  let rows=workAttentionRows();
  dttl.textContent='勤務時間 要確認';
- dbody.innerHTML='<div class="list-summary"><div><b>要確認 '+rows.length+'名</b><div class="mini">残業45時間以上、または勤務集計の更新確認が必要な社員です。</div></div></div>'+
- (rows.length?rows.map(e=>{let w=e.workSummary||{},age=workPostedAge(e);return '<div class="row '+(Number(e.overtime)>=60?'quality-bad':Number(e.overtime)>=45?'quality-warn':'')+'"><div><div class="employee-name-row">'+employeeNameLinkHtml(e.no,e.name,'work-employee-link')+'<span class="mini">社員番号 '+esc(e.no)+'</span></div><div class="mini">'+esc(e.branch)+' / '+esc(e.dept)+' / 残業 '+Number(e.overtime||0)+'時間 / 最終計上 '+esc(w.lastPosted||'未登録')+'（'+(age===null?'日数不明':age+'日前')+'）</div><div class="mini"><b>次の対応：</b>'+esc(workNextActionText(e))+'</div></div><button class="btn soft" onclick="employeeHealthWork(\''+String(e.no).replaceAll("'","")+'\')">社員確認</button></div>'}).join(''):'<div class="mini">勤務時間の要確認者はいません。</div>');
+ dbody.innerHTML='<div class="list-summary"><div><b>要確認 '+rows.length+'名</b><div class="mini">残業45時間以上、または勤務集計の更新確認が必要な社員です。理由と次の処理を上から確認します。</div></div></div>'+
+ (rows.length?rows.map(e=>{let w=e.workSummary||{},age=workPostedAge(e),info=workAttentionInfo(e);return '<div class="row '+(info.tone==='danger'?'quality-bad':info.tone==='warn'?'quality-warn':'')+'"><div><div class="employee-name-row">'+employeeNameLinkHtml(e.no,e.name,'work-employee-link')+'<span class="mini">社員番号 '+esc(e.no)+'</span></div><div class="mini">'+esc(e.branch)+' / '+esc(e.dept)+' / 残業 '+Number(e.overtime||0)+'時間 / 最終計上 '+esc(w.lastPosted||'未登録')+'（'+(age===null?'日数不明':age+'日前')+'）</div>'+workActionGuideHtml(e)+'</div><div class="work-priority-actions"><button class="btn primary" onclick="employeeHealthWork(\''+String(e.no).replaceAll("'","")+'\')">勤務・健診を確認</button><button class="btn soft" onclick="employeeDetail(\''+String(e.no).replaceAll("'","")+'\');setTimeout(()=>setEmployeeDetailTab(\'work\'),30)">社員台帳</button></div></div>'}).join(''):'<div class="mini">勤務時間の要確認者はいません。</div>');
  showDetailModal()
 }
 function renderWork(){
@@ -3174,7 +3177,7 @@ function renderWork(){
  let overview=document.getElementById('workOverview');
  if(overview)overview.innerHTML=`<button class="work-overview-card ${dOver?'danger':''}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${dOver}</b><span>最優先で確認</span></button>
  <button class="work-overview-card ${dToday?'warn':''}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${dToday}</b><span>今日中に確認</span></button>
- <button class="work-overview-card ${d30?'warn':''}" onclick="openDeadlineCenter('30')"><small>30日以内</small><b>${d30}</b><span>1〜30日の期限</span></button>
+ <button class="work-overview-card ${d30?'warn':''}" onclick="openDeadlineCenter('within30')"><small>30日以内</small><b>${d30}</b><span>1〜30日の期限をすべて表示</span></button>
  <button class="work-overview-card ${c60?'danger':c45||stale?'warn':''}" onclick="openWorkAttentionCenter()"><small>勤務時間 要確認</small><b>${workAttentionRows().length}</b><span>45時間以上 ${c45} / 更新確認 ${stale}</span></button>`;
  workKpis.innerHTML=`<span class="simple-status-chip ${c60?'danger':''}">60時間以上 ${c60}</span><span class="simple-status-chip ${c55?'warn':''}">55時間以上 ${c55}</span><span class="simple-status-chip ${stale?'warn':''}">勤務集計 更新確認 ${stale}</span>`;
  let priority=ordered.filter(e=>workAttentionScore(e)>0).slice(0,8);
@@ -3182,15 +3185,15 @@ function renderWork(){
   let update=workUpdateStatus(e),nearest=employeeNearestDeadline(e),ot=Number(e.overtime||0);
   let cls=ot>=60||(nearest&&nearest.n<0)?'danger':ot>=45||update==='更新確認'||(nearest&&nearest.n<=30)?'warn':'';
   let reasons=[];if(nearest&&nearest.n<0)reasons.push(nearest.label+' 期限超過');else if(nearest&&nearest.n<=30)reasons.push(nearest.label+' '+deadlineBucketLabel(nearest.date));if(ot>=45)reasons.push('残業 '+ot+'時間');if(update==='更新確認')reasons.push('勤務集計 更新確認');
-  return `<div class="row work-priority-row ${cls}"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.branch)} / ${esc(e.dept)}</div><div class="work-reason-line">${reasons.map(x=>'<span>'+esc(x)+'</span>').join('')}</div><div class="mini"><b>次の対応：</b>${esc(workNextActionText(e))}</div></div><button class="btn primary" onclick="employeeHealthWork('${e.no}')">社員確認</button></div>`
+  return `<div class="row work-priority-row ${cls}"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.branch)} / ${esc(e.dept)}</div><div class="work-reason-line">${reasons.map(x=>'<span>'+esc(x)+'</span>').join('')}</div>${workActionGuideHtml(e)}</div><div class="work-priority-actions"><button class="btn primary" onclick="employeeHealthWork('${e.no}')">勤務・健診を確認</button><button class="btn soft" onclick="employeeDetail('${e.no}');setTimeout(()=>setEmployeeDetailTab('work'),30)">社員台帳</button></div></div>`
  }).join(''):'<div class="work-clear-state">現在、優先して確認する勤務・期限項目はありません。</div>';
  let workAttention=workAttentionRows().slice(0,10);
- workRows.innerHTML=workAttention.length?workAttention.map(e=>{let w=e.workSummary||{},update=workUpdateStatus(e),age=workPostedAge(e),updateClass=update==='更新確認'?'warn':'ok';return `<div class="row"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.workPattern||'通常勤務')} / 拘束 ${esc(w.restraint??'-')}時間 / 残業 ${Number(e.overtime||0)}時間</div><div class="mini">最終計上 ${esc(w.lastPosted||'未登録')}（${age===null?'日数不明':age+'日前'}）</div></div><div class="toolbar"><span class="badge ${Number(e.overtime)>=55?'danger':Number(e.overtime)>=45?'warn':'ok'}">${overtimeStatus(e.overtime)}</span><span class="badge ${updateClass}">${update}</span><button class="btn soft" onclick="employeeHealthWork('${e.no}')">確認</button></div></div>`}).join(''):'<div class="work-clear-state">勤務時間・集計の要確認者はいません。</div>';
+ workRows.innerHTML=workAttention.length?workAttention.map(e=>{let w=e.workSummary||{},update=workUpdateStatus(e),age=workPostedAge(e),updateClass=update==='更新確認'?'warn':'ok';return `<div class="row"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.workPattern||'通常勤務')} / 拘束 ${esc(w.restraint??'-')}時間 / 残業 ${Number(e.overtime||0)}時間</div><div class="mini">最終計上 ${esc(w.lastPosted||'未登録')}（${age===null?'日数不明':age+'日前'}）</div>${workActionGuideHtml(e)}</div><div class="toolbar"><span class="badge ${Number(e.overtime)>=55?'danger':Number(e.overtime)>=45?'warn':'ok'}">${overtimeStatus(e.overtime)}</span><span class="badge ${updateClass}">${update}</span><button class="btn primary" onclick="employeeHealthWork('${e.no}')">勤務・健診</button></div></div>`}).join(''):'<div class="work-clear-state">勤務時間・集計の要確認者はいません。</div>';
  let healthRows=rows.filter(e=>e.health).sort((a,b)=>deadlinePriority(a.health)-deadlinePriority(b.health)||days(a.health)-days(b.health)).slice(0,8);
  let nightCount=rows.filter(e=>e.workPattern==='夜勤').length;
- healthSchedule.innerHTML=`<div class="scope-note" style="margin-bottom:8px">期限登録 ${rows.filter(e=>e.health).length}名 / 夜勤 ${nightCount}名。健診結果の内容は扱いません。</div>`+(healthRows.length?healthRows.map(e=>`<div class="row"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.workPattern||'通常勤務')} / 期限 ${e.health} / ${deadlineBucketLabel(e.health)}</div></div><button class="btn soft" onclick="employeeHealthWork('${e.no}')">確認</button></div>`).join(''):'<div class="mini">健康診断期限が登録された社員はいません。</div>');
+ healthSchedule.innerHTML=`<div class="scope-note" style="margin-bottom:8px">期限登録 ${rows.filter(e=>e.health).length}名 / 夜勤 ${nightCount}名。健診結果の内容は扱いません。</div>`+(healthRows.length?healthRows.map(e=>{let n=days(e.health),reason=n<0?'健康診断期限を'+Math.abs(n)+'日超過':n===0?'健康診断期限が本日':n<=30?'健康診断期限まで'+n+'日':'次回期限を確認';let action=n<0?'受診予定と乗務可否を最優先で確認':n<=30?'受診予定を確認':'定期確認';return `<div class="row"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.workPattern||'通常勤務')} / 期限 ${e.health} / ${deadlineBucketLabel(e.health)}</div><div class="work-action-guide"><div><span>なぜ確認？</span><b>${esc(reason)}</b></div><div><span>次にすること</span>${esc(action)}</div></div></div><button class="btn ${n<0?'danger':n<=30?'primary':'soft'}" onclick="employeeHealthWork('${e.no}')">勤務・健診</button></div>`}).join(''):'<div class="mini">健康診断期限が登録された社員はいません。</div>');
  let training=scopedTraining().slice().sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||days(a.due)-days(b.due)).slice(0,8);
- safetyTraining.innerHTML=training.length?training.map(t=>{let e=emp(t.employee_no);return `<div class="row"><div><div class="training-employee-line">${e?employeeNameLinkHtml(e.no,e.name,'work-employee-link'):'<b>'+esc(t.employee_no)+'</b>'}<span>${esc(t.course)}</span></div><div class="mini">期限 ${t.due||'未設定'} ${t.due?' / '+deadlineBucketLabel(t.due):''}</div></div><div class="toolbar">${badge(t.status)}${e?'<button class="btn soft" onclick="employeeHealthWork(\''+e.no+'\')">確認</button>':''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>'
+ safetyTraining.innerHTML=training.length?training.map(t=>{let e=emp(t.employee_no),info=trainingActionInfo(t);return `<div class="row"><div><div class="training-employee-line">${e?employeeNameLinkHtml(e.no,e.name,'work-employee-link'):'<b>'+esc(t.employee_no)+'</b>'}<span>${esc(t.course)}</span></div><div class="mini">期限 ${t.due||'未設定'} ${t.due?' / '+deadlineBucketLabel(t.due):''}</div>${trainingActionHtml(info)}</div><div class="toolbar">${badge(t.status)}${e?'<button class="btn '+(info.tone==='danger'?'danger':info.tone==='warn'?'primary':'soft')+'" onclick="employeeTraining(\''+e.no+'\')">指導記録</button>':''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>'
 }
 function attendanceSelected(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}ATT_PRECHECK=false;attImportBtn.disabled=true;attPreBtn.disabled=!attendanceFile.files.length;attFileName.textContent=attendanceFile.files[0]?.name||'未選択';attResult.textContent=''}
 function attendancePreflight(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}if(!attendanceFile.files.length)return;ATT_PRECHECK=true;attImportBtn.disabled=false;attResult.textContent='DRY_RUN：対象月 2026年8月 / 照合 28名 / 未照合 0名 / 最終計上日 2026-09-15（架空）';audit('拘束時間取込前チェック',attendanceFile.files[0].name)}
@@ -5935,6 +5938,22 @@ function workNextActionText(e){
  if(update==='更新確認')parts.push('勤務集計を更新');
  return parts.length?parts.join(' / '):'通常確認'
 }
+function workAttentionInfo(e){
+ let nearest=employeeNearestDeadline(e),update=workUpdateStatus(e),ot=Number(e.overtime||0),reasons=[];
+ if(nearest&&nearest.n<0)reasons.push(nearest.label+'が'+Math.abs(nearest.n)+'日超過');
+ else if(nearest&&nearest.n===0)reasons.push(nearest.label+'が本日期限');
+ else if(nearest&&nearest.n<=30)reasons.push(nearest.label+'が'+nearest.n+'日後');
+ if(ot>=60)reasons.push('残業 '+ot+'時間（最優先）');
+ else if(ot>=45)reasons.push('残業 '+ot+'時間');
+ if(update==='更新確認')reasons.push('勤務集計の更新確認');
+ let tone=(nearest&&nearest.n<0)||ot>=60?'danger':reasons.length?'warn':'';
+ return {tone,reason:reasons.length?reasons.join(' / '):'現在、大きな要確認なし',action:workNextActionText(e)}
+}
+function workActionGuideHtml(e){
+ let info=workAttentionInfo(e);
+ return '<div class="work-action-guide"><div><span>なぜ確認？</span><b>'+esc(info.reason)+'</b></div><div><span>次にすること</span>'+esc(info.action)+'</div></div>'
+}
+
 function caseEntityType(kind){return kind==='事故'?'accident':kind==='苦情'?'complaint':'near_miss'}
 function caseRecordByKind(kind,id){
  if(kind==='事故')return A.find(x=>x.id===id)||null;
@@ -7449,7 +7468,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v163';
+const RELEASE_VERSION='v164';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
