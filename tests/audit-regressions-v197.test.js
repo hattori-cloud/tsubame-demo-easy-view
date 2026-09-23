@@ -1,0 +1,82 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const vm=require('node:vm');
+
+const source=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+
+function between(start,end){
+  const a=source.indexOf(start),b=source.indexOf(end,a+start.length);
+  assert.ok(a>=0,'missing '+start);
+  assert.ok(b>a,'missing '+end);
+  return source.slice(a,b)
+}
+
+test('near-miss edit comparison covers all editable analysis fields',()=>{
+  const block=between('let nearBefore=rec?','if(rec&&!nearLines.length)');
+  for(const field of ['reportDate','education','locationTags','situationTags','roadTags','targetTags','internalFactors']){
+    assert.ok(block.includes(field),field+' missing from change detection')
+  }
+});
+
+test('failed rollback forces recovery-required save lock',()=>{
+  const saveBlock=between('function save(){','let ADMIN_OFFICE_SCOPE=');
+  assert.ok(source.includes("const CORE_RECOVERY_REQUIRED_KEY='v197CORE_RECOVERY_REQUIRED'"));
+  assert.ok(saveBlock.includes('markCoreRecoveryRequired()'));
+  assert.ok(saveBlock.includes('CORE_RECOVERY_REQUIRED'))
+});
+
+test('monthly drilldowns reset stale filters and all-period high-risk clears month',()=>{
+  const block=between('function resetAccidentListForMonth','function renderSafetyOverview');
+  assert.ok(block.includes("q.value=''"));
+  assert.ok(block.includes("r.value=''"));
+  assert.ok(block.includes("c.value=''"));
+  assert.ok(block.includes("NEAR_MONTH=month||''"));
+  assert.ok(block.includes("openAllHighRiskNear"));
+  assert.ok(block.includes("resetNearListForMonth('')"))
+});
+
+test('near-miss monthly targets use persistent snapshots',()=>{
+  const block=between('function normalizedEmployeeDate','function nearQuotaStats');
+  assert.ok(source.includes("let NEAR_QUOTA_TARGETS=safeStorageRead('v197NEAR_QUOTA_TARGETS',{})||{}"));
+  assert.ok(block.includes('buildNearQuotaTargetSnapshot'));
+  assert.ok(block.includes('nearQuotaTargetSnapshot'));
+  assert.ok(block.includes('nearQuotaSnapshotInScope'))
+});
+
+test('historical target state rolls back later transfer/retirement details',()=>{
+  const start=source.indexOf('function employeeQuotaStateAtMonthStart');
+  const end=source.indexOf('function buildNearQuotaTargetSnapshot',start);
+  assert.ok(start>=0&&end>start);
+  const fn=source.slice(start,end);
+  const context={};
+  vm.createContext(context);
+  vm.runInContext(fn,context);
+  const employee={
+    branch:'本社',dept:'総務課',status:'退職',position:'一般',eligibility:'対象外',
+    transitionHistory:[{
+      date:'2026-09-10',time:'2026-09-10T01:00:00.000Z',
+      from:'本社 / タクシー課 / 在籍',to:'本社 / 総務課 / 退職',
+      from_position:'乗務員',from_eligibility:'可'
+    }]
+  };
+  const state=context.employeeQuotaStateAtMonthStart(employee,'2026-08');
+  assert.equal(state.dept,'タクシー課');
+  assert.equal(state.status,'在籍');
+  assert.equal(state.position,'乗務員');
+  assert.equal(state.eligibility,'可')
+});
+
+test('past-month near-miss registration carries quota month context',()=>{
+  assert.ok(source.includes("function openNearForm(idx=-1,defaultNo='',quotaMonth='')"));
+  assert.ok(source.includes('選択月の不足件数には入りません'));
+  assert.ok(source.includes("openNearForm(-1,'+safeNo+'"))
+});
+
+test('mobile monthly priority list is capped and category-balanced',()=>{
+  const block=between('function safetyMonthlyVisibleItems','function resetAccidentListForMonth');
+  assert.ok(block.includes("'(max-width:700px)'"));
+  assert.ok(block.includes("?3:8"));
+  assert.ok(block.includes("['accident','near','quota']"))
+});
