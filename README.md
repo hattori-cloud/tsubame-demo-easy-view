@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v139 foundation build.
+Current application: v140 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v139 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v139.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v140.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -92,6 +92,7 @@ Current application: v139 foundation build.
 - v137 adds a cross-record safety priority dashboard above the Safety tabs. It ranks overdue accident/complaint work first, then work due today, high-risk near-miss reports, and records with missing operational/analysis fields. The top eight items link directly to their details, while the existing per-type lists remain the source for full filtering and follow-up.
 - v138 adds an employee-level safety trend view grounded only in registered records. It shows 90-day and one-year accident/complaint/near-miss counts, open accident/complaint work, high-risk near-misses, monthly activity, frequent registered accident types/complaint ranks/near-miss situations/vehicles, and recent records. Priority items can open this employee trend directly without treating counts as an employee rating.
 - v139 expands Safety Analysis from accident/near-miss only into a permission-scoped accident/complaint/near-miss analysis. Managers can filter by date, current workplace, current department, employee, three-digit vehicle number and record type, then review workplace, department, vehicle and employee record counts, open accident/complaint work, complaint ranks, repair cost and existing accident/near-miss classifications. Counts are explicitly presented as raw registered records rather than exposure-adjusted rates or employee/department scores.
+- v140 adds comparative safety analysis. A selected date window is compared with the same dates one year earlier; with no date filter, year-to-date is compared with the prior-year equivalent. It also shows consecutive-month change including zero-record months and highlights departments/vehicles where two or all three record types increased versus the prior-year period, with one-click drill-down. These are raw-count change signals, not exposure-adjusted risk ratings.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
