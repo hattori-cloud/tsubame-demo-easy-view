@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v159</title>
-<!-- production-sync:v159 -->
+<title>つばめ交通株式会社 社員一元管理システム v160</title>
+<!-- production-sync:v160 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -340,6 +340,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:850px){.employee-safety-trend-kpis{grid-template-columns:1fr 1fr}.employee-safety-trend-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.employee-safety-trend-kpis{grid-template-columns:1fr}}
 .comms-tabs{margin-bottom:12px}.comms-list-row{margin-top:8px}.comms-list-row:first-child{margin-top:0}
+.training-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}.training-overview-card{border:1px solid #cfdfe7;border-radius:13px;background:#fff;padding:12px;text-align:left;cursor:pointer;min-height:96px}.training-overview-card small{display:block;color:#687e89;font-weight:950}.training-overview-card b{display:block;font-size:1.55rem;color:#173f57;line-height:1.1;margin:4px 0}.training-overview-card span{display:block;color:#607783;font-size:.68rem;font-weight:850}.training-overview-card.warn{border-left:6px solid #d4aa26;background:#fffdf3}.training-overview-card.danger{border-left:6px solid #ca5f5f;background:#fff8f8}.training-action{display:grid;gap:3px;padding:7px 9px;border-left:4px solid #9eb6c2;background:#f8fbfc;border-radius:8px}.training-action.warn{border-left-color:#d4aa26;background:#fffdf3}.training-action.danger{border-left-color:#ca5f5f;background:#fff8f8}.training-action.done{border-left-color:#5b9a6b;background:#f7fcf8}.training-action small{font-size:.64rem;color:#687e89;font-weight:950}.training-action b{font-size:.78rem}.training-action span{font-size:.72rem;font-weight:850}@media(max-width:800px){.training-overview{grid-template-columns:1fr 1fr}}@media(max-width:460px){.training-overview{grid-template-columns:1fr}}
 .comms-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}.comms-overview-card{border:1px solid #cfdfe7;border-radius:13px;background:#fff;padding:12px;text-align:left;cursor:pointer;min-height:96px}.comms-overview-card small{display:block;color:#687e89;font-weight:950}.comms-overview-card b{display:block;font-size:1.55rem;color:#173f57;line-height:1.1;margin:4px 0}.comms-overview-card span{display:block;color:#607783;font-size:.68rem;font-weight:850}.comms-overview-card.warn{border-left:6px solid #d4aa26;background:#fffdf3}.comms-overview-card.danger{border-left:6px solid #ca5f5f;background:#fff8f8}.application-guidance{display:grid;gap:4px;margin-top:7px;padding:8px 10px;border-left:4px solid #9eb6c2;background:#f8fbfc;border-radius:8px}.application-guidance.warn{border-left-color:#d4aa26;background:#fffdf3}.application-guidance.done{border-left-color:#5b9a6b;background:#f7fcf8}.application-guidance small{font-size:.64rem;color:#687e89;font-weight:950}.application-guidance b{font-size:.8rem}.application-guidance span{font-size:.74rem;font-weight:850}.comms-due-over{color:#9a3030;font-weight:950}.comms-due-today{color:#755a00;font-weight:950}@media(max-width:800px){.comms-overview{grid-template-columns:1fr 1fr}}@media(max-width:460px){.comms-overview{grid-template-columns:1fr}}
 .manage-quick-bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .manage-section{border:1px solid #cadbe4;border-radius:13px;background:#fff;margin-top:12px;overflow:hidden}
@@ -1215,9 +1216,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="training"><div class="page-title"><div><h2>教育・貸与品</h2><p>未完了の安全指導と、貸与品の返却状況をまとめて確認します。</p></div></div>
+<div class="simple-note">期限超過・未完了・返却確認が必要なものを先に表示します。社員名から個別記録にも移動できます。</div>
+<div id="trainingOverview" class="training-overview"></div>
 <div class="tabs"><button class="active" data-t="train" onclick="trainingTab('train')">安全指導・適性診断</button><button data-t="asset" onclick="trainingTab('asset')">貸与品</button></div>
-<div class="tabpane active" id="training-train"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>社員</th><th>指導・診断</th><th>期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="trainingbody"></tbody></table></div></div></div>
-<div class="tabpane" id="training-asset"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>社員</th><th>貸与品</th><th>管理番号</th><th>返却予定</th><th>状態</th></tr></thead><tbody id="assetbody"></tbody></table></div></div></div></section>
+<div class="tabpane active" id="training-train"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>社員</th><th>指導・診断</th><th>期限・やること</th><th>状態</th><th>操作</th></tr></thead><tbody id="trainingbody"></tbody></table></div></div></div>
+<div class="tabpane" id="training-asset"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>社員</th><th>貸与品</th><th>管理番号</th><th>返却予定・やること</th><th>状態</th><th>操作</th></tr></thead><tbody id="assetbody"></tbody></table></div></div></div></section>
 
 
 
@@ -6281,7 +6284,56 @@ function vehicleDetail(id){
  <details class="detail-fold"><summary>担当変更履歴</summary><div class="detail-fold-body">${vehicleAssignmentHistoryHtml(v)}</div></details>`;
  showDetailModal()
 }
-function renderTraining(){trainingbody.innerHTML=scopedTraining().map(t=>{let i=TR.indexOf(t),e=emp(t.employee_no);return `<tr><td>${e?esc(e.name):t.employee_no}</td><td>${esc(t.course)}</td><td>${t.due}</td><td>${badge(t.status)}</td><td>${t.status!=='完了'&&canEditEmployee(t.employee_no)?`<button class="btn soft" onclick="completeTraining(${i})">完了にする</button>`:'-'}</td></tr>`}).join('');assetbody.innerHTML=scopedAssets().map(a=>{let e=emp(a.employee_no);return `<tr><td>${e?esc(e.name):a.employee_no}</td><td>${esc(a.item)}</td><td>${a.asset_no}</td><td>${a.return_due||'-'}</td><td>${badge(a.status)}</td></tr>`}).join('')}
+function trainingActionInfo(t){
+ if(t.status==='完了')return {tone:'done',reason:'対応済み',action:'記録を確認',due:t.due||'期限なし'};
+ if(!t.due)return {tone:'warn',reason:'期限が未設定',action:'期限と実施予定を確認',due:'期限未設定'};
+ let n=days(t.due);
+ if(n<0)return {tone:'danger',reason:'期限を'+Math.abs(n)+'日超過',action:'実施状況を最優先で確認',due:t.due};
+ if(n===0)return {tone:'warn',reason:'期限が本日',action:'本日中の実施・記録を確認',due:t.due};
+ if(n<=30)return {tone:'warn',reason:'期限まで'+n+'日',action:'実施予定を確認',due:t.due};
+ return {tone:'',reason:'未完了',action:'期限までに実施',due:t.due}
+}
+function assetActionInfo(a){
+ if(a.status==='返却済み')return {tone:'done',reason:'返却済み',action:'記録を確認',due:a.return_due||'返却日未設定'};
+ if(!a.return_due)return {tone:a.status==='未返却'?'warn':'',reason:a.status==='未返却'?'未返却・返却予定未設定':'貸与中',action:a.status==='未返却'?'返却予定を確認':'継続貸与を確認',due:'返却予定なし'};
+ let n=days(a.return_due);
+ if(n<0)return {tone:'danger',reason:'返却予定を'+Math.abs(n)+'日超過',action:'返却状況を最優先で確認',due:a.return_due};
+ if(n===0)return {tone:'warn',reason:'返却予定が本日',action:'本日中の返却状況を確認',due:a.return_due};
+ if(n<=30)return {tone:'warn',reason:'返却予定まで'+n+'日',action:'返却予定を確認',due:a.return_due};
+ return {tone:'',reason:a.status||'貸与中',action:'返却予定を確認',due:a.return_due}
+}
+function trainingActionHtml(info){
+ let cls=info.tone==='danger'?'danger':info.tone==='warn'?'warn':info.tone==='done'?'done':'';
+ return '<div class="training-action '+cls+'"><small>なぜ確認？</small><b>'+esc(info.reason)+'</b><small>やること</small><span>'+esc(info.action)+'</span><div class="mini">期限 '+esc(info.due||'未設定')+'</div></div>'
+}
+function renderTraining(){
+ let trainings=scopedTraining().slice().sort((a,b)=>{
+  const rank=x=>{let i=trainingActionInfo(x);return i.tone==='danger'?0:i.tone==='warn'?1:x.status==='完了'?3:2};
+  return rank(a)-rank(b)||deadlinePriority(a.due)-deadlinePriority(b.due)
+ });
+ let assets=scopedAssets().slice().sort((a,b)=>{
+  const rank=x=>{let i=assetActionInfo(x);return i.tone==='danger'?0:i.tone==='warn'?1:x.status==='返却済み'?3:2};
+  return rank(a)-rank(b)||deadlinePriority(a.return_due)-deadlinePriority(b.return_due)
+ });
+ let trOpen=trainings.filter(t=>t.status!=='完了').length,trOver=trainings.filter(t=>t.status!=='完了'&&t.due&&days(t.due)<0).length;
+ let assetOpen=assets.filter(a=>a.status!=='返却済み').length,assetOver=assets.filter(a=>a.status!=='返却済み'&&a.return_due&&days(a.return_due)<0).length;
+ let overview=document.getElementById('trainingOverview');
+ if(overview)overview.innerHTML=
+  '<button class="training-overview-card '+(trOpen?'warn':'')+'" onclick="trainingTab(\'train\')"><small>安全指導 未完了</small><b>'+trOpen+'</b><span>実施・完了記録を確認</span></button>'+
+  '<button class="training-overview-card '+(trOver?'danger':'')+'" onclick="trainingTab(\'train\')"><small>安全指導 期限超過</small><b>'+trOver+'</b><span>最優先で確認</span></button>'+
+  '<button class="training-overview-card '+(assetOpen?'warn':'')+'" onclick="trainingTab(\'asset\')"><small>貸与中・未返却</small><b>'+assetOpen+'</b><span>現在の貸与状況</span></button>'+
+  '<button class="training-overview-card '+(assetOver?'danger':'')+'" onclick="trainingTab(\'asset\')"><small>返却予定 超過</small><b>'+assetOver+'</b><span>返却状況を確認</span></button>';
+
+ trainingbody.innerHTML=trainings.map(t=>{
+  let i=TR.indexOf(t),e=emp(t.employee_no),info=trainingActionInfo(t),safeNo=String(t.employee_no).replaceAll("'","");
+  return '<tr><td>'+(e?employeeNameLinkHtml(e.no,e.name):esc(t.employee_no))+'</td><td><b>'+esc(t.course)+'</b></td><td>'+trainingActionHtml(info)+'</td><td>'+badge(t.status)+'</td><td><div class="toolbar"><button class="btn soft" onclick="employeeTraining(\''+safeNo+'\')">記録を見る</button>'+(t.status!=='完了'&&canEditEmployee(t.employee_no)?'<button class="btn primary" onclick="completeTraining('+i+')">完了にする</button>':'')+'</div></td></tr>'
+ }).join('')||'<tr><td colspan="5"><div class="mini">安全指導・適性診断の対象はありません。</div></td></tr>';
+
+ assetbody.innerHTML=assets.map(a=>{
+  let e=emp(a.employee_no),info=assetActionInfo(a),safeNo=String(a.employee_no).replaceAll("'",""),idx=AS.indexOf(a);
+  return '<tr><td>'+(e?employeeNameLinkHtml(e.no,e.name):esc(a.employee_no))+'</td><td><b>'+esc(a.item)+'</b></td><td>'+esc(a.asset_no||'-')+'</td><td>'+trainingActionHtml(info)+'</td><td>'+badge(a.status)+'</td><td><div class="toolbar"><button class="btn soft" onclick="employeeAssets(\''+safeNo+'\')">記録を見る</button>'+(canEditEmployee(a.employee_no)?'<button class="btn '+(info.tone==='danger'?'primary':'soft')+'" onclick="openAssetRecordForm(\''+safeNo+'\','+idx+')">更新</button>':'')+'</div></td></tr>'
+ }).join('')||'<tr><td colspan="6"><div class="mini">貸与品の対象はありません。</div></td></tr>'
+}
 function completeTraining(i){let t=TR[i];if(!t||!guardEmployeeEdit(t.employee_no,'安全指導'))return;t.status='完了';audit('安全指導更新',`${t.employee_no} ${t.course} を完了に変更`,{employee_no:t.employee_no,entity_type:'training'});if(!save())return;renderAll();if(detail.classList.contains('show'))employeeTraining(t.employee_no)}
 function renderDept(){
  let scope=scopedEmployees(),scopeNos=new Set(scope.map(e=>e.no)),deadlines=collectDeadlines();
@@ -7339,7 +7391,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v159';
+const RELEASE_VERSION='v160';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
