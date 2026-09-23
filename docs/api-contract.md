@@ -403,3 +403,90 @@ The later confirmation endpoint must re-check the same workbook hash, employee m
 ## 16. Out of scope
 
 - PCA and アントレ remain planning items until their exact integration requirements are approved.
+
+
+## 17. Capacity, retention and pagination
+
+Production sizing must support the actual operating pattern rather than the small browser demo.
+
+Current planning baseline:
+
+- 310+ current employees at migration start,
+- approximately 50 hires and 30 retirements per year,
+- retired employees remain in the employee master for historical linkage,
+- approximately 200 taxi-department drivers,
+- two near-miss submissions per taxi driver per month,
+- approximately 400 near-miss submissions per month / 4,800 per year,
+- at least five years of safety, employee, audit and qualification history.
+
+Core rules:
+
+1. The browser must never load or save the complete production dataset as one local object.
+2. Production list endpoints paginate on the server. Default page size should be 20 for high-volume safety lists and must never exceed 100.
+3. Retired employees are retained and normally hidden from default active-employee views rather than deleted.
+4. Safety, qualification, document and audit records retain stable employee IDs after retirement or employee-number changes.
+5. Attachments live in private object storage; database rows keep metadata and storage references only.
+6. Archived records remain queryable to authorized users and are excluded from ordinary lists by default.
+7. Database indexes must cover the normal sort/filter paths before production migration.
+
+For high-volume lists, offset pagination is acceptable for early staging, but cursor/keyset pagination by date + stable id is preferred for long historical lists.
+
+Suggested near-miss query:
+
+`GET /api/v1/near-misses?month=2027-04&page_size=20&cursor=<opaque>`
+
+The response should contain only the current page plus counts/summaries needed by the screen. It must not return all historical near-miss rows merely to calculate the visible list.
+
+## 18. Taxi-driver monthly near-miss target
+
+The operating rule is measured per taxi-department driver, not by department aggregate alone.
+
+Planning rule:
+
+- each target taxi driver: 2 submissions per month,
+- approximately 200 target drivers,
+- approximately 400 submissions per month,
+- approximately 4,800 submissions per year.
+
+A department total of 400 does **not** prove compliance. The server must calculate each driver's submitted count and identify 0 / 1 / 2-or-more submissions separately.
+
+### GET /api/v1/near-miss-compliance
+
+Query examples:
+
+- `month=2027-04`
+- `office=本社`
+- `state=zero|short|met|exempt`
+- `q=<employee name or number>`
+- `page_size=50`
+- `cursor=<opaque>`
+
+Minimum response summary:
+
+- target_driver_count
+- met_count
+- short_count
+- zero_count
+- exempt_count
+- required_report_total
+- submitted_report_total
+
+Each employee row includes:
+
+- employee_id
+- employee_no snapshot
+- employee_name snapshot
+- office snapshot
+- department snapshot
+- target_count
+- submitted_count
+- remaining_count
+- compliance_state
+
+The monthly target population must be snapshotted for the month so a later transfer or retirement does not rewrite a closed month's result. Any exception for a mid-month hire, leave or other case must be explicit and auditable; the API must not silently infer or erase a target.
+
+### POST /api/v1/near-misses
+
+On creation, the server resolves the authenticated/selected employee and writes immutable reporting snapshots including employee number, office and department at report time. Client-supplied organization snapshots are not trusted.
+
+Near-miss compliance counts use the report/submission date, while safety-event analysis may continue to use the occurrence date. These two dates must remain separate.
