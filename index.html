@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v132</title>
-<!-- production-sync:v132 -->
+<title>つばめ交通株式会社 社員一元管理システム v133</title>
+<!-- production-sync:v133 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -447,22 +447,30 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .emp-open-btn{min-height:42px;padding:7px 13px}
 .emp-mobile-operation{margin-top:8px;padding:9px;border:1px solid #dfe9ee;border-radius:9px;background:#fbfdfe}
 @media(max-width:980px){#emp .table-card{display:none}#emp .emp-mobile-list{display:grid}}
-/* v117 taxi driver operational snapshot */
-.taxi-driver-snapshot{border:2px solid #a9ccdc;border-radius:15px;background:linear-gradient(135deg,#f3faff,#fff);padding:14px;margin:0 0 12px}
+/* v133 taxi-driver glance header */
+.taxi-driver-snapshot{border:2px solid #9fc7d8;border-radius:15px;background:linear-gradient(135deg,#f2f9fd,#fff);padding:14px;margin:0 0 12px}
 .taxi-driver-snapshot-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .taxi-driver-snapshot-head h3{margin:0;color:#173f57;font-size:1.08rem}
-.taxi-driver-snapshot-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
-.taxi-snapshot-item{border:1px solid #cfdfe7;border-radius:11px;background:#fff;padding:10px;min-width:0}
+.taxi-glance-grid{display:grid;grid-template-columns:1.15fr 1fr 1.2fr 1fr 1fr;gap:8px}
+.taxi-snapshot-item{border:1px solid #cfdfe7;border-radius:11px;background:#fff;padding:11px;min-width:0}
+.taxi-snapshot-item.primary{border-width:2px;border-color:#8bb9cc;background:#f7fcfe}
+.taxi-snapshot-item.ok{border-left:6px solid #65a679;background:#f7fcf8}
 .taxi-snapshot-item.warn{border-left:6px solid #d4aa26;background:#fffdf3}
 .taxi-snapshot-item.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
 .taxi-snapshot-item label{display:block;color:#687e89;font-size:.68rem;font-weight:950;margin-bottom:3px}
-.taxi-snapshot-item b{display:block;color:#173f57;font-size:.94rem;line-height:1.35;overflow-wrap:anywhere}
+.taxi-snapshot-item b{display:block;color:#173f57;font-size:1.02rem;line-height:1.32;overflow-wrap:anywhere}
+.taxi-snapshot-item.primary b{font-size:1.18rem}
 .taxi-snapshot-item span{display:block;color:#607783;font-size:.68rem;font-weight:850;margin-top:3px;line-height:1.4}
+.taxi-safety-counts{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:8px}
+.taxi-safety-count{border:1px solid #d7e4ea;border-radius:10px;background:#fff;padding:8px 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.taxi-safety-count b{color:#173f57}.taxi-safety-count span{font-size:.69rem;font-weight:900;color:#607783}
+.taxi-safety-count.danger{border-left:5px solid #ca5f5f;background:#fff8f8}
+.taxi-safety-count.warn{border-left:5px solid #d4aa26;background:#fffdf3}
 .taxi-driver-snapshot-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px solid #dbe8ee}
 .taxi-driver-snapshot-actions .btn{min-height:42px;padding:7px 11px;font-size:.76rem}
-@media(max-width:1050px){.taxi-driver-snapshot-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:600px){.taxi-driver-snapshot-grid{grid-template-columns:1fr 1fr}.taxi-driver-snapshot-actions .btn{flex:1 1 46%}}
-@media(max-width:420px){.taxi-driver-snapshot-grid{grid-template-columns:1fr}}
+@media(max-width:1100px){.taxi-glance-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:700px){.taxi-glance-grid{grid-template-columns:1fr 1fr}.taxi-safety-counts{grid-template-columns:1fr}.taxi-driver-snapshot-actions .btn{flex:1 1 46%}}
+@media(max-width:440px){.taxi-glance-grid{grid-template-columns:1fr}}
 
 /* v46 audit: mobile detail + print/readability */
 .v46-security-note{background:#fff6d8;border:1px solid #e8d58d;border-left:6px solid #d4aa26;border-radius:11px;padding:11px 13px;margin:0 0 12px;color:#705700;font-size:.78rem;font-weight:850}
@@ -4193,21 +4201,32 @@ function employeeTaxiDriverSnapshotHtml(no){
  let recentNear=near.filter(x=>x.date&&(-days(x.date))>=0&&(-days(x.date))<=90).length;
  let safeNo=String(no).replaceAll("'","");
  let safeVehicleId=primary?String(primary.id||'').replaceAll("'",""):'';
- let certDetail=activeCerts.length+'件認定中';
  let workLabel=e.taxiSection||'タクシー課',workSub=[e.workPattern||'',e.team||''].filter(Boolean).join(' / ')||'勤務区分未設定';
  let eligibility=e.eligibility||e.driverLedger?.eligibility||'要確認';
- return '<div class="taxi-driver-snapshot"><div class="taxi-driver-snapshot-head"><div><h3>タクシー乗務員 運行サマリー</h3><div class="mini">号車・認定・安全記録を、乗務員確認でよく見る順にまとめています。</div></div><span class="badge '+(String(eligibility).includes('不可')?'danger':eligibility==='要確認'?'warn':'ok')+'">乗務可否 '+esc(eligibility)+'</span></div>'+
-  '<div class="taxi-driver-snapshot-grid">'+
-   '<div class="taxi-snapshot-item '+(!primary?'warn':'')+'"><label>現在の号車</label><b>'+esc(vehicleMain)+'</b><span>'+(extraVehicles?'ほか利用 '+extraVehicles+'台':'登録 '+vehicles.length+'台')+'</span></div>'+
-   '<div class="taxi-snapshot-item"><label>乗務員認定</label><b>'+esc(certText)+'</b><span>'+esc(certDetail)+'</span></div>'+
-   '<div class="taxi-snapshot-item '+(openAcc?'danger':'')+'"><label>事故</label><b>'+accidents.length+'件</b><span>未完了 '+openAcc+'件</span></div>'+
-   '<div class="taxi-snapshot-item '+(openComplaint?'warn':'')+'"><label>苦情・お客様対応</label><b>'+complaints.length+'件</b><span>未完了 '+openComplaint+'件</span></div>'+
-   '<div class="taxi-snapshot-item '+(recentNear?'warn':'')+'"><label>ヒヤリ</label><b>'+near.length+'件</b><span>直近90日 '+recentNear+'件</span></div>'+
-   '<div class="taxi-snapshot-item"><label>勤務区分</label><b>'+esc(workLabel)+'</b><span>'+esc(workSub)+'</span></div>'+
+ let eligTone=String(eligibility).includes('不可')?'danger':eligibility==='要確認'?'warn':'ok';
+ let nearest=employeeNearestDeadline(e);
+ let deadlineText=nearest?nearest.label+' '+nearest.date:'期限登録なし';
+ let deadlineSub=nearest?(nearest.n<0?Math.abs(nearest.n)+'日超過':nearest.n===0?'本日':nearest.n+'日後'):'主要期限なし';
+ let deadlineTone=nearest&&nearest.n<0?'danger':nearest&&nearest.n<=30?'warn':'';
+ let openCases=openAcc+openComplaint;
+ return '<div class="taxi-driver-snapshot"><div class="taxi-driver-snapshot-head"><div><h3>タクシー乗務員 運行ヘッダー</h3><div class="mini">乗務可否・号車・期限・認定・未完了案件を最初に確認できます。</div></div><span class="badge '+eligTone+'">乗務可否 '+esc(eligibility)+'</span></div>'+
+  '<div class="taxi-glance-grid">'+
+   '<div class="taxi-snapshot-item '+eligTone+'"><label>乗務可否</label><b>'+esc(eligibility)+'</b><span>'+esc(e.safetyState||'正常')+'</span></div>'+
+   '<div class="taxi-snapshot-item primary '+(!primary?'warn':'')+'"><label>現在の号車</label><b>'+esc(vehicleMain)+'</b><span>'+(extraVehicles?'ほか利用 '+extraVehicles+'台':'登録 '+vehicles.length+'台')+'</span></div>'+
+   '<div class="taxi-snapshot-item '+deadlineTone+'"><label>最優先期限</label><b>'+esc(deadlineText)+'</b><span>'+esc(deadlineSub)+'</span></div>'+
+   '<div class="taxi-snapshot-item"><label>乗務員認定</label><b>'+esc(certText)+'</b><span>'+activeCerts.length+'件認定中</span></div>'+
+   '<div class="taxi-snapshot-item '+(openCases?'warn':'')+'"><label>未完了案件</label><b>'+openCases+'件</b><span>事故 '+openAcc+' / 苦情 '+openComplaint+'</span></div>'+
+  '</div>'+
+  '<div class="taxi-safety-counts">'+
+   '<div class="taxi-safety-count '+(openAcc?'danger':'')+'"><span>事故</span><b>'+accidents.length+'件（未完了 '+openAcc+'）</b></div>'+
+   '<div class="taxi-safety-count '+(openComplaint?'warn':'')+'"><span>苦情</span><b>'+complaints.length+'件（未完了 '+openComplaint+'）</b></div>'+
+   '<div class="taxi-safety-count '+(recentNear?'warn':'')+'"><span>ヒヤリ</span><b>'+near.length+'件（90日 '+recentNear+'）</b></div>'+
   '</div>'+
   '<div class="taxi-driver-snapshot-actions">'+
    (primary?'<button class="btn soft" onclick="vehicleDetail(\''+safeVehicleId+'\')">'+esc(primary.plate)+'号車を見る</button>':'')+
    '<button class="btn soft" onclick="employeeCertUniform(\''+safeNo+'\')">認定履歴</button>'+
+   '<button class="btn soft" onclick="setEmployeeDetailTab(\'safety\')">安全タブ</button>'+
+   '<button class="btn soft" onclick="setEmployeeDetailTab(\'work\')">'+esc(workLabel)+' / '+esc(workSub)+'</button>'+
    (canViewManagementRecord('accident',no)?'<button class="btn '+(openAcc?'danger':'soft')+'" onclick="employeeAccidents(\''+safeNo+'\')">事故 '+accidents.length+'</button>':'')+
    (canViewManagementRecord('complaint',no)?'<button class="btn '+(openComplaint?'warn':'soft')+'" onclick="employeeComplaints(\''+safeNo+'\')">苦情 '+complaints.length+'</button>':'')+
    (canViewManagementRecord('near_miss',no)?'<button class="btn soft" onclick="employeeNearMisses(\''+safeNo+'\')">ヒヤリ '+near.length+'</button>':'')+
@@ -4265,7 +4284,7 @@ function employeeDetail(no){
  let safetyClass=danger?'danger':warn?'warn':'ok',safetyTitle=danger?'最優先で確認':warn?'確認が必要':'現在大きな警告なし';
  let nearestText=nearest?`${nearest.label} ${nearest.date}（${nearest.n<0?Math.abs(nearest.n)+'日超過':nearest.n===0?'本日':nearest.n+'日後'}）`:'期限登録なし';
  let alertText=danger?`乗務・期限に重大な確認事項があります。${String(elig).includes('不可')?'更新確認が完了するまで乗務不可です。':''}`:warn?'期限接近または要確認項目があります。':'登録されている主要期限に緊急の警告はありません。';
- dttl.textContent='社員詳細';
+ dttl.textContent='社員詳細｜'+e.name;
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft detail-origin-action" onclick="closeDetail()">← 元の画面へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openEmployeeEdit('${no}')">社員情報を編集</button>`:''}${PREVIEW_ROLE!=='一般社員'?`<button class="star-btn ${isFavorite(no)?'on':''}" onclick="toggleFavorite('${no}')">${isFavorite(no)?'★ 注目社員':'☆ 注目社員に追加'}</button>`:''}</div>
  <div class="employee-profile-hero">
    <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${systemEmployeeId(e.no)}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)} ${driverCertBadgesHtml(e)}</div></div>
@@ -6192,7 +6211,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v132';
+const RELEASE_VERSION='v133';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
