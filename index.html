@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v173</title>
-<!-- production-sync:v173 -->
+<title>つばめ交通株式会社 社員一元管理システム v174</title>
+<!-- production-sync:v174 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1007,6 +1007,10 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .post-save-guide-main{display:grid;gap:3px;min-width:0}.post-save-guide-main small{font-weight:950;color:#3f8b58}.post-save-guide-main b{color:#214d35;font-size:1.02rem}.post-save-guide-main span{font-size:.76rem;color:#4e6875;font-weight:800;line-height:1.5}
 .post-save-guide-actions{display:flex;gap:8px;flex-wrap:wrap;flex:0 0 auto}
 @media(max-width:720px){.post-save-guide{align-items:stretch;flex-direction:column}.post-save-guide-actions,.post-save-guide-actions .btn{width:100%}}
+
+.concurrent-change-banner{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:260;width:min(760px,calc(100vw - 28px));display:none;align-items:center;justify-content:space-between;gap:12px;border:2px solid #c9791a;border-left:8px solid #c9791a;border-radius:14px;background:#fff8e8;box-shadow:0 12px 30px rgba(44,55,63,.22);padding:12px 14px}
+.concurrent-change-banner.show{display:flex}.concurrent-change-banner b{color:#7c4b09}.concurrent-change-banner span{display:block;color:#6a5a43;font-size:.74rem;font-weight:850;line-height:1.45}
+@media(max-width:620px){.concurrent-change-banner{top:8px;align-items:stretch;flex-direction:column}.concurrent-change-banner .btn{width:100%;min-height:48px}}
 </style>
 </head><body>
 <div class="demo">検証環境｜本番運用画面を確認中｜架空データ｜実社員データ入力禁止</div>
@@ -2893,9 +2897,36 @@ function coreSaveItems(){
   ['v65APPLICATIONS',APPLICATIONS],['v65NOTICES',NOTICES],['v65CONFIRMATIONS',CONFIRMATIONS],['v68HANDOFFS',HANDOFFS]
  ]
 }
+const CORE_REVISION_KEY='v174CORE_REVISION';
+const TAB_INSTANCE_ID='TAB-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+let CORE_KNOWN_REVISION='';
+let CORE_EXTERNAL_CHANGE=false;
+try{CORE_KNOWN_REVISION=localStorage.getItem(CORE_REVISION_KEY)||''}catch(_){}
+function currentCoreRevision(){
+ try{return localStorage.getItem(CORE_REVISION_KEY)||''}catch(_){return CORE_KNOWN_REVISION||''}
+}
+function nextCoreRevision(){
+ return new Date().toISOString()+'|'+TAB_INSTANCE_ID+'|'+Math.random().toString(36).slice(2,8)
+}
+function showConcurrentChangeBanner(){
+ let el=document.getElementById('concurrentChangeBanner');
+ if(!el){
+  el=document.createElement('div');el.id='concurrentChangeBanner';el.className='concurrent-change-banner';el.setAttribute('role','alert');
+  let msg=document.createElement('div'),b=document.createElement('b'),s=document.createElement('span'),btn=document.createElement('button');
+  b.textContent='別のタブでデータが更新されました';
+  s.textContent='古い画面からの上書きを防ぐため、この画面では保存を停止しています。最新データを読み直してください。';
+  msg.appendChild(b);msg.appendChild(s);btn.type='button';btn.className='btn primary';btn.textContent='最新データを読み直す';btn.onclick=()=>location.reload();
+  el.appendChild(msg);el.appendChild(btn);document.body.appendChild(el)
+ }
+ el.classList.add('show')
+}
+function coreSaveRevisionIsCurrent(){
+ let current=currentCoreRevision();
+ return !CORE_EXTERNAL_CHANGE&&String(current)===String(CORE_KNOWN_REVISION||'')
+}
 function captureCoreSaveSnapshot(items){
  let snapshot={};
- [...items.map(x=>x[0]),'v68LAST_SAVE'].forEach(k=>{snapshot[k]=localStorage.getItem(k)});
+ [...items.map(x=>x[0]),'v68LAST_SAVE',CORE_REVISION_KEY].forEach(k=>{snapshot[k]=localStorage.getItem(k)});
  return snapshot
 }
 function rollbackCoreSave(snapshot){
@@ -2919,18 +2950,29 @@ function verifyCoreSave(items){
 let CORE_SAVE_SUCCESS_SEQ=0;
 function save(){
  if(AUDIT_FLUSH_TIMER!==null){clearTimeout(AUDIT_FLUSH_TIMER);AUDIT_FLUSH_TIMER=null}
+ if(!coreSaveRevisionIsCurrent()){
+  CORE_EXTERNAL_CHANGE=true;showConcurrentChangeBanner();
+  alert('別のタブまたはウィンドウでデータが更新されています。\n\n古い内容で上書きしないため保存を停止しました。\n「最新データを読み直す」を押してから、もう一度入力してください。');
+  return false
+ }
  let items=coreSaveItems(),snapshot;
  try{
   snapshot=captureCoreSaveSnapshot(items);
   items.forEach(([key,value])=>localStorage.setItem(key,JSON.stringify(value)));
   let verifyErrors=verifyCoreSave(items);
   if(verifyErrors.length)throw new Error(verifyErrors.join(' / '));
+  let newRevision=nextCoreRevision();
+  localStorage.setItem(CORE_REVISION_KEY,newRevision);
+  if(localStorage.getItem(CORE_REVISION_KEY)!==newRevision)throw new Error('更新世代の保存後確認に失敗しました');
   STORAGE_HEALTH.lastSave=new Date().toISOString();
   localStorage.setItem('v68LAST_SAVE',STORAGE_HEALTH.lastSave);
+  CORE_KNOWN_REVISION=newRevision;
+  CORE_EXTERNAL_CHANGE=false;
   CORE_SAVE_SUCCESS_SEQ++;
   return true
  }catch(err){
   let rollbackFailed=snapshot?rollbackCoreSave(snapshot):[];
+  CORE_KNOWN_REVISION=currentCoreRevision();
   STORAGE_HEALTH.writeErrors.push({key:'core-save',message:String(err?.message||err),time:new Date().toISOString()});
   STORAGE_HEALTH.lastError='通常保存';
   STORAGE_HEALTH.lastSave='保存失敗 '+appNowLabel();
@@ -7693,12 +7735,18 @@ fsave.addEventListener('click',e=>{
   }
  },120)
 },true);
+window.addEventListener('storage',e=>{
+ if(e.key===CORE_REVISION_KEY&&String(e.newValue||'')!==String(CORE_KNOWN_REVISION||'')){
+  CORE_EXTERNAL_CHANGE=true;
+  showConcurrentChangeBanner()
+ }
+});
 window.addEventListener('beforeunload',e=>{if(form.classList.contains('show')&&FORM_DIRTY){e.preventDefault();e.returnValue=''}});
 detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.target===preview)closePreview()};form.onclick=e=>{if(e.target===form)closeForm()}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v173';
+const RELEASE_VERSION='v174';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
