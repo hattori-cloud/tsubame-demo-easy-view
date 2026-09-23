@@ -5,8 +5,8 @@
 対象リポジトリ: **hattori-cloud/tsubame-demo-easy-view**  
 対象ブランチ: **main**  
 本番URL: **https://tsubame-demo-easy-view.vercel.app**  
-v197アプリ本体コミット: **3068c4fb383e6a7025a12b243e67176048ac4327**  
-v197監査修正記録: README / tests / production-schema.sql を main に反映済み
+v200アプリ本体コミット: **94e12f4cb10226c48e4a61c843fbbb6c7f402f02**  
+v200原本ルール・監査テスト・production schema を main に反映済み
 
 ---
 
