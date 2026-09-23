@@ -4720,12 +4720,12 @@ function openDocumentForm(no,idx=-1,qualificationId=''){
  if(d&&d.employee_no!==String(no)){alert('書類の対象社員が一致しません');return}
  let preQ=qualificationId?QUAL.find(q=>q.id===qualificationId&&String(q.employee_no)===String(no)):null;
  if(qualificationId&&!preQ)return alert('関連資格が見つかりません');
- fttl.textContent=d?'書類情報を編集':'書類を登録';
+ fttl.textContent=d?'書類情報を編集':'書類を登録';setFormSaveLabel('書類を保存する');setFormAfterSaveHint(qualificationId?'資格一覧へ戻ります':'書類一覧へ戻ります');
  fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。${preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':''}</div><div id="documentFormGuide" class="detail-alert ok">書類チェックを表示します。</div><div class="formgrid">
   <div class="field"><label>書類区分</label><select id="fdcat" onchange="updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>
   <div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>
-  <div class="field wide"><label>ファイル名（架空）</label><input id="fdname"></div>
-  <div class="field"><label>登録日</label><input id="fddate" type="date"></div>
+  <div class="field wide"><label>ファイル名（架空）<span class="req">必須</span></label><input id="fdname"></div>
+  <div class="field"><label>登録日<span class="req">必須</span></label><input id="fddate" type="date"></div>
   <div class="field"><label>期限（任意）</label><input id="fdexp" type="date" onchange="updateDocumentFormGuide()"></div>
   <div class="field"><label>確認状態</label><select id="fdstatus" onchange="updateDocumentFormGuide()"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div>
   <div class="field wide"><label>関連資格（任意）</label><select id="fdqual" onchange="updateDocumentFormGuide()">${qualificationOptionsForDocument(no,d?.qualification_id||preQ?.id||'')}</select><div class="mini">資格証憑の場合に関連資格を選択できます。その他の書類では未選択で構いません。</div></div>
@@ -6818,7 +6818,7 @@ function openEmployeeEdit(no){
 }
 function openTrainingRecordForm(no,idx=-1){
  if(!guardEmployeeEdit(no,'安全指導'))return;let e=emp(no),t=idx>=0?TR[idx]:null;if(t&&t.employee_no!==String(no)){alert('安全指導の対象社員が一致しません');return}
- fttl.textContent=t?'安全指導を編集':'安全指導を追加';fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>安全指導・適性診断</label><input id="ftrc" value="${esc(t?.course||'')}" placeholder="例：事故惹起者安全指導"></div><div class="field"><label>期限</label><input id="ftrd" type="date" value="${esc(t?.due||'')}"></div><div class="field"><label>状態</label><select id="ftrs"><option>未完了</option><option>完了</option></select></div></div>`;ftrs.value=t?.status||'未完了';
+ fttl.textContent=t?'安全指導を編集':'安全指導を追加';setFormSaveLabel('安全指導を保存する');setFormAfterSaveHint('安全指導一覧へ戻ります');fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>安全指導・適性診断<span class="req">必須</span></label><input id="ftrc" value="${esc(t?.course||'')}" placeholder="例：事故惹起者安全指導"></div><div class="field"><label>期限</label><input id="ftrd" type="date" value="${esc(t?.due||'')}"></div><div class="field"><label>状態</label><select id="ftrs"><option>未完了</option><option>完了</option></select></div></div>`;ftrs.value=t?.status||'未完了';
  fsave.onclick=()=>{if(!guardEmployeeEdit(no,'安全指導'))return;if(!ftrc.value.trim())return alert('安全指導名を入力してください');if(ftrs.value!=='完了'&&!ftrd.value)return alert('未完了の安全指導には期限を入力してください');let rec={employee_no:no,course:ftrc.value.trim(),due:ftrd.value,status:ftrs.value};let rid;if(t){rid=t.id;Object.assign(t,rec);touchRecord(t,'training',false)}else{rid=nextRecordId('T',TR);rec.id=rid;touchRecord(rec,'training',true);TR.push(rec)}audit(t?'安全指導更新':'安全指導登録',`${no} ${rec.course}`,{employee_no:no,entity_type:'training',entity_id:rid});if(!save())return;closeForm();renderAll();employeeTraining(no)};form.classList.add('show')
 }
 function updateQualificationFormGuide(){
@@ -6835,9 +6835,9 @@ function openQualificationRecordForm(no,idx=-1){
  if(!guardEmployeeEdit(no,'資格'))return;
  let e=emp(no),q=idx>=0?QUAL[idx]:null;
  if(q&&q.employee_no!==String(no)){alert('資格情報の対象社員が一致しません');return}
- fttl.textContent=q?'資格を編集':'資格を追加';
+ fttl.textContent=q?'資格を編集':'資格を追加';setFormSaveLabel('資格を保存する');setFormAfterSaveHint('資格一覧へ戻ります');
  fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>資格情報と証憑は別データとして管理し、必要な場合だけ紐づけます。</div><div id="qualificationFormGuide" class="detail-alert ok">資格チェックを表示します。</div><div class="formgrid">
-  <div class="field wide"><label>資格名</label><input id="fqname" value="${esc(q?.name||'')}"></div>
+  <div class="field wide"><label>資格名<span class="req">必須</span></label><input id="fqname" value="${esc(q?.name||'')}"></div>
   <div class="field"><label>証番号</label><input id="fqnum" value="${esc(q?.number||'')}"></div>
   <div class="field"><label>期限／次回管理日（任意）</label><input id="fqexp" type="date" value="${esc(q?.expiry||'')}" onchange="updateQualificationFormGuide()"></div>
   <div class="field"><label>状態</label><select id="fqst"><option>有効</option><option>要確認</option><option>期限切れ</option><option>未設定</option></select></div>
@@ -6859,7 +6859,7 @@ function openQualificationRecordForm(no,idx=-1){
 }
 function openAssetRecordForm(no,idx=-1){
  if(!guardEmployeeEdit(no,'貸与品'))return;let e=emp(no),a=idx>=0?AS[idx]:null;if(a&&a.employee_no!==String(no)){alert('貸与品の対象社員が一致しません');return}
- fttl.textContent=a?'貸与品を編集':'貸与品を追加';fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>品目</label><input id="faitem" value="${esc(a?.item||'')}"></div><div class="field"><label>管理番号</label><input id="fano" value="${esc(a?.asset_no||'')}"></div><div class="field"><label>返却予定</label><input id="fadue" type="date" value="${esc(a?.return_due||'')}"></div><div class="field"><label>状態</label><select id="fast"><option>貸与中</option><option>未返却</option><option>返却済</option></select></div></div>`;fast.value=a?.status||'貸与中';
+ fttl.textContent=a?'貸与品を編集':'貸与品を追加';setFormSaveLabel('貸与品を保存する');setFormAfterSaveHint('貸与品一覧へ戻ります');fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}</div><div class="formgrid"><div class="field wide"><label>品目<span class="req">必須</span></label><input id="faitem" value="${esc(a?.item||'')}"></div><div class="field"><label>管理番号<span class="req">必須</span></label><input id="fano" value="${esc(a?.asset_no||'')}"></div><div class="field"><label>返却予定</label><input id="fadue" type="date" value="${esc(a?.return_due||'')}"></div><div class="field"><label>状態</label><select id="fast"><option>貸与中</option><option>未返却</option><option>返却済</option></select></div></div>`;fast.value=a?.status||'貸与中';
  fsave.onclick=()=>{if(!guardEmployeeEdit(no,'貸与品'))return;if(!faitem.value.trim()||!fano.value.trim())return alert('品目と管理番号を入力してください');let ano=fano.value.trim();if(AS.some((x,j)=>j!==idx&&x.asset_no===ano))return alert('同じ管理番号の貸与品が既に登録されています');let rec={employee_no:no,item:faitem.value.trim(),asset_no:ano,return_due:fadue.value,status:fast.value};let rid;if(a){rid=a.id;Object.assign(a,rec);touchRecord(a,'asset',false)}else{rid=nextRecordId('AS',AS);rec.id=rid;touchRecord(rec,'asset',true);AS.push(rec)}audit(a?'貸与品更新':'貸与品登録',`${no} ${rec.item} ${rec.asset_no}`,{employee_no:no,entity_type:'asset',entity_id:rid});if(!save())return;closeForm();renderAll();employeeAssets(no)};form.classList.add('show')
 }
 function openGuidanceRecordForm(no,idx=-1){
@@ -6867,12 +6867,12 @@ function openGuidanceRecordForm(no,idx=-1){
  let e=emp(no),g=idx>=0?GUIDANCE[idx]:null;
  if(!e)return;
  if(g&&g.employee_no!==String(no)){alert('面談・指導の対象社員が一致しません');return}
- fttl.textContent=g?'面談・指導を編集':'面談・指導を追加';
+ fttl.textContent=g?'面談・指導を編集':'面談・指導を追加';setFormSaveLabel('面談・指導を保存する');setFormAfterSaveHint('面談・指導一覧へ戻ります');
  fbody.innerHTML='<div class="formnote">'+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'</div><div class="formgrid">'+
-  '<div class="field"><label>日付</label><input id="fgdate" type="date" value="'+esc(g?.date||TODAY)+'"></div>'+
+  '<div class="field"><label>日付<span class="req">必須</span></label><input id="fgdate" type="date" value="'+esc(g?.date||TODAY)+'"></div>'+
   '<div class="field"><label>区分</label><select id="fgtype"><option>事故後指導</option><option>安全面談</option><option>適性診断フォロー</option><option>勤務面談</option><option>その他</option></select></div>'+
-  '<div class="field wide"><label>内容</label><textarea id="fgsummary" placeholder="確認事項・指導内容を入力">'+esc(g?.summary||'')+'</textarea></div>'+
-  '<div class="field"><label>担当</label><input id="fgowner" value="'+esc(g?.owner||'所属長')+'"></div>'+
+  '<div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fgsummary" placeholder="確認事項・指導内容を入力">'+esc(g?.summary||'')+'</textarea></div>'+
+  '<div class="field"><label>担当<span class="req">必須</span></label><input id="fgowner" value="'+esc(g?.owner||'所属長')+'"></div>'+
   '<div class="field"><label>次回確認</label><input id="fgnext" type="date" value="'+esc(g?.next||'')+'"></div></div>';
  fgtype.value=g?.type||'安全面談';
  fsave.onclick=()=>{
@@ -6971,7 +6971,7 @@ function nextEmployeeNumber(){
 }
 function openEmployeeForm(){
  if(!canCreateEmployee()){alert('社員の新規登録は全社管理者のみ行えます');return}
- fttl.textContent='社員を登録';setFormSaveLabel('社員を登録する');
+ fttl.textContent='社員を登録';setFormSaveLabel('社員を登録する');setFormAfterSaveHint('登録した社員の詳細を開きます');
  fbody.innerHTML=`<div class="formnote">社員台帳を6区分で登録します。共有デモ用の架空情報だけ入力してください。</div><div class="quick-entry-banner"><b>最初は基本＋所属を登録</b><span>氏名・入社日・事業所・部署を確認。乗務員の期限・資格は続けて入力するか、登録後に追記できます。</span></div><div id="employeeCreateGuide" class="scope-note" style="margin-bottom:10px"></div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>社員を識別する基本情報</p></div>
   <div class="field"><label>氏名（仮名）<span class="req">必須</span></label><input id="fn" placeholder="例：広島 太郎"></div>
@@ -7254,7 +7254,7 @@ function openVehicleForm(idx=-1){
  if(!candidates.length){alert('現在の担当範囲に車両担当の乗務社員がいません');return}
  if(v&&!candidates.some(e=>e.no===String(v.employee_no))){alert('現在の担当範囲ではこの車両を編集できません');return}
  let statuses=isFullCompanyAdmin()?['稼働','点検予定','休車','廃車']:['稼働','点検予定','休車'];
- fttl.textContent=v?'車両を編集・担当変更':'車両を登録';
+ fttl.textContent=v?'車両を編集・担当変更':'車両を登録';setFormSaveLabel(v?'車両変更を保存する':'車両を登録する');setFormAfterSaveHint('保存した車両の詳細を開きます');
  fbody.innerHTML=`<div class="formnote">${v?'担当管理者は担当範囲内で編集・担当変更できます。廃車は全社管理者のみ操作できます。':'担当範囲内の乗務社員を担当者として登録します。'}<br>号車・車種・整備確認は日常管理用の補助情報です。号車は3桁の数字で統一します。</div>
  <div id="vehicleFormGuide" class="detail-alert ok">保存前チェックを表示します。</div><div class="formgrid">
   <div class="employee-form-section"><h4>車両識別</h4><p>社内では3桁の数字を「号車（ナンバー）」として管理します</p></div>
@@ -7289,6 +7289,7 @@ function openVehicleForm(idx=-1){
   if(v&&!vehicleLines.length){closeForm();return}
   let vehicleWarnings=[];if(data.assignmentMode==='専属'&&extraNos.length)vehicleWarnings.push('配車形態が「専属」ですが追加利用乗務員が登録されています');if(days(data.inspection)<0)vehicleWarnings.push('車検期限がすでに超過しています');if(data.nextMaintenance&&days(data.nextMaintenance)<0)vehicleWarnings.push('次回整備確認日を超過しています');if(String(e.eligibility||'').includes('不可')||e.safetyState==='期限切れ')vehicleWarnings.push('担当社員が乗務不可または期限切れ状態です');else if(e.eligibility==='要確認'||(e.safetyState&&e.safetyState!=='正常'))vehicleWarnings.push('担当社員の安全状態が要確認です');if(data.status==='廃車')vehicleWarnings.push('状態を「廃車」に変更します');
   if(!confirmFormSave(v?'車両変更の確認':'車両登録の確認',vehicleLines,vehicleWarnings))return;
+  let savedVehicleId=v?.id||'';
   if(v){
    let oldNo=v.employee_no,oldPlate=v.plate,oldStatus=v.status,oldEmployee=emp(oldNo),actor=currentActorIdentity();
    if(String(oldNo)!==String(e.no)){
@@ -7299,10 +7300,10 @@ function openVehicleForm(idx=-1){
    Object.assign(v,data);touchRecord(v,'vehicle',false);
    audit('車両更新',`${v.id} ${oldPlate}→${v.plate} / 担当 ${oldNo}→${e.no} / ${oldStatus}→${v.status}`,{employee_no:e.no,entity_type:'vehicle',entity_id:v.id})
   }else{
-   let vid=nextRecordId('V',V);data.id=vid;data.assignmentHistory=[];data.currentAssignedDate=TODAY;touchRecord(data,'vehicle',true);V.push(data);
+   let vid=nextRecordId('V',V);data.id=vid;data.assignmentHistory=[];data.currentAssignedDate=TODAY;touchRecord(data,'vehicle',true);V.push(data);savedVehicleId=vid;
    audit('車両登録',`${vid} ${data.plate}`,{employee_no:e.no,entity_type:'vehicle',entity_id:vid})
   }
-  if(!save())return;closeForm();renderAll();if(v)vehicleDetail(v.id)
+  if(!save())return;closeForm();renderAll();if(savedVehicleId)vehicleDetail(savedVehicleId)
  };
  form.classList.add('show')
 }
