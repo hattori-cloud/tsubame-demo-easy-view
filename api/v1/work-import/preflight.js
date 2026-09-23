@@ -48,21 +48,36 @@ function cellValue(cell){
 function numberValue(v){
   if(typeof v==='number'&&Number.isFinite(v))return v;
   const s=String(v??'').replace(/,/g,'').trim();
+  if(!s)return null;
   let m=s.match(/^(\d{1,4}):([0-5]?\d)$/);
   if(m)return Number(m[1])+Number(m[2])/60;
-  const n=Number(s.replace(/時間/g,''));
+  const cleaned=s.replace(/時間/g,'').trim();
+  if(!cleaned)return null;
+  const n=Number(cleaned);
   return Number.isFinite(n)?n:null
+}
+function validDateParts(y,m,d){
+  if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||m<1||m>12||d<1||d>31)return false;
+  const dt=new Date(Date.UTC(y,m-1,d));
+  return dt.getUTCFullYear()===y&&dt.getUTCMonth()===m-1&&dt.getUTCDate()===d
+}
+function isValidIsoDate(s){
+  const m=String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return !!m&&validDateParts(Number(m[1]),Number(m[2]),Number(m[3]))
+}
+function isValidYearMonth(s){
+  const m=String(s||'').match(/^(\d{4})-(\d{2})$/);
+  return !!m&&Number(m[2])>=1&&Number(m[2])<=12
 }
 function dateValue(v){
   if(v instanceof Date)return v.toISOString().slice(0,10);
   const s=String(v??'').trim();
-  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)){
-    const [y,m,d]=s.split('-').map(Number);
-    return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')
-  }
-  if(/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s)){
-    const [y,m,d]=s.split(/[/.]/).map(Number);
-    return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')
+  let parts=null;
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s))parts=s.split('-').map(Number);
+  else if(/^\d{4}[/.]\d{1,2}[/.]\d{1,2}$/.test(s))parts=s.split(/[/.]/).map(Number);
+  if(parts){
+    const [y,m,d]=parts;
+    if(validDateParts(y,m,d))return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0')
   }
   return s
 }
@@ -70,9 +85,10 @@ function monthValue(v,lastPosted=''){
   const s=String(v??'').trim();
   if(/^\d{4}[-/]\d{1,2}$/.test(s)){
     const [y,m]=s.replace('/','-').split('-').map(Number);
-    return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')
+    if(m>=1&&m<=12)return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')
+    return s
   }
-  return /^\d{4}-\d{2}-\d{2}$/.test(lastPosted)?lastPosted.slice(0,7):s
+  return isValidIsoDate(lastPosted)?lastPosted.slice(0,7):s
 }
 function rowValues(sheet,rowNumber,maxColumns=MAX_SCAN_COLUMNS){
   const row=sheet.getRow(rowNumber),values=[];
@@ -159,8 +175,8 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
       if(chosen.map[k]&&item[k]===null)errors.push(k+'が数値ではありません');
       else if(item[k]!==null&&(item[k]<0||item[k]>1000))errors.push(k+'が許容範囲外です')
     });
-    if(chosen.map.last_posted&&!/^\d{4}-\d{2}-\d{2}$/.test(item.last_posted))errors.push('最終計上日の形式を確認してください');
-    if(item.month&&!/^\d{4}-\d{2}$/.test(item.month))errors.push('対象月の形式を確認してください');
+    if(chosen.map.last_posted&&!isValidIsoDate(item.last_posted))errors.push('最終計上日が実在する日付か確認してください');
+    if(item.month&&!isValidYearMonth(item.month))errors.push('対象月が実在する年月か確認してください');
 
     if(errors.length)blockingIssues.push({row:r,employee_no:employeeNo,issues:errors});
     if(item.overtime!==null&&item.overtime>=60)warnings.push({row:r,employee_no:employeeNo,issues:['残業60時間以上']});
@@ -215,4 +231,4 @@ module.exports=async function handler(req,res){
     return sendApiError(req,res,err)
   }
 };
-module.exports._test={parseWorkbookBuffer,normalizeHeader,headerMap,numberValue,dateValue,monthValue,workbookSensitiveHeaders};
+module.exports._test={parseWorkbookBuffer,normalizeHeader,headerMap,numberValue,dateValue,monthValue,isValidIsoDate,isValidYearMonth,workbookSensitiveHeaders};
