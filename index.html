@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v150</title>
-<!-- production-sync:v150 -->
+<title>つばめ交通株式会社 社員一元管理システム v151</title>
+<!-- production-sync:v151 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -81,6 +81,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .recent-btn{min-height:76px;text-align:left;border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px;font-weight:900;color:var(--ink)}
 .recent-btn:hover{background:#f1f8fb}
 .quality-row{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:7px;background:#fff;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.quality-action-guide{display:flex;justify-content:space-between;gap:14px;align-items:center;border:2px solid #e0cf8b;border-left:7px solid #d4aa26;border-radius:13px;background:#fffaf0;padding:13px 14px;margin:0 0 14px}
+.quality-action-guide.danger{border-color:#e5bcbc;border-left-color:#ca5f5f;background:#fff6f6}
+.quality-action-guide-main{display:grid;gap:5px;min-width:0}.quality-action-guide-main>b{color:#173f57;font-size:1rem}.quality-action-guide-main>div{font-size:.76rem;line-height:1.5;color:#415d6a}.quality-action-guide-label{display:inline-flex;width:max-content;border-radius:999px;background:#fff;border:1px solid #d8c77f;padding:3px 8px;font-size:.68rem;font-weight:950;color:#705700}
+.quality-action-guide.danger .quality-action-guide-label{border-color:#dfb1b1;color:#8b2a2a}.quality-action-guide-actions{flex:0 0 auto}
+@media(max-width:720px){.quality-action-guide{align-items:flex-start;flex-direction:column}.quality-action-guide-actions,.quality-action-guide-actions .btn{width:100%}}
+
 .quality-bad{border-left:6px solid #ca5f5f}
 .quality-warn{border-left:6px solid #d4aa26}
 .quality-row-main{min-width:0;flex:1}.quality-row-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px}
@@ -1213,7 +1219,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <div class="manage-quick-bar">
  <button class="btn primary" onclick="openDeadlineCenter('all')">期限センター</button>
- <button class="btn soft" onclick="showQualityDetails()">データ品質</button>
+ <button class="btn soft" onclick="showQualityDetails()">入力・登録の要確認</button>
  <button class="btn soft" onclick="openManageSection('manage-workload')">担当状況</button>
  <button class="btn soft full-admin-only" onclick="openManageSection('manage-system')">会社設定</button>
 </div>
@@ -1248,7 +1254,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="manage-section-body">
   <div class="grid2"><div class="card full-admin-only"><h3>自動メール通知</h3><div class="formnote">共有デモはDRY_RUNです。実メールは送信しません。</div><div id="notifySettings"></div><div class="toolbar" style="margin-top:10px"><button class="btn soft" onclick="previewNotification()">送信予定を確認</button><button class="btn primary" onclick="runMailDryRun()">送信テスト</button></div><div id="mailRunSummary" class="mini" style="margin-top:9px"></div></div><div class="card"><h3>メール送信履歴</h3><div id="mailHistory" class="list"></div></div></div>
   <div class="grid2" style="margin-top:12px"><div class="card full-admin-only"><h3>通知ルール</h3><div id="mailRules"></div></div><div class="card"><h3>操作履歴</h3><div id="auditHistory"></div></div></div>
-  <div class="card" style="margin-top:12px"><h3>データ品質チェック</h3><div id="qualitySummary"></div><div class="toolbar" style="margin-top:10px"><button class="btn soft" onclick="showQualityDetails()">内容を確認</button></div></div>
+  <div class="card" style="margin-top:12px"><h3>入力・登録の要確認</h3><div id="qualitySummary"></div><div class="toolbar" style="margin-top:10px"><button class="btn soft" onclick="showQualityDetails()">内容を確認</button></div></div>
  </div>
 </details>
 
@@ -2296,7 +2302,52 @@ function qualityIssueTarget(x){
  if((m=label.match(/^申請\s+([^\s]+)/))&&APPLICATIONS.some(a=>String(a.id)===m[1]))return {kind:'application',id:m[1],label:'申請を開く'};
  return null
 }
-function openQualityTarget(t){
+function qualityIssueNextAction(x,t){
+ let cat=qualityIssueCategory(x),detail=String(x?.detail||'');
+ if(cat==='missing'){
+  if(t?.kind==='employee')return '社員情報を編集し、未入力・未登録の項目を正しい内容で登録してください。';
+  if(t?.kind==='qualification')return '資格一覧を確認し、不足している期限・証番号・証憑の情報を登録してください。';
+  if(t?.kind==='document')return '書類一覧を確認し、確認状態・期限・関連資格など不足している情報を登録してください。';
+  return '画面内の編集から、不足している項目を登録してください。'
+ }
+ if(cat==='deadline')return '表示されている期限の元情報を確認し、誤りなら正しい期限へ更新してください。期限超過が事実なら、必要な更新・確認を行ってください。';
+ if(cat==='workflow'){
+  if(t?.kind==='accident')return '「事故対応を編集」から担当者・次回対応・期限・完了情報を補ってください。';
+  if(t?.kind==='complaint')return '「苦情対応を編集」から担当者・ランク・次回対応・期限・完了情報を補ってください。';
+  if(t?.kind==='application')return '申請内容を確認し、対応できる場合は承認、修正が必要なら差戻ししてください。';
+  return '担当・次回対応・期限・完了情報を確認し、不足している項目を補ってください。'
+ }
+ if(cat==='integrity')return '社員・資格・書類・車両などの紐付け先を確認し、誤った参照や重複を修正してください。';
+ if(/乗務不可|期限切れ|乗務可/.test(detail))return '期限と安全状態を確認し、必要な更新が完了するまでは乗務可否を安易に「可」へ戻さないでください。';
+ return '確認内容を見ながら、画面内の編集機能で登録内容を確認・修正してください。'
+}
+function qualityIssueFixButtonHtml(x,t){
+ if(!t)return '';
+ let id=String(t.id||'').replaceAll("'","");
+ if(t.kind==='employee'&&canEditEmployee(id))return '<button class="btn primary" onclick="openEmployeeEdit(\''+id+'\')">社員情報を編集する</button>';
+ if(t.kind==='accident'){let a=A.find(r=>r.id===t.id);if(a&&canEditEmployee(a.employee_no))return '<button class="btn primary" onclick="openAccidentEdit(\''+id+'\')">事故対応を編集する</button>'}
+ if(t.kind==='complaint'){let idx=C.findIndex(r=>r.id===t.id),r=C[idx];if(idx>=0&&r&&canEditEmployee(r.employee_no))return '<button class="btn primary" onclick="openComplaintForm('+idx+')">苦情対応を編集する</button>'}
+ if(t.kind==='near'){let idx=N.findIndex(r=>r.id===t.id),r=N[idx];if(idx>=0&&r&&canEditEmployee(r.employee_no))return '<button class="btn primary" onclick="openNearForm('+idx+')">ヒヤリ報告を編集する</button>'}
+ if(t.kind==='vehicle'){let idx=V.findIndex(r=>r.id===t.id),r=V[idx];if(idx>=0&&r&&canEditEmployee(r.employee_no))return '<button class="btn primary" onclick="openVehicleForm('+idx+')">車両情報を編集する</button>'}
+ if(t.kind==='qualification'){
+  let m=String(x?.label||'').match(/^資格\s+(\d+)\s+(.+)$/),no=id,idx=-1;
+  if(m){no=m[1];idx=QUAL.findIndex(q=>String(q.employee_no)===String(no)&&String(q.name)===String(m[2]))}
+  if(canEditEmployee(no))return idx>=0?'<button class="btn primary" onclick="openQualificationRecordForm(\''+no+'\','+idx+')">該当資格を編集する</button>':'<button class="btn primary" onclick="openQualificationRecordForm(\''+no+'\')">資格を登録する</button>'
+ }
+ if(t.kind==='document'){
+  let m=String(x?.label||'').match(/^書類\s+([^\s]+)/),doc=m?DOCS.find(d=>String(d.id)===String(m[1])):null,no=doc?.employee_no||id,idx=doc?DOCS.indexOf(doc):-1;
+  if(canEditEmployee(no))return idx>=0?'<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">該当書類を編集する</button>':'<button class="btn primary" onclick="openDocumentForm(\''+no+'\')">書類を登録する</button>'
+ }
+ return ''
+}
+function injectQualityActionGuide(x,t){
+ if(!x||!detail.classList.contains('show'))return;
+ let old=document.getElementById('qualityActionGuide');if(old)old.remove();
+ let guide=document.createElement('div');guide.id='qualityActionGuide';guide.className='quality-action-guide '+(x.level==='bad'?'danger':'warn');
+ guide.innerHTML='<div class="quality-action-guide-main"><span class="quality-action-guide-label">この画面でやること</span><b>'+esc(x.label)+'</b><div><strong>確認理由：</strong>'+esc(x.detail)+'</div><div><strong>対応：</strong>'+esc(qualityIssueNextAction(x,t))+'</div></div><div class="quality-action-guide-actions">'+qualityIssueFixButtonHtml(x,t)+'</div>';
+ dbody.prepend(guide)
+}
+function openQualityTarget(t,issue=null){
  if(!t)return false;
  closeDetail();
  if(t.kind==='employee')employeeDetail(t.id);
@@ -2308,17 +2359,18 @@ function openQualityTarget(t){
  else if(t.kind==='document')employeeDocuments(t.id);
  else if(t.kind==='application')applicationDetail(t.id);
  else return false;
+ if(issue)requestAnimationFrame(()=>injectQualityActionGuide(issue,t));
  return true
 }
 function openQualityIssue(index){
  let issues=qualityIssues(),x=issues[index],t=x?qualityIssueTarget(x):null;
- openQualityTarget(t)
+ openQualityTarget(t,x)
 }
 function exportQualityCsv(){
  let issues=qualityIssues();
  let rows=issues.map(x=>{let t=qualityIssueTarget(x);return [x.level==='bad'?'重大':'確認',qualityCategoryLabel(qualityIssueCategory(x)),x.label,x.detail,t?.kind||'',t?.id||'']});
- downloadCsv('データ品質チェック_本番反映版_v104.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
- audit('CSV出力','データ品質チェック / '+issues.length+'件')
+ downloadCsv('入力・登録の要確認_本番反映版_v104.csv',[['重要度','分類','対象','確認内容','対象種別','対象ID'],...rows]);
+ audit('CSV出力','入力・登録の要確認 / '+issues.length+'件')
 }
 function setQualityFilter(kind){QUALITY_FILTER=kind;renderQualityDetailsRows()}
 function qualityFilterCounts(issues){
@@ -2332,18 +2384,18 @@ function renderQualityDetailsRows(){
  let rows=issues.map((x,index)=>({x,index,cat:qualityIssueCategory(x)})).filter(r=>(QUALITY_FILTER==='all'||(QUALITY_FILTER==='bad'?r.x.level==='bad':r.cat===QUALITY_FILTER))&&(!q||(r.x.label+' '+r.x.detail).toLowerCase().includes(q)));
  let count=document.getElementById('qualityVisibleCount');if(count)count.textContent=rows.length+'件表示';
  document.querySelectorAll('#qualityFilters button').forEach(b=>b.classList.toggle('primary',b.dataset.qf===QUALITY_FILTER));
- root.innerHTML=rows.length?rows.map(r=>{let t=qualityIssueTarget(r.x);return `<div class="quality-row ${r.x.level==='bad'?'quality-bad':'quality-warn'}"><div class="quality-row-main"><div class="quality-row-head"><b>${esc(r.x.label)}</b><span class="badge ${r.x.level==='bad'?'danger':'warn'}">${r.x.level==='bad'?'重大':'確認'}</span><span class="badge">${esc(qualityCategoryLabel(r.cat))}</span></div><div class="mini">${esc(r.x.detail)}</div></div>${t?'<button class="btn soft" onclick="openQualityIssue('+r.index+')">'+esc(t.label)+'</button>':''}</div>`}).join(''):'<div class="notice"><div><b>この条件の確認事項はありません。</b><div class="mini">別の分類または検索条件を確認してください。</div></div><span class="badge ok">OK</span></div>'
+ root.innerHTML=rows.length?rows.map(r=>{let t=qualityIssueTarget(r.x);return `<div class="quality-row ${r.x.level==='bad'?'quality-bad':'quality-warn'}"><div class="quality-row-main"><div class="quality-row-head"><b>${esc(r.x.label)}</b><span class="badge ${r.x.level==='bad'?'danger':'warn'}">${r.x.level==='bad'?'重大':'確認'}</span><span class="badge">${esc(qualityCategoryLabel(r.cat))}</span></div><div class="mini">${esc(r.x.detail)}</div></div>${t?'<button class="btn soft" onclick="openQualityIssue('+r.index+')">対応画面を開く</button>':''}</div>`}).join(''):'<div class="notice"><div><b>この条件の確認事項はありません。</b><div class="mini">別の分類または検索条件を確認してください。</div></div><span class="badge ok">OK</span></div>'
 }
 function renderQuality(){
  let el=document.getElementById('qualitySummary');if(!el)return;let issues=qualityIssues(),c=qualityFilterCounts(issues),warn=issues.length-c.bad;
  let scopeText=isFullCompanyAdmin()?'全社：入力漏れ・期限・担当・完了情報・配置・整合性を確認':'担当範囲：入力漏れ・期限・配置・乗務可否を確認';
- el.innerHTML=`<div class="quality-summary-head"><div><b>データ品質チェック</b><div class="mini">${scopeText}</div></div><span class="badge ${c.bad?'danger':warn?'warn':'ok'}">${issues.length}件</span></div><div class="quality-summary-chips"><span class="simple-status-chip ${c.bad?'danger':''}">重大 ${c.bad}</span><span class="simple-status-chip ${c.missing?'warn':''}">入力漏れ ${c.missing}</span><span class="simple-status-chip ${c.deadline?'warn':''}">期限 ${c.deadline}</span><span class="simple-status-chip ${c.workflow?'warn':''}">担当・完了 ${c.workflow}</span><span class="simple-status-chip ${c.integrity?'danger':''}">整合性 ${c.integrity}</span></div>`
+ el.innerHTML=`<div class="quality-summary-head"><div><b>入力・登録の要確認</b><div class="mini">${scopeText}</div></div><span class="badge ${c.bad?'danger':warn?'warn':'ok'}">${issues.length}件</span></div><div class="quality-summary-chips"><span class="simple-status-chip ${c.bad?'danger':''}">重大 ${c.bad}</span><span class="simple-status-chip ${c.missing?'warn':''}">入力漏れ ${c.missing}</span><span class="simple-status-chip ${c.deadline?'warn':''}">期限 ${c.deadline}</span><span class="simple-status-chip ${c.workflow?'warn':''}">担当・完了 ${c.workflow}</span><span class="simple-status-chip ${c.integrity?'danger':''}">整合性 ${c.integrity}</span></div>`
 }
 function showQualityDetails(){
  let issues=qualityIssues(),c=qualityFilterCounts(issues);
  let note=isFullCompanyAdmin()?'重複・不正な紐付けだけでなく、入力漏れ・期限未設定・担当未設定・完了情報漏れまで全社対象で確認します。':`現在の担当範囲「${adminScopeLabel()}」内を確認しています。全社重複・孤立データの確認は全社管理者のみです。`;
  QUALITY_FILTER='all';QUALITY_QUERY='';
- dttl.textContent='データ品質チェック';
+ dttl.textContent='入力・登録の要確認';
  dbody.innerHTML=`<div class="spec-note">${esc(note)}</div>
  <div class="quality-dashboard">
   <button class="quality-kpi ${c.bad?'danger':''}" onclick="setQualityFilter('bad')"><small>重大</small><b>${c.bad}</b></button>
@@ -3700,7 +3752,7 @@ function renderAdminDailyCenter(){
   <div class="admin-daily-kpi ${cases?'warn':''}"><small>事故・苦情 期限未設定</small><b>${cases}</b></div>
   <div class="admin-daily-kpi ${handoffs?'warn':''}"><small>引継ぎ未確認</small><b>${handoffs}</b></div>
   <div class="admin-daily-kpi ${apps?'warn':''}"><small>申請対応中</small><b>${apps}</b></div>
-  <div class="admin-daily-kpi ${qualityBad?'danger':''}"><small>品質・重大</small><b>${qualityBad}</b></div>
+  <div class="admin-daily-kpi ${qualityBad?'danger':''}"><small>入力・登録 重大</small><b>${qualityBad}</b></div>
  </div>
  <div class="admin-daily-rows">${rows.length?rows.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}<div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">担当範囲の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>'}</div>
  ${items.length>8?'<div class="mini" style="margin-top:8px">ほか '+(items.length-8)+'件。ホームの「今日の処理キュー」または期限センターから続けて確認できます。</div>':''}`
@@ -3718,7 +3770,7 @@ function renderAdminOverview(){
   <button class="card metric ${pendingDocs?'warn':''}" onclick="openCredentialCenter()"><small>書類確認待ち等</small><b>${pendingDocs}</b><span>資格・書類</span></button>
   <button class="card metric ${pendingApps?'warn':''}" onclick="go('comms')"><small>申請対応中</small><b>${pendingApps}</b><span>担当範囲</span></button>
   <button class="card metric ${handoffAged?'danger':''}" onclick="go('home')"><small>引継ぎ未確認 1日超</small><b>${handoffAged}</b><span>自分宛て</span></button>
-  <button class="card metric ${quality.length?'warn':''}" onclick="showQualityDetails()"><small>品質確認</small><b>${quality.length}</b><span>入力漏れ・矛盾</span></button>
+  <button class="card metric ${quality.length?'warn':''}" onclick="showQualityDetails()"><small>入力・登録確認</small><b>${quality.length}</b><span>入力漏れ・矛盾</span></button>
  </div>`
 }
 let LAST_SELF_DIAGNOSTIC=null;
@@ -3797,6 +3849,9 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('ホーム検索 関連度優先',!searchPreSlice,searchPreSlice?'検索候補を関連度順に並べる前の件数制限が残っています':'全候補を関連度順に並べてから上位表示'));
  let quickSafetySource=Function.prototype.toString.call(employeeSafetyQuickActionsHtml),quickSafetyOk=['openAccidentForm','openNearForm','openComplaintForm'].every(x=>quickSafetySource.includes(x));
  out.push(systemDiagnosticCheck('社員詳細 安全記録ショートカット',quickSafetyOk,quickSafetyOk?'事故・ヒヤリ・苦情の社員指定入力を確認':'安全記録ショートカットが不足しています'));
+ let qualityGuideFns=['qualityIssueNextAction','qualityIssueFixButtonHtml','injectQualityActionGuide'];
+ let qualityGuideMissing=qualityGuideFns.filter(name=>typeof window[name]!=='function');
+ out.push(systemDiagnosticCheck('入力・登録確認の処理案内',qualityGuideMissing.length===0,qualityGuideMissing.length?'未定義：'+qualityGuideMissing.join('、'):'確認理由・対応内容・修正ボタンの案内を確認'));
  let quality=qualityIssues(),critical=quality.filter(x=>x.level==='bad').length;
  out.push(systemDiagnosticCheck('業務データ品質',critical===0,'重大 '+critical+'件 / 全確認 '+quality.length+'件',critical?'warn':'ok'));
  return out
@@ -3858,7 +3913,7 @@ function actionQueueItems(){
   qualityIssues().forEach((q,qualityIndex)=>{
    if(q.level!=='bad')return;
    let target=qualityIssueTarget(q);if(!target)return;
-   add({id:'quality:'+qualityIndex+':'+target.kind+':'+target.id,kind:'quality',priority:1.5,label:'データ品質 / '+q.label,sub:q.detail,key:String(qualityIndex),qualityTarget:target,urgency:'danger'})
+   add({id:'quality:'+qualityIndex+':'+target.kind+':'+target.id,kind:'quality',priority:1.5,label:'入力・登録の確認 / '+q.label,sub:q.detail,key:String(qualityIndex),qualityTarget:target,qualityIssue:q,urgency:'danger'})
   });
   scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,no:String(a.employee_no||''),owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
   scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,no:String(x.employee_no||''),owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
@@ -3910,7 +3965,7 @@ function actionQueueOpen(idOrIndex=0){
  if(item.kind==='complaint'){complaintDetail(item.key);return}
  if(item.kind==='handoff'){openHandoffNotice(item.key);return}
  if(item.kind==='application'){applicationDetail(item.key);return}
- if(item.kind==='quality'){openQualityTarget(item.qualityTarget);return}
+ if(item.kind==='quality'){openQualityTarget(item.qualityTarget,item.qualityIssue||qualityIssues()[Number(item.key)]);return}
 }
 function actionQueueNext(){
  let items=actionQueueItems();
@@ -7004,7 +7059,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v150';
+const RELEASE_VERSION='v151';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
