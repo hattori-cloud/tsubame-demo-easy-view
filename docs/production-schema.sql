@@ -114,6 +114,25 @@ create table documents (
   check (original_handling not in ('company_paper_original','paper_and_electronic') or paper_location is not null)
 );
 
+create table document_policy_rules (
+  category text primary key,
+  original_handling text not null
+    check (original_handling in ('employee_original_company_copy','company_paper_original','electronic_original','paper_and_electronic')),
+  security_class text not null
+    check (security_class in ('standard','restricted','strict')),
+  access_level text not null
+    check (access_level in ('self_allowed','scope_admin','full_admin')),
+  verification_required boolean not null default true,
+  retention_years integer check (retention_years is null or retention_years between 1 and 99),
+  retention_note text not null default 'company_approval_pending',
+  updated_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1 check (version >= 1),
+  check (security_class <> 'strict' or access_level = 'full_admin'),
+  check (security_class <> 'strict' or verification_required = true)
+);
+
 create table safety_training (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
@@ -362,6 +381,7 @@ create index qualifications_employee_idx on qualifications (employee_id, expiry,
 create index documents_employee_idx on documents (employee_id, category, status);
 create index documents_expiry_idx on documents (expiry, status);
 create unique index documents_storage_key_uidx on documents (storage_key) where storage_key is not null;
+create index document_policy_security_idx on document_policy_rules (security_class, access_level);
 create index documents_security_idx on documents (security_class, access_level, status, registered_on desc);
 create index documents_retention_idx on documents (retention_until, status) where archived_at is null;
 create index safety_training_due_idx on safety_training (employee_id, status, due);
