@@ -3793,6 +3793,10 @@ function runSystemDiagnosticChecks(){
  let writeFlowNames=['openEmployeeForm','openEmployeeEdit','openAccidentForm','openNearForm','openComplaintForm','openVehicleForm','openDocumentForm','openTrainingRecordForm','openQualificationRecordForm','openAssetRecordForm','openGuidanceRecordForm','openDriverCertificationForm'];
  let weakWriteFlows=writeFlowNames.filter(name=>{let fn=window[name];if(typeof fn!=='function')return true;let src=Function.prototype.toString.call(fn);return !src.includes('save()')||!src.includes('audit(')});
  out.push(systemDiagnosticCheck('主要更新処理 保存・監査',weakWriteFlows.length===0,weakWriteFlows.length?'保存または監査不足：'+weakWriteFlows.join('、'):'主要 '+writeFlowNames.length+'更新処理で保存・監査を確認'));
+ let searchSource=Function.prototype.toString.call(searchAll),searchPreSlice=searchSource.includes('.slice(0,3)')||searchSource.includes('.slice(0,4)')||searchSource.includes('.slice(0,6)');
+ out.push(systemDiagnosticCheck('ホーム検索 関連度優先',!searchPreSlice,searchPreSlice?'検索候補を関連度順に並べる前の件数制限が残っています':'全候補を関連度順に並べてから上位表示'));
+ let quickSafetySource=Function.prototype.toString.call(employeeSafetyQuickActionsHtml),quickSafetyOk=['openAccidentForm','openNearForm','openComplaintForm'].every(x=>quickSafetySource.includes(x));
+ out.push(systemDiagnosticCheck('社員詳細 安全記録ショートカット',quickSafetyOk,quickSafetyOk?'事故・ヒヤリ・苦情の社員指定入力を確認':'安全記録ショートカットが不足しています'));
  let quality=qualityIssues(),critical=quality.filter(x=>x.level==='bad').length;
  out.push(systemDiagnosticCheck('業務データ品質',critical===0,'重大 '+critical+'件 / 全確認 '+quality.length+'件',critical?'warn':'ok'));
  return out
