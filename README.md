@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v178 foundation build.
+Current application: v181 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -156,4 +156,8 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v176 strengthens employee identity for future employee-number changes. Existing employee `system_id` values are no longer regenerated from the current employee number at boot; accident, complaint, near-miss, vehicle, qualification, document, training, asset, guidance and application records are backfilled with a stable `employee_id`, new/updated records inherit that stable link, lookups accept current number, old number or stable ID, and relation-integrity checks validate the stable references. Employee-number editing remains disabled in the normal UI.
 - v177 extends the fail-closed production API vertical slice with `GET /api/v1/employees`. The endpoint authenticates the bearer token, resolves the server-side user registry, filters employees through full/scoped/self authorization before applying requested filters, caps pagination, and returns only fictional staging fixtures. A fictional self-service identity was added so full, scoped and self authorization paths can be tested without real employee data. Public production remains closed when authentication is not configured.
 - v178 makes the document-storage boundary explicit in the demo. Document lists and previews now state that only metadata is stored, action labels say “document information” rather than implying a real file is opened, and the production migration gate treats private original-file storage as a blocking requirement until a private object store, short-lived access authorization, backup and restore path are connected.
+
+- v179 hardens the work-summary Excel import foundation. The browser now accepts .xlsx only, fingerprints the selected workbook with SHA-256 and binds a preflight result to that exact file before any later confirmation. An authenticated full-administrator-only server preflight endpoint parses XLSX in memory, detects likely work-summary fields, reports missing fields and malformed rows, flags overtime at 60 hours or more, returns a bounded preview, and persists nothing. The raw-file limit is 4 MB to stay below the Vercel Function request payload limit.
+- v180 centralizes sensitive-data guardrails. The work-summary XLSX preflight rejects columns that appear to contain My Number/personal number, insurance or pension identifiers, salary/payment fields, bank-account fields, diagnosis results or disease history. The shared demo also scans stored business objects for forbidden/restricted key names during system self-diagnostics. The production gate explicitly keeps sensitive information separation as a blocking item until server-side field/API authorization is implemented.
+- v181 adds Node regression tests for production authorization behavior. The tests cover full-company, assigned-scope, Fuchu-scope, self-service and pagination behavior, including the rule that request filters cannot expand a user's fixed server-side scope.
 
