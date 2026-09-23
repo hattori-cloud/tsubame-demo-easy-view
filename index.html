@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v165</title>
-<!-- production-sync:v165 -->
+<title>つばめ交通株式会社 社員一元管理システム v166</title>
+<!-- production-sync:v166 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -295,6 +295,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .permission-matrix-note{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
 .permission-matrix-note>div{border:1px solid var(--line);border-radius:10px;padding:9px;background:#fbfdfe}
 @media(max-width:760px){.permission-matrix-note{grid-template-columns:1fr}}
+.home-flow-step{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:999px;background:#e7f3f8;color:#075b88;font-size:.7rem;font-weight:950;margin-right:7px;vertical-align:middle}.home-flow-note{font-size:.7rem;color:#607783;font-weight:850;margin-top:3px}.home-task-card{border:2px solid #a9cad8}.home-safety-combined{display:grid;gap:8px}.home-safety-combined .row{align-items:flex-start}.home-safety-kind{display:inline-flex;align-items:center;min-height:26px;border-radius:999px;background:#eaf4f8;color:#28586d;padding:3px 8px;font-size:.66rem;font-weight:950;margin-right:6px}
 .home-search-hints{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
 .home-search-hints span{font-size:.68rem;font-weight:900;color:#31596b;border:1px solid #d3e4ec;background:#fff;border-radius:999px;padding:4px 8px}
 .home-search-results{margin-top:10px;border-top:1px solid #dce9ef;padding-top:9px}
@@ -993,24 +994,26 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員・勤務・安全・資格・車両情報を一元管理</div></div><div class="control-panel"><div class="control-row"><span class="control-label">表示権限（検証）</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
 <nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
-<section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の対応と必要な情報だけを、シンプルに確認できます。</p></div></div>
+<section class="page active" id="home"><div class="page-title"><div><h2>ホーム</h2><p>今日の確認から処理、検索、登録までを上から順に進められます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
 <div id="homeDailySummary" class="general-restricted"></div>
+
+<div class="card general-restricted home-simple-primary home-task-card">
+ <div class="list-summary"><div><h3 style="margin:0"><span class="home-flow-step">2</span>今日やること</h3><div class="mini"><span id="homeTodayDate">本日</span> / 最優先から最大5件。ここから実際の処理へ進みます。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限一覧を開く</button></div>
+ <div id="today" class="notice-list"></div>
+</div>
+
+<div id="homeHandoffCard" class="card general-restricted" style="display:none;margin:14px 0"><div class="list-summary"><div><h3 style="margin:0">新しい引継ぎ</h3><div class="mini">自分に担当変更された案件です。内容を確認して引継ぎ済みにします。</div></div><span id="homeHandoffCount" class="handoff-unread">0</span></div><div id="homeHandoffRows"></div></div>
+
 <div class="card general-restricted home-search-card home-search-top">
- <div class="home-search-head"><div><h3>すぐ検索</h3><div class="mini">社員名・社員番号・3桁の号車・事故番号・苦情・ヒヤリ・認定などをここから探せます。</div></div><span class="badge ok">ホーム検索</span></div>
+ <div class="home-search-head"><div><h3><span class="home-flow-step">3</span>すぐ検索</h3><div class="mini">社員名・社員番号・3桁の号車・事故番号・苦情・ヒヤリ・認定などをここから探せます。</div></div><span class="badge ok">全体検索</span></div>
  <div class="home-search-row"><input id="gq" placeholder="例：1001 / 安芸 / 801 / A-2026-001 / ゴールド" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
  <div class="home-search-hints"><span>氏名</span><span>社員番号</span><span>3桁号車</span><span>事故番号</span><span>ゴールド・英語・観光</span></div>
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
 </div>
-<div class="card general-restricted home-simple-primary">
- <div class="list-summary"><div><h3 style="margin:0">まず確認する項目</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高いものを最大5件だけ表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button></div>
- <div id="today" class="notice-list"></div>
-</div>
-
-<div id="homeHandoffCard" class="card general-restricted" style="display:none;margin:14px 0"><div class="list-summary"><div><h3 style="margin:0">新しい引継ぎ</h3><div class="mini">自分に担当変更された案件です。</div></div><span id="homeHandoffCount" class="handoff-unread">0</span></div><div id="homeHandoffRows"></div></div>
 
 <div class="card general-restricted home-simple-actions home-action-center">
- <div class="home-action-center-head"><div><h3>よく使う操作</h3><div class="mini">登録と確認を分けています。普段使う操作だけここから開けます。</div></div></div>
+ <div class="home-action-center-head"><div><h3><span class="home-flow-step">4</span>よく使う操作</h3><div class="mini">登録と確認を分けています。普段使う操作だけここから開けます。</div></div></div>
  <div class="home-action-section admin-only">
   <div class="home-action-section-title"><b>登録する</b><span>安全記録はここからすぐ入力</span></div>
   <div class="home-action-grid home-action-grid-register">
@@ -4282,13 +4285,19 @@ function injectActionQueueNav(){
 }
 
 function openHomeSafetyCases(){
- let accidents=scopedAccidents().filter(a=>a.phase!=='完了');
- let complaints=scopedComplaints().filter(x=>x.status!=='完了');
- go('safe');
- setTimeout(()=>{
-  if(accidents.length){safeTab('acc');ACC_FILTER='open';ACC_PAGE=1;renderAcc();return}
-  safeTab('complaint');COMPLAINT_FILTER='open';renderComplaints()
- },30)
+ let accidents=scopedAccidents().filter(a=>a.phase!=='完了'),complaints=scopedComplaints().filter(x=>x.status!=='完了');
+ let rows=[
+  ...accidents.map(a=>({kind:'事故',id:a.id,date:a.date||'',employee_no:a.employee_no,name:a.driver||a.employee_no,info:accidentAttentionInfo(a),status:a.phase||'',open:"accidentDetail('"+String(a.id).replaceAll("'","")+"')"})),
+  ...complaints.map(x=>({kind:'苦情',id:x.id,date:x.responseDate||x.date||'',employee_no:x.employee_no,name:x.driverName||x.name||x.employee_no,info:complaintAttentionInfo(x),status:x.status||'',open:"complaintDetail('"+String(x.id).replaceAll("'","")+"')"}))
+ ].sort((a,b)=>{
+   let rank=x=>x.info.tone==='danger'?0:x.info.tone==='warn'?1:2;
+   return rank(a)-rank(b)||String(b.date).localeCompare(String(a.date))
+ });
+ dttl.textContent='事故・苦情 未完了';
+ dbody.innerHTML='<div class="list-summary"><div><b>未完了 '+rows.length+'件</b><div class="mini">事故 '+accidents.length+'件 / 苦情 '+complaints.length+'件。期限超過や未設定から先に表示します。</div></div><button class="btn soft" onclick="closeDetail();go(\'safe\')">運行・安全全体へ</button></div><div class="home-safety-combined">'+
+ (rows.length?rows.map(r=>'<div class="row '+(r.info.tone==='danger'?'quality-bad':r.info.tone==='warn'?'quality-warn':'')+'"><div><div><span class="home-safety-kind">'+esc(r.kind)+'</span><b>'+esc(r.id)+'</b> / '+employeeNameLinkHtml(r.employee_no,r.name)+'</div><div class="mini">'+esc(r.date||'日付未設定')+' / '+esc(r.status||'未設定')+'</div>'+safetyActionGuideHtml(r.info)+'</div><button class="btn '+(r.info.tone==='danger'?'danger':r.info.tone==='warn'?'primary':'soft')+'" onclick="'+r.open+'">対応を確認</button></div>').join(''):'<div class="notice"><div><b>未完了の事故・苦情はありません。</b></div><span class="badge ok">OK</span></div>')+
+ '</div>';
+ showDetailModal()
 }
 function renderHomeDailySummary(){
  let el=document.getElementById('homeDailySummary');if(!el)return;
@@ -4300,7 +4309,7 @@ function renderHomeDailySummary(){
  let accidents=scopedAccidents().filter(a=>a.phase!=='完了').length,complaints=scopedComplaints().filter(x=>x.status!=='完了').length,openCases=accidents+complaints;
  let workAttention=workAttentionRows().length;
  let total=blocked+over+todayN+openCases+workAttention;
- el.innerHTML=`<div class="home-morning-head"><div><h3>今日の状況</h3><div class="mini">赤・黄の項目から確認すれば、朝の全体確認ができます。</div></div><span class="badge ${blocked||over?'danger':total?'warn':'ok'}">${total?'要確認あり':'大きな警告なし'}</span></div>
+ el.innerHTML=`<div class="home-morning-head"><div><h3><span class="home-flow-step">1</span>今日の状況</h3><div class="mini">ここは全体の件数確認です。実際の処理は下の「今日やること」から始めます。</div></div><span class="badge ${blocked||over?'danger':total?'warn':'ok'}">${total?'要確認あり':'大きな警告なし'}</span></div>
  <div class="home-morning-grid">
   <button class="home-morning-card ${blocked?'danger':'ok'}" onclick="go('emp');setTimeout(()=>setEmployeeQuickFilter('blocked'),40)"><small>乗務不可</small><b>${blocked}</b><span>免許・安全状態など</span></button>
   <button class="home-morning-card ${over?'danger':'ok'}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${over}</b><span>全管理項目</span></button>
@@ -4320,7 +4329,7 @@ function renderHome(){
  renderRecentDetails();
  renderHomeDraftSummary();
  let queue=actionQueueItems(),shownQueue=queue.slice(0,5),todayEl=document.getElementById('today');
- if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>優先対応 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・未入力など、先に対応したいものを表示'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
+ if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>処理対象 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・未入力などを優先順に並べています'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
  (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}${homeQueueBodyHtml(x)}</div>${homeQueueActionsHtml(x)}</div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
  `</div>`;
  renderHomeHandoffs()
@@ -7521,7 +7530,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v165';
+const RELEASE_VERSION='v166';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
