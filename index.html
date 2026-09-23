@@ -1676,7 +1676,7 @@ function ensureCredentialLinks(){
   if(d.verifiedDate===undefined){d.verifiedDate='';changed=true}
   if(d.verifiedById===undefined){d.verifiedById='';changed=true}
   if(d.verifiedByName===undefined){d.verifiedByName='';changed=true}
-  if(d.securityClass===undefined){d.securityClass=['本人確認','退職手続'].includes(d.category)?'厳格':d.category==='資格証憑'?'要配慮':'標準';changed=true}
+  if(d.securityClass===undefined){d.securityClass=['本人確認','退職手続','手続書類'].includes(d.category)?'厳格':d.category==='資格証憑'?'要配慮':'標準';changed=true}
   if(d.accessLevel===undefined){d.accessLevel=d.securityClass==='厳格'?'全社管理者のみ':d.category==='資格証憑'?'本人閲覧可':'担当管理者まで';changed=true}
   if(d.originalHandling===undefined){d.originalHandling=d.category==='資格証憑'?'本人保管・会社は写し':'電子原本';changed=true}
   if(d.paperLocation===undefined){d.paperLocation='';changed=true}
@@ -3397,7 +3397,7 @@ function guardManagementRecord(type,no,label='管理記録'){
  return true
 }
 function canViewSelfServiceRecord(type,no){return canAccess(type,'view',no)}
-function documentSecurityClass(d){return d?.securityClass||(['本人確認','退職手続'].includes(d?.category)?'厳格':d?.category==='資格証憑'?'要配慮':'標準')}
+function documentSecurityClass(d){return d?.securityClass||(['本人確認','退職手続','手続書類'].includes(d?.category)?'厳格':d?.category==='資格証憑'?'要配慮':'標準')}
 function documentAccessLevel(d){return d?.accessLevel||(documentSecurityClass(d)==='厳格'?'全社管理者のみ':d?.category==='資格証憑'?'本人閲覧可':'担当管理者まで')}
 function canViewDocumentRecord(d){
  if(!d)return false;
@@ -5144,55 +5144,202 @@ function nextDocumentId(no){
 function updateDocumentFormGuide(){
  let el=document.getElementById('documentFormGuide');if(!el)return;
  let cat=document.getElementById('fdcat')?.value||'',qid=document.getElementById('fdqual')?.value||'',status=document.getElementById('fdstatus')?.value||'',exp=document.getElementById('fdexp')?.value||'';
+ let securityEl=document.getElementById('fdsecurity'),accessEl=document.getElementById('fdaccess'),origEl=document.getElementById('fdorig');
+ let security=securityEl?.value||'',access=accessEl?.value||'',handling=origEl?.value||'',paper=document.getElementById('fdpaper')?.value||'';
+ let isNew=document.getElementById('fdcat')?.dataset.newdoc==='1';
+ if(!isFullCompanyAdmin()&&isNew&&securityEl&&accessEl&&origEl){
+  if(['本人確認','手続書類'].includes(cat)){securityEl.value='厳格';accessEl.value='全社管理者のみ';origEl.value='会社保管・紙原本'}
+  else if(cat==='資格証憑'){securityEl.value='要配慮';accessEl.value='本人閲覧可';origEl.value='本人保管・会社は写し'}
+  else{securityEl.value='要配慮';accessEl.value='担当管理者まで';origEl.value='電子原本'}
+  security=securityEl.value;access=accessEl.value;handling=origEl.value
+ }
  let notes=[],warn=false,danger=false;
  if(cat==='資格証憑'&&!qid){notes.push('資格証憑ですが関連資格が未選択');warn=true}
  if(qid&&cat!=='資格証憑'){notes.push('関連資格が選択されていますが書類区分が資格証憑ではありません');warn=true}
  if(exp){let n=days(exp);if(n<0){notes.push('書類期限が'+Math.abs(n)+'日超過');danger=true}else if(n<=30){notes.push('書類期限まで'+n+'日');warn=true}}
  if(status!=='原本確認済み'){notes.push('確認状態：'+(status||'未設定'));warn=true}
+ if(status==='原本確認済み'&&!canVerifyOriginalDocument()){notes.push('原本確認済みへの変更は全社管理者のみ');danger=true}
+ if(security==='厳格'&&access!=='全社管理者のみ'){notes.push('厳格書類は全社管理者のみ閲覧に固定');danger=true}
+ if(['会社保管・紙原本','紙＋電子'].includes(handling)&&!paper){notes.push('紙原本の保管場所が未設定');warn=true}
+ if((handling==='電子原本'||handling==='紙＋電子')&&!DOCUMENT_STORAGE_CONFIG.connected){notes.push('電子原本ストレージ未接続。デモには原本ファイルを保存しません');warn=true}
  el.className='detail-alert '+(danger?'danger':warn?'warn':'ok');
- el.innerHTML='<b>書類チェック：</b> '+esc(notes.length?notes.join(' / '):'関連資格・確認状態ともに確認済み');
+ el.innerHTML='<b>原本・書類セキュリティ：</b> '+esc(notes.length?notes.join(' / '):'権限・原本区分・確認状態を確認済み')
 }
-function openDocumentForm(no,idx=-1,qualificationId=''){
- if(!guardEmployeeEdit(no,'書類'))return;
- let e=emp(no),d=idx>=0?DOCS[idx]:null;if(!e)return;
- if(d&&d.employee_no!==String(no)){alert('書類の対象社員が一致しません');return}
+function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
+ let e=emp(no),d=idx>=0?DOCS[idx]:null,source=replaceFromId?DOCS.find(x=>x.id===replaceFromId):null;if(!e)return;
+ if(d){
+  if(d.employee_no!==String(no))return alert('書類の対象社員が一致しません');
+  if(!canEditDocumentRecord(d))return alert('この書類を更新する権限がありません')
+ }else if(!canRegisterDocumentForEmployee(no))return alert('現在の担当範囲では書類を登録できません');
+ if(source&&(!canViewDocumentRecord(source)||String(source.employee_no)!==String(no)||source.archived))return alert('差替え元の書類を使用できません');
  let preQ=qualificationId?QUAL.find(q=>q.id===qualificationId&&String(q.employee_no)===String(no)):null;
  if(qualificationId&&!preQ)return alert('関連資格が見つかりません');
- fttl.textContent=d?'書類情報を編集':'書類を登録';setFormSaveLabel('書類を保存する');setFormAfterSaveHint(qualificationId?'資格一覧へ戻ります':'書類一覧へ戻ります');
- fbody.innerHTML=`<div class="formnote">${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)}<br>共有デモでは実ファイルを保存せず、架空の書類情報だけを管理します。${preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':''}</div><div id="documentFormGuide" class="detail-alert ok">書類チェックを表示します。</div><div class="formgrid">
-  <div class="field"><label>書類区分</label><select id="fdcat" onchange="updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>
-  <div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>
-  <div class="field wide"><label>ファイル名（架空）<span class="req">必須</span></label><input id="fdname"></div>
-  <div class="field"><label>登録日<span class="req">必須</span></label><input id="fddate" type="date"></div>
-  <div class="field"><label>期限（任意）</label><input id="fdexp" type="date" onchange="updateDocumentFormGuide()"></div>
-  <div class="field"><label>確認状態</label><select id="fdstatus" onchange="updateDocumentFormGuide()"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option></select></div>
-  <div class="field wide"><label>関連資格（任意）</label><select id="fdqual" onchange="updateDocumentFormGuide()">${qualificationOptionsForDocument(no,d?.qualification_id||preQ?.id||'')}</select><div class="mini">資格証憑の場合に関連資格を選択できます。その他の書類では未選択で構いません。</div></div>
- </div>`;
- fdcat.value=d?d.category:(preQ?'資格証憑':'その他');fdkind.value=d?d.kind:'pdf';fdname.value=d?d.name:(preQ?preQ.name+' 証憑':'');fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry||(preQ?.expiry||''):'';fdstatus.value=d?d.status||'確認待ち':'確認待ち';if(preQ)fdqual.value=preQ.id;updateDocumentFormGuide();
+ let base=d||source||{},newPlain=!d&&!source,full=isFullCompanyAdmin();
+ fttl.textContent=d?'書類情報を編集':source?'書類を差替え登録':'書類を登録';
+ setFormSaveLabel(source?'差替え書類を保存する':'書類を保存する');
+ setFormAfterSaveHint(qualificationId?'資格一覧へ戻ります':'書類一覧へ戻ります');
+ fbody.innerHTML='<div class="formnote">'+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'<br><b>重要：</b>共有デモではPDF・画像・スキャン原本を保存しません。原本確認・機密区分・閲覧範囲・紙原本の保管場所は全社管理者だけが変更できます。'+(preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':'')+(source?'<br><b>差替え元：</b>'+esc(source.id)+' '+esc(source.name):'')+'</div><div id="documentFormGuide" class="detail-alert ok">原本・書類セキュリティを確認します。</div><div class="formgrid">'+
+  '<div class="field"><label>書類区分</label><select id="fdcat" onchange="updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>'+
+  '<div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>'+
+  '<div class="field wide"><label>書類名（管理情報）<span class="req">必須</span></label><input id="fdname"><div class="mini">原本ファイルを選ぶ欄は、セキュリティ上デモには設けていません。</div></div>'+
+  '<div class="field"><label>登録日<span class="req">必須</span></label><input id="fddate" type="date"></div>'+
+  '<div class="field"><label>期限（任意）</label><input id="fdexp" type="date" onchange="updateDocumentFormGuide()"></div>'+
+  '<div class="field"><label>確認状態</label><select id="fdstatus" onchange="updateDocumentFormGuide()"><option>確認待ち</option><option>原本確認済み</option><option>差替え待ち</option><option>差替え済み</option></select><div class="mini">原本確認済みは全社管理者のみ。</div></div>'+
+  '<div class="field"><label>原本区分</label><select id="fdorig" onchange="updateDocumentFormGuide()"><option>本人保管・会社は写し</option><option>会社保管・紙原本</option><option>電子原本</option><option>紙＋電子</option></select></div>'+
+  '<div class="field"><label>機密区分</label><select id="fdsecurity" onchange="updateDocumentFormGuide()"><option>標準</option><option>要配慮</option><option>厳格</option></select></div>'+
+  '<div class="field"><label>閲覧範囲</label><select id="fdaccess" onchange="updateDocumentFormGuide()"><option>本人閲覧可</option><option>担当管理者まで</option><option>全社管理者のみ</option></select></div>'+
+  '<div class="field"><label>保管期限（任意）</label><input id="fdretain" type="date" onchange="updateDocumentFormGuide()"></div>'+
+  '<div class="field wide"><label>紙原本の保管場所</label><input id="fdpaper" placeholder="例：本社 書庫A / キャビネット3" oninput="updateDocumentFormGuide()"><div class="mini">鍵番号・暗証番号などの秘密情報は入力しません。</div></div>'+
+  '<div class="field wide"><label>関連資格（任意）</label><select id="fdqual" onchange="updateDocumentFormGuide()">'+qualificationOptionsForDocument(no,d?.qualification_id||preQ?.id||source?.qualification_id||'')+'</select></div>'+
+ '</div>';
+ fdcat.value=base.category||(preQ?'資格証憑':'その他');fdcat.dataset.newdoc=newPlain?'1':'0';
+ fdkind.value=base.kind||'pdf';
+ fdname.value=d?d.name:source?(source.name.replace(/(\.[^.]+)?$/,'')+'_差替え'+(source.name.match(/\.[^.]+$/)?.[0]||'')):(preQ?preQ.name+' 証憑':'');
+ fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry:(preQ?.expiry||source?.expiry||'');fdstatus.value=d?d.status:'確認待ち';
+ fdorig.value=base.originalHandling||(preQ?'本人保管・会社は写し':'電子原本');
+ fdsecurity.value=base.securityClass||documentSecurityClass({category:fdcat.value});
+ fdaccess.value=base.accessLevel||documentAccessLevel({category:fdcat.value,securityClass:fdsecurity.value});
+ fdpaper.value=base.paperLocation||'';fdretain.value=base.retentionUntil||'';if(preQ)fdqual.value=preQ.id;
+ if(!full){
+  [fdstatus,fdorig,fdsecurity,fdaccess,fdpaper,fdretain].forEach(x=>x.disabled=true);
+  if(!newPlain)fdcat.disabled=true
+ }
+ updateDocumentFormGuide();
  fsave.onclick=()=>{
-  if(!guardEmployeeEdit(no,'書類'))return;
-  if(!fdname.value.trim()||!fddate.value)return alert('ファイル名と登録日を入力してください');
+  if(d&&!canEditDocumentRecord(d))return alert('この書類を更新する権限がありません');
+  if(!d&&!canRegisterDocumentForEmployee(no))return alert('現在の担当範囲では書類を登録できません');
+  if(!fdname.value.trim()||!fddate.value)return alert('書類名と登録日を入力してください');
   if(fdqual.value&&fdcat.value!=='資格証憑'&&!confirm('関連資格が選択されていますが、書類区分が「資格証憑」ではありません。このまま保存しますか？'))return;
-  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value},id,action,target,oldStatus=d?.status||'';
+  if(fdstatus.value==='原本確認済み'&&!canVerifyOriginalDocument())return alert('原本確認済みにできるのは全社管理者だけです');
+  if(fdsecurity.value==='厳格'&&fdaccess.value!=='全社管理者のみ')return alert('厳格書類は「全社管理者のみ」にしてください');
+  if(['会社保管・紙原本','紙＋電子'].includes(fdorig.value)&&!fdpaper.value.trim()&&isFullCompanyAdmin())return alert('会社で紙原本を保管する場合は、保管場所を入力してください');
+  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value,originalHandling:fdorig.value,securityClass:fdsecurity.value,accessLevel:fdaccess.value,paperLocation:fdpaper.value.trim(),retentionUntil:fdretain.value},id,action,target,oldStatus=d?.status||'';
   if(d){id=d.id;Object.assign(d,rec);target=d;syncDocumentQualificationLink(d,fdqual.value);action='書類更新'}
-  else{id=nextDocumentId(no);rec.id=id;rec.qualification_id='';rec.verifiedDate='';rec.verifiedById='';rec.verifiedByName='';DOCS.push(rec);target=rec;syncDocumentQualificationLink(rec,fdqual.value);action='書類登録'}
+  else{
+   id=nextDocumentId(no);rec.id=id;rec.qualification_id='';rec.verifiedDate='';rec.verifiedById='';rec.verifiedByName='';rec.replacedFromDocumentId=source?.id||'';rec.replacedByDocumentId='';rec.archived=false;rec.archivedAt='';rec.archivedById='';rec.archivedByName='';DOCS.push(rec);target=rec;syncDocumentQualificationLink(rec,fdqual.value);action=source?'書類差替え登録':'書類登録';
+   if(source){source.replacedByDocumentId=id;source.status='差替え済み';touchRecord(source,'document',false)}
+  }
   if(target.status==='原本確認済み'&&oldStatus!=='原本確認済み'){
    let actor=currentActorIdentity();target.verifiedDate=TODAY;target.verifiedById=actor.id;target.verifiedByName=actor.name
+  }else if(target.status!=='原本確認済み'&&oldStatus==='原本確認済み'){
+   target.verifiedDate='';target.verifiedById='';target.verifiedByName=''
   }
   touchRecord(target,'document',!d);
-  audit(action,id+' '+rec.name+(target.qualification_id?' / 関連資格 '+(QUAL.find(q=>q.id===target.qualification_id)?.name||target.qualification_id):''),{employee_no:String(no),entity_type:'document',entity_id:id});
+  audit(action,id+' '+rec.name+' / 機密 '+rec.securityClass+' / 閲覧 '+rec.accessLevel+' / 原本 '+rec.originalHandling+(target.qualification_id?' / 関連資格 '+(QUAL.find(q=>q.id===target.qualification_id)?.name||target.qualification_id):''),{employee_no:String(no),entity_type:'document',entity_id:id});
   if(!save())return;closeForm();renderAll();if(qualificationId)employeeQualification(no);else employeeDocuments(no)
  };
  form.classList.add('show')
 }
+function replaceDocument(id){
+ let d=DOCS.find(x=>x.id===id);if(!d||!canEditDocumentRecord(d))return alert('この書類を差替える権限がありません');
+ if(d.replacedByDocumentId)return alert('この書類はすでに '+d.replacedByDocumentId+' へ差替え済みです');
+ openDocumentForm(d.employee_no,-1,d.qualification_id||'',d.id)
+}
+function verifyOriginalDocument(id){
+ let d=DOCS.find(x=>x.id===id);if(!d||d.archived)return;
+ if(!canVerifyOriginalDocument())return alert('原本確認は全社管理者のみ操作できます');
+ if(d.status==='原本確認済み')return alert('この書類は原本確認済みです');
+ let message='原本と登録情報を照合し「原本確認済み」にします。\n\n'+d.id+' / '+d.name+'\n原本区分：'+(d.originalHandling||'未設定');
+ if(documentSecurityClass(d)==='厳格')message+='\n\n【厳格書類】閲覧範囲と対象社員をもう一度確認してください。';
+ if(!confirm(message+'\n\n確認済みにしますか？'))return;
+ let actor=currentActorIdentity();d.status='原本確認済み';d.verifiedDate=TODAY;d.verifiedById=actor.id;d.verifiedByName=actor.name;touchRecord(d,'document',false);
+ audit('書類原本確認',d.id+' '+d.name+' / '+documentSecurityClass(d),{employee_no:d.employee_no,entity_type:'document',entity_id:d.id});
+ if(!save())return;openOriginalDocumentCenter(d.employee_no)
+}
 function deleteDocument(id){
  let d=DOCS.find(x=>x.id===id);if(!d)return;
- if(!isFullCompanyAdmin()){alert('書類の削除は全社管理者のみ操作できます');return}
- if(!guardEmployeeEdit(d.employee_no,'書類'))return;
- if(!confirm('この書類情報を削除しますか？\n'+d.name))return;
- let no=d.employee_no;QUAL.filter(q=>q.document_id===id).forEach(q=>q.document_id='');DOCS=DOCS.filter(x=>x.id!==id);
- audit('書類削除',id+' '+d.name,{employee_no:no,entity_type:'document',entity_id:id});
+ if(!isFullCompanyAdmin())return alert('書類の無効化は全社管理者のみ操作できます');
+ if(d.archived)return alert('この書類はすでに無効化されています');
+ if(!confirm('書類を削除せず、履歴を残したまま「無効」にします。\n\n'+d.id+' / '+d.name+'\n\n無効化しますか？'))return;
+ let actor=currentActorIdentity(),no=d.employee_no;
+ d.archived=true;d.archivedAt=new Date().toISOString();d.archivedById=actor.id;d.archivedByName=actor.name;
+ if(d.status!=='差替え済み')d.status='無効';
+ QUAL.filter(q=>q.document_id===id).forEach(q=>q.document_id='');
+ touchRecord(d,'document',false);
+ audit('書類無効化',id+' '+d.name+' / 物理削除なし',{employee_no:no,entity_type:'document',entity_id:id});
  if(!save())return;renderAll();employeeDocuments(no)
+}
+let ORIGINAL_DOCUMENT_PAGE=1,ORIGINAL_DOCUMENT_FILTER_NO='';
+const ORIGINAL_DOCUMENT_PER_PAGE=20;
+function originalDocumentState(d){
+ if(d.archived)return 'archived';
+ if(d.replacedByDocumentId||d.status==='差替え済み')return 'replaced';
+ if(d.status==='差替え待ち')return 'replace';
+ if(d.expiry&&days(d.expiry)<0)return 'expired';
+ if(d.expiry&&days(d.expiry)<=30)return 'soon';
+ if(d.status!=='原本確認済み')return 'pending';
+ return 'ok'
+}
+function originalDocumentStateLabel(state){
+ return ({all:'すべて',pending:'未確認',replace:'差替え待ち',expired:'期限超過',soon:'30日以内',strict:'厳格書類',paper:'紙原本',archived:'無効・履歴',ok:'確認済み'})[state]||'すべて'
+}
+function originalDocumentNextAction(d){
+ if(d.archived)return '履歴として保持。通常業務では使用しません。';
+ if(d.replacedByDocumentId)return '差替え先 '+d.replacedByDocumentId+' を確認します。';
+ if(d.status==='差替え待ち')return '新しい書類を登録し、旧版との関係を残します。';
+ if(d.expiry&&days(d.expiry)<0)return '更新・差替えを行い、旧版は削除せず履歴として残します。';
+ if(d.status!=='原本確認済み')return isFullCompanyAdmin()?'原本と登録情報を照合して確認します。':'全社管理者の原本確認を待ちます。';
+ if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!d.paperLocation)return '紙原本の保管場所を登録します。';
+ if(d.retentionUntil&&days(d.retentionUntil)<0)return '保管期限到来。会社ルールに沿って廃棄可否を判断します。自動削除はしません。';
+ return '現在、大きな対応はありません。'
+}
+function originalDocumentActionsHtml(d){
+ let id=String(d.id||'').replaceAll("'",""),idx=DOCS.indexOf(d),no=String(d.employee_no||'').replaceAll("'","");
+ let out='<button class="btn soft" onclick="documentPreview(\''+id+'\')">詳細</button>';
+ if(canEditDocumentRecord(d))out+='<button class="btn soft" onclick="openDocumentForm(\''+no+'\','+idx+')">編集</button>';
+ if(canVerifyOriginalDocument()&&!d.archived&&d.status!=='原本確認済み')out+='<button class="btn primary" onclick="verifyOriginalDocument(\''+id+'\')">原本確認</button>';
+ if(canEditDocumentRecord(d)&&!d.archived&&!d.replacedByDocumentId)out+='<button class="btn soft" onclick="replaceDocument(\''+id+'\')">差替え</button>';
+ if(isFullCompanyAdmin()&&!d.archived)out+='<button class="btn danger" onclick="deleteDocument(\''+id+'\')">無効化</button>';
+ return '<div class="toolbar">'+out+'</div>'
+}
+function openOriginalDocumentCenter(employeeNo=''){
+ if(PREVIEW_ROLE!=='管理者')return alert('書類・原本管理センターは管理者のみ利用できます');
+ ORIGINAL_DOCUMENT_FILTER_NO=String(employeeNo||'');ORIGINAL_DOCUMENT_PAGE=1;
+ let docs=DOCS.filter(d=>canViewDocumentRecord(d)),active=docs.filter(d=>!d.archived);
+ let pending=active.filter(d=>d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
+ let replace=active.filter(d=>d.status==='差替え待ち').length;
+ let expiring=active.filter(d=>d.expiry&&days(d.expiry)<=30).length;
+ let strict=active.filter(d=>documentSecurityClass(d)==='厳格').length;
+ dttl.textContent='書類・原本管理';
+ dbody.innerHTML='<div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
+ '<div class="credential-kpis">'+
+  '<button class="credential-kpi '+(pending?'warn':'')+'" onclick="setOriginalDocumentState(\'pending\')"><small>まず確認</small><b>'+pending+'</b><span>未確認</span></button>'+
+  '<button class="credential-kpi '+(replace?'warn':'')+'" onclick="setOriginalDocumentState(\'replace\')"><small>次に対応</small><b>'+replace+'</b><span>差替え待ち</span></button>'+
+  '<button class="credential-kpi '+(expiring?'danger':'')+'" onclick="setOriginalDocumentState(\'soon\')"><small>期限確認</small><b>'+expiring+'</b><span>30日以内・超過</span></button>'+
+  '<button class="credential-kpi '+(strict?'warn':'')+'" onclick="setOriginalDocumentState(\'strict\')"><small>高セキュリティ</small><b>'+strict+'</b><span>厳格書類</span></button>'+
+ '</div>'+
+ '<div class="credential-filter-summary"><span class="badge ok">見方</span><b>社員 → 書類 → 原本 → 次にやること</b><span class="mini">必要な情報だけ一覧表示し、詳細は開いた時に確認します。</span></div>'+
+ '<div class="deadline-toolbar credential-toolbar"><input id="originalDocumentQ" aria-label="原本管理を検索" placeholder="社員名・社員番号・書類名・区分で検索" oninput="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><select id="originalDocumentState" onchange="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><option value="all">すべて</option><option value="pending">未確認</option><option value="replace">差替え待ち</option><option value="soon">30日以内・超過</option><option value="strict">厳格書類</option><option value="paper">紙原本</option>'+(isFullCompanyAdmin()?'<option value="archived">無効・履歴</option>':'')+'</select></div>'+
+ '<div id="originalDocumentRows"></div><div id="originalDocumentPager"></div>';
+ showDetailModal();renderOriginalDocumentRows();
+ audit('原本管理センター閲覧',ORIGINAL_DOCUMENT_FILTER_NO?'社員 '+ORIGINAL_DOCUMENT_FILTER_NO:'担当範囲',{employee_no:ORIGINAL_DOCUMENT_FILTER_NO,entity_type:'document_center',entity_id:'original-documents'})
+}
+function setOriginalDocumentState(state){let el=document.getElementById('originalDocumentState');if(!el)return;el.value=state;ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()}
+function renderOriginalDocumentRows(){
+ let q=(document.getElementById('originalDocumentQ')?.value||'').trim().toLowerCase(),state=document.getElementById('originalDocumentState')?.value||'all';
+ let rows=DOCS.filter(d=>canViewDocumentRecord(d)).filter(d=>!ORIGINAL_DOCUMENT_FILTER_NO||String(d.employee_no)===ORIGINAL_DOCUMENT_FILTER_NO).filter(d=>{
+  let e=emp(d.employee_no),text=[d.id,d.employee_no,e?.name,d.name,d.category,d.status,d.originalHandling,documentSecurityClass(d)].join(' ').toLowerCase();
+  if(q&&!text.includes(q))return false;
+  if(state==='all')return !d.archived;
+  if(state==='pending')return !d.archived&&d.status!=='原本確認済み'&&d.status!=='差替え済み';
+  if(state==='replace')return !d.archived&&d.status==='差替え待ち';
+  if(state==='soon')return !d.archived&&!!d.expiry&&days(d.expiry)<=30;
+  if(state==='strict')return !d.archived&&documentSecurityClass(d)==='厳格';
+  if(state==='paper')return !d.archived&&['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'');
+  if(state==='archived')return isFullCompanyAdmin()&&d.archived;
+  return true
+ }).sort((a,b)=>{
+  let rank={expired:0,replace:1,pending:2,soon:3,ok:4,replaced:5,archived:9};
+  return (rank[originalDocumentState(a)]??6)-(rank[originalDocumentState(b)]??6)||String(a.expiry||'9999-12-31').localeCompare(String(b.expiry||'9999-12-31'))||String(a.employee_no).localeCompare(String(b.employee_no),'ja',{numeric:true})
+ });
+ let pages=Math.max(1,Math.ceil(rows.length/ORIGINAL_DOCUMENT_PER_PAGE));ORIGINAL_DOCUMENT_PAGE=Math.min(Math.max(1,ORIGINAL_DOCUMENT_PAGE),pages);let start=(ORIGINAL_DOCUMENT_PAGE-1)*ORIGINAL_DOCUMENT_PER_PAGE,shown=rows.slice(start,start+ORIGINAL_DOCUMENT_PER_PAGE);
+ let el=document.getElementById('originalDocumentRows');
+ if(el)el.innerHTML=shown.length?shown.map(d=>{
+  let e=emp(d.employee_no),st=originalDocumentState(d),tone=st==='expired'?'danger':['replace','pending','soon'].includes(st)?'warn':'ok';
+  let location=isFullCompanyAdmin()?(d.paperLocation||(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')?'未設定':'対象なし')):(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')?'会社保管（詳細は全社管理者のみ）':'対象なし');
+  return '<div class="credential-action-row '+(tone==='danger'?'quality-bad':tone==='warn'?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">書類</span><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'）</b><b>'+esc(d.name)+'</b><span class="badge '+tone+'">'+esc(d.archived?'無効':d.status||'確認待ち')+'</span></div><div class="credential-row-primary"><div><span>原本区分</span><b>'+esc(d.originalHandling||'未設定')+'</b></div><div><span>保管場所</span><b>'+esc(location)+'</b></div><div><span>次にやること</span><b>'+esc(originalDocumentNextAction(d))+'</b></div></div><div class="credential-support-line"><span>機密：'+esc(documentSecurityClass(d))+' / 閲覧：'+esc(documentAccessLevel(d))+'</span><span>期限：'+esc(d.expiry||'設定なし')+(d.expiry?'（'+esc(deadlineBucketLabel(d.expiry))+'）':'')+'</span></div></div>'+originalDocumentActionsHtml(d)+'</div>'
+ }).join(''):'<div class="notice"><div><b>この条件の書類はありません。</b><div class="mini">検索条件または表示条件を変更してください。</div></div><span class="badge ok">OK</span></div>';
+ let pager=document.getElementById('originalDocumentPager');if(pager)pager.innerHTML=rows.length>ORIGINAL_DOCUMENT_PER_PAGE?'<div class="year-list-pager"><button class="btn" '+(ORIGINAL_DOCUMENT_PAGE<=1?'disabled':'')+' onclick="ORIGINAL_DOCUMENT_PAGE--;renderOriginalDocumentRows()">← 前へ</button><span class="emp-page-info">'+(start+1)+'〜'+Math.min(start+ORIGINAL_DOCUMENT_PER_PAGE,rows.length)+'件 / 全'+rows.length+'件（'+ORIGINAL_DOCUMENT_PAGE+'/'+pages+'ページ）</span><button class="btn" '+(ORIGINAL_DOCUMENT_PAGE>=pages?'disabled':'')+' onclick="ORIGINAL_DOCUMENT_PAGE++;renderOriginalDocumentRows()">次へ →</button></div>':''
 }
 function employeeProcedures(no){
  if(!canAccess('procedures','view')||!inGrantedEmployeeScope(no)){alert('休職・退職手続は全社管理者のみ確認できます');return}
