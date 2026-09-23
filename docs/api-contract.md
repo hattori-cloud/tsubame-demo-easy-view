@@ -417,6 +417,7 @@ Current planning baseline:
 - approximately 200 taxi-department drivers,
 - two near-miss submissions per taxi driver per month,
 - approximately 400 near-miss submissions per month / 4,800 per year,
+- approximately 20 accident records per month / 240 per year,
 - at least five years of safety, employee, audit and qualification history.
 
 Core rules:
