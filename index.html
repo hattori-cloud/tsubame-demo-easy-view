@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v148</title>
-<!-- production-sync:v148 -->
+<title>つばめ交通株式会社 社員一元管理システム v149</title>
+<!-- production-sync:v149 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -3589,7 +3589,7 @@ function renderHomeHandoffs(){
  card.style.display=PREVIEW_ROLE==='管理者'&&rows.length?'':'none';let aged=rows.filter(handoffIsOverdue).length;countEl.textContent=rows.length;countEl.title=aged?aged+'件が1日以上未確認':'未確認引継ぎ '+rows.length+'件';
  rowsEl.innerHTML=rows.slice(0,5).map(h=>{
   let rec=handoffCurrentRecord(h),e=emp(h.employee_no),urgent=handoffIsOverdue(h)||(h.kind==='事故'&&accidentDeadlineState(rec)==='over')||(h.kind==='苦情'&&complaintState(rec)==='over');
-  return '<div class="handoff-card '+(urgent?'urgent':'')+'"><div class="handoff-main"><b>'+esc(h.kind)+' '+esc(h.caseId)+' / '+esc(e?.name||h.employee_no)+'</b><div class="mini">'+esc(h.fromOwner)+' → '+esc(h.toOwner)+' / '+esc(h.createdDate||'')+' / '+esc(handoffAgeLabel(h))+'</div><div class="mini">引継ぎ：'+esc(h.note||'担当変更')+'</div></div><div class="toolbar">'+(handoffIsOverdue(h)?'<span class="badge danger">未確認 '+handoffAgeDays(h)+'日</span>':'<span class="badge warn">未確認</span>')+'<button class="btn primary" onclick="openHandoffNotice(\''+esc(h.id)+'\')">確認する</button></div></div>'
+  return '<div class="handoff-card '+(urgent?'urgent':'')+'"><div class="handoff-main"><div class="home-priority-name"><b>'+esc(h.kind)+' '+esc(h.caseId)+' / </b>'+(e?employeeNameLinkHtml(e.no,e.name,'work-employee-link'):'<b>'+esc(h.employee_no)+'</b>')+'</div><div class="mini">'+esc(h.fromOwner)+' → '+esc(h.toOwner)+' / '+esc(h.createdDate||'')+' / '+esc(handoffAgeLabel(h))+'</div><div class="mini">引継ぎ：'+esc(h.note||'担当変更')+'</div></div><div class="toolbar">'+(handoffIsOverdue(h)?'<span class="badge danger">未確認 '+handoffAgeDays(h)+'日</span>':'<span class="badge warn">未確認</span>')+'<button class="btn primary" onclick="openHandoffNotice(\''+esc(h.id)+'\')">確認する</button></div></div>'
  }).join('')+(rows.length>5?'<div class="mini">ほか '+(rows.length-5)+'件の未確認引継ぎがあります。</div>':'')
 }
 function openHandoffNotice(id){
@@ -3851,9 +3851,9 @@ function actionQueueItems(){
    let target=qualityIssueTarget(q);if(!target)return;
    add({id:'quality:'+qualityIndex+':'+target.kind+':'+target.id,kind:'quality',priority:1.5,label:'データ品質 / '+q.label,sub:q.detail,key:String(qualityIndex),qualityTarget:target,urgency:'danger'})
   });
-  scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
-  scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
-  pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:handoffIsOverdue(h)?0:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+handoffAgeLabel(h)+' / '+h.note,key:h.id,owner:h.toOwner,ownerId:h.toManagerId,urgency:handoffIsOverdue(h)?'danger':'warn'}));
+  scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,no:String(a.employee_no||''),owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
+  scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,no:String(x.employee_no||''),owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
+  pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:handoffIsOverdue(h)?0:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+handoffAgeLabel(h)+' / '+h.note,key:h.id,no:String(h.employee_no||''),owner:h.toOwner,ownerId:h.toManagerId,urgency:handoffIsOverdue(h)?'danger':'warn'}));
   scopedApplications().filter(a=>!['承認','差戻し'].includes(a.status)).forEach(a=>{
    let e=emp(a.employee_no);
    add({id:'application:'+a.id,kind:'application',priority:3.5,label:'申請 / '+(e?.name||a.employee_no),sub:a.id+' / '+a.type+' / '+a.status+' / 申請日 '+a.date,key:a.id,no:a.employee_no,urgency:'warn'})
@@ -3878,6 +3878,17 @@ function actionQueueItems(){
   })
  }
  return items.sort((a,b)=>a.priority-b.priority||String(a.label).localeCompare(String(b.label),'ja'))
+}
+function homeQueueTitleHtml(item){
+ let e=item?.no?emp(String(item.no)):null;
+ if(!e)return '<b>'+esc(item?.label||'確認項目')+'</b>';
+ let prefix='';
+ if(item.kind==='deadline')prefix=(item.type||'期限')+' / ';
+ else if(item.kind==='accident')prefix='事故 / ';
+ else if(item.kind==='complaint')prefix='苦情 / ';
+ else if(item.kind==='application')prefix='申請 / ';
+ else if(item.kind==='handoff')prefix='引継ぎ / ';
+ return '<div class="home-priority-name">'+(prefix?'<b>'+esc(prefix)+'</b>':'')+employeeNameLinkHtml(e.no,e.name,'work-employee-link')+'</div>'
 }
 function actionQueueOpen(idOrIndex=0){
  let items=actionQueueItems();
@@ -3954,14 +3965,14 @@ function renderHome(){
  renderHomeDraftSummary();
  let queue=actionQueueItems(),shownQueue=queue.slice(0,5),todayEl=document.getElementById('today');
  if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>優先対応 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・重大な品質エラーなどを優先'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
- (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main"><b>${esc(x.label)}</b><div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
+ (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}<div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
  `</div>`;
  renderHomeHandoffs()
 }
 function openSafetyCenter(){
  let rows=scopedEmployees().filter(e=>e.status==='在籍'&&((e.safetyState&&e.safetyState!=='正常')||['要確認','不可（更新確認まで）'].includes(e.eligibility)));
  dttl.textContent='乗務・安全 要確認';
- dbody.innerHTML=`<div class="spec-note">免許・健康診断・適性診断などの期限と、乗務可否を同時に確認します。免許期限切れの乗務員は「乗務不可」として扱います。</div>`+(rows.length?rows.map(e=>`<div class="row ${e.safetyState==='期限切れ'?'quality-bad':'quality-warn'}"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${e.branch} / ${e.dept} / ${esc(e.safetyState||'正常')} / 乗務可否 ${esc(e.eligibility||'対象外')}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="row"><b>要確認者はいません。</b></div>');
+ dbody.innerHTML=`<div class="spec-note">免許・健康診断・適性診断などの期限と、乗務可否を同時に確認します。免許期限切れの乗務員は「乗務不可」として扱います。</div>`+(rows.length?rows.map(e=>`<div class="row ${e.safetyState==='期限切れ'?'quality-bad':'quality-warn'}"><div><div class="employee-name-row"><span class="mini">${esc(e.no)}</span>${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}</div><div class="mini">${esc(e.branch)} / ${esc(e.dept)} / ${esc(e.safetyState||'正常')} / 乗務可否 ${esc(e.eligibility||'対象外')}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="row"><b>要確認者はいません。</b></div>');
  showDetailModal()
 }
 
@@ -6977,7 +6988,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v148';
+const RELEASE_VERSION='v149';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
