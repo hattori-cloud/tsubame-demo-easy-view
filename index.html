@@ -4159,6 +4159,8 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('ブラウザ保存テスト',storageOk,storageDetail));
  let coreSaveKeys=coreSaveItems().map(x=>x[0]),duplicateSaveKeys=[...new Set(coreSaveKeys.filter((k,i)=>coreSaveKeys.indexOf(k)!==i))];
  out.push(systemDiagnosticCheck('トランザクション保存対象',duplicateSaveKeys.length===0&&coreSaveKeys.includes('v29AUDIT'),duplicateSaveKeys.length?'重複キー：'+duplicateSaveKeys.join('、'):'業務データ '+coreSaveKeys.length+'領域（監査含む）'));
+ let concurrentGuardOk=typeof CORE_REVISION_KEY==='string'&&typeof coreSaveRevisionIsCurrent==='function'&&typeof showConcurrentChangeBanner==='function';
+ out.push(systemDiagnosticCheck('別タブ上書き防止',concurrentGuardOk,concurrentGuardOk?'主要業務データの外部更新を検知し、古い画面からの保存を停止':'同時編集ガードが不足しています'));
  let numericEmployeeNos=E.map(x=>Number.parseInt(String(x.no||''),10)).filter(Number.isFinite),nextNo=nextEmployeeNumber(),maxEmployeeNo=numericEmployeeNos.length?Math.max(...numericEmployeeNos):1000;
  let employeeNoOk=/^\d+$/.test(nextNo)&&Number(nextNo)>maxEmployeeNo&&!E.some(x=>String(x.no)===String(nextNo));
  out.push(systemDiagnosticCheck('社員番号 自動採番',employeeNoOk,employeeNoOk?'次回候補 '+nextNo+' / 既存最大 '+maxEmployeeNo:'採番候補が既存番号と重複または不正です'));
@@ -7736,7 +7738,9 @@ fsave.addEventListener('click',e=>{
  },120)
 },true);
 window.addEventListener('storage',e=>{
- if(e.key===CORE_REVISION_KEY&&String(e.newValue||'')!==String(CORE_KNOWN_REVISION||'')){
+ let tracked=e.key===CORE_REVISION_KEY||coreSaveItems().some(([key])=>key===e.key);
+ if(tracked){
+  if(e.key===CORE_REVISION_KEY&&String(e.newValue||'')===String(CORE_KNOWN_REVISION||''))return;
   CORE_EXTERNAL_CHANGE=true;
   showConcurrentChangeBanner()
  }
