@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v187 foundation build.
+Current application: v188 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -169,3 +169,8 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v185 simplifies the Deadline / Renewal Center for manager use. Primary filters are reduced to overdue, today, within 30 days and all; finer 1–7 / 8–30 / 31–60 day filters move behind an optional detail section. Each deadline row now emphasizes due date, next action and owner before supporting context, and action buttons use explicit labels such as viewing the record or updating the relevant deadline. Business rules, permissions and deadline collection logic are unchanged.
 
 - v187 simplifies the Qualification / Document review center for managers. The screen now prioritizes expired items, items due within 30 days, missing required evidence documents, and documents awaiting verification. Each row leads with due date, next action, and evidence/verification state, while search and qualification/document filtering remain available. Qualification/document business rules, permissions, and record relationships are unchanged.
+
+
+- v188 hardens long-running list usability after a one-year internal load review: near-miss and complaint lists are paged at 20 rows, deadline and credential/document centers at 25 rows, and browser-demo audit retention is raised to 3,000 entries. These changes improve the shared demo but do not make browser storage suitable for real production data.
+- Production capacity planning now assumes 310+ current employees, roughly 50 hires / 30 retirements per year with retirees retained, about 200 taxi drivers, and two near-miss submissions per taxi driver per month (about 4,800 near-miss rows/year). `docs/production-capacity-v189.sql` defines the additive database/index/monthly-target design, while `tests/annual-volume.test.js` locks the capacity assumptions and verifies that a department total of 400 cannot hide drivers who submitted only one report.
+- Production rule: long-term employee/safety/audit data moves to the server database and list APIs return only requested pages. The localStorage shared demo remains fictional-data-only.
