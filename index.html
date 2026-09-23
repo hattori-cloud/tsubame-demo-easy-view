@@ -1679,6 +1679,7 @@ function ensureCredentialLinks(){
   if(d.securityClass===undefined){d.securityClass=['本人確認','退職手続','手続書類'].includes(d.category)?'厳格':d.category==='資格証憑'?'要配慮':'標準';changed=true}
   if(d.accessLevel===undefined){d.accessLevel=d.securityClass==='厳格'?'全社管理者のみ':d.category==='資格証憑'?'本人閲覧可':'担当管理者まで';changed=true}
   if(d.originalHandling===undefined){d.originalHandling=d.category==='資格証憑'?'本人保管・会社は写し':'電子原本';changed=true}
+  if(d.verificationRequired===undefined){d.verificationRequired=d.securityClass==='厳格'||['資格証憑','本人確認','退職手続','手続書類','その他'].includes(d.category);changed=true}
   if(d.paperLocation===undefined){d.paperLocation='';changed=true}
   if(d.retentionUntil===undefined){d.retentionUntil='';changed=true}
   if(d.replacedFromDocumentId===undefined){d.replacedFromDocumentId='';changed=true}
@@ -5180,7 +5181,7 @@ function applyDocumentRuleToForm(force=false){
  if(info)info.innerHTML='<b>適用ルール：</b> '+esc(rule.category)+' / '+esc(rule.originalHandling)+' / '+esc(rule.accessLevel)+' / 保管 '+(Number(rule.retentionYears)>0?esc(String(rule.retentionYears))+'年':'会社決裁待ち')
 }
 function documentRuleVerificationLabel(rule){return rule?.verificationRequired?'原本確認 必須':'原本確認 任意'}
-function documentVerificationRequired(d){let r=documentRule(d?.category);return documentSecurityClass(d)==='厳格'||!!r.verificationRequired}
+function documentVerificationRequired(d){if(d?.verificationRequired!==undefined)return documentSecurityClass(d)==='厳格'||!!d.verificationRequired;let r=documentRule(d?.category);return documentSecurityClass(d)==='厳格'||!!r.verificationRequired}
 function openDocumentRuleTable(){
  if(PREVIEW_ROLE!=='管理者')return alert('原本ルール表は管理者のみ確認できます');
  dttl.textContent='原本ルール表';
@@ -5292,7 +5293,8 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
   if(fdstatus.value==='原本確認済み'&&!canVerifyOriginalDocument())return alert('原本確認済みにできるのは全社管理者だけです');
   if(fdsecurity.value==='厳格'&&fdaccess.value!=='全社管理者のみ')return alert('厳格書類は「全社管理者のみ」にしてください');
   if(['会社保管・紙原本','紙＋電子'].includes(fdorig.value)&&!fdpaper.value.trim()&&isFullCompanyAdmin())return alert('会社で紙原本を保管する場合は、保管場所を入力してください');
-  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value,originalHandling:fdorig.value,securityClass:fdsecurity.value,accessLevel:fdaccess.value,paperLocation:fdpaper.value.trim(),retentionUntil:fdretain.value},id,action,target,oldStatus=d?.status||'';
+  let activeRule=documentRule(fdcat.value);
+  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value,originalHandling:fdorig.value,securityClass:fdsecurity.value,accessLevel:fdaccess.value,verificationRequired:d?.verificationRequired!==undefined?!!d.verificationRequired:source?.verificationRequired!==undefined?!!source.verificationRequired:!!activeRule.verificationRequired,paperLocation:fdpaper.value.trim(),retentionUntil:fdretain.value},id,action,target,oldStatus=d?.status||'';
   if(d){id=d.id;Object.assign(d,rec);target=d;syncDocumentQualificationLink(d,fdqual.value);action='書類更新'}
   else{
    id=nextDocumentId(no);rec.id=id;rec.qualification_id='';rec.verifiedDate='';rec.verifiedById='';rec.verifiedByName='';rec.replacedFromDocumentId=source?.id||'';rec.replacedByDocumentId='';rec.archived=false;rec.archivedAt='';rec.archivedById='';rec.archivedByName='';DOCS.push(rec);target=rec;syncDocumentQualificationLink(rec,fdqual.value);action=source?'書類差替え登録':'書類登録';
