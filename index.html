@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v186</title>
-<!-- production-sync:v186 -->
+<title>つばめ交通株式会社 社員一元管理システム v187</title>
+<!-- production-sync:v187 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -887,6 +887,21 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .credential-kpi small{display:block;color:var(--muted);font-weight:900}.credential-kpi b{font-size:1.25rem}
 .credential-link{font-size:.72rem;font-weight:900}.credential-link.ok{color:#256b4a}.credential-link.warn{color:#8a6200}
 @media(max-width:700px){.credential-kpis{grid-template-columns:1fr 1fr}}
+/* v187 credential/document manager clarity */
+.credential-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.credential-flow-step{display:grid;grid-template-columns:32px minmax(0,1fr);gap:8px;align-items:center;border:1px solid #d2e2e9;border-radius:11px;background:#fff;padding:9px 10px}
+.credential-flow-step>span{display:grid;place-items:center;width:30px;height:30px;border-radius:999px;background:#173f57;color:#fff;font-weight:950;font-size:.75rem}
+.credential-flow-step b{display:block;color:#173f57;font-size:.78rem}.credential-flow-step small{display:block;color:#637b87;font-size:.65rem;font-weight:850;line-height:1.35}
+.credential-kpi.selected{outline:3px solid rgba(7,91,136,.14);border-color:#6fa8c1}
+.credential-quick-filters{display:flex;gap:7px;flex-wrap:wrap;margin:9px 0}.credential-quick-filters .btn.active{background:var(--b);color:#fff;border-color:var(--b)}
+.credential-filter-summary{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid #d7e4ea;border-radius:10px;background:#f8fbfc;padding:9px 11px;margin:9px 0}.credential-filter-summary b{color:#214d64}
+.credential-row-primary{display:grid;grid-template-columns:minmax(140px,.8fr) minmax(0,1.6fr) minmax(150px,.9fr);gap:8px;margin-top:9px}
+.credential-row-primary>div{border:1px solid #dce7ec;border-radius:10px;background:#fbfdfe;padding:9px 10px}.credential-row-primary span{display:block;color:#687f8b;font-size:.66rem;font-weight:900}.credential-row-primary b{display:block;margin-top:2px;color:#173f57;line-height:1.4}
+.credential-row-primary .credential-next-action{background:#f4fafc;border-color:#cfe1e9}
+.credential-support-line{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}.credential-support-line span{display:inline-flex;border:1px solid #d9e5ea;border-radius:999px;background:#fff;padding:3px 7px;font-size:.67rem;font-weight:850;color:#536e7a}
+.credential-action-row .credential-row-actions{align-self:stretch;justify-content:center;flex-direction:column}.credential-action-row .credential-row-actions .btn{width:100%}
+@media(max-width:850px){.credential-flow{grid-template-columns:1fr}.credential-row-primary{grid-template-columns:1fr}.credential-action-row .credential-row-actions{flex-direction:row}}
+@media(max-width:560px){.credential-quick-filters{display:grid;grid-template-columns:1fr 1fr}.credential-quick-filters .btn{width:100%}.credential-action-row .credential-row-actions{display:grid;grid-template-columns:1fr}}
 
 /* v64 vehicle foundation */
 .vehicle-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
@@ -4015,6 +4030,9 @@ function credentialNextAction(kind,rec){
  if(rec.expiry&&days(rec.expiry)<=30)return '差替え要否を確認し、必要なら新しい期限を登録します。';
  return '書類情報を確認します。'
 }
+function credentialStateLabel(state){
+ return ({all:'すべて',attention:'要確認',expired:'期限超過',soon:'30日以内',evidence:'証明書類未登録',pending:'書類確認待ち'})[state]||'すべて'
+}
 function setCredentialCenterState(state){
  let el=document.getElementById('credentialState');if(!el)return;
  el.value=state;renderCredentialCenterRows()
@@ -4036,39 +4054,55 @@ function credentialDocumentActionsHtml(d){
 function openCredentialCenter(){
  let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d));
  let needMissing=quals.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
- let expiring=quals.filter(q=>q.expiry&&days(q.expiry)<=30).length;
+ let expired=quals.filter(q=>q.expiry&&days(q.expiry)<0).length+docs.filter(d=>d.expiry&&days(d.expiry)<0).length;
+ let soon=quals.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length+docs.filter(d=>d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30).length;
  let pending=docs.filter(d=>d.status!=='原本確認済み').length;
  dttl.textContent='資格・書類の確認';
- dbody.innerHTML=`<div class="credential-guide"><b>資格と書類を、対応が必要な順に確認します。</b><span>「なぜ確認？ → やること → 更新」の順で処理できます。</span></div>
+ dbody.innerHTML=`<div class="credential-guide"><div><b>資格と書類は「期限 → 証明 → 確認状態」の順で見ます。</b><span>期限超過を最優先にし、その後30日以内・証明書類不足・書類確認待ちを処理します。</span></div></div>
+ <div class="credential-flow">
+  <div class="credential-flow-step"><span>1</span><div><b>期限を確認</b><small>超過・30日以内</small></div></div>
+  <div class="credential-flow-step"><span>2</span><div><b>証明書類を確認</b><small>必要書類の未登録を確認</small></div></div>
+  <div class="credential-flow-step"><span>3</span><div><b>確認状態を更新</b><small>原本確認などを記録</small></div></div>
+ </div>
  <div class="credential-kpis">
-  <button class="credential-kpi" onclick="setCredentialCenterState('all')"><small>登録中の資格</small><b>${quals.length}</b><span>すべて表示</span></button>
-  <button class="credential-kpi ${expiring?'warn':''}" onclick="setCredentialCenterState('attention')"><small>期限が近い・超過</small><b>${expiring}</b><span>30日以内を含む</span></button>
+  <button class="credential-kpi ${expired?'danger':''}" onclick="setCredentialCenterState('expired')"><small>最優先：期限超過</small><b>${expired}</b><span>資格・書類</span></button>
+  <button class="credential-kpi ${soon?'warn':''}" onclick="setCredentialCenterState('soon')"><small>次：30日以内</small><b>${soon}</b><span>更新予定を確認</span></button>
   <button class="credential-kpi ${needMissing?'danger':''}" onclick="setCredentialCenterState('evidence')"><small>証明書類が未登録</small><b>${needMissing}</b><span>資格への紐付け不足</span></button>
   <button class="credential-kpi ${pending?'warn':''}" onclick="setCredentialCenterState('pending')"><small>書類の確認待ち</small><b>${pending}</b><span>原本確認前など</span></button>
  </div>
- <div class="deadline-toolbar credential-toolbar"><input id="credentialQ" placeholder="社員名・資格名・証番号・書類名で検索" oninput="renderCredentialCenterRows()"><select id="credentialKind" onchange="renderCredentialCenterRows()"><option value="all">資格＋書類</option><option value="qualification">資格のみ</option><option value="document">書類のみ</option></select><select id="credentialState" onchange="renderCredentialCenterRows()"><option value="all">すべて</option><option value="attention">要確認のみ</option><option value="expired">期限超過</option><option value="evidence">証明書類が未登録</option><option value="pending">書類の確認待ち</option></select></div>
+ <div class="credential-quick-filters">
+  <button class="btn active" data-credential-state="all" onclick="setCredentialCenterState('all')">すべて</button>
+  <button class="btn danger" data-credential-state="expired" onclick="setCredentialCenterState('expired')">期限超過</button>
+  <button class="btn warn" data-credential-state="soon" onclick="setCredentialCenterState('soon')">30日以内</button>
+  <button class="btn soft" data-credential-state="evidence" onclick="setCredentialCenterState('evidence')">証明書類未登録</button>
+  <button class="btn soft" data-credential-state="pending" onclick="setCredentialCenterState('pending')">書類確認待ち</button>
+ </div>
+ <div class="credential-filter-summary"><span class="badge ok">現在の表示</span><b id="credentialCurrentState">すべて</b><span class="mini">社員名や資格名でさらに検索できます。</span></div>
+ <div class="deadline-toolbar credential-toolbar"><input id="credentialQ" aria-label="資格書類を検索" placeholder="社員名・資格名・証番号・書類名で検索" oninput="renderCredentialCenterRows()"><select id="credentialKind" aria-label="資格書類区分" onchange="renderCredentialCenterRows()"><option value="all">資格＋書類</option><option value="qualification">資格のみ</option><option value="document">書類のみ</option></select><select id="credentialState" aria-label="確認状態" onchange="renderCredentialCenterRows()"><option value="all">すべて</option><option value="attention">要確認のみ</option><option value="expired">期限超過</option><option value="soon">30日以内</option><option value="evidence">証明書類が未登録</option><option value="pending">書類の確認待ち</option></select></div>
  <div id="credentialRows"></div>`;
  showDetailModal();renderCredentialCenterRows()
 }
 function renderCredentialCenterRows(){
  let q=(document.getElementById('credentialQ')?.value||'').trim().toLowerCase(),kind=document.getElementById('credentialKind')?.value||'all',state=document.getElementById('credentialState')?.value||'all',rows=[];
- let accept=(r)=>state==='all'||(state==='attention'&&r.attention)||(state==='expired'&&r.expired)||(state==='evidence'&&r.evidence)||(state==='pending'&&r.pending);
+ let current=document.getElementById('credentialCurrentState');if(current)current.textContent=credentialStateLabel(state);
+ document.querySelectorAll('[data-credential-state]').forEach(btn=>btn.classList.toggle('active',btn.dataset.credentialState===state));
+ let accept=(r)=>state==='all'||(state==='attention'&&r.attention)||(state==='expired'&&r.expired)||(state==='soon'&&r.soon)||(state==='evidence'&&r.evidence)||(state==='pending'&&r.pending);
  if(kind!=='document')QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)).forEach(x=>{
   let e=emp(x.employee_no),expired=!!x.expiry&&days(x.expiry)<0,soon=!!x.expiry&&days(x.expiry)>=0&&days(x.expiry)<=30,evidence=x.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(x);
-  let r={attention:expired||soon||evidence||x.status==='要確認'||x.status==='期限切れ',expired,evidence,pending:false};
+  let r={attention:expired||soon||evidence||x.status==='要確認'||x.status==='期限切れ',expired,soon,evidence,pending:false};
   let text=[e?.name,x.employee_no,x.name,x.number,x.expiry,qualificationEvidenceLabel(x)].join(' ').toLowerCase();
   if((!q||text.includes(q))&&accept(r)){
    let tone=expired?'danger':r.attention?'warn':'ok',person=e?employeeNameLinkHtml(e.no,e.name,'credential-employee-link'):'<b>'+esc(x.employee_no)+'</b>';
-   rows.push({priority:expired?0:r.attention?1:2,sort:x.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">資格</span>'+person+'<b>'+esc(x.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':r.attention?'要確認':'正常')+'</span></div><div class="credential-action-guide"><div><span>なぜ確認？</span>'+esc(credentialAttentionReason('qualification',x))+'</div><div><span>やること</span>'+esc(credentialNextAction('qualification',x))+'</div></div><div class="mini">証番号 '+esc(x.number||'-')+' / 期限 '+esc(x.expiry||'未設定')+' / '+esc(qualificationEvidenceLabel(x))+'</div></div>'+credentialQualificationActionsHtml(x)+'</div>'})
+   rows.push({priority:expired?0:evidence?1:soon?2:r.attention?3:4,sort:x.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">資格</span>'+person+'<b>'+esc(x.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':evidence?'証明未登録':soon?'30日以内':r.attention?'要確認':'正常')+'</span></div><div class="credential-row-primary"><div><span>期限</span><b>'+esc(x.expiry||'未設定')+(x.expiry?'（'+esc(deadlineBucketLabel(x.expiry))+'）':'')+'</b></div><div class="credential-next-action"><span>次にやること</span><b>'+esc(credentialNextAction('qualification',x))+'</b></div><div><span>証明書類</span><b>'+esc(qualificationEvidenceLabel(x))+'</b></div></div><div class="credential-support-line"><span>確認理由：'+esc(credentialAttentionReason('qualification',x))+'</span><span>証番号：'+esc(x.number||'未設定')+'</span></div></div>'+credentialQualificationActionsHtml(x)+'</div>'})
   }
  });
  if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)).forEach(d=>{
   let e=emp(d.employee_no),expired=!!d.expiry&&days(d.expiry)<0,pending=d.status!=='原本確認済み',soon=!!d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30;
-  let r={attention:expired||pending||soon,expired,evidence:false,pending};
+  let r={attention:expired||pending||soon,expired,soon,evidence:false,pending};
   let text=[e?.name,d.employee_no,d.name,d.category,d.status,d.expiry].join(' ').toLowerCase();
   if((!q||text.includes(q))&&accept(r)){
    let tone=expired?'danger':r.attention?'warn':'ok',person=e?employeeNameLinkHtml(e.no,e.name,'credential-employee-link'):'<b>'+esc(d.employee_no)+'</b>';
-   rows.push({priority:expired?0:r.attention?1:2,sort:d.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">書類</span>'+person+'<b>'+esc(d.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':pending?'確認待ち':soon?'期限接近':'正常')+'</span></div><div class="credential-action-guide"><div><span>なぜ確認？</span>'+esc(credentialAttentionReason('document',d))+'</div><div><span>やること</span>'+esc(credentialNextAction('document',d))+'</div></div><div class="mini">'+esc(d.category)+' / 状態 '+esc(d.status||'確認待ち')+(d.expiry?' / 期限 '+esc(d.expiry):'')+'</div></div>'+credentialDocumentActionsHtml(d)+'</div>'})
+   rows.push({priority:expired?0:pending?1:soon?2:3,sort:d.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">書類</span>'+person+'<b>'+esc(d.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':pending?'確認待ち':soon?'30日以内':'正常')+'</span></div><div class="credential-row-primary"><div><span>期限</span><b>'+esc(d.expiry||'設定なし')+(d.expiry?'（'+esc(deadlineBucketLabel(d.expiry))+'）':'')+'</b></div><div class="credential-next-action"><span>次にやること</span><b>'+esc(credentialNextAction('document',d))+'</b></div><div><span>確認状態</span><b>'+esc(d.status||'確認待ち')+'</b></div></div><div class="credential-support-line"><span>確認理由：'+esc(credentialAttentionReason('document',d))+'</span><span>区分：'+esc(d.category||'未設定')+'</span></div></div>'+credentialDocumentActionsHtml(d)+'</div>'})
   }
  });
  rows.sort((a,b)=>a.priority-b.priority||String(a.sort).localeCompare(String(b.sort)));
@@ -7958,7 +7992,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v186';
+const RELEASE_VERSION='v187';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
