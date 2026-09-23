@@ -6116,7 +6116,7 @@ function openSafetyMonthlyNearQuota(){
  let month=SAFETY_MONTH||TODAY.slice(0,7);safeTab('near');let x=document.getElementById('nearQuotaMonth');if(x)x.value=month;renderNearQuotaSummary();openNearQuotaCenter('unmet')
 }
 function openSafetyMonthlyNear(){
- let month=SAFETY_MONTH||TODAY.slice(0,7);safeTab('near');let d=document.getElementById('nearDate');if(d)d.value='';let q=document.getElementById('nearq');if(q)q.value=month;NEAR_FILTER='all';NEAR_PAGE=1;renderNear()
+ let month=SAFETY_MONTH||TODAY.slice(0,7);safeTab('near');let d=document.getElementById('nearDate');if(d)d.value='';let q=document.getElementById('nearq');if(q)q.value='';NEAR_MONTH=month;NEAR_FILTER='all';NEAR_PAGE=1;renderNear()
 }
 function renderSafetyOverview(){
  let el=document.getElementById('safetyOverview');if(!el)return;
@@ -6139,7 +6139,7 @@ function clearSafetySearch(kind){
  }
  if(kind==='near'){
   let q=document.getElementById('nearq'),d=document.getElementById('nearDate'),r=document.getElementById('nearRisk'),c=document.getElementById('nearCause');
-  if(q)q.value='';if(d)d.value='';if(r)r.value='';if(c)c.value='';NEAR_FILTER='all';NEAR_PAGE=1;renderNear();return
+  if(q)q.value='';if(d)d.value='';if(r)r.value='';if(c)c.value='';NEAR_MONTH='';NEAR_FILTER='all';NEAR_PAGE=1;renderNear();return
  }
  if(kind==='complaint'){
   let q=document.getElementById('complaintq'),d=document.getElementById('complaintDate');if(q)q.value='';if(d)d.value='';COMPLAINT_FILTER='all';COMPLAINT_PAGE=1;renderComplaints()
@@ -6783,6 +6783,7 @@ function renderNearQuotaCenterRows(){
  let pager=document.getElementById('nearQuotaPager');if(pager)pager.innerHTML=rows.length>NEAR_QUOTA_PER_PAGE?'<div class="year-list-pager"><button class="btn" '+(NEAR_QUOTA_PAGE<=1?'disabled':'')+' onclick="NEAR_QUOTA_PAGE--;renderNearQuotaCenterRows()">← 前へ</button><span class="emp-page-info">'+(start+1)+'〜'+Math.min(start+NEAR_QUOTA_PER_PAGE,rows.length)+'名 / 全'+rows.length+'名（'+NEAR_QUOTA_PAGE+'/'+pages+'ページ）</span><button class="btn" '+(NEAR_QUOTA_PAGE>=pages?'disabled':'')+' onclick="NEAR_QUOTA_PAGE++;renderNearQuotaCenterRows()">次へ →</button></div>':''
 }
 
+let NEAR_MONTH='';
 function renderNear(){
  renderNearQuotaSummary();
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',
@@ -6792,11 +6793,11 @@ function renderNear(){
  let rows=all.filter(n=>{
   let text=[n.id,n.date,n.time,n.vehicle,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
   let quick=NEAR_FILTER==='all'||(NEAR_FILTER==='high'&&n.riskLevel==='高い')||(NEAR_FILTER==='today'&&n.date===TODAY)||(NEAR_FILTER==='attention'&&nearNeedsAnalysis(n));
-  return quick&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
+  return quick&&(!NEAR_MONTH||nearQuotaReportMonth(n)===NEAR_MONTH)&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
  });
  const nearPages=Math.max(1,Math.ceil(rows.length/NEAR_PER_PAGE));NEAR_PAGE=Math.min(Math.max(1,NEAR_PAGE),nearPages);const nearStart=(NEAR_PAGE-1)*NEAR_PER_PAGE,nearShown=rows.slice(nearStart,nearStart+NEAR_PER_PAGE);
  [['nearAllBtn','all'],['nearHighBtn','high'],['nearTodayBtn','today'],['nearAttentionBtn','attention']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',NEAR_FILTER===k)});
- let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${NEAR_FILTER==='all'?'active':''}" onclick="NEAR_FILTER='all';renderNear()"><small>全報告</small><b>${counts.all}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='high'?'active':''}" onclick="NEAR_FILTER='high';renderNear()"><small>高危険</small><b>${counts.high}</b></button><button class="safety-list-kpi ${NEAR_FILTER==='today'?'active':''}" onclick="NEAR_FILTER='today';renderNear()"><small>本日発生</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='attention'?'active':''}" onclick="NEAR_FILTER='attention';renderNear()"><small>分析要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">ヒヤリは管理案件ではなく、危険度・原因・対策・分類の入力状態を確認します</div></div></div>`;
+ let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${NEAR_FILTER==='all'?'active':''}" onclick="NEAR_FILTER='all';renderNear()"><small>全報告</small><b>${counts.all}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='high'?'active':''}" onclick="NEAR_FILTER='high';renderNear()"><small>高危険</small><b>${counts.high}</b></button><button class="safety-list-kpi ${NEAR_FILTER==='today'?'active':''}" onclick="NEAR_FILTER='today';renderNear()"><small>本日発生</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='attention'?'active':''}" onclick="NEAR_FILTER='attention';renderNear()"><small>分析要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件${NEAR_MONTH?' / '+nearQuotaMonthLabel(NEAR_MONTH):''}</b><div class="mini">ヒヤリは管理案件ではなく、危険度・原因・対策・分類の入力状態を確認します${NEAR_MONTH?' / 月指定中':''}</div></div>${NEAR_MONTH?'<button class="btn soft" onclick="NEAR_MONTH=\'\';NEAR_PAGE=1;renderNear()">月指定を解除</button>':''}</div>`;
  nearbody.innerHTML=nearShown.map(n=>{
   let idx=N.indexOf(n),tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4),needs=nearNeedsAnalysis(n);
   let info=nearAttentionInfo(n);
