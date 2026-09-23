@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v152 foundation build.
+Current application: v153 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v152 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v152.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v153.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -114,3 +114,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v151 renames technical data-quality wording to clearer input/registration attention wording and, after opening a flagged item, shows a top-of-screen guide with the reason, the exact next action, and a direct edit button when available.
 
 - v152 simplifies correction workflows into plain language: “why this needs attention → what to do → open the edit screen,” with larger, numbered guidance and clearer labels such as “未入力,” “対応途中,” and “登録の食い違い.”
+
+- v153 makes the home and administrator priority queues readable without opening each item first: every row now shows why it needs attention, what to do next, and a task-specific action button such as “事故を確認,” “期限を確認,” or “確認して直す.”
