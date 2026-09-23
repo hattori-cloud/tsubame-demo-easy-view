@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v143 foundation build.
+Current application: v144 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -96,6 +96,7 @@ Current application: v143 foundation build.
 - v141 adds a responsive comparison drilldown for department and vehicle change signals. It breaks the current/prior-year difference into accident type, complaint rank plus recent complaint summaries, near-miss situation/risk/internal-factor classifications and recent source records. Desktop uses a multi-column overview; mobile switches KPIs and analysis cards to a single-column layout and replaces the recent-record table with touch-friendly cards.
 - v142 expands mobile usability across core workflows. Accident, complaint and near-miss lists switch from wide desktop tables to touch-friendly mobile cards; Safety tabs and quick filters become horizontally/vertically usable without relying on table scrolling. Detail/form modals use the full mobile viewport with larger actions, employee-detail tabs use a compact two-column layout, and Deadline Center filters/rows are optimized for one-handed review. Existing employee and vehicle mobile cards remain in place.
 - v143 streamlines employee and safety data entry with a shared fast-entry controller. Employee registration, accident, near-miss and complaint forms now show required-field completion status and let users switch between initial-entry sections, required-only sections and all sections. Optional sections are explicitly marked as safe to complete later, while existing save-time validation and confirmation rules remain unchanged. Employee registration now emphasizes basic/affiliation first and identifies workplace/department as required operational fields.
+- v144 extends fast entry with section-by-section required-field progress, one-click navigation to the next missing required item, and visible active entry mode so long forms can be completed without searching for omissions.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
