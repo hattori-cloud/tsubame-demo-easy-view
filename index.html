@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v185</title>
-<!-- production-sync:v185 -->
+<title>つばめ交通株式会社 社員一元管理システム v186</title>
+<!-- production-sync:v186 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -503,6 +503,21 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .work-clear-state{border:1px dashed #c9d9e1;border-radius:11px;background:#f9fcfd;padding:18px;text-align:center;color:#5d7581;font-weight:900}
 @media(max-width:900px){.work-overview{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.work-overview{grid-template-columns:1fr}}
+/* v186 manager work/deadline flow */
+.work-manager-flow{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin:0 0 14px}
+.work-manager-step{display:grid;grid-template-columns:36px minmax(0,1fr);gap:9px;align-items:center;border:1px solid #cfe0e8;border-radius:12px;background:#fff;padding:10px 12px}
+.work-manager-step>span{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;background:#173f57;color:#fff;font-weight:950}
+.work-manager-step b{display:block;color:#173f57;line-height:1.25}.work-manager-step small{display:block;color:#637b87;font-size:.68rem;font-weight:850;margin-top:2px;line-height:1.35}
+.work-step-card{margin-bottom:14px;border:2px solid #d2e2e9}.work-step-card.primary-step{border-color:#a9cad8}
+.work-step-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}.work-step-head h3{margin:0;color:#173f57}.work-step-head .mini{margin-top:3px}
+.work-step-number{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:999px;background:#e7f3f8;color:#075b88;font-size:.72rem;font-weight:950;margin-right:7px}
+.work-deadline-overview{grid-template-columns:repeat(3,minmax(0,1fr));margin-bottom:0}
+.work-time-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin-top:9px}
+.work-time-overview .work-overview-card{min-height:92px}
+.work-cross-priority{margin-bottom:14px}.work-cross-priority .list-summary{margin-bottom:8px}
+.work-health-grid{margin-top:0}
+@media(max-width:900px){.work-manager-flow{grid-template-columns:1fr}.work-deadline-overview{grid-template-columns:1fr 1fr}.work-time-overview{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.work-deadline-overview,.work-time-overview{grid-template-columns:1fr}.work-step-head{flex-direction:column}.work-step-head .btn{width:100%}}
 
 /* v119 daily safety dashboard */
 #safe .safety-overview{margin:0 0 12px}
@@ -1116,18 +1131,35 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類の確認</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
-<div class="simple-note">上から「期限超過 → 本日期限 → 30日以内 → 勤務時間要確認」の順で確認します。各社員には「なぜ確認するか」と「次にすること」を表示します。</div>
-<div id="workOverview" class="work-overview" aria-label="期限・勤務サマリー"></div>
-<div class="card simple-work-top">
- <div class="list-summary"><div><h3 style="margin:0">優先対応者</h3><div id="workKpis" class="simple-status-line"></div></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button></div></div>
- <div id="workActionRows" class="list" style="margin-top:10px"></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<div class="work-manager-flow" aria-label="期限勤務の確認手順">
+ <div class="work-manager-step"><span>1</span><div><b>まず期限</b><small>超過 → 本日 → 30日以内</small></div></div>
+ <div class="work-manager-step"><span>2</span><div><b>次に勤務時間</b><small>残業時間と集計更新を確認</small></div></div>
+ <div class="work-manager-step"><span>3</span><div><b>最後に健診・指導</b><small>受診予定・安全指導を確認</small></div></div>
 </div>
-<div class="grid2" style="margin-top:12px">
- <div class="card"><div class="list-summary"><div><h3 style="margin:0">勤務時間 要確認</h3><div class="mini">残業45時間以上・勤務集計の更新確認だけを表示します。</div></div><button class="btn soft" onclick="openWorkAttentionCenter()">一覧</button></div><div id="workRows" class="list"></div></div>
- <div class="card admin-only full-admin-only"><h3>勤務集計Excel取込（安全確認）</h3><div class="scope-note">「ファイル選択 → 取込前チェック → 差分確認 → 確定」の順で処理します。現在の共有デモでは確定更新は行わず、ファイル識別と取込条件だけを検証します。対応形式は .xlsx です。</div><input id="attendanceFile" type="file" accept=".xlsx" onchange="attendanceSelected()"><div class="import-steps"><div class="import-step"><strong>1. ファイル選択</strong><span id="attFileName" class="mini">未選択</span></div><div class="import-step"><strong>2. 取込前チェック</strong><button id="attPreBtn" class="btn soft" disabled onclick="attendancePreflight()">チェック</button></div><div class="import-step"><strong>3. 差分確認</strong><button id="attDiffBtn" class="btn soft" disabled onclick="attendanceShowPreflight()">結果を見る</button></div><div class="import-step"><strong>4. 確定取込</strong><button id="attImportBtn" class="btn primary" disabled onclick="attendanceImportDry()">確認して取込</button></div></div><div id="attResult" class="mini" style="margin-top:9px"></div></div>
+
+<div class="card work-step-card primary-step">
+ <div class="work-step-head"><div><h3><span class="work-step-number">1</span>まず、期限を確認</h3><div class="mini">赤い期限超過から先に処理し、その後に本日・30日以内を確認します。</div></div><button class="btn primary" onclick="openDeadlineCenter('all')">期限・更新の一覧を開く</button></div>
+ <div id="workDeadlineOverview" class="work-overview work-deadline-overview" aria-label="期限サマリー"></div>
 </div>
-<div class="grid2" style="margin-top:12px"><div class="card"><h3>健康診断予定</h3><div id="healthSchedule"></div></div><div class="card"><h3>安全指導・適性診断</h3><div id="safetyTraining"></div></div></div></section>
+
+<div class="card work-cross-priority">
+ <div class="list-summary"><div><h3 style="margin:0">今日確認する社員</h3><div class="mini">期限と勤務時間を横断し、重要度が高い社員から最大8名表示します。</div></div><span class="badge warn">優先順</span></div>
+ <div id="workActionRows" class="list"></div>
+</div>
+
+<div class="card work-step-card">
+ <div class="work-step-head"><div><h3><span class="work-step-number">2</span>次に、勤務時間を確認</h3><div class="mini">残業45時間以上と、勤務集計の更新確認が必要な社員を確認します。</div><div id="workKpis" class="simple-status-line"></div></div><button class="btn soft" onclick="openWorkAttentionCenter()">勤務時間の一覧を開く</button></div>
+ <div id="workTimeOverview" class="work-time-overview" aria-label="勤務時間サマリー"></div>
+ <div id="workRows" class="list" style="margin-top:10px"></div>
+</div>
+
+<div class="card admin-only full-admin-only" style="margin-bottom:14px"><h3>勤務集計Excel取込（安全確認）</h3><div class="scope-note">「ファイル選択 → 取込前チェック → 差分確認 → 確定」の順で処理します。現在の共有デモでは確定更新は行わず、ファイル識別と取込条件だけを検証します。対応形式は .xlsx です。</div><input id="attendanceFile" type="file" accept=".xlsx" onchange="attendanceSelected()"><div class="import-steps"><div class="import-step"><strong>1. ファイル選択</strong><span id="attFileName" class="mini">未選択</span></div><div class="import-step"><strong>2. 取込前チェック</strong><button id="attPreBtn" class="btn soft" disabled onclick="attendancePreflight()">チェック</button></div><div class="import-step"><strong>3. 差分確認</strong><button id="attDiffBtn" class="btn soft" disabled onclick="attendanceShowPreflight()">結果を見る</button></div><div class="import-step"><strong>4. 確定取込</strong><button id="attImportBtn" class="btn primary" disabled onclick="attendanceImportDry()">確認して取込</button></div></div><div id="attResult" class="mini" style="margin-top:9px"></div></div>
+
+<div class="card work-step-card">
+ <div class="work-step-head"><div><h3><span class="work-step-number">3</span>最後に、健診・安全指導を確認</h3><div class="mini">健康診断は期限と受診予定だけを扱い、医療結果は表示しません。</div></div></div>
+ <div class="grid2 work-health-grid"><div><h3>健康診断予定</h3><div id="healthSchedule"></div></div><div><h3>安全指導・適性診断</h3><div id="safetyTraining"></div></div></div>
+</div></section>
 
 
 <section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリ・苦情を検索・登録・分析します。</p></div><div class="toolbar"><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情</button><button class="btn" onclick="openSafetyExportMenu()">CSV</button></div></div>
@@ -3438,11 +3470,15 @@ function renderWork(){
  let deadlines=collectDeadlines(),dOver=deadlines.filter(x=>x.bucket==='over').length,dToday=deadlines.filter(x=>x.bucket==='today').length,d30=deadlines.filter(x=>x.bucket==='7'||x.bucket==='30').length;
  let c45=rows.filter(e=>Number(e.overtime)>=45).length,c55=rows.filter(e=>Number(e.overtime)>=55).length,c60=rows.filter(e=>Number(e.overtime)>=60).length,stale=rows.filter(e=>workUpdateStatus(e)==='更新確認').length;
  let ordered=rows.slice().sort((a,b)=>workAttentionScore(b)-workAttentionScore(a)||String(a.no).localeCompare(String(b.no)));
- let overview=document.getElementById('workOverview');
- if(overview)overview.innerHTML=`<button class="work-overview-card ${dOver?'danger':''}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${dOver}</b><span>最優先で確認</span></button>
+ let deadlineOverview=document.getElementById('workDeadlineOverview');
+ if(deadlineOverview)deadlineOverview.innerHTML=`<button class="work-overview-card ${dOver?'danger':''}" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${dOver}</b><span>最優先で確認</span></button>
  <button class="work-overview-card ${dToday?'warn':''}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${dToday}</b><span>今日中に確認</span></button>
- <button class="work-overview-card ${d30?'warn':''}" onclick="openDeadlineCenter('within30')"><small>30日以内</small><b>${d30}</b><span>1〜30日の期限をすべて表示</span></button>
- <button class="work-overview-card ${c60?'danger':c45||stale?'warn':''}" onclick="openWorkAttentionCenter()"><small>勤務時間 要確認</small><b>${workAttentionRows().length}</b><span>45時間以上 ${c45} / 更新確認 ${stale}</span></button>`;
+ <button class="work-overview-card ${d30?'warn':''}" onclick="openDeadlineCenter('within30')"><small>30日以内</small><b>${d30}</b><span>更新予定を確認</span></button>`;
+ let timeOverview=document.getElementById('workTimeOverview');
+ if(timeOverview)timeOverview.innerHTML=`<button class="work-overview-card ${workAttentionRows().length?'warn':''}" onclick="openWorkAttentionCenter()"><small>勤務 要確認</small><b>${workAttentionRows().length}</b><span>45時間以上・更新確認</span></button>
+ <button class="work-overview-card ${c45?'warn':''}" onclick="openWorkAttentionCenter()"><small>45時間以上</small><b>${c45}</b><span>注意対象</span></button>
+ <button class="work-overview-card ${c55?'warn':''}" onclick="openWorkAttentionCenter()"><small>55時間以上</small><b>${c55}</b><span>要調整</span></button>
+ <button class="work-overview-card ${c60?'danger':stale?'warn':''}" onclick="openWorkAttentionCenter()"><small>60時間以上 / 更新</small><b>${c60}</b><span>60時間以上 ${c60} / 更新確認 ${stale}</span></button>`;
  workKpis.innerHTML=`<span class="simple-status-chip ${c60?'danger':''}">60時間以上 ${c60}</span><span class="simple-status-chip ${c55?'warn':''}">55時間以上 ${c55}</span><span class="simple-status-chip ${stale?'warn':''}">勤務集計 更新確認 ${stale}</span>`;
  let priority=ordered.filter(e=>workAttentionScore(e)>0).slice(0,8);
  workActionRows.innerHTML=priority.length?priority.map(e=>{
@@ -7922,7 +7958,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v185';
+const RELEASE_VERSION='v186';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
