@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v149 foundation build.
+Current application: v150 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v149 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v143.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v150.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -102,6 +102,7 @@ Current application: v149 foundation build.
 - v147 rechecks employee assignment, lifecycle and safety-decision permissions at the moment of save so a role/scope change after opening the edit form cannot carry stale elevated permissions into the write.
 - v148 expands the built-in self-diagnostic to verify employee-number generation, fast-entry required-field navigation, save-time employee permission rechecks, complete access-policy coverage and save/audit coverage across 12 major write flows.
 - v149 makes employee names in the home confirmation/priority areas and handoff cards open the employee detail directly, and adds that navigation helper to the built-in self-diagnostic.
+- v150 ranks the home global search across all matching candidates before limiting displayed results, reuses clickable employee names in the administrator daily queue, and adds employee-detail shortcuts to start accident, near-miss, or complaint entry with that employee preselected.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
