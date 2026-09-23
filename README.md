@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v185 foundation build.
+Current application: v187 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -167,3 +167,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v184 reframes Home explicitly as the manager workspace when a manager role is active. The four-step flow now reads as today's management status, today's priority actions, employee/vehicle/case search, and registration/review. This is a wording/navigation-clarity change only; permissions, save logic and business-record rules are unchanged.
 
 - v185 simplifies the Deadline / Renewal Center for manager use. Primary filters are reduced to overdue, today, within 30 days and all; finer 1–7 / 8–30 / 31–60 day filters move behind an optional detail section. Each deadline row now emphasizes due date, next action and owner before supporting context, and action buttons use explicit labels such as viewing the record or updating the relevant deadline. Business rules, permissions and deadline collection logic are unchanged.
+
+- v187 simplifies the Qualification / Document review center for managers. The screen now prioritizes expired items, items due within 30 days, missing required evidence documents, and documents awaiting verification. Each row leads with due date, next action, and evidence/verification state, while search and qualification/document filtering remain available. Qualification/document business rules, permissions, and record relationships are unchanged.
