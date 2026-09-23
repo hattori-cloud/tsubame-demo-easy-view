@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v177</title>
-<!-- production-sync:v177 -->
+<title>つばめ交通株式会社 社員一元管理システム v178</title>
+<!-- production-sync:v178 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1617,6 +1617,7 @@ const DRIVER_CERT_DEFS=[
  {key:'tourism',label:'観光ドライバー',short:'観光'}
 ];
 const AUTH_CONFIG={connected:false,provider:'本番未選定',requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',note:'共有デモは認証なし。権限切替は画面確認専用'};
+const DOCUMENT_STORAGE_CONFIG={connected:false,provider:'本番未選定',privateByDefault:true,note:'共有デモは書類メタデータのみ。原本ファイルは保管しない'};
 const USERS=[
  {id:'EMP-1002',name:'検証全社管理者',role:'管理者',adminLevel:'full',safetyAuthority:false,scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1,authMethod:'本番未接続',loginKey:'ADM-01',lastLogin:'デモ確認中'},
  {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-02',lastLogin:'未接続'},
@@ -3727,6 +3728,7 @@ function productionGateItems(){
   {name:'本番データベース',status:'未接続（構造設計済み）',level:'bad',next:'主キー・外部キー・履歴・権限を持つ本番DBへ移行'},
   {name:'別故障領域バックアップ',status:'実設備で未確認',level:'bad',next:'自動バックアップと復旧試験を実施'},
   {name:'監査ログのサーバー保存',status:'未接続',level:'bad',next:'操作履歴を改変困難な保存先へ記録'},
+  {name:'書類原本ストレージ',status:DOCUMENT_STORAGE_CONFIG.connected?'接続済み':'未接続（メタデータのみ）',level:DOCUMENT_STORAGE_CONFIG.connected?'ok':'bad',next:'非公開オブジェクトストレージ＋短時間ダウンロード権限＋バックアップを実装'},
   {name:'保存年限・紙原本方針',status:'会社承認待ち',level:'warn',next:'保存年限と原本保管ルールを決裁'},
   {name:'実社員データ照合',status:'未実施',level:'bad',next:'社員番号・所属・資格を投入前照合'},
   ...(()=>{let n=uatCounts();return [{name:'PC/スマホ実機受入',status:n.fix?'要修正 '+n.fix+'件':n.notRun?'未実施 '+n.notRun+'件':'共有デモ内は合格',level:n.fix?'bad':n.notRun?'warn':'ok',next:'本番環境で管理者・現場端末の受入テストを再実施'}]})(),
@@ -3877,7 +3879,7 @@ function credentialQualificationActionsHtml(x){
 }
 function credentialDocumentActionsHtml(d){
  let no=String(d.employee_no||'').replaceAll("'",""),idx=DOCS.indexOf(d),id=String(d.id||'').replaceAll("'","");
- let view='<button class="btn soft" onclick="documentPreview(\''+id+'\')">書類を見る</button>';
+ let view='<button class="btn soft" onclick="documentPreview(\''+id+'\')">書類情報を見る</button>';
  let edit=canEditEmployee(no)?'<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">書類を更新</button>':'';
  return '<div class="credential-row-actions">'+view+edit+'</div>'
 }
@@ -4804,15 +4806,16 @@ function employeeDocuments(no,page=1){
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の書類`;
  let addBtn=canEditEmployee(no)?`<button class="btn primary" onclick="openDocumentForm('${no}')">＋ 書類を登録</button>`:'';
- dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${addBtn}</div><div class="list-summary"><div><div class="related-title">登録書類 ${rows.length}件</div><div class="mini">${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑のみ':'資格証憑・安全指導・事故資料・手続書類'}</div></div></div>`+
- (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditEmployee(no)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',del=isFullCompanyAdmin()?`<button class="btn danger" onclick="deleteDocument('${d.id}')">削除</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${d.status||'確認待ち'}</div><div class="mini">${d.qualification_id?'関連資格 '+esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id):'関連資格なし'}${d.verifiedDate?' / 最終確認 '+esc(d.verifiedDate)+' '+esc(d.verifiedByName||''):''}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">開く</button>${edit}${del}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
+ dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${addBtn}</div><div class="detail-alert warn"><b>原本ファイル保管：未接続</b><div class="mini">この共有デモは書類名・区分・期限・確認状態などのメタデータだけを管理しています。PDF・画像などの原本は保管していません。</div></div><div class="list-summary"><div><div class="related-title">登録書類情報 ${rows.length}件</div><div class="mini">${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑のみ':'資格証憑・安全指導・事故資料・手続書類'} / 原本保管なし</div></div><span class="badge warn">メタデータのみ</span></div>`+
+ (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditEmployee(no)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',del=isFullCompanyAdmin()?`<button class="btn danger" onclick="deleteDocument('${d.id}')">削除</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${d.status||'確認待ち'}</div><div class="mini">${d.qualification_id?'関連資格 '+esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id):'関連資格なし'}${d.verifiedDate?' / 最終確認 '+esc(d.verifiedDate)+' '+esc(d.verifiedByName||''):''}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">情報を見る</button>${edit}${del}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeDocuments('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeDocuments('${no}',${page+1})">次へ →</button></div>`:'')
 }
 function documentPreview(id){
  let d=DOCS.find(x=>x.id===id);if(!d||!canViewDocumentRecord(d)){alert('この書類を表示する権限がありません');return}let e=emp(d.employee_no);
- pttl.textContent=d.name+'（SAMPLE）';
- if(d.kind==='image')pbody.innerHTML=`<div class="scene"><div class="road"><div class="car1"></div><div class="car2"></div></div></div><p class="mini">共有デモ用の架空画像です。</p>`;
- else pbody.innerHTML=`<div class="doc"><h3>${esc(d.category)}</h3><p><b>社員：</b>${e?esc(e.name):d.employee_no}（仮名）</p><p><b>ファイル名：</b>${esc(d.name)}</p><p><b>登録日：</b>${d.date}</p><p><b>状態：</b>${d.status||'確認待ち'}</p>${d.expiry?`<p><b>期限：</b>${d.expiry}</p>`:''}${d.qualification_id?`<p><b>関連資格：</b>${esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id)}</p>`:''}${d.verifiedDate?`<p><b>最終確認：</b>${esc(d.verifiedDate)} / ${esc(d.verifiedByName||'')}</p>`:''}<hr><p class="mini">架空・SAMPLE｜実際の社員書類ではありません。</p></div>`;
+ pttl.textContent=d.name+'（書類情報 / SAMPLE）';
+ let storageNotice='<div class="detail-alert warn"><b>原本ファイルは保管されていません。</b><div class="mini">表示しているのは共有デモ用の書類メタデータです。本番では権限確認後に非公開ストレージから短時間URLで取得する設計です。</div></div>';
+ if(d.kind==='image')pbody.innerHTML=storageNotice+`<div class="scene"><div class="road"><div class="car1"></div><div class="car2"></div></div></div><p class="mini">共有デモ用の架空イメージです。登録された原本画像ではありません。</p>`;
+ else pbody.innerHTML=storageNotice+`<div class="doc"><h3>${esc(d.category)}</h3><p><b>社員：</b>${e?esc(e.name):d.employee_no}（仮名）</p><p><b>ファイル名：</b>${esc(d.name)}</p><p><b>登録日：</b>${d.date}</p><p><b>状態：</b>${d.status||'確認待ち'}</p>${d.expiry?`<p><b>期限：</b>${d.expiry}</p>`:''}${d.qualification_id?`<p><b>関連資格：</b>${esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id)}</p>`:''}${d.verifiedDate?`<p><b>最終確認：</b>${esc(d.verifiedDate)} / ${esc(d.verifiedByName||'')}</p>`:''}<hr><p class="mini">架空・SAMPLE｜書類原本ではありません。</p></div>`;
  preview.classList.add('show')
 }
 function nextDocumentId(no){
@@ -7800,7 +7803,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v177';
+const RELEASE_VERSION='v178';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
