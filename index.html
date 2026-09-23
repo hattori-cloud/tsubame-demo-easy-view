@@ -3632,7 +3632,7 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -4801,6 +4801,23 @@ function analysisDeltaText(cur,prev){
  let pct=prev>0?Math.round(diff/prev*100):cur>0?null:0;
  return {cls,text:sign+diff+'件'+(pct===null?'（前年0件）':'（'+(pct>0?'+':'')+pct+'%）')}
 }
+function analysisMonthRange(from,to,limit=12){
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(String(from||''))||!/^\d{4}-\d{2}-\d{2}$/.test(String(to||'')))return [];
+ let [fy,fm]=from.split('-').map(Number),[ty,tm]=to.split('-').map(Number),d=new Date(fy,fm-1,1),end=new Date(ty,tm-1,1),keys=[];
+ while(d<=end&&keys.length<240){keys.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'));d.setMonth(d.getMonth()+1)}
+ return keys.slice(-limit)
+}
+function applySafetyAnalysisSignal(kind,key){
+ if(kind==='dept'){
+  let el=document.getElementById('analysisDept');if(!el)return;
+  if([...el.options].some(o=>o.value===key))el.value=key
+ }else if(kind==='vehicle'){
+  let el=document.getElementById('analysisVehicle');if(!el)return;
+  let value=String(key||'').replace(/号車$/,'');
+  if([...el.options].some(o=>o.value===value))el.value=value
+ }
+ renderSafetyAnalysis()
+}
 function safetyAnalysisMonthlyTotals(rows){
  let out={};
  let add=(date)=>{let k=String(date||'').slice(0,7);if(/^\d{4}-\d{2}$/.test(k))out[k]=(out[k]||0)+1};
@@ -4828,7 +4845,7 @@ function safetyAnalysisSignalsHtml(cur,prev,kind){
  }).filter(x=>x.increased>=2).sort((a,b)=>b.increased-a.increased||b.total-a.total||String(a.key).localeCompare(String(b.key),'ja')).slice(0,8);
  if(!rows.length)return '<div class="mini">前年同期比で2種類以上が増えている対象はありません。</div>';
  return '<div class="analysis-signal-list">'+rows.map(x=>
-  '<div class="analysis-signal-row '+(x.increased===3?'strong':'')+'"><div class="analysis-signal-title"><b>'+esc(x.key)+'</b><span class="badge '+(x.increased===3?'warn':'')+'">'+(x.increased===3?'3種とも増加':x.increased+'種増加')+'</span></div><div class="analysis-signal-chips">'+
+  '<div class="analysis-signal-row '+(x.increased===3?'strong':'')+'"><div class="analysis-signal-title"><b>'+esc(x.key)+'</b><div class="toolbar"><span class="badge '+(x.increased===3?'warn':'')+'">'+(x.increased===3?'3種とも増加':x.increased+'種増加')+'</span><button class="btn soft" onclick="applySafetyAnalysisSignal(\''+kind+'\',\''+String(x.key).replaceAll("'","")+'\')">絞込</button></div></div><div class="analysis-signal-chips">'+
    '<span>事故 '+(x.deltas.acc>0?'+':'')+x.deltas.acc+'</span><span>苦情 '+(x.deltas.comp>0?'+':'')+x.deltas.comp+'</span><span>ヒヤリ '+(x.deltas.near>0?'+':'')+x.deltas.near+'</span><span>合計 '+(x.total>0?'+':'')+x.total+'</span>'+
   '</div></div>'
  ).join('')+'</div>'
@@ -4841,9 +4858,9 @@ function renderSafetyComparisons(scope){
  let yc=document.getElementById('analysisYearCompare');if(yc)yc.innerHTML=
   '<div class="analysis-compare-grid">'+cards.map(([label,a,b])=>{let d=analysisDeltaText(a,b);return '<div class="analysis-compare-kpi"><small>'+label+'</small><b>'+a+'件</b><div class="delta '+d.cls+'">前年同期 '+b+'件 / '+d.text+'</div></div>'}).join('')+'</div>'+
   '<div class="analysis-compare-period">'+(p.implicit?'期間未指定のため今年累計で比較：':'比較期間：')+esc(p.curFrom)+' ～ '+esc(p.curTo)+' ／ 前年同期 '+esc(p.prevFrom)+' ～ '+esc(p.prevTo)+'</div>';
- let monthly=safetyAnalysisMonthlyTotals(cur),monthKeys=Object.keys(monthly).sort(),changes=[];
- for(let i=1;i<monthKeys.length;i++){let k=monthKeys[i],pk=monthKeys[i-1],curN=monthly[k],prevN=monthly[pk];changes.push({k,curN,prevN,diff:curN-prevN})}
- let mc=document.getElementById('analysisMonthChange');if(mc)mc.innerHTML=changes.length?'<div class="analysis-change-list">'+changes.slice(-6).reverse().map(x=>'<div class="analysis-change-row"><b>'+esc(accidentMonthLabel(x.k))+'</b><span>'+x.curN+'件 / 前月比 '+(x.diff>0?'+':'')+x.diff+'</span></div>').join('')+'</div>':'<div class="mini">月次比較には2か月以上の記録が必要です。</div>';
+ let monthly=safetyAnalysisMonthlyTotals(cur),monthKeys=analysisMonthRange(p.curFrom,p.curTo,12),changes=[];
+ for(let i=1;i<monthKeys.length;i++){let k=monthKeys[i],pk=monthKeys[i-1],curN=monthly[k]||0,prevN=monthly[pk]||0;changes.push({k,curN,prevN,diff:curN-prevN})}
+ let mc=document.getElementById('analysisMonthChange');if(mc)mc.innerHTML=changes.length?'<div class="analysis-change-list">'+changes.slice(-6).reverse().map(x=>'<div class="analysis-change-row"><b>'+esc(accidentMonthLabel(x.k))+'</b><span>'+x.curN+'件 / 前月比 '+(x.diff>0?'+':'')+x.diff+'</span></div>').join('')+'</div><div class="mini" style="margin-top:7px">直近6か月を表示。0件の月も含めて前月と比較します。</div>':'<div class="mini">月次比較には2か月以上の期間が必要です。</div>';
  let ds=document.getElementById('analysisDeptSignals');if(ds)ds.innerHTML=safetyAnalysisSignalsHtml(cur,prev,'dept');
  let vs=document.getElementById('analysisVehicleSignals');if(vs)vs.innerHTML=safetyAnalysisSignalsHtml(cur,prev,'vehicle')
 }
