@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v129</title>
-<!-- production-sync:v129 -->
+<title>つばめ交通株式会社 社員一元管理システム v130</title>
+<!-- production-sync:v130 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -306,6 +306,9 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:520px){.home-simple-actions .home-actions{grid-template-columns:1fr}}
 @media(max-width:850px){.home-priority-grid{grid-template-columns:1fr}.home-scope-bar{align-items:flex-start}.home-scope-numbers{width:100%}.home-search-row{grid-template-columns:1fr}.home-search-btn{width:100%}}
 
+
+/* v130 unified clickable employee names in priority views */
+.home-priority-name{display:flex;gap:7px;align-items:baseline;flex-wrap:wrap}
 
 /* v129 role-aware home action center */
 .home-action-center{margin-top:14px}
@@ -3728,7 +3731,7 @@ function renderEmployeeTodaySummary(list=scopedEmployees()){
  el.innerHTML='<div class="list-summary"><div><h3 style="margin:0">今日確認する社員</h3><div class="mini">期限だけでなく、未完了事故・苦情、担当号車、勤務状況まで含めて優先順に表示します。</div></div><div class="toolbar"><span class="badge '+(urgent?'danger':rows.length?'warn':'ok')+'">'+rows.length+'名</span><button class="btn soft" onclick="setEmployeeQuickFilter(\'daily\')">全員を見る</button></div></div>'+
   (shown.length?shown.map(x=>{
     let first=x.meta.items[0],safeNo=String(x.e.no).replaceAll("'","");
-    return '<div class="row '+(x.meta.danger?'quality-bad':'quality-warn')+'"><div><b>'+esc(x.e.no)+' '+esc(x.e.name)+'</b><div class="mini">'+esc(x.e.branch)+' / '+esc(x.e.dept)+' / 確認 '+x.meta.count+'件'+(x.meta.danger?' / 最優先 '+x.meta.danger+'件':'')+'</div><div class="mini"><b>最初に：</b>'+esc(first.title)+' — '+esc(first.detail)+'</div></div><button class="btn '+(x.meta.danger?'danger':'soft')+'" onclick="employeeDetail(\''+safeNo+'\')">社員詳細</button></div>'
+    return '<div class="row '+(x.meta.danger?'quality-bad':'quality-warn')+'"><div><div class="employee-name-row"><span class="mini">'+esc(x.e.no)+'</span>'+employeeNameLinkHtml(x.e.no,x.e.name,'work-employee-link')+'</div><div class="mini">'+esc(x.e.branch)+' / '+esc(x.e.dept)+' / 確認 '+x.meta.count+'件'+(x.meta.danger?' / 最優先 '+x.meta.danger+'件':'')+'</div><div class="mini"><b>最初に：</b>'+esc(first.title)+' — '+esc(first.detail)+'</div></div><button class="btn '+(x.meta.danger?'danger':'soft')+'" onclick="employeeDetail(\''+safeNo+'\')">社員詳細</button></div>'
   }).join(''):'<div class="notice"><div><b>現在、今日優先して確認する社員はいません。</b><div class="mini">通常の定期確認を続けてください。</div></div><span class="badge ok">OK</span></div>')+
   (rows.length>shown.length?'<div class="mini" style="margin-top:8px">上位6名を表示 / 対象 '+rows.length+'名。「全員を見る」で今日確認ありの社員だけに絞れます。</div>':'')
 }
