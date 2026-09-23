@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v197</title>
-<!-- production-sync:v197 -->
+<title>つばめ交通株式会社 社員一元管理システム v198</title>
+<!-- production-sync:v198 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1183,7 +1183,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openOriginalDocumentCenter()">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div class="work-manager-flow" aria-label="期限勤務の確認手順">
  <div class="work-manager-step"><span>1</span><div><b>まず期限</b><small>超過 → 本日 → 30日以内</small></div></div>
  <div class="work-manager-step"><span>2</span><div><b>次に勤務時間</b><small>残業時間と集計更新を確認</small></div></div>
@@ -1676,6 +1676,17 @@ function ensureCredentialLinks(){
   if(d.verifiedDate===undefined){d.verifiedDate='';changed=true}
   if(d.verifiedById===undefined){d.verifiedById='';changed=true}
   if(d.verifiedByName===undefined){d.verifiedByName='';changed=true}
+  if(d.securityClass===undefined){d.securityClass=['本人確認','退職手続'].includes(d.category)?'厳格':d.category==='資格証憑'?'要配慮':'標準';changed=true}
+  if(d.accessLevel===undefined){d.accessLevel=d.securityClass==='厳格'?'全社管理者のみ':d.category==='資格証憑'?'本人閲覧可':'担当管理者まで';changed=true}
+  if(d.originalHandling===undefined){d.originalHandling=d.category==='資格証憑'?'本人保管・会社は写し':'電子原本';changed=true}
+  if(d.paperLocation===undefined){d.paperLocation='';changed=true}
+  if(d.retentionUntil===undefined){d.retentionUntil='';changed=true}
+  if(d.replacedFromDocumentId===undefined){d.replacedFromDocumentId='';changed=true}
+  if(d.replacedByDocumentId===undefined){d.replacedByDocumentId='';changed=true}
+  if(d.archived===undefined){d.archived=false;changed=true}
+  if(d.archivedAt===undefined){d.archivedAt='';changed=true}
+  if(d.archivedById===undefined){d.archivedById='';changed=true}
+  if(d.archivedByName===undefined){d.archivedByName='';changed=true}
  });
  if(changed){localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v30DOCS',JSON.stringify(DOCS))}
 }
@@ -3386,7 +3397,25 @@ function guardManagementRecord(type,no,label='管理記録'){
  return true
 }
 function canViewSelfServiceRecord(type,no){return canAccess(type,'view',no)}
-function canViewDocumentRecord(d){return !!d&&canAccess('document','view',d.employee_no,d)}
+function documentSecurityClass(d){return d?.securityClass||(['本人確認','退職手続'].includes(d?.category)?'厳格':d?.category==='資格証憑'?'要配慮':'標準')}
+function documentAccessLevel(d){return d?.accessLevel||(documentSecurityClass(d)==='厳格'?'全社管理者のみ':d?.category==='資格証憑'?'本人閲覧可':'担当管理者まで')}
+function canViewDocumentRecord(d){
+ if(!d)return false;
+ if(d.archived&&!isFullCompanyAdmin())return false;
+ let security=documentSecurityClass(d),access=documentAccessLevel(d);
+ if(security==='厳格'||access==='全社管理者のみ')return isFullCompanyAdmin();
+ if(PREVIEW_ROLE==='管理者')return inGrantedEmployeeScope(d.employee_no);
+ return access==='本人閲覧可'&&String(d.employee_no)===String(currentSelfNo())&&SELF_VISIBLE_DOCUMENT_CATEGORIES.has(d.category)
+}
+function canEditDocumentRecord(d){
+ if(!d)return false;
+ if(d.archived)return false;
+ if(isFullCompanyAdmin())return true;
+ if(documentSecurityClass(d)==='厳格'||documentAccessLevel(d)==='全社管理者のみ')return false;
+ return PREVIEW_ROLE==='管理者'&&inGrantedEmployeeScope(d.employee_no)
+}
+function canVerifyOriginalDocument(){return isFullCompanyAdmin()}
+function canRegisterDocumentForEmployee(no){return PREVIEW_ROLE==='管理者'&&canEditEmployee(no)}
 function allowedDepartmentsForOffice(branch){
  return branch==='馬木'?['バス課']:depts.slice()
 }
@@ -8401,7 +8430,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderSafetyMonthlySummary();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v197';
+const RELEASE_VERSION='v198';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
