@@ -6191,7 +6191,7 @@ function renderSafetyMonthlySummary(){
   '<button class="acc-month-kpi '+(high||analysisMissing?'warn':'ok')+'" onclick="openSafetyMonthlyNear()"><small>ヒヤリ報告</small><b>'+nearRows.length+'件</b><span>高危険 '+high+' / 分析要確認 '+analysisMissing+'</span></button>'+
  '</div>'+
  '<div class="safety-monthly-priority"><div class="safety-monthly-priority-head"><div><b>'+esc(monthLabel)+'の確認対象</b><div class="mini">期限超過・未提出・高危険・入力不足を種類別に取りこぼさないよう表示</div></div><span class="badge '+(priority.length?'warn':'ok')+'">'+priority.length+'件</span></div>'+
- (shown.length?'<div class="safety-monthly-priority-list">'+shown.map(x=>'<div class="safety-monthly-priority-row '+x.tone+'"><div class="safety-monthly-priority-kind">'+esc(x.kind)+'</div><div class="safety-monthly-priority-main"><b>'+esc(x.title)+'</b><span>'+esc(x.sub)+'</span></div>'+safetyMonthlyPriorityActionHtml(x)+'</div>').join('')+'</div>':'<div class="notice"><div><b>今月の優先確認対象はありません。</b><div class="mini">事故・ヒヤリの登録内容に新しい要確認が出るとここに表示されます。</div></div><span class="badge ok">OK</span></div>')+
+ (shown.length?'<div class="safety-monthly-priority-list">'+shown.map(x=>'<div class="safety-monthly-priority-row '+x.tone+'"><div class="safety-monthly-priority-kind">'+esc(x.kind)+'</div><div class="safety-monthly-priority-main"><b>'+esc(x.title)+'</b><span>'+esc(x.sub)+'</span></div>'+safetyMonthlyPriorityActionHtml(x)+'</div>').join('')+'</div>':'<div class="notice"><div><b>'+esc(monthLabel)+'の優先確認対象はありません。</b><div class="mini">事故・ヒヤリの登録内容に新しい要確認が出るとここに表示されます。</div></div><span class="badge ok">OK</span></div>')+
  (priority.length>shown.length?'<div class="mini" style="margin-top:7px">'+shown.length+'件を表示 / 全'+priority.length+'件。事故・ヒヤリ未達・高危険が一種類だけで埋まらないように表示しています。残りは各月次一覧から確認できます。</div>':'')+
  '</div>'+
  '<div class="safety-monthly-actions"><button class="btn primary" onclick="openSafetyMonthlyAccidents()">この月の事故を見る</button><button class="btn soft" onclick="openSafetyMonthlyNearQuota()">ヒヤリ未達者を見る</button><button class="btn soft" onclick="openSafetyMonthlyNear()">この月のヒヤリを見る</button></div>'+
@@ -6833,6 +6833,9 @@ function employeeQuotaStateAtMonthStart(e,month){
   if(!hd||hd<monthStart)return;
   let p=String(h.from||'').split(' / ');
   if(p.length>=3){state.branch=p[0]||state.branch;state.dept=p[1]||state.dept;state.status=p[2]||state.status}
+  if(h.from_position!==undefined)state.position=h.from_position||'';
+  if(h.from_eligibility!==undefined)state.eligibility=h.from_eligibility||'';
+  else if(p.length>=3&&p[1]==='タクシー課'&&state.dept==='タクシー課'&&!String(state.position||'').includes('乗務')&&String(state.eligibility||'対象外')==='対象外'){state.position='乗務員';state.eligibility='可'}
  });
  return state
 }
@@ -7502,7 +7505,7 @@ function openEmployeeEdit(no){
   }
   if(!confirmFormSave('社員情報の変更確認',changeLines,warnings))return;
   Object.assign(e,after,{workplace:nextBranch});
-  if(transitionNeeded){let actor=currentActorIdentity(),rel=employeeTransitionRelated(no);if(!Array.isArray(e.transitionHistory))e.transitionHistory=[];let kind=before.status!==after.status?'在籍状態変更':'所属異動';e.transitionHistory.unshift({date:TODAY,time:new Date().toISOString(),kind,from:[before.branch,before.dept,before.status].join(' / '),to:[after.branch,after.dept,after.status].join(' / '),note:transitionNote,checks:transitionChecks.map(x=>x[0]),open_accidents:rel.openAcc.length,open_complaints:rel.openComplaint.length,primary_vehicles:rel.primaryVehicles.length,shared_vehicles:rel.sharedVehicles.length,assets:rel.assets.length,training:rel.training.length,actor_id:actor.id,actor_name:actor.name});e.transitionHistory=e.transitionHistory.slice(0,30);audit('異動・休職・退職 引継ぎ確認',e.no+' '+e.name+' / '+kind+' / '+transitionNote,{employee_no:e.no,entity_type:'employee',entity_id:e.no})}
+  if(transitionNeeded){let actor=currentActorIdentity(),rel=employeeTransitionRelated(no);if(!Array.isArray(e.transitionHistory))e.transitionHistory=[];let kind=before.status!==after.status?'在籍状態変更':'所属異動';e.transitionHistory.unshift({date:TODAY,time:new Date().toISOString(),kind,from:[before.branch,before.dept,before.status].join(' / '),to:[after.branch,after.dept,after.status].join(' / '),from_position:before.position||'',to_position:after.position||'',from_eligibility:before.eligibility||'',to_eligibility:after.eligibility||'',note:transitionNote,checks:transitionChecks.map(x=>x[0]),open_accidents:rel.openAcc.length,open_complaints:rel.openComplaint.length,primary_vehicles:rel.primaryVehicles.length,shared_vehicles:rel.sharedVehicles.length,assets:rel.assets.length,training:rel.training.length,actor_id:actor.id,actor_name:actor.name});e.transitionHistory=e.transitionHistory.slice(0,30);audit('異動・休職・退職 引継ぎ確認',e.no+' '+e.name+' / '+kind+' / '+transitionNote,{employee_no:e.no,entity_type:'employee',entity_id:e.no})}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
   if(restoringToAllowed&&e.eligibility==='可'){
    let actor=currentActorIdentity();
