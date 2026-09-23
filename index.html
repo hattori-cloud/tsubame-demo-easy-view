@@ -4139,7 +4139,7 @@ function credentialAttentionReason(kind,rec){
   if(rec.status==='期限切れ'&&!expired)reasons.push('資格状態と期限が一致していません');
   return reasons.length?reasons.join(' / '):'現在、大きな確認事項はありません'
  }
- let expired=!!rec.expiry&&days(rec.expiry)<0,soon=!!rec.expiry&&days(rec.expiry)>=0&&days(rec.expiry)<=30,pending=rec.status!=='原本確認済み',reasons=[];
+ let expired=!!rec.expiry&&days(rec.expiry)<0,soon=!!rec.expiry&&days(rec.expiry)>=0&&days(rec.expiry)<=30,pending=documentVerificationRequired(rec)&&rec.status!=='原本確認済み',reasons=[];
  if(expired)reasons.push('書類期限を超過しています');
  else if(soon)reasons.push('書類期限が30日以内です');
  if(pending)reasons.push('書類の確認状態が「'+(rec.status||'確認待ち')+'」です');
@@ -4155,7 +4155,7 @@ function credentialNextAction(kind,rec){
   return '資格情報を確認します。'
  }
  if(rec.expiry&&days(rec.expiry)<0)return '差替え・更新後の書類期限と確認状態を登録します。';
- if(rec.status!=='原本確認済み')return '書類内容を確認し、確認状態を更新します。';
+ if(documentVerificationRequired(rec)&&rec.status!=='原本確認済み')return '書類内容を確認し、原本確認状態を更新します。';
  if(rec.expiry&&days(rec.expiry)<=30)return '差替え要否を確認し、必要なら新しい期限を登録します。';
  return '書類情報を確認します。'
 }
@@ -4187,7 +4187,7 @@ function openCredentialCenter(){
  let needMissing=quals.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
  let expired=quals.filter(q=>q.expiry&&days(q.expiry)<0).length+docs.filter(d=>d.expiry&&days(d.expiry)<0).length;
  let soon=quals.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length+docs.filter(d=>d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30).length;
- let pending=docs.filter(d=>d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
+ let pending=docs.filter(d=>documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
  dttl.textContent='資格・書類の確認';
  dbody.innerHTML=`<div class="credential-guide"><div><b>資格と書類は「期限 → 証明 → 確認状態」の順で見ます。</b><span>期限超過を最優先にし、その後30日以内・証明書類不足・書類確認待ちを処理します。</span></div></div>
  <div class="credential-flow">
@@ -5180,6 +5180,7 @@ function applyDocumentRuleToForm(force=false){
  if(info)info.innerHTML='<b>適用ルール：</b> '+esc(rule.category)+' / '+esc(rule.originalHandling)+' / '+esc(rule.accessLevel)+' / 保管 '+(Number(rule.retentionYears)>0?esc(String(rule.retentionYears))+'年':'会社決裁待ち')
 }
 function documentRuleVerificationLabel(rule){return rule?.verificationRequired?'原本確認 必須':'原本確認 任意'}
+function documentVerificationRequired(d){let r=documentRule(d?.category);return documentSecurityClass(d)==='厳格'||!!r.verificationRequired}
 function openDocumentRuleTable(){
  if(PREVIEW_ROLE!=='管理者')return alert('原本ルール表は管理者のみ確認できます');
  dttl.textContent='原本ルール表';
@@ -5206,6 +5207,7 @@ function openDocumentRuleForm(category){
  fsave.onclick=()=>{
   if(!isFullCompanyAdmin())return alert('原本ルールの変更は全社管理者のみです');
   if(frsecurity.value==='厳格'&&fraccess.value!=='全社管理者のみ')return alert('厳格書類は閲覧範囲を「全社管理者のみ」にしてください');
+  if(frsecurity.value==='厳格'&&frverify.value!=='required')return alert('厳格書類は原本確認を「必須」にしてください');
   let years=fryears.value===''?null:Number(fryears.value);
   if(years!==null&&(!Number.isInteger(years)||years<1||years>99))return alert('保管年数は1〜99年、または未入力にしてください');
   DOCUMENT_RULES[key]={category:key,originalHandling:frorig.value,securityClass:frsecurity.value,accessLevel:fraccess.value,verificationRequired:frverify.value==='required',retentionYears:years,retentionNote:frnote.value.trim()||'会社決裁待ち'};
@@ -5371,7 +5373,7 @@ function originalDocumentPriorityReason(d){
  if(d.archived)return '';
  if(d.expiry&&days(d.expiry)<0)return '期限超過 '+Math.abs(days(d.expiry))+'日';
  if(d.status==='差替え待ち')return '差替え待ち';
- if(d.status!=='原本確認済み'&&d.status!=='差替え済み')return '原本未確認';
+ if(documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み')return '原本未確認';
  if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return '紙原本の保管場所未設定';
  if(d.retentionUntil&&days(d.retentionUntil)<0)return '保管期限到来';
  if(d.expiry&&days(d.expiry)<=30)return '期限まで'+days(d.expiry)+'日';
@@ -5393,7 +5395,7 @@ function originalDocumentPriorityRows(docs){
 function originalDocumentPrimaryActionHtml(d){
  let id=String(d.id||'').replaceAll("'",""),idx=DOCS.indexOf(d),no=String(d.employee_no||'').replaceAll("'",""),reason=originalDocumentPriorityReason(d);
  if(d.status==='差替え待ち'&&canEditDocumentRecord(d)&&!d.replacedByDocumentId)return '<button class="btn primary" onclick="replaceDocument(\''+id+'\')">差替え</button>';
- if(d.status!=='原本確認済み'&&d.status!=='差替え済み'&&canVerifyOriginalDocument())return '<button class="btn primary" onclick="verifyOriginalDocument(\''+id+'\')">原本確認</button>';
+ if(documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み'&&canVerifyOriginalDocument())return '<button class="btn primary" onclick="verifyOriginalDocument(\''+id+'\')">原本確認</button>';
  if((reason.startsWith('期限超過')||reason==='紙原本の保管場所未設定'||reason==='保管期限到来'||reason.startsWith('期限まで'))&&canEditDocumentRecord(d))return '<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">更新する</button>';
  return '<button class="btn primary" onclick="documentPreview(\''+id+'\')">詳細確認</button>'
 }
@@ -5412,7 +5414,7 @@ function openOriginalDocumentCenter(employeeNo=''){
  if(PREVIEW_ROLE!=='管理者')return alert('書類・原本管理センターは管理者のみ利用できます');
  ORIGINAL_DOCUMENT_FILTER_NO=String(employeeNo||'');ORIGINAL_DOCUMENT_PAGE=1;
  let docs=DOCS.filter(d=>canViewDocumentRecord(d)),active=docs.filter(d=>!d.archived);
- let pending=active.filter(d=>d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
+ let pending=active.filter(d=>documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
  let replace=active.filter(d=>d.status==='差替え待ち').length;
  let expiring=active.filter(d=>d.expiry&&days(d.expiry)<=30).length;
  let strict=active.filter(d=>documentSecurityClass(d)==='厳格').length;
@@ -5440,7 +5442,7 @@ function renderOriginalDocumentRows(){
   let e=emp(d.employee_no),text=[d.id,d.employee_no,e?.name,d.name,d.category,d.status,d.originalHandling,documentSecurityClass(d)].join(' ').toLowerCase();
   if(q&&!text.includes(q))return false;
   if(state==='all')return !d.archived;
-  if(state==='pending')return !d.archived&&d.status!=='原本確認済み'&&d.status!=='差替え済み';
+  if(state==='pending')return !d.archived&&documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み';
   if(state==='replace')return !d.archived&&d.status==='差替え待ち';
   if(state==='soon')return !d.archived&&!!d.expiry&&days(d.expiry)<=30;
   if(state==='strict')return !d.archived&&documentSecurityClass(d)==='厳格';
