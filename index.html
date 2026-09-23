@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v171</title>
-<!-- production-sync:v171 -->
+<title>つばめ交通株式会社 社員一元管理システム v172</title>
+<!-- production-sync:v172 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -98,7 +98,15 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:760px){.quality-dashboard{grid-template-columns:1fr 1fr}.quality-row{align-items:flex-start;flex-direction:column}.quality-row>.btn{width:100%}.quality-toolbar{align-items:stretch;flex-direction:column}}
 .audit-row{border-bottom:1px solid #e5edf1;padding:9px 0}
 .audit-row:last-child{border-bottom:0}
-.detail-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:9px}
+.detail-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-start;align-items:center;margin-bottom:10px}
+.detail-actions .detail-edit{margin-left:auto}
+.detail-actions .detail-back{font-weight:950}
+@media(max-width:720px){
+ .detail-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .detail-actions .btn,.detail-actions .star-btn{width:100%;min-height:54px;margin:0}
+ .detail-actions .detail-edit{grid-column:1/-1;margin-left:0}
+ .detail-actions .detail-wide{grid-column:1/-1}
+}
 @media(max-width:900px){.top-header{grid-template-columns:1fr;gap:16px}.control-panel{max-width:none}.deadline-grid{grid-template-columns:1fr 1fr}.recent-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){.deadline-grid,.recent-grid{grid-template-columns:1fr}}
 
@@ -4663,7 +4671,7 @@ function complaintManagementChecklistHtml(c){
 function complaintDetail(id){
  let c=C.find(x=>x.id===id);if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
  let idx=C.indexOf(c),state=complaintState(c);rememberRecentDetail('complaint',c.id);dttl.textContent='クレーム詳細 '+c.id;
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('complaint')">苦情一覧へ</button><button class="btn soft" onclick="employeeDetail('${c.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(c.employee_no)?`<button class="btn primary" onclick="openComplaintForm(${idx})">苦情対応を編集</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('complaint')">苦情一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${c.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(c.employee_no)?`<button class="btn primary detail-edit" onclick="openComplaintForm(${idx})">苦情対応を修正</button>`:''}</div>
  ${safetyRecordContextHtml('苦情',c)}
  ${caseActionPanelHtml('苦情',c)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
@@ -6200,7 +6208,7 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  rememberRecentDetail('accident',a.id);
  dttl.textContent='事故詳細 '+a.id;
  dbody.innerHTML=`${backNo?`<div class="backbar"><button class="btn soft" onclick="employeeAccidents('${backNo}',${backPage},'${backFilter}')">← 事故履歴一覧へ戻る</button><button class="btn" onclick="employeeDetail('${backNo}')">社員詳細へ戻る</button></div>`:''}
- <div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('acc')">事故一覧へ</button><button class="btn soft" onclick="employeeDetail('${a.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEdit('${a.id}')">事故対応を編集</button>`:''}</div>
+ <div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('acc')">事故一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${a.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(a.employee_no)?`<button class="btn primary detail-edit" onclick="openAccidentEdit('${a.id}')">事故対応を修正</button>`:''}</div>
  ${safetyRecordContextHtml('事故',a)}
  ${caseActionPanelHtml('事故',a)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(n)}日超過しています（${esc(a.due)}）</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。対応状況を確認してください。</div>':''}
@@ -6294,7 +6302,7 @@ function nearDetail(id){
  let n=N.find(x=>x.id===id);if(!n||!guardManagementRecord('near_miss',n.employee_no,'ヒヤリハット'))return;
  let idx=N.indexOf(n),e=emp(n.employee_no);rememberRecentDetail('near',n.id);
  dttl.textContent='ヒヤリハット詳細 '+n.id;
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('near')">ヒヤリ一覧へ</button><button class="btn soft" onclick="employeeDetail('${n.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">報告内容を編集</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('near')">ヒヤリ一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${n.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(n.employee_no)?`<button class="btn primary detail-edit" onclick="openNearForm(${idx})">報告内容を修正</button>`:''}</div>
  ${safetyRecordContextHtml('ヒヤリ',n)}
  ${(()=>{let x=nearAttentionInfo(n);return commonNextActionPanelHtml(x.action,'安全管理','期限なし（分析・教育記録）',x.tone,x.reason)})()}
  <div class="detail-primary"><h3>報告の要点</h3><div class="detail-primary-grid">
@@ -6495,7 +6503,7 @@ function vehicleDetail(id){
  let e=emp(v.employee_no),idx=V.indexOf(v),state=vehicleDeadlineState(v);
  dttl.textContent='車両詳細 '+v.plate+'号車';
  let next=vehicleNextActionInfo(v);
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button>${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions">${detailBackButtonHtml()}${canEditEmployee(v.employee_no)?`<button class="btn primary detail-edit" onclick="openVehicleForm(${idx})">車両情報を修正・担当変更</button>`:''}</div>
  ${state==='over'?`<div class="detail-alert danger">車検期限を ${Math.abs(days(v.inspection))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">車検期限は本日です。</div>':''}
  ${commonNextActionPanelHtml(next.action,next.owner,next.due,next.tone,next.reason)}
  <div class="detail-primary"><h3>車両情報</h3><div class="detail-primary-grid">
@@ -7563,6 +7571,10 @@ function closeDetail(){
  detail.classList.remove('show');
  restoreDetailOrigin()
 }
+function detailBackButtonHtml(){
+ let label=DETAIL_HISTORY.length?'← 1つ前へ':'← 元の画面へ';
+ return '<button class="btn soft detail-back" onclick="closeDetail()">'+label+'</button>'
+}
 
 
 /* 
@@ -7686,7 +7698,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v171';
+const RELEASE_VERSION='v172';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
