@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v147</title>
-<!-- production-sync:v147 -->
+<title>つばめ交通株式会社 社員一元管理システム v148</title>
+<!-- production-sync:v148 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -3747,10 +3747,10 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml','setCurrentFormSectionView','updateCurrentFormFastStatus'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml','setCurrentFormSectionView','updateCurrentFormFastStatus','jumpToNextMissingRequired','updateCurrentFormSectionProgress','nextEmployeeNumber'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
- let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
+ let policyKeys=['employee','qualification','training','asset','cert_uniform','health_work','document','accident','complaint','near_miss','guidance','driver_ledger','vehicle','application','procedures','admin_sensitive'];
  let missingPolicy=policyKeys.filter(k=>!ACCESS_POLICY?.[k]);
  out.push(systemDiagnosticCheck('権限ポリシー',missingPolicy.length===0,missingPolicy.length?'未設定：'+missingPolicy.join('、'):'主要 '+policyKeys.length+'区分を確認'));
  let collections=coreRecordCollections();
@@ -3776,6 +3776,18 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('ブラウザ保存テスト',storageOk,storageDetail));
  let coreSaveKeys=coreSaveItems().map(x=>x[0]),duplicateSaveKeys=[...new Set(coreSaveKeys.filter((k,i)=>coreSaveKeys.indexOf(k)!==i))];
  out.push(systemDiagnosticCheck('トランザクション保存対象',duplicateSaveKeys.length===0&&coreSaveKeys.includes('v29AUDIT'),duplicateSaveKeys.length?'重複キー：'+duplicateSaveKeys.join('、'):'業務データ '+coreSaveKeys.length+'領域（監査含む）'));
+ let numericEmployeeNos=E.map(x=>Number.parseInt(String(x.no||''),10)).filter(Number.isFinite),nextNo=nextEmployeeNumber(),maxEmployeeNo=numericEmployeeNos.length?Math.max(...numericEmployeeNos):1000;
+ let employeeNoOk=/^\d+$/.test(nextNo)&&Number(nextNo)>maxEmployeeNo&&!E.some(x=>String(x.no)===String(nextNo));
+ out.push(systemDiagnosticCheck('社員番号 自動採番',employeeNoOk,employeeNoOk?'次回候補 '+nextNo+' / 既存最大 '+maxEmployeeNo:'採番候補が既存番号と重複または不正です'));
+ let fastEntryFns=['jumpToNextMissingRequired','updateCurrentFormFastStatus','updateCurrentFormSectionProgress','setCurrentFormSectionView'];
+ let fastEntryMissing=fastEntryFns.filter(name=>typeof window[name]!=='function');
+ out.push(systemDiagnosticCheck('高速入力・必須ナビ',fastEntryMissing.length===0,fastEntryMissing.length?'未定義：'+fastEntryMissing.join('、'):'必須入力ナビ '+fastEntryFns.length+'機能を確認'));
+ let employeeEditSource=Function.prototype.toString.call(openEmployeeEdit);
+ let permissionRecheck=['liveCanAssignment=canChangeEmployeeAssignment()','liveCanLifecycle=canChangeEmployeeLifecycle()','liveCanSafety=canManageSafetyDecision(no)'].filter(x=>!employeeEditSource.includes(x));
+ out.push(systemDiagnosticCheck('社員編集 保存時権限再確認',permissionRecheck.length===0,permissionRecheck.length?'不足：'+permissionRecheck.join(' / '):'所属・在籍・安全判断の3権限を保存時に再確認'));
+ let writeFlowNames=['openEmployeeForm','openEmployeeEdit','openAccidentForm','openNearForm','openComplaintForm','openVehicleForm','openDocumentForm','openTrainingRecordForm','openQualificationRecordForm','openAssetRecordForm','openGuidanceRecordForm','openDriverCertificationForm'];
+ let weakWriteFlows=writeFlowNames.filter(name=>{let fn=window[name];if(typeof fn!=='function')return true;let src=Function.prototype.toString.call(fn);return !src.includes('save()')||!src.includes('audit(')});
+ out.push(systemDiagnosticCheck('主要更新処理 保存・監査',weakWriteFlows.length===0,weakWriteFlows.length?'保存または監査不足：'+weakWriteFlows.join('、'):'主要 '+writeFlowNames.length+'更新処理で保存・監査を確認'));
  let quality=qualityIssues(),critical=quality.filter(x=>x.level==='bad').length;
  out.push(systemDiagnosticCheck('業務データ品質',critical===0,'重大 '+critical+'件 / 全確認 '+quality.length+'件',critical?'warn':'ok'));
  return out
@@ -6965,7 +6977,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v147';
+const RELEASE_VERSION='v148';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
