@@ -14,4 +14,5 @@ function requireFixtures(){
 }
 function findUserBySubject(subject){requireFixtures();return USERS.find(x=>x.external_subject===subject)||null}
 function findEmployeeById(id){requireFixtures();return EMPLOYEES.find(x=>x.id===id)||null}
-module.exports={fixturesEnabled,findUserBySubject,findEmployeeById};
+function listEmployees(){requireFixtures();return EMPLOYEES.map(x=>({...x}))}
+module.exports={fixturesEnabled,findUserBySubject,findEmployeeById,listEmployees};
