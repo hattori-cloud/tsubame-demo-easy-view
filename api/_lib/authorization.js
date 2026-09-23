@@ -1,5 +1,5 @@
 const {AuthError}=require('./auth');
-const {fixturesEnabled,findUserBySubject,findEmployeeById}=require('../_fixtures/staging-registry');
+const {fixturesEnabled,findUserBySubject,findEmployeeById,listEmployees}=require('../_fixtures/staging-registry');
 
 function resolveCurrentUser(identity){
   if(!fixturesEnabled())throw new AuthError(503,'USER_STORE_NOT_CONFIGURED','ユーザー台帳の接続が未設定です');
@@ -27,4 +27,20 @@ function getStagingEmployeeForUser(user,id){
   if(!fixturesEnabled())throw new AuthError(503,'DATA_STORE_NOT_CONFIGURED','社員データ接続が未設定です');
   return requireEmployeeAccess(user,findEmployeeById(id))
 }
-module.exports={resolveCurrentUser,canAccessEmployee,requireEmployeeAccess,getStagingEmployeeForUser};
+function listStagingEmployeesForUser(user,query={}){
+  if(!fixturesEnabled())throw new AuthError(503,'DATA_STORE_NOT_CONFIGURED','社員データ接続が未設定です');
+  let rows=listEmployees().filter(employee=>canAccessEmployee(user,employee));
+  const q=String(query.q||'').trim().toLowerCase();
+  const office=String(query.office||'').trim();
+  const department=String(query.department||'').trim();
+  const status=String(query.status||'').trim();
+  if(office)rows=rows.filter(x=>x.office===office);
+  if(department)rows=rows.filter(x=>x.department===department);
+  if(status)rows=rows.filter(x=>x.lifecycle_status===status);
+  if(q)rows=rows.filter(x=>[x.employee_no,x.name,x.office,x.department,x.position].join(' ').toLowerCase().includes(q));
+  const page=Math.max(1,Number.parseInt(query.page,10)||1);
+  const pageSize=Math.min(100,Math.max(1,Number.parseInt(query.page_size,10)||50));
+  const total=rows.length,start=(page-1)*pageSize;
+  return {items:rows.slice(start,start+pageSize),page,page_size:pageSize,total}
+}
+module.exports={resolveCurrentUser,canAccessEmployee,requireEmployeeAccess,getStagingEmployeeForUser,listStagingEmployeesForUser};
