@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v156 foundation build.
+Current application: v157 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v156 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v156.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v157.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -122,3 +122,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v155 upgrades the “今日確認する社員” flow: each employee now shows the reason, the first action to take, a direct button into that action, and a separate option to review the whole employee record. The same reason/action pattern is used inside employee detail attention points.
 
 - v156 renames the deadline center to “期限・更新の確認” and redesigns each deadline row around “いつまで → やること → 担当,” with clickable employee names plus separate review and direct-update actions when editing is permitted.
+
+- v157 renames the qualification/document center to “資格・書類の確認” and redesigns it around “なぜ確認？ → やること → 更新”. Employee names open employee detail, qualification/document rows provide direct update actions, and missing evidence can be registered directly from the affected qualification.
