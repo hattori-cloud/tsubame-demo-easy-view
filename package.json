@@ -8,5 +8,8 @@
   },
   "dependencies": {
     "@ayocore/exceljs": "5.0.4"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
   }
 }
