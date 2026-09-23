@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v137</title>
-<!-- production-sync:v137 -->
+<title>つばめ交通株式会社 社員一元管理システム v138</title>
+<!-- production-sync:v138 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -313,6 +313,25 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .safety-priority-open{min-height:42px;white-space:nowrap}
 .safety-priority-empty{border:1px solid #c7dfcf;background:#f6fcf8;color:#28613c;border-radius:11px;padding:11px 13px;font-weight:900}
 @media(max-width:680px){.safety-priority-head{flex-direction:column}.safety-priority-head .mini{text-align:left}.safety-priority-item{grid-template-columns:1fr}.safety-priority-open{width:100%}}
+
+/* v138 employee safety trend */
+.employee-safety-trend-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0}
+.employee-safety-trend-kpi{border:1px solid #d7e4ea;border-radius:11px;background:#fff;padding:10px}
+.employee-safety-trend-kpi small{display:block;color:#687e89;font-weight:950}
+.employee-safety-trend-kpi b{display:block;color:#173f57;font-size:1.35rem;margin:3px 0}
+.employee-safety-trend-kpi.warn{border-left:6px solid #d4aa26;background:#fffdf3}
+.employee-safety-trend-kpi.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
+.employee-safety-trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.employee-safety-trend-card{border:1px solid #d9e5ea;border-radius:12px;background:#fbfdfe;padding:11px}
+.employee-safety-trend-card h4{margin:0 0 8px;color:#214f64}
+.employee-safety-months{display:grid;gap:6px}
+.employee-safety-month{display:grid;grid-template-columns:82px 1fr;gap:8px;align-items:center;border-bottom:1px solid #e7eef1;padding:5px 0}
+.employee-safety-month:last-child{border-bottom:0}
+.employee-safety-month-counts{display:flex;gap:6px;flex-wrap:wrap}
+.employee-safety-month-counts span{font-size:.68rem;font-weight:900;border:1px solid #d4e2e8;border-radius:999px;background:#fff;padding:3px 7px}
+.employee-safety-trend-note{border:1px solid #d8e5eb;background:#f8fbfc;border-radius:10px;padding:9px 10px;font-size:.72rem;line-height:1.5;color:#526e7a}
+@media(max-width:850px){.employee-safety-trend-kpis{grid-template-columns:1fr 1fr}.employee-safety-trend-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.employee-safety-trend-kpis{grid-template-columns:1fr}}
 .comms-tabs{margin-bottom:12px}.comms-list-row{margin-top:8px}.comms-list-row:first-child{margin-top:0}
 .manage-quick-bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .manage-section{border:1px solid #cadbe4;border-radius:13px;background:#fff;margin-top:12px;overflow:hidden}
@@ -3576,7 +3595,7 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -4336,6 +4355,67 @@ function employeeOperationalOverviewHtml(no){
   '</div></div>'
 }
 
+function employeeSafetyTrendData(no){
+ let accidents=canViewManagementRecord('accident',no)?A.filter(x=>String(x.employee_no)===String(no)):[];
+ let complaints=canViewManagementRecord('complaint',no)?C.filter(x=>String(x.employee_no)===String(no)):[];
+ let near=canViewManagementRecord('near_miss',no)?N.filter(x=>String(x.employee_no)===String(no)):[];
+ let age=d=>d?Math.max(0,-days(d)):99999;
+ let inDays=(d,n)=>d&&age(d)<=n;
+ let stats=(n)=>({
+  accidents:accidents.filter(x=>inDays(x.date,n)).length,
+  complaints:complaints.filter(x=>inDays(x.occurrenceDate||x.responseDate||x.date,n)).length,
+  near:near.filter(x=>inDays(x.date,n)).length
+ });
+ let s90=stats(90),s365=stats(365);
+ let high365=near.filter(x=>x.riskLevel==='高い'&&inDays(x.date,365)).length;
+ let openAcc=accidents.filter(x=>x.phase!=='完了').length,openComp=complaints.filter(x=>x.status!=='完了').length;
+ let types=analysisCount(accidents.filter(x=>inDays(x.date,365)).map(x=>x.accidentType||'未設定'));
+ let ranks=analysisCount(complaints.filter(x=>inDays(x.occurrenceDate||x.responseDate||x.date,365)).map(x=>complaintRankLabel(x.rank||'未判定')));
+ let situations=analysisCount(analysisFlatten(near.filter(x=>inDays(x.date,365)),'situationTags'));
+ let vehicles=analysisCount([
+  ...accidents.filter(x=>inDays(x.date,365)).map(x=>x.vehicle),
+  ...complaints.filter(x=>inDays(x.occurrenceDate||x.responseDate||x.date,365)).map(x=>x.vehicle),
+  ...near.filter(x=>inDays(x.date,365)).map(x=>x.vehicle)
+ ].filter(x=>x&&x!=='未設定').map(x=>String(x)+'号車'));
+ let months={};
+ [...accidents.map(x=>({kind:'事故',date:x.date})),...complaints.map(x=>({kind:'苦情',date:x.occurrenceDate||x.responseDate||x.date})),...near.map(x=>({kind:'ヒヤリ',date:x.date}))].forEach(x=>{
+  if(!x.date||!inDays(x.date,365))return;
+  let k=String(x.date).slice(0,7);months[k]=months[k]||{事故:0,苦情:0,ヒヤリ:0};months[k][x.kind]++
+ });
+ return {accidents,complaints,near,s90,s365,high365,openAcc,openComp,types,ranks,situations,vehicles,months}
+}
+function employeeSafetyTrendTopText(map,empty='該当データなし'){
+ let entries=Object.entries(map||{}).sort((a,b)=>b[1]-a[1]||String(a[0]).localeCompare(String(b[0]),'ja')).slice(0,5);
+ return entries.length?entries.map(([k,v])=>'<div class="row"><div><b>'+esc(k)+'</b></div><span class="badge">'+v+'件</span></div>').join(''):'<div class="mini">'+esc(empty)+'</div>'
+}
+function employeeSafetyTrendHtml(no){
+ let d=employeeSafetyTrendData(no),e=emp(no),months=Object.entries(d.months).sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).slice(0,12);
+ let total=d.accidents.length+d.complaints.length+d.near.length;
+ return '<div class="section"><div class="list-summary"><div><h3 style="margin:0">安全記録の期間別確認</h3><div class="mini">登録されている事故・苦情・ヒヤリを期間別に整理します。社員評価や原因推定は行いません。</div></div><button class="btn primary" onclick="openEmployeeSafetyTrend(\''+String(no).replaceAll("'","")+'\')">詳しく見る</button></div>'+
+  '<div class="employee-safety-trend-kpis">'+
+   '<div class="employee-safety-trend-kpi"><small>直近90日</small><b>'+(d.s90.accidents+d.s90.complaints+d.s90.near)+'件</b><div class="mini">事故 '+d.s90.accidents+' / 苦情 '+d.s90.complaints+' / ヒヤリ '+d.s90.near+'</div></div>'+
+   '<div class="employee-safety-trend-kpi"><small>直近1年</small><b>'+(d.s365.accidents+d.s365.complaints+d.s365.near)+'件</b><div class="mini">事故 '+d.s365.accidents+' / 苦情 '+d.s365.complaints+' / ヒヤリ '+d.s365.near+'</div></div>'+
+   '<div class="employee-safety-trend-kpi '+(d.openAcc+d.openComp?'warn':'')+'"><small>未完了案件</small><b>'+(d.openAcc+d.openComp)+'件</b><div class="mini">事故 '+d.openAcc+' / 苦情 '+d.openComp+'</div></div>'+
+   '<div class="employee-safety-trend-kpi '+(d.high365?'warn':'')+'"><small>高危険ヒヤリ（1年）</small><b>'+d.high365+'件</b><div class="mini">全安全記録 '+total+'件</div></div>'+
+  '</div></div>'
+}
+function openEmployeeSafetyTrend(no){
+ if(!guardEmployeeView(no,'安全傾向'))return;
+ let e=emp(no);if(!e)return;
+ let d=employeeSafetyTrendData(no),months=Object.entries(d.months).sort((a,b)=>String(b[0]).localeCompare(String(a[0]))).slice(0,12),safeNo=String(no).replaceAll("'","");
+ dttl.textContent=e.name+' の安全記録傾向';
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+safeNo+'\');setTimeout(()=>setEmployeeDetailTab(\'safety\'),20)">← 社員詳細・安全へ戻る</button><button class="btn soft" onclick="openEmployeeSafetyTimeline(\''+safeNo+'\')">全安全履歴</button></div>'+
+  '<div class="employee-safety-trend-note"><b>見方：</b>この画面は登録済み記録の件数・分類を整理するものです。件数だけで社員の安全性や責任を評価せず、個別記録と運行状況を確認してください。</div>'+
+  employeeSafetyTrendHtml(no)+
+  '<div class="employee-safety-trend-grid">'+
+   '<div class="employee-safety-trend-card"><h4>直近1年の月別記録</h4><div class="employee-safety-months">'+(months.length?months.map(([k,v])=>'<div class="employee-safety-month"><b>'+esc(accidentMonthLabel(k))+'</b><div class="employee-safety-month-counts"><span>事故 '+v.事故+'</span><span>苦情 '+v.苦情+'</span><span>ヒヤリ '+v.ヒヤリ+'</span></div></div>').join(''):'<div class="mini">直近1年の記録はありません。</div>')+'</div></div>'+
+   '<div class="employee-safety-trend-card"><h4>事故形態（直近1年）</h4>'+employeeSafetyTrendTopText(d.types)+'</div>'+
+   '<div class="employee-safety-trend-card"><h4>苦情ランク（直近1年）</h4>'+employeeSafetyTrendTopText(d.ranks)+'</div>'+
+   '<div class="employee-safety-trend-card"><h4>ヒヤリ時の行動（直近1年）</h4>'+employeeSafetyTrendTopText(d.situations)+'</div>'+
+   '<div class="employee-safety-trend-card"><h4>安全記録に登録された号車（直近1年）</h4>'+employeeSafetyTrendTopText(d.vehicles)+'</div>'+
+   '<div class="employee-safety-trend-card"><h4>最近の安全記録</h4>'+employeeSafetyTimelineRowsHtml(no,6)+'</div>'+
+  '</div>'
+}
 function employeeSafetyTimelineItems(no){
  let items=[],safeNo=String(no).replaceAll("'","");
  let add=(x)=>{if(x&&x.date)items.push(x)};
@@ -4480,6 +4560,7 @@ function employeeDetail(no){
     <div class="detail-kpi"><label>適性診断</label><b>${esc(e.aptitude||'対象外')}</b></div>
     ${detailDeadlineItem('適性診断次回',e.aptitudeNext,e.aptitude?'未設定':'対象外')}
    </div>
+   ${employeeSafetyTrendHtml(e.no)}
    ${employeeSafetyTimelineHtml(e.no)}
    ${canViewManagementRecord('accident',e.no)?`<div class="section" style="margin-top:10px"><h3>${accYear}年 事故・修理費</h3><div class="detail-kpi-grid">
     <div class="detail-kpi"><label>事故件数</label><b>${accYearStats.count}件</b></div>
@@ -4757,20 +4838,20 @@ function safetyPriorityItems(){
   if(state==='over'){tone='danger';priority=1;reason='フォロー期限 '+Math.abs(days(a.due))+'日超過'}
   else if(state==='today'){tone='warn';priority=2;reason='フォロー期限 本日'}
   else if(accidentNeedsAttention(a)){tone='warn';priority=5;reason='担当・期限・次回対応・事故形態を確認'}
-  if(priority<99)items.push({priority,tone,kind:'事故',date:a.date||'',id:a.id,title:a.summary||a.id,sub:reason+' / '+(a.driver||a.employee_no||'')+' / '+(a.vehicle&&a.vehicle!=='未設定'?a.vehicle+'号車':'号車未設定'),open:"accidentDetail('"+String(a.id||'').replaceAll("'","")+"')"})
+  if(priority<99)items.push({priority,tone,kind:'事故',employeeNo:String(a.employee_no||''),date:a.date||'',id:a.id,title:a.summary||a.id,sub:reason+' / '+(a.driver||a.employee_no||'')+' / '+(a.vehicle&&a.vehicle!=='未設定'?a.vehicle+'号車':'号車未設定'),open:"accidentDetail('"+String(a.id||'').replaceAll("'","")+"')"})
  });
  complaints.forEach(x=>{
   let state=complaintState(x),tone='',priority=99,reason='';
   if(state==='over'){tone='danger';priority=1;reason='フォロー期限 '+Math.abs(days(x.followupDue))+'日超過'}
   else if(state==='today'){tone='warn';priority=2;reason='フォロー期限 本日'}
   else if(complaintNeedsAttention(x)){tone='warn';priority=5;reason='担当・期限・次回対応・ランクを確認'}
-  if(priority<99)items.push({priority,tone,kind:'苦情',date:x.occurrenceDate||x.responseDate||x.date||'',id:x.id,title:x.summary||x.id,sub:reason+' / '+(x.driverName||x.name||x.employee_no||'')+' / '+(x.vehicle&&x.vehicle!=='未設定'?x.vehicle+'号車':'号車未設定'),open:"complaintDetail('"+String(x.id||'').replaceAll("'","")+"')"})
+  if(priority<99)items.push({priority,tone,kind:'苦情',employeeNo:String(x.employee_no||''),date:x.occurrenceDate||x.responseDate||x.date||'',id:x.id,title:x.summary||x.id,sub:reason+' / '+(x.driverName||x.name||x.employee_no||'')+' / '+(x.vehicle&&x.vehicle!=='未設定'?x.vehicle+'号車':'号車未設定'),open:"complaintDetail('"+String(x.id||'').replaceAll("'","")+"')"})
  });
  near.forEach(n=>{
   let tone='',priority=99,reason='';
   if(n.riskLevel==='高い'){tone='warn';priority=3;reason='危険度 高い'}
   else if(nearNeedsAnalysis(n)){tone='warn';priority=6;reason='分析項目 要確認'}
-  if(priority<99)items.push({priority,tone,kind:'ヒヤリ',date:n.date||'',id:n.id,title:n.summary||n.id,sub:reason+' / '+(n.driver||n.employee_no||'')+' / '+(n.vehicle&&n.vehicle!=='未設定'?n.vehicle+'号車':'号車未設定'),open:"nearDetail('"+String(n.id||'').replaceAll("'","")+"')"})
+  if(priority<99)items.push({priority,tone,kind:'ヒヤリ',employeeNo:String(n.employee_no||''),date:n.date||'',id:n.id,title:n.summary||n.id,sub:reason+' / '+(n.driver||n.employee_no||'')+' / '+(n.vehicle&&n.vehicle!=='未設定'?n.vehicle+'号車':'号車未設定'),open:"nearDetail('"+String(n.id||'').replaceAll("'","")+"')"})
  });
  return items.sort((a,b)=>a.priority-b.priority||String(a.date||'').localeCompare(String(b.date||''))||String(a.kind).localeCompare(String(b.kind),'ja'))
 }
@@ -4783,7 +4864,7 @@ function renderSafetyPriorityQueue(){
   el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先対応</h3><div class="mini">期限超過・本日期限・高危険・入力不足を横断確認</div></div></div><div class="safety-priority-empty">現在、最優先で確認する安全案件はありません。</div></div>';return
  }
  el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先対応</h3><div class="mini">期限超過 → 本日期限 → 高危険ヒヤリ → 入力不足の順に表示</div></div><div class="mini">全 '+all.length+'件 / 期限超過 '+over+' / 本日 '+today+' / 高危険 '+high+'</div></div><div class="safety-priority-list">'+
-  shown.map(x=>'<div class="safety-priority-item '+x.tone+'"><div class="safety-priority-kind">'+esc(x.kind)+'<div class="mini">'+esc(x.date||'日付未設定')+' / '+esc(x.id||'')+'</div></div><div class="safety-priority-main"><b>'+esc(x.title||'')+'</b><span>'+esc(x.sub||'')+'</span></div><button class="btn '+(x.tone==='danger'?'danger':'soft')+' safety-priority-open" onclick="'+x.open+'">詳細</button></div>').join('')+
+  shown.map(x=>'<div class="safety-priority-item '+x.tone+'"><div class="safety-priority-kind">'+esc(x.kind)+'<div class="mini">'+esc(x.date||'日付未設定')+' / '+esc(x.id||'')+'</div></div><div class="safety-priority-main"><b>'+esc(x.title||'')+'</b><span>'+esc(x.sub||'')+'</span></div><div class="toolbar"><button class="btn soft safety-priority-open" onclick="openEmployeeSafetyTrend(\''+String(x.employeeNo||'').replaceAll("'","")+'\')">社員傾向</button><button class="btn '+(x.tone==='danger'?'danger':'soft')+' safety-priority-open" onclick="'+x.open+'">詳細</button></div></div>').join('')+
   (all.length>shown.length?'<div class="mini" style="margin-top:8px">優先度の高い8件を表示 / 全'+all.length+'件。各一覧の「要確認」から残りを確認できます。</div>':'')+
  '</div></div>'
 }
@@ -6421,7 +6502,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v137';
+const RELEASE_VERSION='v138';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
