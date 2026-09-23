@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v178</title>
-<!-- production-sync:v178 -->
+<title>つばめ交通株式会社 社員一元管理システム v179</title>
+<!-- production-sync:v179 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1111,7 +1111,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 </div>
 <div class="grid2" style="margin-top:12px">
  <div class="card"><div class="list-summary"><div><h3 style="margin:0">勤務時間 要確認</h3><div class="mini">残業45時間以上・勤務集計の更新確認だけを表示します。</div></div><button class="btn soft" onclick="openWorkAttentionCenter()">一覧</button></div><div id="workRows" class="list"></div></div>
- <div class="card admin-only full-admin-only"><h3>勤務集計Excel取込（検証）</h3><div class="scope-note">本番では「ファイル選択 → 取込前チェック → 確認して取込」の3段階で処理します。現在は検証環境のため確定取込は行いません。</div><input id="attendanceFile" type="file" accept=".xlsx,.xls" onchange="attendanceSelected()"><div class="import-steps"><div class="import-step"><strong>1. ファイル選択</strong><span id="attFileName" class="mini">未選択</span></div><div class="import-step"><strong>2. 取込前チェック</strong><button id="attPreBtn" class="btn soft" disabled onclick="attendancePreflight()">チェック</button></div><div class="import-step"><strong>3. 確定取込</strong><button id="attImportBtn" class="btn primary" disabled onclick="attendanceImportDry()">確認して取込</button></div></div><div id="attResult" class="mini" style="margin-top:9px"></div></div>
+ <div class="card admin-only full-admin-only"><h3>勤務集計Excel取込（安全確認）</h3><div class="scope-note">「ファイル選択 → 取込前チェック → 差分確認 → 確定」の順で処理します。現在の共有デモでは確定更新は行わず、ファイル識別と取込条件だけを検証します。対応形式は .xlsx です。</div><input id="attendanceFile" type="file" accept=".xlsx" onchange="attendanceSelected()"><div class="import-steps"><div class="import-step"><strong>1. ファイル選択</strong><span id="attFileName" class="mini">未選択</span></div><div class="import-step"><strong>2. 取込前チェック</strong><button id="attPreBtn" class="btn soft" disabled onclick="attendancePreflight()">チェック</button></div><div class="import-step"><strong>3. 差分確認</strong><button id="attDiffBtn" class="btn soft" disabled onclick="attendanceShowPreflight()">結果を見る</button></div><div class="import-step"><strong>4. 確定取込</strong><button id="attImportBtn" class="btn primary" disabled onclick="attendanceImportDry()">確認して取込</button></div></div><div id="attResult" class="mini" style="margin-top:9px"></div></div>
 </div>
 <div class="grid2" style="margin-top:12px"><div class="card"><h3>健康診断予定</h3><div id="healthSchedule"></div></div><div class="card"><h3>安全指導・適性診断</h3><div id="safetyTraining"></div></div></div></section>
 
@@ -1847,6 +1847,32 @@ function ensureCommsFields(){
  if(changed){localStorage.setItem('v65APPLICATIONS',JSON.stringify(APPLICATIONS));localStorage.setItem('v65NOTICES',JSON.stringify(NOTICES));localStorage.setItem('v65CONFIRMATIONS',JSON.stringify(CONFIRMATIONS))}
 }
 let ATT_PRECHECK=false;
+let ATT_PRECHECK_STATE=null;
+async function attendanceFileFingerprint(file){
+ if(!file)return '';
+ let buffer=await file.arrayBuffer();
+ let digest=await crypto.subtle.digest('SHA-256',buffer);
+ return Array.from(new Uint8Array(digest)).map(b=>b.toString(16).padStart(2,'0')).join('')
+}
+function attendanceFileState(file,fingerprint=''){
+ return file?{name:file.name,size:file.size,lastModified:file.lastModified,type:file.type||'',fingerprint}:null
+}
+function attendanceSameFile(a,b){
+ return !!a&&!!b&&a.name===b.name&&a.size===b.size&&a.lastModified===b.lastModified&&a.fingerprint===b.fingerprint
+}
+function attendanceRequiredFields(){
+ return ['社員番号','拘束時間','残時間','残業時間','最終計上日']
+}
+function attendanceShowPreflight(){
+ if(!ATT_PRECHECK_STATE)return alert('先に取込前チェックを実行してください');
+ dttl.textContent='勤務集計Excel 取込前チェック';
+ let s=ATT_PRECHECK_STATE;
+ dbody.innerHTML='<div class="detail-alert '+(s.ok?'ok':'warn')+'"><b>'+(s.ok?'ファイル固定確認済み':'要確認')+'</b><div class="mini">このチェック結果は選択した同一ファイルにだけ有効です。</div></div>'+
+ '<div class="infogrid"><div class="info"><label>ファイル</label><b>'+esc(s.file.name)+'</b></div><div class="info"><label>サイズ</label><b>'+Math.ceil(s.file.size/1024)+' KB</b></div><div class="info"><label>SHA-256</label><b style="font-size:.72rem;word-break:break-all">'+esc(s.file.fingerprint)+'</b></div></div>'+
+ '<div class="section"><h3>本番で確認する項目</h3><div class="scope-note">'+attendanceRequiredFields().map(esc).join(' / ')+'。列名は実ファイルを確認してから確定し、似た列名を勝手に確定更新しません。</div></div>'+
+ '<div class="section"><h3>現在の状態</h3><div class="row"><div><b>ブラウザ側</b><div class="mini">同一ファイル確認・サイズ・拡張子・ファイル指紋</div></div><span class="badge ok">確認済み</span></div><div class="row quality-warn"><div><b>サーバー側XLSX解析</b><div class="mini">本番認証接続後に全社管理者だけ利用。現在の共有デモでは送信しません。</div></div><span class="badge warn">接続待ち</span></div></div>';
+ showDetailModal()
+}
 function ensureDriverCertificationFields(){
  let changed=false;
  E.forEach(e=>{
@@ -3383,9 +3409,46 @@ function renderWork(){
  let training=scopedTraining().slice().sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||days(a.due)-days(b.due)).slice(0,8);
  safetyTraining.innerHTML=training.length?training.map(t=>{let e=emp(t.employee_no),info=trainingActionInfo(t);return `<div class="row"><div><div class="training-employee-line">${e?employeeNameLinkHtml(e.no,e.name,'work-employee-link'):'<b>'+esc(t.employee_no)+'</b>'}<span>${esc(t.course)}</span></div><div class="mini">期限 ${t.due||'未設定'} ${t.due?' / '+deadlineBucketLabel(t.due):''}</div>${trainingActionHtml(info)}</div><div class="toolbar">${badge(t.status)}${e?'<button class="btn '+(info.tone==='danger'?'danger':info.tone==='warn'?'primary':'soft')+'" onclick="employeeTraining(\''+e.no+'\')">指導記録</button>':''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>'
 }
-function attendanceSelected(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}ATT_PRECHECK=false;attImportBtn.disabled=true;attPreBtn.disabled=!attendanceFile.files.length;attFileName.textContent=attendanceFile.files[0]?.name||'未選択';attResult.textContent=''}
-function attendancePreflight(){if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}if(!attendanceFile.files.length)return;ATT_PRECHECK=true;attImportBtn.disabled=false;attResult.textContent='DRY_RUN：対象月 2026年8月 / 照合 28名 / 未照合 0名 / 最終計上日 2026-09-15（架空）';audit('拘束時間取込前チェック',attendanceFile.files[0].name)}
-function attendanceImportDry(){if(!isFullCompanyAdmin()){alert('勤務集計Excel取込は全社管理者のみ操作できます');return}if(!ATT_PRECHECK)return;attResult.textContent='検証環境のため確定取込は行いません。本番では同一ファイル・同一確認結果のみ確定できます。';audit('勤務集計取込DRY_RUN',attendanceFile.files[0]?.name||'')}
+function attendanceSelected(){
+ if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}
+ ATT_PRECHECK=false;ATT_PRECHECK_STATE=null;
+ let file=attendanceFile.files[0]||null;
+ attImportBtn.disabled=true;attDiffBtn.disabled=true;attPreBtn.disabled=!file;
+ attFileName.textContent=file?file.name+' / '+Math.ceil(file.size/1024)+' KB':'未選択';
+ attResult.textContent=file&&!/\.xlsx$/i.test(file.name)?'対応形式は .xlsx のみです。旧 .xls はExcelで .xlsx として保存し直してください。':''
+}
+async function attendancePreflight(){
+ if(!isFullCompanyAdmin()){alert('拘束時間Excel取込は全社管理者のみ操作できます');return}
+ let file=attendanceFile.files[0];if(!file)return;
+ if(!/\.xlsx$/i.test(file.name)){ATT_PRECHECK=false;attImportBtn.disabled=true;attDiffBtn.disabled=true;return alert('対応形式は .xlsx のみです')}
+ if(file.size<=0)return alert('ファイルが空です');
+ if(file.size>8*1024*1024)return alert('取込前チェックは8MB以下のファイルに対応しています');
+ attPreBtn.disabled=true;attResult.textContent='ファイルを識別しています…';
+ try{
+  let fingerprint=await attendanceFileFingerprint(file),state=attendanceFileState(file,fingerprint);
+  ATT_PRECHECK=true;
+  ATT_PRECHECK_STATE={ok:true,file:state,checkedAt:new Date().toISOString(),serverParsed:false};
+  attDiffBtn.disabled=false;attImportBtn.disabled=false;
+  attResult.textContent='取込前チェック済み：'+file.name+' / SHA-256 '+fingerprint.slice(0,12)+'… / 本番解析は認証接続後';
+  audit('拘束時間取込前チェック',file.name+' / '+fingerprint.slice(0,16),{entity_type:'system',entity_id:'work-import-preflight'})
+ }catch(err){
+  ATT_PRECHECK=false;ATT_PRECHECK_STATE=null;attDiffBtn.disabled=true;attImportBtn.disabled=true;
+  attResult.textContent='取込前チェックに失敗しました。';
+  alert('ファイル識別に失敗しました。\n'+String(err?.message||err))
+ }finally{attPreBtn.disabled=!attendanceFile.files.length}
+}
+async function attendanceImportDry(){
+ if(!isFullCompanyAdmin()){alert('勤務集計Excel取込は全社管理者のみ操作できます');return}
+ if(!ATT_PRECHECK||!ATT_PRECHECK_STATE)return alert('先に取込前チェックを実行してください');
+ let file=attendanceFile.files[0];if(!file)return;
+ let current=attendanceFileState(file,await attendanceFileFingerprint(file));
+ if(!attendanceSameFile(current,ATT_PRECHECK_STATE.file)){
+  ATT_PRECHECK=false;ATT_PRECHECK_STATE=null;attDiffBtn.disabled=true;attImportBtn.disabled=true;
+  return alert('取込前チェック後にファイルが変わっています。\nもう一度チェックしてください。')
+ }
+ attResult.textContent='安全確認済み。共有デモでは確定更新しません。本番ではサーバー解析結果・社員照合・差分・同一ファイル指紋を再確認してから確定します。';
+ audit('勤務集計取込DRY_RUN',file.name+' / 同一ファイル確認済み',{entity_type:'system',entity_id:'work-import-dry-run'})
+}
 function commsTargetEmployees(item){
  let list=E.filter(e=>e.status!=='退職');
  if(item.targetType==='office')list=list.filter(e=>e.branch===item.targetValue);
@@ -7803,7 +7866,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v178';
+const RELEASE_VERSION='v179';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
