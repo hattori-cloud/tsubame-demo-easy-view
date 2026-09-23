@@ -3761,14 +3761,14 @@ function showUserAccessDetail(id){
  dbody.innerHTML=`<div class="detail-primary"><h3>アカウント</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>利用者</label><b>${esc(u.name)}</b></div>
   <div class="detail-primary-item"><label>権限</label><b>${esc(userRoleLabel(u))}</b></div>
-  <div class="detail-primary-item"><label>状態</label>${badge(userEffectiveState(u))}</div>
+  <div class="detail-primary-item"><label>状態</label>${badge(userEffectiveState(u))}${userLifecycleReason(u)?'<div class="mini">'+esc(userLifecycleReason(u))+'</div>':''}</div>
   <div class="detail-primary-item"><label>認証</label><b>${esc(u.authMethod||'本番未接続')}</b></div>
   <div class="detail-primary-item"><label>MFA</label><b>${esc(u.mfa||'未設定')}</b></div>
   <div class="detail-primary-item"><label>安全判断権限</label><b>${u.safetyAuthority?'あり':'なし'}</b></div>
  </div></div>
  ${warnings.length?'<div class="detail-alert warn"><b>確認事項：</b> '+warnings.map(esc).join(' / ')+'</div>':'<div class="detail-alert ok">利用者台帳上の大きな警告はありません。</div>'}
  <div class="section"><h3>担当範囲</h3>${u.adminLevel==='full'?'<div class="row"><b>全社</b><span class="badge ok">固定</span></div>':scopes.length?scopes.map(s=>'<div class="row"><div><b>'+esc((s.office||'全事業所')+' × '+(s.dept||'全部署'))+'</b></div><span class="badge ok">許可</span></div>').join(''):'<div class="notice"><div><b>担当範囲が未設定です。</b><div class="mini">本番ではログインできても業務データを表示しない状態にします。</div></div><span class="badge warn">要設定</span></div>'}</div>
- <div class="section"><h3>ログイン運用情報</h3><div class="infogrid"><div class="info"><label>ログイン識別子（架空）</label><b>${esc(u.loginKey||'-')}</b></div><div class="info"><label>最終ログイン</label><b>${esc(u.lastLogin||'未接続')}</b></div><div class="info"><label>セッション</label><b>${Number(u.sessions||0)}</b></div></div><div class="scope-note" style="margin-top:9px">共有デモでは認証・セッションは実動していません。本番ではサーバー側で管理します。</div></div>`;
+ <div class="section"><h3>ログイン運用情報</h3><div class="infogrid"><div class="info"><label>ログイン識別子（架空）</label><b>${esc(u.loginKey||'-')}</b></div><div class="info"><label>最終ログイン</label><b>${esc(u.lastLogin||'未接続')}</b></div><div class="info"><label>セッション</label><b>${userEffectiveState(u)==='有効'?Number(u.sessions||0):0}</b></div></div><div class="scope-note" style="margin-top:9px">共有デモでは認証・セッションは実動していません。本番ではサーバー側で管理します。</div></div>`;
  showDetailModal()
 }
 function renderUserRows(){
@@ -4181,6 +4181,8 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('トランザクション保存対象',duplicateSaveKeys.length===0&&coreSaveKeys.includes('v29AUDIT'),duplicateSaveKeys.length?'重複キー：'+duplicateSaveKeys.join('、'):'業務データ '+coreSaveKeys.length+'領域（監査含む）'));
  let concurrentGuardOk=typeof CORE_REVISION_KEY==='string'&&typeof coreSaveRevisionIsCurrent==='function'&&typeof showConcurrentChangeBanner==='function';
  out.push(systemDiagnosticCheck('別タブ上書き防止',concurrentGuardOk,concurrentGuardOk?'主要業務データの外部更新を検知し、古い画面からの保存を停止':'同時編集ガードが不足しています'));
+ let lifecycleAccessOk=typeof userEffectiveState==='function'&&typeof userLinkedEmployee==='function'&&USERS.filter(u=>userLinkedEmployee(u)?.status==='退職').every(u=>userEffectiveState(u)==='停止');
+ out.push(systemDiagnosticCheck('退職者アカウント停止整合',lifecycleAccessOk,lifecycleAccessOk?'退職社員に紐づく利用者は実効状態を停止として扱います':'退職者と利用者状態の整合に問題があります'));
  let numericEmployeeNos=E.map(x=>Number.parseInt(String(x.no||''),10)).filter(Number.isFinite),nextNo=nextEmployeeNumber(),maxEmployeeNo=numericEmployeeNos.length?Math.max(...numericEmployeeNos):1000;
  let employeeNoOk=/^\d+$/.test(nextNo)&&Number(nextNo)>maxEmployeeNo&&!E.some(x=>String(x.no)===String(nextNo));
  out.push(systemDiagnosticCheck('社員番号 自動採番',employeeNoOk,employeeNoOk?'次回候補 '+nextNo+' / 既存最大 '+maxEmployeeNo:'採番候補が既存番号と重複または不正です'));
