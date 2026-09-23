@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v177 foundation build.
+Current application: v178 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -155,4 +155,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v175 aligns the demo user registry with employee lifecycle state: a user linked to an employee whose lifecycle status is retired is treated as effectively stopped, excluded from active-manager and self-user selection, shown with zero effective sessions, and checked by administrator self-diagnostics. This models the intended retirement rule while real authentication/session invalidation remains a production-server responsibility.
 - v176 strengthens employee identity for future employee-number changes. Existing employee `system_id` values are no longer regenerated from the current employee number at boot; accident, complaint, near-miss, vehicle, qualification, document, training, asset, guidance and application records are backfilled with a stable `employee_id`, new/updated records inherit that stable link, lookups accept current number, old number or stable ID, and relation-integrity checks validate the stable references. Employee-number editing remains disabled in the normal UI.
 - v177 extends the fail-closed production API vertical slice with `GET /api/v1/employees`. The endpoint authenticates the bearer token, resolves the server-side user registry, filters employees through full/scoped/self authorization before applying requested filters, caps pagination, and returns only fictional staging fixtures. A fictional self-service identity was added so full, scoped and self authorization paths can be tested without real employee data. Public production remains closed when authentication is not configured.
+- v178 makes the document-storage boundary explicit in the demo. Document lists and previews now state that only metadata is stored, action labels say “document information” rather than implying a real file is opened, and the production migration gate treats private original-file storage as a blocking requirement until a private object store, short-lived access authorization, backup and restore path are connected.
 
