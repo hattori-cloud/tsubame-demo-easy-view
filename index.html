@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v143</title>
-<!-- production-sync:v143 -->
+<title>つばめ交通株式会社 社員一元管理システム v144</title>
+<!-- production-sync:v144 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -852,6 +852,10 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .form-fast-status strong{display:block;color:#214f64;font-size:.8rem}
 .form-fast-status span{display:inline-flex;margin-top:3px;font-size:.7rem;font-weight:900;color:#5c7480}
 .form-fast-status span.ok{color:#2b6d4b}
+/* v144 required-field guidance */
+.form-fold-progress{display:inline-flex;margin-left:7px;padding:2px 7px;border-radius:999px;background:#fff5d1;color:#705700;font-size:.61rem;font-weight:950}
+.form-fold-progress.ok{background:#e8f6ec;color:#216437}
+.form-fast-next[disabled]{opacity:.62;cursor:default;filter:none;box-shadow:none}
 .form-fast-toolbar .toolbar{margin:0}
 .form-fast-toolbar .btn{min-height:40px;padding:7px 10px}
 .form-fold-primary>summary{border-left:5px solid #79aebe}
@@ -5360,11 +5364,41 @@ function currentFormControlFilled(el){
  if(el.type==='checkbox'||el.type==='radio')return !!el.checked;
  return String(el.value??'').trim()!==''
 }
+function currentFormMissingRequiredFields(){
+ return currentFormRequiredFields().filter(x=>!currentFormControlFilled(x.control))
+}
+function currentFormFieldLabel(field){
+ let label=field?.querySelector('label');if(!label)return '必須項目';
+ let copy=label.cloneNode(true);copy.querySelectorAll('.req').forEach(x=>x.remove());
+ return copy.textContent.trim()||'必須項目'
+}
+function updateCurrentFormSectionProgress(){
+ [...fbody.querySelectorAll('.form-fold')].forEach(fold=>{
+  let badge=fold.querySelector('[data-form-progress]');if(!badge)return;
+  let req=[...fold.querySelectorAll('.field')].filter(field=>field.querySelector('.req')).map(field=>field.querySelector('input:not([type="hidden"]),select,textarea')).filter(Boolean);
+  let done=req.filter(currentFormControlFilled).length,missing=req.length-done;
+  badge.textContent=missing?('残り'+missing):'OK';
+  badge.classList.toggle('ok',missing===0)
+ })
+}
+function jumpToNextMissingRequired(){
+ let missing=currentFormMissingRequiredFields();
+ if(!missing.length){updateCurrentFormFastStatus();return alert('必須項目はすべて入力済みです。')}
+ clearFormValidation();
+ let target=missing[0],fold=target.field.closest('.form-fold');
+ if(fold)fold.open=true;
+ target.field.classList.add('validation-missing');
+ target.control.scrollIntoView({behavior:'smooth',block:'center'});
+ setTimeout(()=>target.control.focus(),180)
+}
 function updateCurrentFormFastStatus(){
  let el=document.getElementById('formFastStatus');if(!el)return;
  let req=currentFormRequiredFields(),done=req.filter(x=>currentFormControlFilled(x.control)).length,missing=req.length-done;
  el.textContent=req.length?(missing?('必須 '+done+'/'+req.length+'入力 / 残り'+missing):('必須 '+done+'/'+req.length+'入力済み')):'必須項目なし';
- el.classList.toggle('ok',req.length===0||missing===0)
+ el.classList.toggle('ok',req.length===0||missing===0);
+ let next=document.getElementById('formFastNextMissing');
+ if(next){next.disabled=missing===0;next.textContent=missing?('次の未入力へ（残り'+missing+'）'):'必須入力完了'}
+ updateCurrentFormSectionProgress()
 }
 function setCurrentFormSectionView(mode='primary'){
  let folds=[...fbody.querySelectorAll('.form-fold')];if(!folds.length)return;
@@ -5372,6 +5406,11 @@ function setCurrentFormSectionView(mode='primary'){
   if(mode==='all')d.open=true;
   else if(mode==='required')d.open=!!d.querySelector('.req');
   else d.open=d.dataset.fastPrimary==='1'
+ });
+ fbody.querySelectorAll('[data-form-view]').forEach(b=>{
+  let active=b.dataset.formView===mode;
+  b.classList.toggle('primary',active);
+  b.classList.toggle('soft',!active)
  });
  let first=folds.find(d=>d.open);if(first&&mode!=='all')first.scrollIntoView({behavior:'smooth',block:'nearest'})
 }
@@ -5395,16 +5434,17 @@ function organizeCurrentFormSections(options={}){
   let details=document.createElement('details');details.className='form-fold';details.dataset.formSection=String(g.index);details.dataset.fastPrimary=primarySet.has(g.index)?'1':'0';details.open=openSet.has(g.index);
   details.classList.add(primarySet.has(g.index)?'form-fold-primary':'form-fold-optional');
   let summary=document.createElement('summary'),required=g.items.some(x=>x.querySelector?.('.req'));
-  summary.innerHTML='<span class="form-fold-summary-text">'+esc(g.title)+(g.note?'<small>'+esc(g.note)+'</small>':'')+'</span><span>'+(required?'<span class="form-fold-required">必須あり</span>':'')+(!primarySet.has(g.index)?'<span class="form-fold-later">後で追記可</span>':'')+'</span>';
+  summary.innerHTML='<span class="form-fold-summary-text">'+esc(g.title)+(g.note?'<small>'+esc(g.note)+'</small>':'')+'</span><span>'+(required?'<span class="form-fold-required">必須あり</span><span class="form-fold-progress" data-form-progress>確認中</span>':'')+(!primarySet.has(g.index)?'<span class="form-fold-later">後で追記可</span>':'')+'</span>';
   let body=document.createElement('div');body.className='form-fold-grid';
   g.items.forEach(x=>body.appendChild(x));details.append(summary,body);built.set(g.index,details)
  });
  [...grid.children].forEach(x=>x.remove());
  order.forEach(i=>{let d=built.get(i);if(d)grid.appendChild(d)});
  let fast=document.createElement('div');fast.className='form-fast-toolbar';
- fast.innerHTML='<div class="form-fast-status"><strong>入力状況</strong><span id="formFastStatus">確認中</span></div><div class="toolbar"><button type="button" class="btn primary" data-form-view="primary">初回入力</button><button type="button" class="btn soft" data-form-view="required">必須だけ</button><button type="button" class="btn soft" data-form-view="all">全項目</button></div>';
+ fast.innerHTML='<div class="form-fast-status"><strong>入力状況</strong><span id="formFastStatus">確認中</span></div><div class="toolbar"><button type="button" class="btn warn form-fast-next" id="formFastNextMissing">次の未入力へ</button><button type="button" class="btn primary" data-form-view="primary">初回入力</button><button type="button" class="btn soft" data-form-view="required">必須だけ</button><button type="button" class="btn soft" data-form-view="all">全項目</button></div>';
+ fast.querySelector('#formFastNextMissing')?.addEventListener('click',jumpToNextMissingRequired);
  fast.querySelectorAll('[data-form-view]').forEach(b=>b.addEventListener('click',()=>setCurrentFormSectionView(b.dataset.formView)));
- let hint=document.createElement('div');hint.className='form-fast-hint';hint.textContent='「初回入力」は今すぐ必要な区分だけ表示します。閉じた区分は保存後でも追記できます。';
+ let hint=document.createElement('div');hint.className='form-fast-hint';hint.textContent='「次の未入力へ」で入力漏れを順番に確認できます。各区分の「OK／残り件数」も確認してください。閉じた区分は保存後でも追記できます。';
  let jump=document.createElement('div');jump.className='form-section-jumps';
  groups.forEach(g=>{
   let b=document.createElement('button');b.type='button';b.textContent=g.title.replace(/^\d+[.．]\s*/,'');
@@ -6915,7 +6955,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v143';
+const RELEASE_VERSION='v144';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
