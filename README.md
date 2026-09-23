@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v189 foundation build.
+Current application: v190 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -177,3 +177,6 @@ Production note: the shared demo still uses fictional data and browser storage. 
 
 
 - v189 adds a manager-facing monthly near-miss submission tracker for taxi drivers. The screen evaluates each in-scope taxi driver separately as 0 / 1 / 2-or-more submissions for the selected month, shows unmet drivers first, supports direct near-miss entry from the unmet list, and paginates the employee compliance list. New near-miss records preserve employee number, office and department snapshots at report time so later transfers do not rewrite historical reporting context. The browser demo still derives the target population from the current fictional employee ledger; production uses the monthly target snapshot design in `docs/production-capacity-v189.sql`.
+
+
+- v190 continues the long-term volume hardening: employee-specific near-miss history and the combined employee safety timeline now show 25 records per page instead of rendering all historical rows, and Home global search is debounced so large safety histories are not rescanned on every keystroke. The production rule remains server-side search/pagination; this change keeps the fictional browser demo usable while history accumulates.
