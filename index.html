@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v146</title>
-<!-- production-sync:v146 -->
+<title>つばめ交通株式会社 社員一元管理システム v147</title>
+<!-- production-sync:v147 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -6093,9 +6093,10 @@ function openEmployeeEdit(no){
 
  fsave.onclick=()=>{
   if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
+  let liveCanAssignment=canChangeEmployeeAssignment(),liveCanLifecycle=canChangeEmployeeLifecycle(),liveCanSafety=canManageSafetyDecision(no);
   if(!requireInputs([{id:'fen',label:'氏名',value:fen.value},{id:'fehire',label:'入社日',value:fehire.value}]))return;
-  let requestedEligibility=canSafety?feelig.value:e.eligibility,requestedSafetyState=canSafety?fess.value:e.safetyState;
-  let restoringToAllowed=canSafety&&String(e.eligibility||'')!=='可'&&requestedEligibility==='可';
+  let requestedEligibility=liveCanSafety?feelig.value:e.eligibility,requestedSafetyState=liveCanSafety?fess.value:e.safetyState;
+  let restoringToAllowed=liveCanSafety&&String(e.eligibility||'')!=='可'&&requestedEligibility==='可';
   let safetyReason=(document.getElementById('fesafetyreason')?.value||'').trim();
   let safetyChecks=[
    ['免許・資格',!!document.getElementById('fechecklicense')?.checked],
@@ -6110,7 +6111,7 @@ function openEmployeeEdit(no){
   }
   if(restoringToAllowed&&['期限切れ','要確認'].includes(requestedSafetyState))return alert('安全管理状態が「期限切れ」または「要確認」のままでは乗務可に戻せません');
   let nextBranch=e.branch,nextDept=e.dept;
-  if(canAssignment){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
+  if(liveCanAssignment){nextBranch=feb.value;nextDept=fed.value;let rule=validateOfficeDept(nextBranch,nextDept);if(rule)return alert(rule)}
   let nextIsDriver=['タクシー課','バス課'].includes(nextDept);
   if(restoringToAllowed&&nextIsDriver){
    if(!felx.value)return alert('乗務可へ戻す前に免許・資格期限を確認してください');
@@ -6125,9 +6126,9 @@ function openEmployeeEdit(no){
   let before={name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
   let after={
    name:fen.value.trim(),furigana:fefuri.value.trim(),hire:fehire.value,branch:nextBranch,dept:nextDept,position:fep.value.trim()||'一般',
-   taxiSection:nextDept==='タクシー課'?fets.value:'',team:feteam.value.trim(),employment:fee.value,status:canLifecycle?fes.value:e.status,
+   taxiSection:nextDept==='タクシー課'?fets.value:'',team:feteam.value.trim(),employment:fee.value,status:liveCanLifecycle?fes.value:e.status,
    workPattern:few.value,health:feh.value,aptitude:feapt.value.trim()||(nextIsDriver?'未設定':'対象外'),aptitudeNext:fea.value,
-   safetyState:canSafety?requestedSafetyState:e.safetyState,eligibility:canSafety?requestedEligibility:e.eligibility,
+   safetyState:liveCanSafety?requestedSafetyState:e.safetyState,eligibility:liveCanSafety?requestedEligibility:e.eligibility,
    license:fel.value.trim()||(nextIsDriver?'未設定':'対象外'),licenseExpiry:felx.value
   };
   if(nextIsDriver){if(!after.licenseExpiry){after.safetyState='要確認';after.eligibility='要確認'}else if(days(after.licenseExpiry)<0){after.safetyState='期限切れ';after.eligibility='不可（更新確認まで）'}}else{after.eligibility='対象外'}
@@ -6964,7 +6965,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v146';
+const RELEASE_VERSION='v147';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
