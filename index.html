@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v196</title>
-<!-- production-sync:v196 -->
+<title>つばめ交通株式会社 社員一元管理システム v197</title>
+<!-- production-sync:v197 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -2903,7 +2903,7 @@ async function prepareSystemRestore(input){
   setSystemBackupStatus('<b>復元前チェックOK</b><br>出力日時 '+esc(String(payload.exportedAt||'不明').replace('T',' ').slice(0,19))+' / アプリ '+esc(payload.schema||'不明')+' / 共通データ '+esc(payload.coreSchema||'旧形式')+'<br>社員 '+c.employees+'名 / 事故 '+c.accidents+'件 / 苦情 '+c.complaints+'件 / ヒヤリ '+c.near+'件 / 車両 '+c.vehicles+'件'+warn,check.warnings.length?'warn':'')
  }catch(err){setSystemBackupStatus('<b>JSONを読み込めません。</b><br>'+esc(String(err?.message||err)),'danger')}
 }
-const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE'];
+const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE',CORE_RECOVERY_REQUIRED_KEY];
 function captureSystemStorageSnapshot(){
  let keys=[...new Set([...SYSTEM_BACKUP_KEYS,...SYSTEM_RESTORE_EXTRA_KEYS])],snapshot={};
  keys.forEach(k=>{snapshot[k]=localStorage.getItem(k)});
@@ -2968,12 +2968,14 @@ function restoreSystemBackup(){
   restoredAudit.unshift({time:appNowLabel(now),time_iso:now.toISOString(),action:'システムバックアップ復元',detail:'共有デモデータのバックアップを復元 / 書込み後再検証OK',employee_no:'',entity_type:'system',entity_id:'backup',actor_id:actor.id,actor_name:actor.name,actor_role:actor.role,scope_office:'',scope_dept:'',structured:true});
   localStorage.setItem('v29AUDIT',JSON.stringify(restoredAudit.slice(0,120)));
   localStorage.setItem('v70LAST_RESTORE',now.toISOString());
-  alert('バックアップを復元し、書込み後の再検証も完了しました。画面を再読み込みします。');
+  clearCoreRecoveryRequired();
+  alert('バックアップを復元し、書込み後の再検証も完了しました。保存停止状態も解除しました。画面を再読み込みします。');
   location.reload()
  }catch(err){
   let rollbackFailed=snapshot?restoreSystemStorageSnapshot(snapshot):[];
   if(rollbackFailed.length){
-   setSystemBackupStatus('<b>復元に失敗し、元データへの自動復旧にも失敗した項目があります。</b><br>'+esc(String(err?.message||err))+'<br>復旧失敗：'+esc(rollbackFailed.join('、')),'danger')
+   markCoreRecoveryRequired();
+   setSystemBackupStatus('<b>復元に失敗し、元データへの自動復旧にも失敗した項目があります。</b><br>'+esc(String(err?.message||err))+'<br>復旧失敗：'+esc(rollbackFailed.join('、'))+'<br><b>安全のため保存を停止しました。</b>','danger')
   }else{
    setSystemBackupStatus('<b>復元に失敗しました。復元前のデータへ自動で戻しました。</b><br>'+esc(String(err?.message||err)),'danger')
   }
@@ -3096,10 +3098,12 @@ function coreSaveItems(){
  ]
 }
 const CORE_REVISION_KEY='v174CORE_REVISION';
+const CORE_RECOVERY_REQUIRED_KEY='v197CORE_RECOVERY_REQUIRED';
 const TAB_INSTANCE_ID='TAB-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
 let CORE_KNOWN_REVISION='';
 let CORE_EXTERNAL_CHANGE=false;
-try{CORE_KNOWN_REVISION=localStorage.getItem(CORE_REVISION_KEY)||''}catch(_){}
+let CORE_RECOVERY_REQUIRED=false;
+try{CORE_KNOWN_REVISION=localStorage.getItem(CORE_REVISION_KEY)||'';CORE_RECOVERY_REQUIRED=localStorage.getItem(CORE_RECOVERY_REQUIRED_KEY)==='1'}catch(_){}
 function currentCoreRevision(){
  try{return localStorage.getItem(CORE_REVISION_KEY)||''}catch(_){return CORE_KNOWN_REVISION||''}
 }
@@ -3118,9 +3122,32 @@ function showConcurrentChangeBanner(){
  }
  el.classList.add('show')
 }
+function showRecoveryRequiredBanner(){
+ let el=document.getElementById('coreRecoveryRequiredBanner');
+ if(!el){
+  el=document.createElement('div');el.id='coreRecoveryRequiredBanner';el.className='concurrent-change-banner';el.setAttribute('role','alert');
+  let msg=document.createElement('div'),b=document.createElement('b'),sp=document.createElement('span');
+  b.textContent='保存と自動復旧の両方に失敗しました';
+  sp.textContent='一部だけ更新された可能性があるため、この端末では以後の保存を停止しています。検証済みバックアップを復元するか、データを確認してから再開してください。';
+  msg.appendChild(b);msg.appendChild(sp);
+  let btn=document.createElement('button');btn.type='button';btn.className='btn primary';btn.textContent='管理画面でバックアップ復元';btn.onclick=()=>{go('manage');setTimeout(()=>document.getElementById('systemBackupStatus')?.scrollIntoView({behavior:'smooth',block:'center'}),100)};
+  el.appendChild(msg);el.appendChild(btn);document.body.appendChild(el)
+ }
+ el.classList.add('show')
+}
+function markCoreRecoveryRequired(){
+ CORE_RECOVERY_REQUIRED=true;CORE_EXTERNAL_CHANGE=true;
+ try{localStorage.setItem(CORE_RECOVERY_REQUIRED_KEY,'1')}catch(_){}
+ showRecoveryRequiredBanner()
+}
+function clearCoreRecoveryRequired(){
+ CORE_RECOVERY_REQUIRED=false;CORE_EXTERNAL_CHANGE=false;
+ try{localStorage.removeItem(CORE_RECOVERY_REQUIRED_KEY)}catch(_){}
+ let el=document.getElementById('coreRecoveryRequiredBanner');if(el)el.classList.remove('show')
+}
 function coreSaveRevisionIsCurrent(){
  let current=currentCoreRevision();
- return !CORE_EXTERNAL_CHANGE&&String(current)===String(CORE_KNOWN_REVISION||'')
+ return !CORE_RECOVERY_REQUIRED&&!CORE_EXTERNAL_CHANGE&&String(current)===String(CORE_KNOWN_REVISION||'')
 }
 function captureCoreSaveSnapshot(items){
  let snapshot={};
@@ -3149,8 +3176,13 @@ let CORE_SAVE_SUCCESS_SEQ=0;
 function save(){
  if(AUDIT_FLUSH_TIMER!==null){clearTimeout(AUDIT_FLUSH_TIMER);AUDIT_FLUSH_TIMER=null}
  if(!coreSaveRevisionIsCurrent()){
-  CORE_EXTERNAL_CHANGE=true;showConcurrentChangeBanner();
-  alert('別のタブまたはウィンドウでデータが更新されています。\n\n古い内容で上書きしないため保存を停止しました。\n「最新データを読み直す」を押してから、もう一度入力してください。');
+  if(CORE_RECOVERY_REQUIRED){
+   showRecoveryRequiredBanner();
+   alert('前回の保存で自動復旧まで失敗したため、以後の保存を停止しています。\n\n管理画面から検証済みバックアップを復元し、データ整合性を確認してください。');
+  }else{
+   CORE_EXTERNAL_CHANGE=true;showConcurrentChangeBanner();
+   alert('別のタブまたはウィンドウでデータが更新されています。\n\n古い内容で上書きしないため保存を停止しました。\n「最新データを読み直す」を押してから、もう一度入力してください。');
+  }
   return false
  }
  let items=coreSaveItems(),snapshot;
@@ -3175,7 +3207,8 @@ function save(){
   STORAGE_HEALTH.lastError='通常保存';
   STORAGE_HEALTH.lastSave='保存失敗 '+appNowLabel();
   if(rollbackFailed.length){
-   alert('保存に失敗し、元データへの自動復旧にも失敗した項目があります。\n'+String(err?.message||err)+'\n復旧失敗：'+rollbackFailed.join('、'));
+   markCoreRecoveryRequired();
+   alert('保存に失敗し、元データへの自動復旧にも失敗した項目があります。\n'+String(err?.message||err)+'\n復旧失敗：'+rollbackFailed.join('、')+'\n\n安全のため、この端末での以後の保存を停止しました。');
   }else{
    alert('保存に失敗したため、保存前の状態へ自動で戻しました。\nブラウザ容量や設定を確認してください。\n'+String(err?.message||err));
    setTimeout(()=>location.reload(),0)
@@ -7994,7 +8027,10 @@ function openNearForm(idx=-1,defaultNo=''){
    causeSide:fnside.value,internalFactors:nearChecked('nearInternal'),riskLevel:fnrisk.value,
    summary:fns.value.trim(),education:fneducation.value.trim(),prevention:fnprevention.value.trim(),action:'記録済み'},rid;
   let nearWarnings=[];if(data.riskLevel==='未設定')nearWarnings.push('危険度が未設定です');if(data.causeSide==='未設定')nearWarnings.push('原因側が未設定です');if(!data.prevention)nearWarnings.push('改善・今後の対策が未登録です');
-  let nearLines=rec?recordChangeLines({date:rec.date,time:rec.time,employee_no:rec.employee_no,vehicle:rec.vehicle,riskLevel:rec.riskLevel,causeSide:rec.causeSide,summary:rec.summary,prevention:rec.prevention},data,{date:'発生日',time:'発生時間',employee_no:'対象社員',vehicle:'号車',riskLevel:'危険度',causeSide:'原因側',summary:'ヒヤリ内容',prevention:'改善・今後の対策'}):['対象社員：'+e.no+' '+e.name,'発生日：'+data.date,'号車：'+data.vehicle,'ヒヤリ内容：'+data.summary,'危険度：'+data.riskLevel];
+  let nearBefore=rec?{reportDate:rec.reportDate||'',date:rec.date||'',time:rec.time||'',employee_no:rec.employee_no||'',vehicle:rec.vehicle||'',riskLevel:rec.riskLevel||'',causeSide:rec.causeSide||'',summary:rec.summary||'',education:rec.education||'',prevention:rec.prevention||'',locationTags:JSON.stringify(rec.locationTags||[]),situationTags:JSON.stringify(rec.situationTags||[]),roadTags:JSON.stringify(rec.roadTags||[]),targetTags:JSON.stringify(rec.targetTags||[]),internalFactors:JSON.stringify(rec.internalFactors||[])}:null;
+  let nearAfter={reportDate:data.reportDate||'',date:data.date||'',time:data.time||'',employee_no:data.employee_no||'',vehicle:data.vehicle||'',riskLevel:data.riskLevel||'',causeSide:data.causeSide||'',summary:data.summary||'',education:data.education||'',prevention:data.prevention||'',locationTags:JSON.stringify(data.locationTags||[]),situationTags:JSON.stringify(data.situationTags||[]),roadTags:JSON.stringify(data.roadTags||[]),targetTags:JSON.stringify(data.targetTags||[]),internalFactors:JSON.stringify(data.internalFactors||[])};
+  let nearLabels={reportDate:'記入日',date:'発生日',time:'発生時間',employee_no:'対象社員',vehicle:'号車',riskLevel:'危険度',causeSide:'原因側',summary:'ヒヤリ内容',education:'教育事項',prevention:'改善・今後の対策',locationTags:'場所分類',situationTags:'行動分類',roadTags:'道路・周囲分類',targetTags:'危険対象分類',internalFactors:'内的要因'};
+  let nearLines=rec?recordChangeLines(nearBefore,nearAfter,nearLabels):['対象社員：'+e.no+' '+e.name,'記入日：'+data.reportDate,'発生日：'+data.date,'号車：'+data.vehicle,'ヒヤリ内容：'+data.summary,'危険度：'+data.riskLevel];
   if(rec&&!nearLines.length){closeForm();return}
   if(!confirmFormSave(rec?'ヒヤリハットの変更確認':'ヒヤリハットの登録確認',nearLines,nearWarnings))return;
   if(rec){rid=rec.id;Object.assign(rec,data);touchRecord(rec,'near_miss',false)}
@@ -8284,7 +8320,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderSafetyMonthlySummary();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v196';
+const RELEASE_VERSION='v197';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
