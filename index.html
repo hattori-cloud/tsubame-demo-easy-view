@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v152</title>
-<!-- production-sync:v152 -->
+<title>つばめ交通株式会社 社員一元管理システム v153</title>
+<!-- production-sync:v153 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -890,6 +890,15 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .action-queue-item .queue-main{min-width:0}
 .action-queue-item .queue-main b{display:block}
 .action-queue-item .queue-main .mini{margin-top:3px}
+.queue-guidance{display:grid;gap:5px;margin-top:8px}
+.queue-guidance>div{display:grid;grid-template-columns:92px minmax(0,1fr);gap:8px;align-items:start;color:#48636f;font-size:.74rem;line-height:1.45;font-weight:800}
+.queue-guidance>div>span{display:inline-flex;align-items:center;justify-content:center;min-height:26px;border-radius:999px;background:#eef6f9;color:#2d596d;font-size:.66rem;font-weight:950;padding:3px 7px}
+.action-queue-item.danger .queue-guidance>div:first-child>span{background:#fff0f0;color:#8d3030}
+.action-queue-item.warn .queue-guidance>div:first-child>span{background:#fff7df;color:#725900}
+.queue-action-btn{min-width:128px;min-height:48px;font-weight:950;background:#eef7fb;color:#075b88;border-color:#b8d6e4}
+.queue-action-btn:hover{background:#e2f2f8}
+@media(max-width:720px){.action-queue-item{align-items:flex-start;flex-direction:column}.queue-action-btn{width:100%}.queue-guidance>div{grid-template-columns:86px minmax(0,1fr)}}
+
 .admin-daily-center{border:2px solid #b9d7e6;background:linear-gradient(135deg,#f7fbfd,#fff)}
 .admin-daily-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:10px 0}
 .admin-daily-kpi{border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px 11px}
@@ -3755,7 +3764,7 @@ function renderAdminDailyCenter(){
   <div class="admin-daily-kpi ${apps?'warn':''}"><small>申請対応中</small><b>${apps}</b></div>
   <div class="admin-daily-kpi ${qualityBad?'danger':''}"><small>今すぐ確認</small><b>${qualityBad}</b></div>
  </div>
- <div class="admin-daily-rows">${rows.length?rows.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}<div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">担当範囲の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>'}</div>
+ <div class="admin-daily-rows">${rows.length?rows.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}${homeQueueBodyHtml(x)}</div><button class="btn queue-action-btn" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">${esc(homeQueueButtonLabel(x))}</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">担当範囲の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>'}</div>
  ${items.length>8?'<div class="mini" style="margin-top:8px">ほか '+(items.length-8)+'件。ホームの「今日の処理キュー」または期限センターから続けて確認できます。</div>':''}`
 }
 function renderAdminOverview(){
@@ -3805,7 +3814,7 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml','setCurrentFormSectionView','updateCurrentFormFastStatus','jumpToNextMissingRequired','updateCurrentFormSectionProgress','nextEmployeeNumber','employeeNameLinkHtml','homeQueueTitleHtml','employeeSafetyQuickActionsHtml'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml','setCurrentFormSectionView','updateCurrentFormFastStatus','jumpToNextMissingRequired','updateCurrentFormSectionProgress','nextEmployeeNumber','employeeNameLinkHtml','homeQueueTitleHtml','employeeSafetyQuickActionsHtml','homeQueueReasonText','homeQueueNextText','homeQueueButtonLabel','homeQueueBodyHtml'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','cert_uniform','health_work','document','accident','complaint','near_miss','guidance','driver_ledger','vehicle','application','procedures','admin_sensitive'];
@@ -3850,6 +3859,9 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('ホーム検索 関連度優先',!searchPreSlice,searchPreSlice?'検索候補を関連度順に並べる前の件数制限が残っています':'全候補を関連度順に並べてから上位表示'));
  let quickSafetySource=Function.prototype.toString.call(employeeSafetyQuickActionsHtml),quickSafetyOk=['openAccidentForm','openNearForm','openComplaintForm'].every(x=>quickSafetySource.includes(x));
  out.push(systemDiagnosticCheck('社員詳細 安全記録ショートカット',quickSafetyOk,quickSafetyOk?'事故・ヒヤリ・苦情の社員指定入力を確認':'安全記録ショートカットが不足しています'));
+ let queueGuideFns=['homeQueueReasonText','homeQueueNextText','homeQueueButtonLabel','homeQueueBodyHtml'];
+ let queueGuideMissing=queueGuideFns.filter(name=>typeof window[name]!=='function');
+ out.push(systemDiagnosticCheck('ホーム優先対応の処理案内',queueGuideMissing.length===0,queueGuideMissing.length?'未定義：'+queueGuideMissing.join('、'):'理由・次にすること・操作ボタンを確認'));
  let qualityGuideFns=['qualityIssueNextAction','qualityIssueFixButtonHtml','injectQualityActionGuide'];
  let qualityGuideMissing=qualityGuideFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('確認・修正の処理案内',qualityGuideMissing.length===0,qualityGuideMissing.length?'未定義：'+qualityGuideMissing.join('、'):'確認理由・対応内容・修正ボタンの案内を確認'));
@@ -3955,6 +3967,42 @@ function homeQueueTitleHtml(item){
  else if(item.kind==='handoff')prefix='引継ぎ / ';
  return '<div class="home-priority-name">'+(prefix?'<b>'+esc(prefix)+'</b>':'')+employeeNameLinkHtml(e.no,e.name,'work-employee-link')+'</div>'
 }
+function homeQueueReasonText(item){
+ if(!item)return '内容を確認してください';
+ if(item.kind==='safety')return '乗務不可または安全状態に要確認があります';
+ if(item.kind==='deadline')return (item.type||'期限')+'の期限が '+(item.bucket==='over'?'超過':item.bucket==='today'?'本日':'7日以内')+'です';
+ if(item.kind==='quality')return String(item.qualityIssue?.detail||item.sub||'登録内容に確認が必要です');
+ if(item.kind==='accident')return '事故対応のフォロー期限が未設定です';
+ if(item.kind==='complaint')return '苦情対応のフォロー期限が未設定です';
+ if(item.kind==='handoff')return '新しく担当になった案件の引継ぎ確認が必要です';
+ if(item.kind==='application')return '申請が承認・差戻し前の状態です';
+ return item.sub||'確認が必要です'
+}
+function homeQueueNextText(item){
+ if(!item)return '内容を確認する';
+ if(item.kind==='safety')return '社員詳細で免許・健診・適性診断と乗務可否を確認';
+ if(item.kind==='deadline')return '期限の元データと更新状況を確認';
+ if(item.kind==='quality')return qualityIssueNextAction(item.qualityIssue||{},item.qualityTarget);
+ if(item.kind==='accident')return '事故対応を開いて、次回対応と期限を登録';
+ if(item.kind==='complaint')return '苦情対応を開いて、次回対応と期限を登録';
+ if(item.kind==='handoff')return '引継ぎ内容を読み、問題なければ確認済みにする';
+ if(item.kind==='application')return '申請内容を確認し、承認または差戻し';
+ return '内容を確認する'
+}
+function homeQueueButtonLabel(item){
+ if(!item)return '内容を見る';
+ if(item.kind==='safety')return '社員を確認';
+ if(item.kind==='deadline')return '期限を確認';
+ if(item.kind==='quality')return '確認して直す';
+ if(item.kind==='accident')return '事故を確認';
+ if(item.kind==='complaint')return '苦情を確認';
+ if(item.kind==='handoff')return '引継ぎを確認';
+ if(item.kind==='application')return '申請を確認';
+ return '内容を見る'
+}
+function homeQueueBodyHtml(item){
+ return '<div class="queue-guidance"><div><span>理由</span>'+esc(homeQueueReasonText(item))+'</div><div><span>次にすること</span>'+esc(homeQueueNextText(item))+'</div></div>'
+}
 function actionQueueOpen(idOrIndex=0){
  let items=actionQueueItems();
  let item=typeof idOrIndex==='number'?items[idOrIndex]:items.find(x=>x.id===idOrIndex);
@@ -4029,8 +4077,8 @@ function renderHome(){
  renderRecentDetails();
  renderHomeDraftSummary();
  let queue=actionQueueItems(),shownQueue=queue.slice(0,5),todayEl=document.getElementById('today');
- if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>優先対応 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・重大な品質エラーなどを優先'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
- (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}<div class="mini">${esc(x.sub)}</div></div><button class="btn soft" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">確認</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
+ if(todayEl)todayEl.innerHTML=`<div class="list-summary"><div><b>優先対応 ${queue.length}件</b><div class="mini">${MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?'自分の担当案件だけ表示中':'乗務不可・期限超過・未入力など、先に対応したいものを表示'}</div></div><div class="toolbar">${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">自分の担当だけ</button>':''}<button class="btn primary" ${queue.length?'':'disabled'} onclick="actionQueueOpen(0)">上から処理</button></div></div><div class="action-queue-list">`+
+ (shownQueue.length?shownQueue.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}${homeQueueBodyHtml(x)}</div><button class="btn queue-action-btn" onclick="actionQueueOpen('${String(x.id).replaceAll("'","")}')">${esc(homeQueueButtonLabel(x))}</button></div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">今日の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>')+
  `</div>`;
  renderHomeHandoffs()
 }
@@ -7060,7 +7108,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v152';
+const RELEASE_VERSION='v153';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
