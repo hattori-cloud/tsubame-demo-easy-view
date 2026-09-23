@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v141</title>
-<!-- production-sync:v141 -->
+<title>つばめ交通株式会社 社員一元管理システム v142</title>
+<!-- production-sync:v142 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -667,6 +667,72 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .analysis-complaint-snippet{border-left:4px solid #c9dce4;background:#f8fbfc;border-radius:8px;padding:7px 9px;font-size:.71rem;line-height:1.45}
 @media(max-width:900px){.analysis-drilldown-head{grid-template-columns:1fr 1fr}.analysis-drilldown-title{grid-column:1/-1}.analysis-drilldown-grid{grid-template-columns:1fr 1fr}.analysis-drilldown-card.wide{grid-column:1/-1}}
 @media(max-width:650px){.analysis-drilldown-head,.analysis-drilldown-grid{grid-template-columns:1fr}.analysis-drilldown-title,.analysis-drilldown-card.wide{grid-column:auto}.analysis-record-desktop{display:none}.analysis-record-mobile{display:grid}.analysis-compare-row{grid-template-columns:1fr auto}.analysis-compare-row .prev-label{display:none}.analysis-signal-title{align-items:flex-start;flex-direction:column}.analysis-signal-title .toolbar{width:100%}.analysis-signal-title .toolbar .btn{flex:1 1 auto}}
+
+/* v142 system-wide mobile usability */
+.safety-mobile-list{display:none}
+.safety-mobile-card{border:1px solid #d7e4ea;border-radius:14px;background:#fff;padding:12px;box-shadow:0 4px 14px rgba(22,56,76,.05)}
+.safety-mobile-card.warn{border-left:6px solid #d4aa26;background:#fffdf3}
+.safety-mobile-card.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
+.safety-mobile-card-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
+.safety-mobile-card-title{font-size:1rem;font-weight:950;color:#173f57}
+.safety-mobile-card-id{font-size:.69rem;color:#667d89;font-weight:900;margin-top:2px}
+.safety-mobile-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:9px 0}
+.safety-mobile-meta>div{border:1px solid #e0e9ed;border-radius:9px;background:#fbfdfe;padding:7px 8px;min-width:0}
+.safety-mobile-meta label{display:block;color:#6b808b;font-size:.64rem;font-weight:950}
+.safety-mobile-meta b{display:block;color:#244b60;font-size:.82rem;overflow-wrap:anywhere}
+.safety-mobile-summary{font-size:.79rem;font-weight:850;color:#36596c;line-height:1.5;margin:8px 0;overflow-wrap:anywhere}
+.safety-mobile-actions{display:flex;gap:7px;margin-top:10px}
+.safety-mobile-actions .btn{flex:1;min-height:48px}
+@media(max-width:760px){
+ #safe .safety-desktop-table{display:none}
+ #safe-acc #accTableView .tablewrap{display:none}
+ #safe .safety-mobile-list{display:grid;gap:10px}
+ #safe .tabs{display:flex;flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+ #safe .tabs::-webkit-scrollbar{display:none}
+ #safe .tabs button{flex:0 0 auto;min-height:46px}
+ #safe .page-title{align-items:stretch;flex-direction:column}
+ #safe .page-title .toolbar{display:grid;grid-template-columns:1fr 1fr;width:100%}
+ #safe .page-title .toolbar .btn{min-height:48px;width:100%}
+ #safe .simple-safety-bar{align-items:stretch;flex-direction:column}
+ #safe .simple-safety-bar .toolbar{display:grid;grid-template-columns:1fr 1fr}
+ #safe .simple-safety-bar .btn{min-height:46px}
+ #safe .safety-search-sub{align-items:stretch}
+ #safe .safety-search-sub .group-label{width:100%}
+ #safe .safety-search-sub .btn{flex:1 1 calc(50% - 6px);min-height:46px}
+ #safe .analysis-filters{grid-template-columns:1fr 1fr}
+ #safe .analysis-filters .btn{min-height:48px}
+ .modalbg{padding:0;align-items:stretch}
+ .modal{width:100%;max-height:100dvh;height:100dvh;border-radius:0}
+ .mhead,.mfoot{padding:10px 12px}
+ .mhead h2{font-size:1.05rem;line-height:1.25}
+ .mhead>.btn{min-height:44px}
+ .mbody{padding:12px}
+ .mfoot{display:grid;grid-template-columns:1fr 1fr}
+ .mfoot #formDirtyHint{grid-column:1/-1;margin:0!important}
+ .mfoot .btn{min-height:48px;width:100%}
+ .detail-actions,.backbar{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+ .detail-actions .btn,.backbar .btn{width:100%;min-height:46px}
+ .employee-detail-tabs{grid-template-columns:1fr 1fr!important;position:static!important;gap:6px}
+ .employee-detail-tab{min-height:48px}
+ .employee-profile-main,.employee-safety-panel,.taxi-driver-snapshot{padding:12px}
+ .employee-profile-name{font-size:1.25rem}
+ .related-grid{grid-template-columns:1fr}
+ .related-btn{min-height:70px}
+ .deadline-summary-grid{grid-template-columns:1fr 1fr}
+ .deadline-center-filters{display:grid;grid-template-columns:1fr 1fr}
+ .deadline-center-filters .btn{min-height:46px;width:100%}
+ .deadline-toolbar{grid-template-columns:1fr}
+ #deadlineCenterRows .row{align-items:stretch;flex-direction:column}
+ #deadlineCenterRows .row>.btn{width:100%;min-height:48px}
+}
+@media(max-width:480px){
+ .safety-mobile-meta{grid-template-columns:1fr}
+ #safe .page-title .toolbar,#safe .simple-safety-bar .toolbar,#safe .analysis-filters{grid-template-columns:1fr}
+ #safe .safety-search-sub .btn{flex-basis:100%}
+ .detail-actions,.backbar,.mfoot{grid-template-columns:1fr}
+ .employee-detail-tabs{grid-template-columns:1fr 1fr!important}
+ .deadline-summary-grid,.deadline-center-filters{grid-template-columns:1fr 1fr}
+}
 @media(max-width:900px){.analysis-compare-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.analysis-compare-grid{grid-template-columns:1fr}}
 @media(max-width:850px){.analysis-filters{grid-template-columns:1fr 1fr}.analysis-grid{grid-template-columns:1fr}.analysis-card.full{grid-column:auto}.analysis-kpis{grid-template-columns:1fr 1fr}}
@@ -982,7 +1048,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div id="accSummary"></div>
 </div>
 <div id="accGroupView" class="acc-group-grid" style="display:none"></div>
-<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
+<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div><div id="accMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-near">
 <div class="safety-search-card">
@@ -1006,7 +1072,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  </div></details>
  <div id="nearSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>号車</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div></div>
+<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>号車</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div><div id="nearMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-complaint">
 <div class="spec-note">現在のクレーム表の運用をシステム化しています。受付・発生日時・乗務員・号車・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
@@ -1027,7 +1093,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="safety-search-sub"><span class="group-label">受付・発生日</span><input id="complaintDate" type="date" aria-label="クレーム日付で検索" onchange="renderComplaints()"></div></div></details>
  <div id="complaintSummary"></div>
 </div>
-<div class="table-card"><div class="tablewrap"><table><thead><tr><th>受付</th><th>番号</th><th>対象</th><th>ランク</th><th>次回対応・期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="complaintbody"></tbody></table></div></div></div>
+<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>受付</th><th>番号</th><th>対象</th><th>ランク</th><th>次回対応・期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="complaintbody"></tbody></table></div></div><div id="complaintMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-analysis">
  <div class="safety-search-card">
@@ -5243,6 +5309,14 @@ function renderAcc(){
   }
  }
  accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'||accidentNeedsAttention(a)?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><button class="link" onclick="accidentDetail('${a.id}')"><b>${a.id}</b></button></td><td>${employeeNameLinkHtml(a.employee_no,a.driver)}<div class="mini">社員番号 ${esc(a.employee_no)}</div></td><td>${a.vehicle&&a.vehicle!=='未設定'?vehicleNumberLinkHtml(a.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td><td><button class="btn soft" onclick="accidentDetail('${a.id}')">詳細</button></td></tr>`}).join('');
+ let accMobile=document.getElementById('accMobileList');
+ if(accMobile){
+  accMobile.style.display=ACC_VIEW==='list'?'':'none';
+  accMobile.innerHTML=ACC_VIEW==='list'?(shown.length?shown.map(a=>{
+   let state=accidentDeadlineState(a),tone=state==='over'?'danger':state==='today'||accidentNeedsAttention(a)?'warn':'',deadline=a.due?deadlineBucketLabel(a.due):'期限未設定',safeId=String(a.id).replaceAll("'","");
+   return '<article class="safety-mobile-card '+tone+'" onclick="accidentDetail(\''+safeId+'\')"><div class="safety-mobile-card-top"><div><div class="safety-mobile-card-title">'+esc(a.driver||a.employee_no||'対象未設定')+'</div><div class="safety-mobile-card-id">'+esc(a.id)+' / '+esc(a.date||'日付未設定')+'</div></div>'+badge(a.phase||'未設定')+'</div><div class="safety-mobile-meta"><div><label>号車</label><b>'+esc(a.vehicle&&a.vehicle!=='未設定'?a.vehicle+'号車':'未設定')+'</b></div><div><label>フォロー期限</label><b>'+esc(a.due||'未設定')+' / '+esc(deadline)+'</b></div><div><label>担当</label><b>'+esc(a.owner||'未設定')+'</b></div><div><label>次回対応</label><b>'+esc(a.nextAction||'未設定')+'</b></div></div><div class="safety-mobile-summary">'+esc(a.summary||'内容未登録')+'</div><div class="safety-mobile-actions"><button class="btn primary" onclick="event.stopPropagation();accidentDetail(\''+safeId+'\')">事故詳細</button></div></article>'
+  }).join(''):'<div class="emp-mobile-empty">条件に該当する事故はありません。</div>'):''
+ }
  if(typeof accPager!=='undefined')accPager.innerHTML=ACC_VIEW==='list'&&pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
 }
 function nearDefaultNextAction(state){
@@ -5500,7 +5574,12 @@ function renderNear(){
  nearbody.innerHTML=rows.map(n=>{
   let tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4),needs=nearNeedsAnalysis(n);
   return `<tr class="${needs?'complaint-row-today':''}"><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${employeeNameLinkHtml(n.employee_no,n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div>${needs?'<div class="mini">分析項目 要確認</div>':''}</td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">詳細</button></td></tr>`;
- }).join('')
+ }).join('');
+ let nearMobile=document.getElementById('nearMobileList');
+ if(nearMobile)nearMobile.innerHTML=rows.length?rows.map(n=>{
+  let needs=nearNeedsAnalysis(n),tone=n.riskLevel==='高い'||needs?'warn':'',safeId=String(n.id).replaceAll("'","");
+  return '<article class="safety-mobile-card '+tone+'" onclick="nearDetail(\''+safeId+'\')"><div class="safety-mobile-card-top"><div><div class="safety-mobile-card-title">'+esc(n.driver||n.employee_no||'対象未設定')+'</div><div class="safety-mobile-card-id">'+esc(n.id)+' / '+esc(n.date||'日付未設定')+'</div></div>'+badge(n.riskLevel||'未設定')+'</div><div class="safety-mobile-meta"><div><label>号車</label><b>'+esc(n.vehicle&&n.vehicle!=='未設定'?n.vehicle+'号車':'未設定')+'</b></div><div><label>原因側</label><b>'+esc(n.causeSide||'未設定')+'</b></div></div><div class="safety-mobile-summary">'+esc(n.summary||'内容未登録')+'</div>'+(needs?'<div class="mini">分析項目に要確認があります。</div>':'')+'<div class="safety-mobile-actions"><button class="btn primary" onclick="event.stopPropagation();nearDetail(\''+safeId+'\')">ヒヤリ詳細</button></div></article>'
+ }).join(''):'<div class="emp-mobile-empty">条件に該当するヒヤリ報告はありません。</div>'
 }
 
 function nearAnalysisChecklistHtml(n){
@@ -5565,7 +5644,12 @@ function renderComplaints(){
  }).sort((a,b)=>{const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};let ra=rank[complaintState(a)]??9,rb=rank[complaintState(b)]??9;return ra!==rb?ra-rb:String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date))});
  [['complaintAllBtn','all'],['complaintOpenBtn','open'],['complaintOverBtn','over'],['complaintTodayBtn','today'],['complaintAttentionBtn','attention'],['complaintDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',COMPLAINT_FILTER===k)});
  let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${COMPLAINT_FILTER==='open'?'active':''}" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${COMPLAINT_FILTER==='over'?'active':''}" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='today'?'active':''}" onclick="COMPLAINT_FILTER='today';renderComplaints()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='attention'?'active':''}" onclick="COMPLAINT_FILTER='attention';renderComplaints()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">要確認は担当・期限・次回対応・ランクの不足を含みます</div></div></div>`;
- complaintbody.innerHTML=rows.map(c=>{let idx=C.indexOf(c),state=complaintState(c),cls=state==='over'?'complaint-row-over':state==='today'||complaintNeedsAttention(c)?'complaint-row-today':'',due=c.followupDue?`${c.followupDue}（${deadlineBucketLabel(c.followupDue)}）`:'未設定';return `<tr class="${cls}"><td>${esc(c.responseDate||c.date)}<div class="mini">${esc(c.responseTime||'')}</div></td><td><button class="link" onclick="complaintDetail('${c.id}')"><b>${esc(c.id)}</b></button></td><td>${employeeNameLinkHtml(c.employee_no,c.driverName||c.name)}<div class="mini">${esc(c.dept||'')} / 号車 ${esc(c.vehicle||'未設定')}</div></td><td>${complaintRankChip(c.rank||'未判定')}</td><td><b>${esc(c.nextAction||'未設定')}</b><div class="mini">担当 ${esc(c.owner||'未設定')} / ${esc(due)}</div></td><td>${badge(c.status||'受付')}</td><td><div class="toolbar"><button class="btn soft" onclick="complaintDetail('${c.id}')">詳細</button>${canEditEmployee(c.employee_no)?`<button class="btn soft" onclick="openComplaintForm(${idx})">編集</button>`:''}</div></td></tr>`}).join('')
+ complaintbody.innerHTML=rows.map(c=>{let idx=C.indexOf(c),state=complaintState(c),cls=state==='over'?'complaint-row-over':state==='today'||complaintNeedsAttention(c)?'complaint-row-today':'',due=c.followupDue?`${c.followupDue}（${deadlineBucketLabel(c.followupDue)}）`:'未設定';return `<tr class="${cls}"><td>${esc(c.responseDate||c.date)}<div class="mini">${esc(c.responseTime||'')}</div></td><td><button class="link" onclick="complaintDetail('${c.id}')"><b>${esc(c.id)}</b></button></td><td>${employeeNameLinkHtml(c.employee_no,c.driverName||c.name)}<div class="mini">${esc(c.dept||'')} / 号車 ${esc(c.vehicle||'未設定')}</div></td><td>${complaintRankChip(c.rank||'未判定')}</td><td><b>${esc(c.nextAction||'未設定')}</b><div class="mini">担当 ${esc(c.owner||'未設定')} / ${esc(due)}</div></td><td>${badge(c.status||'受付')}</td><td><div class="toolbar"><button class="btn soft" onclick="complaintDetail('${c.id}')">詳細</button>${canEditEmployee(c.employee_no)?`<button class="btn soft" onclick="openComplaintForm(${idx})">編集</button>`:''}</div></td></tr>`}).join('');
+ let complaintMobile=document.getElementById('complaintMobileList');
+ if(complaintMobile)complaintMobile.innerHTML=rows.length?rows.map(x=>{
+  let idx=C.indexOf(x),state=complaintState(x),tone=state==='over'?'danger':state==='today'||complaintNeedsAttention(x)?'warn':'',due=x.followupDue?x.followupDue+' / '+deadlineBucketLabel(x.followupDue):'未設定',safeId=String(x.id).replaceAll("'","");
+  return '<article class="safety-mobile-card '+tone+'" onclick="complaintDetail(\''+safeId+'\')"><div class="safety-mobile-card-top"><div><div class="safety-mobile-card-title">'+esc(x.driverName||x.name||x.employee_no||'対象未設定')+'</div><div class="safety-mobile-card-id">'+esc(x.id)+' / 受付 '+esc(x.responseDate||x.date||'未設定')+'</div></div>'+complaintRankChip(x.rank||'未判定')+'</div><div class="safety-mobile-meta"><div><label>号車</label><b>'+esc(x.vehicle&&x.vehicle!=='未設定'?x.vehicle+'号車':'未設定')+'</b></div><div><label>状態</label><b>'+esc(x.status||'受付')+'</b></div><div><label>担当</label><b>'+esc(x.owner||'未設定')+'</b></div><div><label>フォロー期限</label><b>'+esc(due)+'</b></div></div><div class="safety-mobile-summary">'+esc(x.summary||'内容未登録')+'</div><div class="mini">次回対応：'+esc(x.nextAction||'未設定')+'</div><div class="safety-mobile-actions"><button class="btn primary" onclick="event.stopPropagation();complaintDetail(\''+safeId+'\')">苦情詳細</button>'+(canEditEmployee(x.employee_no)?'<button class="btn soft" onclick="event.stopPropagation();openComplaintForm('+idx+')">編集</button>':'')+'</div></article>'
+ }).join(''):'<div class="emp-mobile-empty">条件に該当する苦情はありません。</div>'
 }
 function vehicleByNumber(value){
  let no=String(value||'').trim();
@@ -6777,7 +6861,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v141';
+const RELEASE_VERSION='v142';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
