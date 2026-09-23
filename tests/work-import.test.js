@@ -72,3 +72,44 @@ test('sensitive header on another worksheet rejects the whole workbook',async()=
     err=>err&&err.code==='SENSITIVE_COLUMNS_NOT_ALLOWED'
   )
 });
+
+test('blank work-hour cells are blocking instead of becoming zero',async()=>{
+  const buffer=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','2026-09','','','','2026-09-20'])
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,false);
+  assert.ok(p.blocking_issues.some(x=>x.employee_no==='1001'&&x.issues.filter(v=>v.includes('数値ではありません')).length>=3))
+});
+
+test('impossible month and calendar date are blocking',async()=>{
+  const buffer=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','2026-13',228,72,10,'2026-13-40']);
+    ws.addRow(['1002','2026-02',228,72,10,'2026-02-30'])
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,false);
+  assert.ok(p.blocking_issues.some(x=>x.employee_no==='1001'&&x.issues.some(v=>v.includes('対象月'))));
+  assert.ok(p.blocking_issues.some(x=>x.employee_no==='1001'&&x.issues.some(v=>v.includes('最終計上日'))));
+  assert.ok(p.blocking_issues.some(x=>x.employee_no==='1002'&&x.issues.some(v=>v.includes('最終計上日'))))
+});
+
+test('leap-day validation accepts real leap day and rejects non-leap equivalent',async()=>{
+  const good=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','2028-02',228,72,10,'2028-02-29'])
+  });
+  const bad=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','2027-02',228,72,10,'2027-02-29'])
+  });
+  assert.equal((await parseWorkbookBuffer(good,'work.xlsx')).can_commit,true);
+  assert.equal((await parseWorkbookBuffer(bad,'work.xlsx')).can_commit,false)
+});
+
