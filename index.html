@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v142</title>
-<!-- production-sync:v142 -->
+<title>つばめ交通株式会社 社員一元管理システム v143</title>
+<!-- production-sync:v143 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -847,6 +847,19 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .form-fold-summary-text small{display:block;color:#667d89;font-size:.68rem;font-weight:800;margin-top:2px}
 .form-fold-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;padding:14px}
 .form-fold-required{display:inline-flex;margin-left:8px;padding:2px 7px;border-radius:999px;background:#ffe8e8;color:#922c2c;font-size:.62rem;font-weight:950}
+/* v143 fast-entry modes */
+.form-fast-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid #bcd7e3;border-radius:12px;background:#f6fbfd;padding:10px 11px;margin:0 0 10px}
+.form-fast-status strong{display:block;color:#214f64;font-size:.8rem}
+.form-fast-status span{display:inline-flex;margin-top:3px;font-size:.7rem;font-weight:900;color:#5c7480}
+.form-fast-status span.ok{color:#2b6d4b}
+.form-fast-toolbar .toolbar{margin:0}
+.form-fast-toolbar .btn{min-height:40px;padding:7px 10px}
+.form-fold-primary>summary{border-left:5px solid #79aebe}
+.form-fold-optional>summary{color:#536e7b}
+.form-fold-later{display:inline-flex;margin-left:7px;padding:2px 7px;border-radius:999px;background:#eef3f5;color:#617783;font-size:.61rem;font-weight:950}
+.form-fast-hint{font-size:.68rem;color:#617985;font-weight:850;margin:-4px 0 10px}
+@media(max-width:700px){.form-fast-toolbar{align-items:stretch;flex-direction:column}.form-fast-toolbar .toolbar{display:grid;grid-template-columns:1fr 1fr 1fr}.form-fast-toolbar .btn{width:100%;min-height:46px}}
+@media(max-width:460px){.form-fast-toolbar .toolbar{grid-template-columns:1fr}.form-section-jumps button{flex:1 1 100%}}
 @media(max-width:620px){.form-fold-grid{grid-template-columns:1fr}.form-section-jumps button{flex:1 1 44%}}
 .form-flow{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .form-flow span{display:inline-flex;align-items:center;min-height:30px;padding:4px 9px;border-radius:999px;background:#edf5f8;color:#31596b;font-size:.7rem;font-weight:900}
@@ -3730,7 +3743,7 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis','safetyPriorityItems','renderSafetyPriorityQueue','employeeSafetyTrendData','employeeSafetyTrendHtml','openEmployeeSafetyTrend','safetyAnalysisRecordMatches','populateSafetyAnalysisFilters','safetyAnalysisComparisonPeriod','renderSafetyComparisons','safetyAnalysisSignalsHtml','analysisMonthRange','applySafetyAnalysisSignal','openSafetyAnalysisDrilldown','safetyAnalysisCompareMapHtml','setCurrentFormSectionView','updateCurrentFormFastStatus'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -5336,6 +5349,32 @@ function caseActionPanelHtml(kind,rec){
   '<div class="case-action-item"><small>期限</small><b>'+esc(dueText)+'</b><div class="case-action-due">'+(done?'完了済み':b==='over'?'期限超過':!due?'期限設定を推奨':'')+'</div></div>'+
  '</div></div>'
 }
+function currentFormRequiredFields(){
+ return [...fbody.querySelectorAll('.field')].filter(field=>field.querySelector('.req')).map(field=>({
+  field,
+  control:field.querySelector('input:not([type="hidden"]),select,textarea')
+ })).filter(x=>x.control)
+}
+function currentFormControlFilled(el){
+ if(!el)return false;
+ if(el.type==='checkbox'||el.type==='radio')return !!el.checked;
+ return String(el.value??'').trim()!==''
+}
+function updateCurrentFormFastStatus(){
+ let el=document.getElementById('formFastStatus');if(!el)return;
+ let req=currentFormRequiredFields(),done=req.filter(x=>currentFormControlFilled(x.control)).length,missing=req.length-done;
+ el.textContent=req.length?(missing?('必須 '+done+'/'+req.length+'入力 / 残り'+missing):('必須 '+done+'/'+req.length+'入力済み')):'必須項目なし';
+ el.classList.toggle('ok',req.length===0||missing===0)
+}
+function setCurrentFormSectionView(mode='primary'){
+ let folds=[...fbody.querySelectorAll('.form-fold')];if(!folds.length)return;
+ folds.forEach(d=>{
+  if(mode==='all')d.open=true;
+  else if(mode==='required')d.open=!!d.querySelector('.req');
+  else d.open=d.dataset.fastPrimary==='1'
+ });
+ let first=folds.find(d=>d.open);if(first&&mode!=='all')first.scrollIntoView({behavior:'smooth',block:'nearest'})
+}
 function organizeCurrentFormSections(options={}){
  let grid=fbody.querySelector('.formgrid');if(!grid||grid.dataset.organized==='1')return;
  let children=[...grid.children],groups=[],current=null,idx=-1;
@@ -5350,25 +5389,39 @@ function organizeCurrentFormSections(options={}){
  grid.dataset.organized='1';
  let order=Array.isArray(options.order)&&options.order.length?options.order:groups.map(g=>g.index);
  let openSet=new Set(Array.isArray(options.open)?options.open:[0]);
- let byIndex=new Map(groups.map(g=>[g.index,g]));
- let jump=document.createElement('div');jump.className='form-section-jumps';
+ let primarySet=new Set(Array.isArray(options.primary)&&options.primary.length?options.primary:[...openSet]);
  let built=new Map();
  groups.forEach(g=>{
-  let details=document.createElement('details');details.className='form-fold';details.dataset.formSection=String(g.index);details.open=openSet.has(g.index);
+  let details=document.createElement('details');details.className='form-fold';details.dataset.formSection=String(g.index);details.dataset.fastPrimary=primarySet.has(g.index)?'1':'0';details.open=openSet.has(g.index);
+  details.classList.add(primarySet.has(g.index)?'form-fold-primary':'form-fold-optional');
   let summary=document.createElement('summary'),required=g.items.some(x=>x.querySelector?.('.req'));
-  summary.innerHTML='<span class="form-fold-summary-text">'+esc(g.title)+(g.note?'<small>'+esc(g.note)+'</small>':'')+'</span>'+(required?'<span class="form-fold-required">必須あり</span>':'');
+  summary.innerHTML='<span class="form-fold-summary-text">'+esc(g.title)+(g.note?'<small>'+esc(g.note)+'</small>':'')+'</span><span>'+(required?'<span class="form-fold-required">必須あり</span>':'')+(!primarySet.has(g.index)?'<span class="form-fold-later">後で追記可</span>':'')+'</span>';
   let body=document.createElement('div');body.className='form-fold-grid';
   g.items.forEach(x=>body.appendChild(x));details.append(summary,body);built.set(g.index,details)
  });
  [...grid.children].forEach(x=>x.remove());
  order.forEach(i=>{let d=built.get(i);if(d)grid.appendChild(d)});
+ let fast=document.createElement('div');fast.className='form-fast-toolbar';
+ fast.innerHTML='<div class="form-fast-status"><strong>入力状況</strong><span id="formFastStatus">確認中</span></div><div class="toolbar"><button type="button" class="btn primary" data-form-view="primary">初回入力</button><button type="button" class="btn soft" data-form-view="required">必須だけ</button><button type="button" class="btn soft" data-form-view="all">全項目</button></div>';
+ fast.querySelectorAll('[data-form-view]').forEach(b=>b.addEventListener('click',()=>setCurrentFormSectionView(b.dataset.formView)));
+ let hint=document.createElement('div');hint.className='form-fast-hint';hint.textContent='「初回入力」は今すぐ必要な区分だけ表示します。閉じた区分は保存後でも追記できます。';
+ let jump=document.createElement('div');jump.className='form-section-jumps';
  groups.forEach(g=>{
   let b=document.createElement('button');b.type='button';b.textContent=g.title.replace(/^\d+[.．]\s*/,'');
   b.addEventListener('click',()=>{let d=built.get(g.index);if(!d)return;d.open=true;d.scrollIntoView({behavior:'smooth',block:'start'})});
   jump.appendChild(b)
  });
- grid.parentNode.insertBefore(jump,grid)
+ grid.parentNode.insertBefore(fast,grid);
+ grid.parentNode.insertBefore(hint,grid);
+ grid.parentNode.insertBefore(jump,grid);
+ if(fbody.dataset.fastEntryBound!=='1'){
+  fbody.dataset.fastEntryBound='1';
+  fbody.addEventListener('input',updateCurrentFormFastStatus);
+  fbody.addEventListener('change',updateCurrentFormFastStatus)
+ }
+ updateCurrentFormFastStatus()
 }
+
 function commonNextActionPanelHtml(nextAction,owner,dueText,tone=''){
  let cls=tone==='danger'?'danger':tone==='warn'?'warn':tone==='done'?'done':'';
  return '<div class="case-action-pin '+cls+'"><div class="case-action-grid">'+
@@ -5991,7 +6044,7 @@ function openEmployeeEdit(no){
   <div class="field wide"><div class="proc-item"><label><input type="checkbox" id="fetransvehicle"> 担当車両・共用車の引継ぎ先を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetranscase"> 未完了の事故・苦情の担当を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetransasset"> 貸与品・書類・安全指導の残件を確認した</label></div><div class="proc-item"><label><input type="checkbox" id="fetransaccess"> 権限・アカウント・新しい担当範囲を確認した</label></div><div class="mini">異動・休職・退職時は4項目すべて必須です。車両や案件を自動で別担当へ移すことはせず、確認記録を残します。</div></div>
   <div class="field wide"><label>引継ぎメモ</label><textarea id="fetransnote" placeholder="例：801号車は○○へ変更予定。未完了事故A-001は△△管理者へ引継ぎ。"></textarea></div>
  </div><div class="sensitive-note" style="margin-top:10px">健康診断は期限・受診予定のみ扱います。診断結果・病名・給与・保険等の機密情報は編集対象外です。</div>`;
- organizeCurrentFormSections({open:[0,1]});
+ organizeCurrentFormSections({open:[0,1],primary:[0,1]});
 
  if(canAssignment){feb.value=e.branch||'本社';fed.value=e.dept||depts[0];syncOfficeDeptControls('feb','fed',true)}
  fee.value=e.employment||'正社員';fes.value=e.status||'在籍';few.value=e.workPattern||'通常勤務';fets.value=e.taxiSection||'';fess.value=e.safetyState||'正常';feelig.value=e.eligibility||'対象外';
@@ -6178,7 +6231,7 @@ function openAccidentEdit(id){
  <div class="field wide"><label>再発防止</label><textarea id="faer">${esc(a.prevention||'')}</textarea></div>
  <div class="field wide"><label>対応履歴</label><textarea id="faeh" style="min-height:170px" placeholder="例：9/19 本人聞き取り実施\n9/20 ドライブレコーダー確認">${esc(a.responseHistory||'')}</textarea><div class="mini">時系列で追記して経過を残します。</div></div>
  </div>`;
- organizeCurrentFormSections({order:[3,2,0,1],open:[3,2]});
+ organizeCurrentFormSections({order:[3,2,0,1],open:[3,2],primary:[3,2]});
  faep.value=[...faep.options].some(x=>x.value===a.phase)?a.phase:'調査中';
  faeoprepair.value=accidentRepairLabel(a.opponentRepair);faeownrepair.value=accidentRepairLabel(a.companyRepair);
  fsave.onclick=()=>{
@@ -6222,7 +6275,7 @@ function updateEmployeeCreateGuide(){
 function openEmployeeForm(){
  if(!canCreateEmployee()){alert('社員の新規登録は全社管理者のみ行えます');return}
  fttl.textContent='社員を登録';setFormSaveLabel('社員を登録する');
- fbody.innerHTML=`<div class="formnote">社員台帳を6区分で登録します。共有デモ用の架空情報だけ入力してください。</div><div id="employeeCreateGuide" class="scope-note" style="margin-bottom:10px"></div><div class="formgrid">
+ fbody.innerHTML=`<div class="formnote">社員台帳を6区分で登録します。共有デモ用の架空情報だけ入力してください。</div><div class="quick-entry-banner"><b>最初は基本＋所属を登録</b><span>氏名・入社日・事業所・部署を確認。乗務員の期限・資格は続けて入力するか、登録後に追記できます。</span></div><div id="employeeCreateGuide" class="scope-note" style="margin-bottom:10px"></div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>社員を識別する基本情報</p></div>
   <div class="field"><label>氏名（仮名）<span class="req">必須</span></label><input id="fn" placeholder="例：広島 太郎"></div>
   <div class="field"><label>ふりがな（任意）</label><input id="ffuri"></div>
@@ -6230,8 +6283,8 @@ function openEmployeeForm(){
   <div class="field"><label>雇用区分</label><select id="femp">${COMPANY_SPEC.employment.map(x=>`<option>${x}</option>`).join('')}</select></div>
 
   <div class="employee-form-section"><h4>所属</h4><p>事業所・部署・役職を別々に管理</p></div>
-  <div class="field"><label>事業所</label><select id="fbranch" onchange="syncOfficeDeptControls('fbranch','fd');updateEmployeeCreateGuide()">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div>
-  <div class="field"><label>部署</label><select id="fd" onchange="updateEmployeeCreateGuide()">${depts.map(x=>`<option>${x}</option>`).join('')}</select><div class="mini office-dept-rule">事業所と部署は別管理です。</div></div>
+  <div class="field"><label>事業所<span class="req">必須</span></label><select id="fbranch" onchange="syncOfficeDeptControls('fbranch','fd');updateEmployeeCreateGuide()">${COMPANY_SPEC.offices.map(x=>`<option>${x}</option>`).join('')}</select></div>
+  <div class="field"><label>部署<span class="req">必須</span></label><select id="fd" onchange="updateEmployeeCreateGuide()">${depts.map(x=>`<option>${x}</option>`).join('')}</select><div class="mini office-dept-rule">事業所と部署は別管理です。</div></div>
   <div class="field"><label>役職</label><input id="fpos" value="一般"></div>
   <div class="field"><label>タクシー課区分</label><select id="fts"><option value="">対象外・未設定</option>${COMPANY_SPEC.taxiSections.map(x=>`<option>${x}</option>`).join('')}</select></div>
   <div class="field"><label>班</label><input id="fteam" placeholder="例：1班"></div>
@@ -6251,7 +6304,7 @@ function openEmployeeForm(){
   <div class="employee-form-section"><h4>書類</h4><p>証憑や本人確認書類は社員登録後に追加</p></div>
   <div class="field wide"><div class="emp-group-note">社員番号を発行してから、「書類」タブで資格証憑・本人確認・貸与品などを紐づけます。</div></div>
  </div>`;
- organizeCurrentFormSections({open:[0,1]});
+ organizeCurrentFormSections({open:[0,1],primary:[0,1]});
  syncOfficeDeptControls('fbranch','fd');updateEmployeeCreateGuide();
 
  fsave.onclick=()=>{
@@ -6433,7 +6486,7 @@ function openAccidentForm(defaultNo=''){
  <div class="field wide"><label>次回対応内容</label><input id="fanext" placeholder="例：本人聞き取り、ドラレコ確認"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fanext','本人聞き取り')">本人聞き取り</button><button type="button" class="btn soft" onclick="appendFormText('fanext','ドラレコ確認')">ドラレコ確認</button><button type="button" class="btn soft" onclick="appendFormText('fanext','修理見積確認')">修理見積</button><button type="button" class="btn soft" onclick="appendFormText('fanext','相手方連絡')">相手方連絡</button></div></div>
  <div class="form-help">修理代が未確定の場合は空欄で登録し、見積・修理完了後に更新できます。</div>
  </div>`;
- organizeCurrentFormSections({order:[0,3,4,1,2],open:[0,3,4]});
+ organizeCurrentFormSections({order:[0,3,4,1,2],open:[0,3,4],primary:[0,3,4]});
  if(defaultNo&&candidates.some(e=>e.no===String(defaultNo)))fae.value=String(defaultNo);
  fillAccidentEmployeeDefaults();
  fsave.onclick=()=>{
@@ -6518,7 +6571,7 @@ function openVehicleForm(idx=-1){
   <div class="field wide"><label>主担当社員<span class="req">必須</span></label><select id="fve" onchange="updateVehicleFormGuide()">${candidates.map(e=>`<option value="${e.no}">${e.no} ${esc(e.name)} / ${esc(e.branch)} / ${esc(e.dept)} / ${esc(e.status)} / 乗務可否 ${esc(e.eligibility||'対象外')}</option>`).join('')}</select><div class="mini">主担当は車両の管理責任・表示範囲の基準に使います。実際の当日乗務員とは別です。</div></div>
   <div class="field wide"><label>追加利用乗務員（任意・複数可）</label>${vehicleAdditionalDriverHtml(candidates,v?.additionalEmployeeNos||[])}<div class="mini">共用車・予備車・代車で、日常的に利用する乗務員だけ登録します。当日の配車記録そのものではありません。</div></div>
  </div>`;
- organizeCurrentFormSections({open:[0,1,2]});
+ organizeCurrentFormSections({open:[0,1,2],primary:[0,1,2]});
  if(v){fve.value=String(v.employee_no);fvst.value=statuses.includes(v.status)?v.status:'稼働';fvmode.value=['専属','共用','予備車','代車'].includes(v.assignmentMode)?v.assignmentMode:'専属'}
  updateVehicleFormGuide();
  fsave.onclick=()=>{
@@ -6629,7 +6682,7 @@ function openNearForm(idx=-1,defaultNo=''){
   <div class="field wide"><label>教育事項</label><textarea id="fneducation" placeholder="本人へ伝えたこと、今後指導する内容など">${esc(rec?.education||'')}</textarea></div>
   <div class="field wide"><label>改善・今後の対策</label><textarea id="fnprevention" placeholder="再発防止、運行上の改善点など">${esc(rec?.prevention||'')}</textarea></div>
  </div>`;
- organizeCurrentFormSections({order:[0,3,2,1],open:[0,3]});
+ organizeCurrentFormSections({order:[0,3,2,1],open:[0,3],primary:[0,3]});
  let nearDefaultNo=rec?String(rec.employee_no):(candidates.find(x=>String(x.no)===String(defaultNo))?.no||candidates[0].no);fne.value=String(nearDefaultNo);fnside.value=rec?.causeSide||'未設定';fnrisk.value=rec?.riskLevel||'未設定';if(!rec)fillNearEmployeeDefaults();
  fsave.onclick=()=>{
   let e=emp(fne.value);if(!e||!guardEmployeeEdit(e.no,'ヒヤリハット'))return;
@@ -6693,7 +6746,7 @@ function openComplaintForm(idx=-1,defaultNo=''){
  <div class="employee-form-section"><h4>お客様からの申告</h4><p>受付時点で分かっている内容を記録します</p></div><div class="field"><label>発生日</label><input id="fcoccurd" type="date" value="${esc(rec?.occurrenceDate||'')}"></div><div class="field"><label>発生時間</label><input id="fcoccurt" type="time" value="${esc(rec?.occurrenceTime||'')}"></div><div class="field wide"><label>内容<span class="req">必須</span></label><textarea id="fcs" style="min-height:150px" placeholder="お客様からの申告内容、確認できた事実、場所など">${esc(rec?.summary||'')}</textarea></div><div class="field"><label>クレームランク</label><select id="fcrank" onchange="updateComplaintRankGuide(true)"><option value="未判定">未判定</option><option value="A">A（重大）</option><option value="B">B（要対応）</option><option value="C">C（通常）</option></select><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn danger" onclick="setFormValue('fcrank','A')">A</button><button type="button" class="btn warn" onclick="setFormValue('fcrank','B')">B</button><button type="button" class="btn soft" onclick="setFormValue('fcrank','C')">C</button></div><div id="fcrankGuide" class="complaint-rank-guide"></div></div>
  <div class="employee-form-section"><h4>指導・対応</h4><p>受付後の確認・指導・回答を追記します</p></div><div class="field wide"><label>指導内容</label><textarea id="fcguide" style="min-height:120px" placeholder="本人確認、指導内容、お客様への対応など">${esc(rec?.guidanceContent||'')}</textarea></div><div class="field"><label>指導者</label><input id="fcinst" value="${esc(rec?.instructor||'')}"></div><div class="field"><label>指導日</label><input id="fcguided" type="date" value="${esc(rec?.guidanceDate||'')}"></div><div class="field"><label>指導時間</label><input id="fcguidet" type="time" value="${esc(rec?.guidanceTime||'')}"></div><div class="field"><label>担当者</label><select id="fcowner">${managerSelectOptions(rec?.ownerId,rec?.owner||reviewer.name)}</select></div><div class="field"><label>フォロー期限</label><input id="fcdue" type="date" value="${esc(rec?.followupDue||'')}"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',1)">明日</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',3)">3日後</button><button type="button" class="btn soft" onclick="setFormDateOffset('fcdue',7)">7日後</button></div></div><div class="field wide"><label>次回対応内容</label><input id="fcnext" value="${esc(rec?.nextAction||'')}" placeholder="例：本人再面談、お客様へ結果連絡"><div class="simple-quick-actions" style="margin-top:6px"><button type="button" class="btn soft" onclick="appendFormText('fcnext','本人再面談')">本人再面談</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','お客様へ結果連絡')">結果連絡</button><button type="button" class="btn soft" onclick="appendFormText('fcnext','運行状況確認')">運行確認</button></div></div>
  <div class="employee-form-section"><h4>完了</h4><p>対応が終わった時に完了へ変更します</p></div><div class="field"><label>状態</label><select id="fcst"><option>受付</option><option>確認中</option><option>対応中</option><option>完了</option></select></div></div>`;
- organizeCurrentFormSections({open:rec?[0,1,2,3,4]:[0,1,2]});
+ organizeCurrentFormSections({open:rec?[0,1,2,3,4]:[0,1,2],primary:rec?[0,1,2,3,4]:[0,1,2]});
  fce.value=String(selected.no);fcst.value=rec?.status||'受付';fcrank.value=['未判定','A','B','C'].includes(rec?.rank)?rec.rank:'未判定';if(!rec)fillComplaintEmployeeDefaults();updateComplaintRankGuide(false);
  fsave.onclick=()=>{
   let e=emp(fce.value);if(!e||!guardEmployeeEdit(e.no,'苦情／お客様対応'))return;if(!requireInputs([{id:'fcdate',label:'対応日',value:fcdate.value},{id:'fce',label:'乗務員',value:fce.value},{id:'fcs',label:'申告内容',value:fcs.value}]))return;
@@ -6861,7 +6914,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v142';
+const RELEASE_VERSION='v143';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
