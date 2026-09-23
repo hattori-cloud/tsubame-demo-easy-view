@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v175</title>
-<!-- production-sync:v175 -->
+<title>つばめ交通株式会社 社員一元管理システム v176</title>
+<!-- production-sync:v176 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1750,6 +1750,10 @@ function confirmFormSave(title,lines=[],warnings=[]){
 const CORE_SCHEMA_VERSION='core-2.0';
 function touchRecord(record,type,isNew=false){
  if(!record)return record;
+ if(type!=='employee'&&record.employee_no){
+  let employee=employeeByAnyId(record.employee_no);
+  if(employee?.system_id)record.employee_id=employee.system_id
+ }
  let actor=currentActorIdentity(),now=new Date().toISOString();
  if(!record._meta)record._meta={schema_version:CORE_SCHEMA_VERSION,entity_type:type,legacy:!isNew,created_at:'',created_by_id:'',created_by_name:'',updated_at:'',updated_by_id:'',updated_by_name:''};
  record._meta.schema_version=CORE_SCHEMA_VERSION;
@@ -1782,6 +1786,22 @@ function coreRecordCollections(){
   ['employee',E],['accident',A],['vehicle',V],['near_miss',N],['complaint',C],
   ['training',TR],['asset',AS],['qualification',QUAL],['guidance',GUIDANCE],['document',DOCS],['application',APPLICATIONS],['notice',NOTICES],['confirmation',CONFIRMATIONS]
  ]
+}
+function ensureStableEmployeeReferences(){
+ let changed=false;
+ E.forEach(e=>{
+  if(!e.system_id){e.system_id=systemEmployeeId(e.no);changed=true}
+ });
+ let link=(list)=>{
+  (list||[]).forEach(x=>{
+   if(!x||!x.employee_no)return;
+   let e=employeeByAnyId(x.employee_no);
+   if(e?.system_id&&x.employee_id!==e.system_id){x.employee_id=e.system_id;changed=true}
+  })
+ };
+ [A,V,N,C,TR,AS,QUAL,GUIDANCE,DOCS,APPLICATIONS].forEach(link);
+ if(changed)save()
+ return changed
 }
 function ensureRecordMetadata(){
  let changed=false;
@@ -1915,7 +1935,7 @@ function openGoldReviewForm(no){
 }
 function ensureHandoffFields(){
  E.forEach((e,i)=>{
-   e.system_id=systemEmployeeId(e.no);
+   if(!e.system_id)e.system_id=systemEmployeeId(e.no);
    if(!e.employment)e.employment='正社員';
    if(!e.workplace)e.workplace=e.branch;
    if(!e.oldNos)e.oldNos=i===0?['0901']:[];
@@ -2145,7 +2165,10 @@ function normalizeQualificationStatus(expiry,current){
 function systemEmployeeId(no){return 'EMP-'+String(no).replace(/^EMP-/,'')}
 function displayEmployeeNo(id){return String(id||'').replace(/^EMP-/,'')}
 function normalizeEmployeeLookup(v){return displayEmployeeNo(String(v||'').trim())}
-function employeeByAnyId(v){let no=normalizeEmployeeLookup(v);return E.find(e=>e.no===no)}
+function employeeByAnyId(v){
+ let raw=String(v||'').trim(),no=normalizeEmployeeLookup(raw);
+ return E.find(e=>String(e.system_id||'')===raw||String(e.no)===no||(Array.isArray(e.oldNos)&&e.oldNos.map(String).includes(no)))
+}
 
 
 function badge(s){let c=['在籍','完了','稼働','正常','可','有効'].includes(s)?'ok':['未完了','未返却','受付','確認中','対応中','未対応','面談予定','指導予定','点検予定','休職','期限30日以内','期限31～60日以内','要確認'].includes(s)?'warn':['退職予定','退職','期限切れ','不可（更新確認まで）'].includes(s)?'danger':'';return `<span class="badge ${c}">${esc(s)}</span>`}
@@ -2874,8 +2897,13 @@ function collectionBySource(name){
  return {E,QUAL,DOCS,TR,AS,A,N,C,GUIDANCE,V,APPLICATIONS,NOTICES,CONFIRMATIONS,HANDOFFS,USERS,AUDIT}[name]||[]
 }
 function relationIntegrityIssues(){
- let issues=[],employeeNos=new Set(E.map(e=>String(e.no))),userIds=new Set(USERS.map(u=>String(u.id))),qualIds=new Set(QUAL.map(q=>String(q.id))),docIds=new Set(DOCS.map(d=>String(d.id)));
- const employeeRef=(list,label)=>list.forEach(x=>{if(x.employee_no&&!employeeNos.has(String(x.employee_no)))issues.push(label+' '+(x.id||'IDなし')+' → 存在しない社員 '+x.employee_no)});
+ let issues=[],employeeNos=new Set(E.map(e=>String(e.no))),employeeIds=new Set(E.map(e=>String(e.system_id||'')).filter(Boolean)),userIds=new Set(USERS.map(u=>String(u.id))),qualIds=new Set(QUAL.map(q=>String(q.id))),docIds=new Set(DOCS.map(d=>String(d.id)));
+ let duplicateEmployeeIds=[...new Set([...employeeIds].filter(id=>E.filter(e=>String(e.system_id||'')===id).length>1))];
+ if(duplicateEmployeeIds.length)issues.push('社員 固定内部ID重複：'+duplicateEmployeeIds.join('、'));
+ const employeeRef=(list,label)=>list.forEach(x=>{
+  if(x.employee_no&&!employeeNos.has(String(x.employee_no))&&!E.some(e=>Array.isArray(e.oldNos)&&e.oldNos.map(String).includes(String(x.employee_no))))issues.push(label+' '+(x.id||'IDなし')+' → 存在しない社員 '+x.employee_no);
+  if(x.employee_id&&!employeeIds.has(String(x.employee_id)))issues.push(label+' '+(x.id||'IDなし')+' → 存在しない社員内部ID '+x.employee_id)
+ });
  employeeRef(QUAL,'資格');employeeRef(DOCS,'書類');employeeRef(TR,'安全指導');employeeRef(AS,'貸与品');employeeRef(A,'事故');employeeRef(N,'ヒヤリ');employeeRef(C,'苦情');employeeRef(GUIDANCE,'面談');employeeRef(APPLICATIONS,'申請');employeeRef(V,'車両');
  V.forEach(v=>(v.additionalEmployeeNos||[]).forEach(no=>{if(!employeeNos.has(String(no)))issues.push('車両 '+v.id+' → 存在しない追加利用乗務員 '+no)}));
  QUAL.forEach(q=>{if(q.document_id&&!docIds.has(String(q.document_id)))issues.push('資格 '+q.id+' → 存在しない書類 '+q.document_id)});
@@ -7772,7 +7800,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v175';
+const RELEASE_VERSION='v176';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
@@ -7800,6 +7828,7 @@ function runBootMigrations(){
   ['引継ぎ項目移行',ensureHandoffFields],
   ['乗務員認定項目移行',ensureDriverCertificationFields],
   ['共通ID補完',ensureCoreRecordIds],
+  ['固定社員ID・参照補完',ensureStableEmployeeReferences],
   ['資格書類リンク補完',ensureCredentialLinks],
   ['掲示・申請項目移行',ensureCommsFields],
   ['共通メタ情報・データ版移行',ensureRecordMetadata],
