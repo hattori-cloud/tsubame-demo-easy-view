@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v131</title>
-<!-- production-sync:v131 -->
+<title>つばめ交通株式会社 社員一元管理システム v132</title>
+<!-- production-sync:v132 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -720,9 +720,6 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="home-search-hints"><span>氏名</span><span>社員番号</span><span>3桁号車</span><span>事故番号</span><span>ゴールド・英語・観光</span></div>
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
 </div>
-<div id="homeRecentDetails" class="card general-restricted home-recent-details" style="display:none"></div>
-<div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
-
 <div class="card general-restricted home-simple-primary">
  <div class="list-summary"><div><h3 style="margin:0">まず確認する項目</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高いものを最大5件だけ表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div>
  <div id="today" class="notice-list"></div>
@@ -755,6 +752,8 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn primary admin-only" onclick="go('manage')">管理</button>
  </div></div></details>
 </div>
+<div id="homeRecentDetails" class="card general-restricted home-recent-details" style="display:none;margin:14px 0"></div>
+<div id="homeDraftSummary" class="card general-restricted" style="display:none;margin:14px 0"></div>
 <div id="selfHomePanel" class="card self-only" style="margin-top:12px">
  <h3>自分の確認</h3>
  <div id="selfHomeSummary" class="my-personal-list"></div>
@@ -3511,6 +3510,7 @@ function runSystemDiagnosticChecks(){
  let relationIssues=relationIntegrityIssues();
  out.push(systemDiagnosticCheck('データ参照整合性',relationIssues.length===0,relationIssues.length?relationIssues.slice(0,5).join(' / ')+(relationIssues.length>5?' ほか'+(relationIssues.length-5)+'件':''):'外部参照・主キー重複なし','warn'));
  out.push(systemDiagnosticCheck('アプリスキーマ',APP_DATA_SCHEMA===RELEASE_VERSION+'.0','現在 '+APP_DATA_SCHEMA));
+ out.push(systemDiagnosticCheck('画面リリース表示',document.title.includes(RELEASE_VERSION),'画面タイトル '+document.title+' / リリース '+RELEASE_VERSION));
  out.push(systemDiagnosticCheck('共通データ版',CORE_SCHEMA_VERSION==='core-2.0','現在 '+CORE_SCHEMA_VERSION));
  let bootOk=typeof BOOT_HEALTH!=='undefined'&&BOOT_HEALTH.completed&&!BOOT_HEALTH.errors.length;
  out.push(systemDiagnosticCheck('起動・データ移行',bootOk,typeof BOOT_HEALTH==='undefined'?'BOOT_HEALTHなし':BOOT_HEALTH.errors.length?BOOT_HEALTH.errors.map(x=>x.label+': '+x.message).join(' / '):'起動処理 '+BOOT_HEALTH.steps.length+'項目完了'));
@@ -6192,7 +6192,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v131';
+const RELEASE_VERSION='v132';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
