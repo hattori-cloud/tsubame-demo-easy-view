@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v162 foundation build.
+Current application: v163 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -134,3 +134,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v161 reorganizes the Management screen into a clear daily flow: Today's actions, assignment/workload, notifications/audit, and production readiness. Daily KPI cards are now direct actions, the management guide summarizes urgent work and unassigned cases, and the six daily KPI cards use responsive auto-fit layout instead of an incorrect five-column grid.
 
 - v162 fixes a JavaScript syntax regression introduced in the v158 vehicle-detail guidance markup by moving the guidance HTML into a dedicated helper. A full inline-script parse check now passes, while retaining the v161 Management-screen workflow improvements.
+
+- v163 unifies employee navigation across Home, Employee list, Recent items, Favorites, and related detail views. Employee details now preserve the actual origin screen, provide direct jumps to the six main employee sections, and correctly restore employee details from nested qualification/asset/document views.
