@@ -5419,7 +5419,8 @@ function organizeCurrentFormSections(options={}){
   fbody.addEventListener('input',updateCurrentFormFastStatus);
   fbody.addEventListener('change',updateCurrentFormFastStatus)
  }
- updateCurrentFormFastStatus()
+ updateCurrentFormFastStatus();
+ setTimeout(updateCurrentFormFastStatus,0)
 }
 
 function commonNextActionPanelHtml(nextAction,owner,dueText,tone=''){
