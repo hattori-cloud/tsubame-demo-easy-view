@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v166</title>
-<!-- production-sync:v166 -->
+<title>つばめ交通株式会社 社員一元管理システム v167</title>
+<!-- production-sync:v167 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -178,6 +178,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .self-only{display:none}
 .my-hero{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:0 5px 18px rgba(22,56,76,.06)}
 .my-name{font-size:1.35rem;font-weight:950;color:#173f57}
+.my-action-summary{border:2px solid #a9cad8}.my-action-summary-head{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}.my-action-summary-head h3{margin:0}.my-action-list{display:grid;gap:8px}.my-action-row{border:1px solid #d7e3e9;border-left:5px solid #9eb6c2;border-radius:11px;background:#fff;padding:11px 12px;display:flex;justify-content:space-between;gap:12px;align-items:center}.my-action-row.warn{border-left-color:#d4aa26;background:#fffdf3}.my-action-row.danger{border-left-color:#ca5f5f;background:#fff8f8}.my-action-main{min-width:0;flex:1}.my-action-main small{display:block;color:#687e89;font-size:.65rem;font-weight:950}.my-action-main b{display:block;color:#214f64;line-height:1.4}.my-action-next{font-size:.72rem;color:#4d6875;font-weight:850;margin-top:3px}.my-action-row .btn{flex:0 0 auto;min-height:46px}.my-deadline-note{font-size:.7rem;font-weight:900;margin-top:4px}@media(max-width:620px){.my-action-summary-head,.my-action-row{align-items:flex-start;flex-direction:column}.my-action-row .btn{width:100%}}
 .my-work-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
 .my-work-card{border:1px solid var(--line);border-radius:13px;background:#fff;padding:14px}
 .my-work-card small{display:block;color:var(--muted);font-weight:900}
@@ -1051,6 +1052,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <section class="page" id="my"><div class="page-title"><div><h2>自分</h2><p>自分の勤務・期限・確認事項だけを表示します。</p></div></div>
 <div class="spec-note">一般社員向け本人画面です。他社員の勤務時間・事故・健康情報などは表示しません。検証環境では社員1001を本人表示の確認対象としています。</div>
 <div id="myHero" class="my-hero"></div>
+<div id="myActionSummary" class="card my-action-summary" style="margin-top:12px"></div>
 <div id="myWorkGrid" class="my-work-grid"></div>
 <div class="grid2" style="margin-top:12px">
  <div class="card"><h3>自分の資格期限</h3><div id="myQualifications" class="my-personal-list"></div></div>
@@ -3113,19 +3115,74 @@ function workStatusClass(status,overtime){
  if(Number(overtime)>=45||status==='更新確認')return'warn';
  return''
 }
+function selfTaskItems(e){
+ let no=String(e.no),items=[],push=x=>items.push(x),w=e.workSummary||{},ot=Number(e.overtime??w.overtime??0),update=workUpdateStatus(e);
+ if(ot>=60)push({priority:0,tone:'danger',title:'残業 '+ot+'時間',reason:'勤務時間が60時間に到達しています',action:'勤務状況を確認',button:'勤務を確認',open:"employeeHealthWork('"+no.replaceAll("'","")+"')"});
+ else if(ot>=45)push({priority:2,tone:'warn',title:'残業 '+ot+'時間',reason:'勤務時間の確認が必要です',action:'勤務状況を確認',button:'勤務を確認',open:"employeeHealthWork('"+no.replaceAll("'","")+"')"});
+ if(update==='更新確認')push({priority:2.5,tone:'warn',title:'勤務集計の確認',reason:'勤務集計が最新状態か確認が必要です',action:'最終計上日と勤務時間を確認',button:'勤務を確認',open:"employeeHealthWork('"+no.replaceAll("'","")+"')"});
+
+ if(e.health){
+  let n=days(e.health);
+  if(n<0)push({priority:0,tone:'danger',title:'健康診断期限',reason:'期限を'+Math.abs(n)+'日超過しています',action:'受診予定を会社へ確認',button:'健診期限を見る',open:"employeeHealthWork('"+no.replaceAll("'","")+"')"});
+  else if(n<=30)push({priority:n===0?1:3,tone:'warn',title:'健康診断期限',reason:n===0?'期限が本日です':'期限まで'+n+'日です',action:'受診予定を確認',button:'健診期限を見る',open:"employeeHealthWork('"+no.replaceAll("'","")+"')"});
+ }
+
+ QUAL.filter(q=>q.employee_no===no&&q.expiry).forEach(q=>{
+  let n=days(q.expiry);
+  if(n<0)push({priority:0.5,tone:'danger',title:q.name,reason:'資格期限を'+Math.abs(n)+'日超過しています',action:'更新状況を会社へ確認',button:'資格を見る',open:"employeeQualification('"+no.replaceAll("'","")+"')"});
+  else if(n<=30)push({priority:3,tone:'warn',title:q.name,reason:n===0?'資格期限が本日です':'資格期限まで'+n+'日です',action:'更新予定を確認',button:'資格を見る',open:"employeeQualification('"+no.replaceAll("'","")+"')"});
+ });
+
+ TR.filter(t=>t.employee_no===no&&t.status!=='完了').forEach(t=>{
+  let n=t.due?days(t.due):null,tone=n!==null&&n<0?'danger':'warn',priority=n!==null&&n<0?0.5:n===0?1:n!==null&&n<=30?3:5;
+  let reason=!t.due?'期限が未設定の未完了項目です':n<0?'期限を'+Math.abs(n)+'日超過しています':n===0?'期限が本日です':n<=30?'期限まで'+n+'日です':'未完了の安全指導・適性診断です';
+  push({priority,tone,title:t.course,reason,action:'実施予定・完了状況を確認',button:'指導記録を見る',open:"employeeTraining('"+no.replaceAll("'","")+"')"})
+ });
+
+ NOTICES.filter(n=>commsVisibleToSelf(n)&&!n.readBy.includes(no)).forEach(n=>{
+  let d=n.due?days(n.due):null,tone=d!==null&&d<0?'danger':'warn',priority=d!==null&&d<=0?1:4;
+  push({priority,tone,title:'未読掲示：'+n.title,reason:n.due?(d<0?'確認期限を'+Math.abs(d)+'日超過':d===0?'確認期限が本日':'未読の掲示があります'):'未読の掲示があります',action:'内容を読み、既読にする',button:'掲示を確認',open:"noticeDetail('"+String(n.id).replaceAll("'","")+"')"})
+ });
+ CONFIRMATIONS.filter(x=>commsVisibleToSelf(x)&&!x.responses?.[no]).forEach(x=>{
+  let d=x.due?days(x.due):null,tone=d!==null&&d<0?'danger':'warn',priority=d!==null&&d<=0?0.8:2;
+  push({priority,tone,title:'未回答：'+x.title,reason:x.due?(d<0?'回答期限を'+Math.abs(d)+'日超過':d===0?'回答期限が本日':'回答が必要です'):'回答が必要です',action:'内容を確認して回答',button:'回答する',open:"confirmationDetail('"+String(x.id).replaceAll("'","")+"')"})
+ });
+ APPLICATIONS.filter(a=>a.employee_no===no&&a.status==='差戻し').forEach(a=>{
+  push({priority:1,tone:'danger',title:'差戻し申請：'+a.type,reason:'申請内容の修正が必要です',action:'差戻し内容を確認して再申請',button:'申請を確認',open:"applicationDetail('"+String(a.id).replaceAll("'","")+"')"})
+ });
+ return items.sort((a,b)=>a.priority-b.priority||String(a.title).localeCompare(String(b.title),'ja'))
+}
+function selfTaskHtml(task){
+ return '<div class="my-action-row '+(task.tone||'')+'"><div class="my-action-main"><small>なぜ確認？</small><b>'+esc(task.title)+' — '+esc(task.reason)+'</b><div class="my-action-next">次にすること：'+esc(task.action)+'</div></div><button class="btn '+(task.tone==='danger'?'danger':task.tone==='warn'?'primary':'soft')+'" onclick="'+task.open+'">'+esc(task.button||'確認')+'</button></div>'
+}
+
 function renderMyPage(){
  let e=emp(currentSelfNo());if(!e)return;
- let w=e.workSummary||{month:'-',restraint:'-',remaining:'-',overtime:e.overtime||0,lastPosted:'-',status:'未確認'};
- myHero.innerHTML=`<div class="my-name">${esc(e.name)} <span class="mini">社員番号 ${e.no}</span></div><div class="mini">${esc(e.workplace||e.branch)} / ${esc(e.dept)} / ${esc(e.workPattern||'通常勤務')}</div><div style="margin-top:8px">${badge(e.status)} <span class="badge ${w.status==='更新済'?'ok':'warn'}">${w.status}</span></div>`;
- myWorkGrid.innerHTML=`<div class="my-work-card"><small>対象月</small><b>${w.month}</b><span class="mini">勤務集計</span></div><div class="my-work-card ${workStatusClass(w.status,w.overtime)}"><small>拘束時間</small><b>${w.restraint}時間</b><span class="mini">共有デモ値</span></div><div class="my-work-card"><small>残時間</small><b>${w.remaining}時間</b><span class="mini">共有デモ値</span></div><div class="my-work-card ${Number(w.overtime)>=45?'warn':''}"><small>残業時間</small><b>${w.overtime}時間</b><span class="mini">最終計上 ${w.lastPosted}</span></div>`;
- let qq=QUAL.filter(q=>q.employee_no===e.no).sort((a,b)=>String(a.expiry).localeCompare(String(b.expiry)));
- myQualifications.innerHTML=qq.length?qq.map(q=>`<div class="my-personal-row"><div><b>${esc(q.name)}</b><div class="mini">期限 ${q.expiry||'未設定'}</div></div>${badge(q.status)}</div>`).join(''):'<div class="mini">資格情報はありません。</div>';
- let tt=TR.filter(t=>t.employee_no===e.no).sort((a,b)=>String(a.due).localeCompare(String(b.due)));
- mySafety.innerHTML=tt.length?tt.map(t=>`<div class="my-personal-row"><div><b>${esc(t.course)}</b><div class="mini">期限 ${t.due}</div></div>${badge(t.status)}</div>`).join(''):'<div class="mini">確認事項はありません。</div>';
- myHealth.innerHTML=`<div class="my-personal-row"><div><b>定期健康診断</b><div class="mini">次回予定：8月（全社員）${e.workPattern==='夜勤'?' / 2月（夜間従事者）':''}</div></div><span class="badge ok">予定確認</span></div><div class="sensitive-note">健診結果の内容はこの本人画面には表示しません。</div>`;
- let apps=APPLICATIONS.filter(a=>a.employee_no===e.no);
- myApplications.innerHTML=apps.length?apps.map(a=>`<div class="my-personal-row"><div><b>${esc(a.type)}</b><div class="mini">${a.id} / ${a.date}</div></div>${badge(a.status)}</div>`).join(''):'<div class="mini">本人確認・申請はありません。</div>';
- if(selfHomeSummary)selfHomeSummary.innerHTML=`<div class="my-personal-row"><div><b>${e.name}さんの勤務</b><div class="mini">${w.month} / 拘束 ${w.restraint}時間 / 残時間 ${w.remaining}時間 / 残業 ${w.overtime}時間</div></div><span class="badge ${w.status==='更新済'?'ok':'warn'}">${w.status}</span></div><div class="my-personal-row"><div><b>安全指導・適性診断</b><div class="mini">未完了 ${tt.filter(x=>x.status!=='完了').length}件</div></div><button class="btn soft" onclick="go('my')">確認</button></div>`
+ let w=e.workSummary||{month:'-',restraint:'-',remaining:'-',lastPosted:'-'};
+ let ot=Number(e.overtime??w.overtime??0),update=workUpdateStatus(e),tasks=selfTaskItems(e);
+ myHero.innerHTML=`<div class="my-name">${esc(e.name)} <span class="mini">社員番号 ${e.no}</span></div><div class="mini">${esc(e.workplace||e.branch)} / ${esc(e.dept)} / ${esc(e.workPattern||'通常勤務')}</div><div style="margin-top:8px">${badge(e.status)} <span class="badge ${update==='更新済'?'ok':'warn'}">${update}</span></div>`;
+
+ let actionEl=document.getElementById('myActionSummary');
+ if(actionEl)actionEl.innerHTML='<div class="my-action-summary-head"><div><h3>今やること</h3><div class="mini">期限・未回答・未読・差戻しを優先順に表示します。</div></div><span class="badge '+(tasks.some(x=>x.tone==='danger')?'danger':tasks.length?'warn':'ok')+'">'+tasks.length+'件</span></div><div class="my-action-list">'+
+  (tasks.length?tasks.slice(0,8).map(selfTaskHtml).join(''):'<div class="notice"><div><b>現在、本人対応が必要な項目はありません。</b><div class="mini">通常の確認だけで大丈夫です。</div></div><span class="badge ok">OK</span></div>')+
+  (tasks.length>8?'<div class="mini">優先度の高い8件を表示 / 全'+tasks.length+'件</div>':'')+'</div>';
+
+ myWorkGrid.innerHTML=`<div class="my-work-card"><small>対象月</small><b>${esc(w.month||'-')}</b><span class="mini">勤務集計</span></div><div class="my-work-card ${workStatusClass(update,ot)}"><small>拘束時間</small><b>${esc(w.restraint??'-')}時間</b><span class="mini">最終計上 ${esc(w.lastPosted||'未登録')}</span></div><div class="my-work-card"><small>残時間</small><b>${esc(w.remaining??'-')}時間</b><span class="mini">勤務集計値</span></div><div class="my-work-card ${ot>=60?'danger':ot>=45?'warn':''}"><small>残業時間</small><b>${ot}時間</b><span class="mini">${esc(overtimeStatus(ot))}</span></div>`;
+
+ let qq=QUAL.filter(q=>q.employee_no===e.no).sort((a,b)=>deadlinePriority(a.expiry)-deadlinePriority(b.expiry)||String(a.expiry).localeCompare(String(b.expiry)));
+ myQualifications.innerHTML=qq.length?qq.map(q=>{let n=q.expiry?days(q.expiry):null,tone=n!==null&&n<0?'danger':n!==null&&n<=30?'warn':'';return `<div class="my-personal-row"><div><b>${esc(q.name)}</b><div class="mini">期限 ${esc(q.expiry||'未設定')}${q.expiry?' / '+esc(deadlineBucketLabel(q.expiry)):''}</div></div><div class="toolbar">${badge(normalizeQualificationStatus(q.expiry,q.status))}<button class="btn ${tone==='danger'?'danger':tone==='warn'?'primary':'soft'}" onclick="employeeQualification('${e.no}')">確認</button></div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>';
+
+ let tt=TR.filter(t=>t.employee_no===e.no).sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||String(a.due).localeCompare(String(b.due)));
+ mySafety.innerHTML=tt.length?tt.map(t=>{let info=trainingActionInfo(t);return `<div class="my-personal-row"><div><b>${esc(t.course)}</b><div class="mini">期限 ${esc(t.due||'未設定')}${t.due?' / '+esc(deadlineBucketLabel(t.due)):''}</div></div><div class="toolbar">${badge(t.status)}<button class="btn ${info.tone==='danger'?'danger':info.tone==='warn'?'primary':'soft'}" onclick="employeeTraining('${e.no}')">確認</button></div></div>`}).join(''):'<div class="mini">確認事項はありません。</div>';
+
+ let healthN=e.health?days(e.health):null,healthTone=healthN===null?'warn':healthN<0?'danger':healthN<=30?'warn':'ok';
+ myHealth.innerHTML=`<div class="my-personal-row"><div><b>定期健康診断</b><div class="mini">登録期限：${esc(e.health||'未登録')}${e.health?' / '+esc(deadlineBucketLabel(e.health)):''}</div></div><button class="btn ${healthTone==='danger'?'danger':healthTone==='warn'?'primary':'soft'}" onclick="employeeHealthWork('${e.no}')">${healthN!==null&&healthN<0?'期限を確認':'予定を確認'}</button></div><div class="sensitive-note">健康診断は期限・受診予定だけを表示し、結果・病名などは扱いません。</div>`;
+
+ let apps=APPLICATIONS.filter(a=>a.employee_no===e.no).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ myApplications.innerHTML=apps.length?apps.map(a=>`<div class="my-personal-row"><div><b>${esc(a.type)}</b><div class="mini">${esc(a.id)} / ${esc(a.date||'')} / ${esc(applicationNextActionInfo(a).action)}</div></div><div class="toolbar">${badge(a.status)}<button class="btn ${a.status==='差戻し'?'danger':'soft'}" onclick="applicationDetail('${a.id}')">確認</button></div></div>`).join(''):'<div class="mini">本人確認・申請はありません。</div>';
+
+ let unread=NOTICES.filter(n=>commsVisibleToSelf(n)&&!n.readBy.includes(e.no)).length,unanswered=CONFIRMATIONS.filter(x=>commsVisibleToSelf(x)&&!x.responses?.[e.no]).length;
+ if(selfHomeSummary)selfHomeSummary.innerHTML=`<div class="my-personal-row"><div><b>${esc(e.name)}さんの確認</b><div class="mini">本人対応 ${tasks.length}件 / 未読掲示 ${unread}件 / 未回答 ${unanswered}件</div></div><button class="btn ${tasks.length?'primary':'soft'}" onclick="go('my')">自分の画面へ</button></div><div class="my-personal-row"><div><b>勤務</b><div class="mini">${esc(w.month||'-')} / 拘束 ${esc(w.restraint??'-')}時間 / 残時間 ${esc(w.remaining??'-')}時間 / 残業 ${ot}時間</div></div><span class="badge ${update==='更新済'?'ok':'warn'}">${update}</span></div>`
 }
 
 
@@ -7530,7 +7587,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v166';
+const RELEASE_VERSION='v167';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
