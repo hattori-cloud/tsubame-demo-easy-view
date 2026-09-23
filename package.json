@@ -1,0 +1,12 @@
+{
+  "name": "tsubame-demo-easy-view",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Tsubame employee and operations management demo / production foundation",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@ayocore/exceljs": "5.0.4"
+  }
+}
