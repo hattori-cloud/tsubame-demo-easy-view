@@ -3422,7 +3422,7 @@ async function attendancePreflight(){
  let file=attendanceFile.files[0];if(!file)return;
  if(!/\.xlsx$/i.test(file.name)){ATT_PRECHECK=false;attImportBtn.disabled=true;attDiffBtn.disabled=true;return alert('対応形式は .xlsx のみです')}
  if(file.size<=0)return alert('ファイルが空です');
- if(file.size>8*1024*1024)return alert('取込前チェックは8MB以下のファイルに対応しています');
+ if(file.size>4*1024*1024)return alert('取込前チェックは4MB以下のファイルに対応しています');
  attPreBtn.disabled=true;attResult.textContent='ファイルを識別しています…';
  try{
   let fingerprint=await attendanceFileFingerprint(file),state=attendanceFileState(file,fingerprint);
