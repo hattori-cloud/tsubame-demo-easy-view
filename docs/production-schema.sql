@@ -96,7 +96,23 @@ create table documents (
   retention_until date,
   storage_key text,
   storage_version_id text,
-  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}
+  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}$'),
+  malware_scan_status text not null default 'not_uploaded'
+    check (malware_scan_status in ('not_uploaded','pending','clean','blocked','error')),
+  malware_scanned_at timestamptz,
+  verified_at timestamptz,
+  verified_by_user_id uuid references users(id),
+  replaced_from_document_id uuid references documents(id),
+  replaced_by_document_id uuid references documents(id),
+  archived_at timestamptz,
+  archived_by_user_id uuid references users(id),
+  archive_reason text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1 check (version >= 1),
+  check (security_class <> 'strict' or access_level = 'full_admin'),
+  check (original_handling not in ('company_paper_original','paper_and_electronic') or paper_location is not null)
+);
 
 create table safety_training (
   id uuid primary key default gen_random_uuid(),
