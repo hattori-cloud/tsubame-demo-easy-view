@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v165 foundation build.
+Current application: v166 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -140,3 +140,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v164 clarifies the Work / Deadlines screen: each priority employee, overtime/update item, health-check deadline, and safety-training item now shows why it needs review and what to do next. The "within 30 days" KPI now opens the exact same 1–30 day population it counts, fixing the previous count/filter mismatch.
 
 - v165 makes the Safety screen action-oriented: accident, complaint, and near-miss rows now explain why the record needs attention and what to do next. Accident/complaint detail action panels also include the review reason, while near-miss detail shows an analysis follow-up guide without turning near-miss reports into manager case-management tasks.
+
+- v166 simplifies the Home screen into a clear four-step flow: 1) review today's status, 2) process today's tasks, 3) search across the system, and 4) use common operations. The open accident/complaint summary now opens a combined prioritized review instead of automatically jumping to accidents whenever at least one accident exists.
