@@ -5315,13 +5315,20 @@ function originalDocumentPriorityScore(d){
 function originalDocumentPriorityRows(docs){
  return docs.filter(d=>!d.archived&&originalDocumentPriorityReason(d)).sort((a,b)=>originalDocumentPriorityScore(a)-originalDocumentPriorityScore(b)||String(a.expiry||a.retentionUntil||'9999-12-31').localeCompare(String(b.expiry||b.retentionUntil||'9999-12-31'))||String(a.employee_no).localeCompare(String(b.employee_no),'ja',{numeric:true}))
 }
+function originalDocumentPrimaryActionHtml(d){
+ let id=String(d.id||'').replaceAll("'",""),idx=DOCS.indexOf(d),no=String(d.employee_no||'').replaceAll("'",""),reason=originalDocumentPriorityReason(d);
+ if(d.status==='差替え待ち'&&canEditDocumentRecord(d)&&!d.replacedByDocumentId)return '<button class="btn primary" onclick="replaceDocument(\''+id+'\')">差替え</button>';
+ if(d.status!=='原本確認済み'&&d.status!=='差替え済み'&&canVerifyOriginalDocument())return '<button class="btn primary" onclick="verifyOriginalDocument(\''+id+'\')">原本確認</button>';
+ if((reason.startsWith('期限超過')||reason==='紙原本の保管場所未設定'||reason==='保管期限到来'||reason.startsWith('期限まで'))&&canEditDocumentRecord(d))return '<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">更新する</button>';
+ return '<button class="btn primary" onclick="documentPreview(\''+id+'\')">詳細確認</button>'
+}
 function originalDocumentPriorityHtml(docs){
  let rows=originalDocumentPriorityRows(docs),shown=rows.slice(0,5);
  if(!shown.length)return '<div class="notice"><div><b>今日の優先確認はありません。</b><div class="mini">新しい未確認・期限・差替え対象が出るとここに表示されます。</div></div><span class="badge ok">OK</span></div>';
  return '<div class="section" style="margin-top:10px"><div class="list-summary"><div><h3 style="margin:0">今日、先に確認する原本</h3><div class="mini">期限・差替え・未確認・保管不備の順に表示</div></div><span class="badge warn">'+rows.length+'件</span></div>'+
   shown.map(d=>{
    let e=emp(d.employee_no),reason=originalDocumentPriorityReason(d),tone=reason.startsWith('期限超過')?'danger':'warn',id=String(d.id||'').replaceAll("'","");
-   return '<div class="row '+(tone==='danger'?'quality-bad':'quality-warn')+'"><div style="flex:1;min-width:0"><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'） / '+esc(d.name)+'</b><div class="mini">'+esc(reason)+' / '+esc(d.originalHandling||'原本区分未設定')+'</div></div><div class="toolbar"><span class="badge '+tone+'">'+esc(reason)+'</span><button class="btn primary" onclick="documentPreview(\''+id+'\')">確認する</button></div></div>'
+   return '<div class="row '+(tone==='danger'?'quality-bad':'quality-warn')+'"><div style="flex:1;min-width:0"><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'） / '+esc(d.name)+'</b><div class="mini">'+esc(reason)+' / '+esc(d.originalHandling||'原本区分未設定')+'</div></div><div class="toolbar"><span class="badge '+tone+'">'+esc(reason)+'</span>'+originalDocumentPrimaryActionHtml(d)+'</div></div>'
   }).join('')+
   (rows.length>shown.length?'<div class="mini" style="margin-top:7px">上位5件を表示 / 全'+rows.length+'件。下の一覧で残りを確認できます。</div>':'')+
  '</div>'
