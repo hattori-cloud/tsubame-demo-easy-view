@@ -366,6 +366,36 @@ The first production/staging slice should intentionally stay small:
 8. Back up and restore the staging DB.
 9. Only after this passes, expand the pattern to all modules.
 
-## 15. Out of scope
+## 15. Work summary XLSX preflight
+
+### POST /api/v1/work-import/preflight
+
+Full administrator only. This endpoint performs **preflight analysis only** and never persists the workbook or updates employee records.
+
+Request:
+
+- authenticated bearer token
+- `Content-Type: application/octet-stream`
+- `X-File-Name: <name>.xlsx`
+- maximum raw workbook size: 4 MB
+
+The server:
+
+1. verifies authentication and full-administrator authorization,
+2. parses the workbook in memory,
+3. searches the first 20 rows of each worksheet for likely work-summary headers,
+4. reports detected and missing fields,
+5. normalizes preview values for employee number, target month, restraint time, remaining time, overtime and last-posted date,
+6. flags invalid numeric/date cells and overtime of 60 hours or more,
+7. returns only a bounded preview/issues result,
+8. does not write business data.
+
+The header alias list is intentionally provisional until an approved real workbook format is confirmed. A production import must not silently guess ambiguous columns.
+
+The later confirmation endpoint must re-check the same workbook hash, employee matching, differences, current record versions and administrator approval before committing any update.
+
+---
+
+## 16. Out of scope
 
 - PCA and アントレ remain planning items until their exact integration requirements are approved.
