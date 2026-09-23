@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v190 foundation build.
+Current application: v191 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -180,3 +180,6 @@ Production note: the shared demo still uses fictional data and browser storage. 
 
 
 - v190 continues the long-term volume hardening: employee-specific near-miss history and the combined employee safety timeline now show 25 records per page instead of rendering all historical rows, and Home global search is debounced so large safety histories are not rescanned on every keystroke. The production rule remains server-side search/pagination; this change keeps the fictional browser demo usable while history accumulates.
+
+
+- v191 completes another long-term-history finding from the annual internal load test by paging employee-specific complaint history at 25 rows. The annual test baseline now also includes approximately 20 accidents per month / 240 per year. See `docs/annual-internal-test-v191.md` for the consolidated one-year and five-year capacity findings.
