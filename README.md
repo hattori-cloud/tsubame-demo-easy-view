@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v172 foundation build.
+Current application: v173 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -150,4 +150,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v170 makes save feedback trustworthy and action-oriented: the shared confirmation now appears only after the transactional core save actually succeeds, and detail destinations show a temporary post-save guide with a direct jump to the next-action/important-information area. A static audit of 569 inline interaction handlers and full inline-script parsing found no missing application handler functions or syntax errors.
 - v171 standardizes the core manager decision panel across employee, accident, complaint, near-miss, vehicle and deadline workflows. The common order is now “why this needs attention → next action → owner → due/state,” while preserving each module's existing business meaning and permissions; redundant vehicle guidance was removed so the same decision is not shown twice.
 - v172 standardizes the top action bar in accident, complaint, near-miss and vehicle detail views. Back navigation now says “one level back” or “back to the original screen” according to actual detail history; mobile layouts place navigation controls first and the primary correction/update action on a full-width row to reduce accidental taps. Inline-script parsing passes and no application handler referenced by inline interaction attributes is missing.
+- v173 standardizes list-level action wording across employees, accidents, complaints, near-misses, vehicles and the deadline center. The primary vocabulary is now “見る” for read-only review, “対応する” when action is needed, and “修正する” for direct record editing; the underlying permissions and record logic are unchanged. Inline-script parsing passes, and 569 inline interaction handlers were checked with no missing application handler functions.
 
