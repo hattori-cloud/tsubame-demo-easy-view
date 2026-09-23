@@ -92,6 +92,7 @@ create table documents (
     check (access_level in ('self_allowed','scope_admin','full_admin')),
   original_handling text not null default 'electronic_original'
     check (original_handling in ('employee_original_company_copy','company_paper_original','electronic_original','paper_and_electronic')),
+  verification_required boolean not null default true,
   paper_location text,
   retention_until date,
   storage_key text,
