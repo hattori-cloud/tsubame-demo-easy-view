@@ -52,3 +52,10 @@ test('optional-verification documents are excluded from pending verification que
   assert.ok(verify.includes('function documentVerificationRequired'));
   assert.ok(center.includes('documentVerificationRequired(d)'));
 });
+
+test('strict document categories cannot be registered by scoped admins',()=>{
+  const form=block('function openDocumentForm','function replaceDocument');
+  assert.ok(form.includes("documentRule(o.value).securityClass==='厳格'"));
+  assert.ok(form.includes("documentRule(fdcat.value).securityClass==='厳格'&&!isFullCompanyAdmin()"));
+});
+
