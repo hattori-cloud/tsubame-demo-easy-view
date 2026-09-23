@@ -113,3 +113,19 @@ test('leap-day validation accepts real leap day and rejects non-leap equivalent'
   assert.equal((await parseWorkbookBuffer(bad,'work.xlsx')).can_commit,false)
 });
 
+test('Excel [h]:mm duration cells are converted to hours',async()=>{
+  const buffer=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    const row=ws.addRow(['1001','2026-09',228/24,72/24,10/24,'2026-09-20']);
+    row.getCell(3).numFmt='[h]:mm';
+    row.getCell(4).numFmt='[h]:mm';
+    row.getCell(5).numFmt='[h]:mm'
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,true);
+  assert.ok(Math.abs(p.preview[0].restraint-228)<0.001);
+  assert.ok(Math.abs(p.preview[0].remaining-72)<0.001);
+  assert.ok(Math.abs(p.preview[0].overtime-10)<0.001)
+});
+
