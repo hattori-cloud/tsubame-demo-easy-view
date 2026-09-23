@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v174 foundation build.
+Current application: v176 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -152,4 +152,6 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v172 standardizes the top action bar in accident, complaint, near-miss and vehicle detail views. Back navigation now says “one level back” or “back to the original screen” according to actual detail history; mobile layouts place navigation controls first and the primary correction/update action on a full-width row to reduce accidental taps. Inline-script parsing passes and no application handler referenced by inline interaction attributes is missing.
 - v173 standardizes list-level action wording across employees, accidents, complaints, near-misses, vehicles and the deadline center. The primary vocabulary is now “見る” for read-only review, “対応する” when action is needed, and “修正する” for direct record editing; the underlying permissions and record logic are unchanged. Inline-script parsing passes, and 569 inline interaction handlers were checked with no missing application handler functions.
 - v174 adds a browser-level stale-edit guard for the localStorage demo. Each transactional core save writes a revision token, other tabs/windows listen for revision or core-record changes, and a stale tab is prevented from saving until it reloads the latest data. The administrator self-diagnostic now checks that the cross-tab overwrite guard exists. This reduces same-browser overwrite risk but does not replace a shared server database or true optimistic concurrency in production.
+- v175 aligns the demo user registry with employee lifecycle state: a user linked to an employee whose lifecycle status is retired is treated as effectively stopped, excluded from active-manager and self-user selection, shown with zero effective sessions, and checked by administrator self-diagnostics. This models the intended retirement rule while real authentication/session invalidation remains a production-server responsibility.
+- v176 strengthens employee identity for future employee-number changes. Existing employee `system_id` values are no longer regenerated from the current employee number at boot; accident, complaint, near-miss, vehicle, qualification, document, training, asset, guidance and application records are backfilled with a stable `employee_id`, new/updated records inherit that stable link, lookups accept current number, old number or stable ID, and relation-integrity checks validate the stable references. Employee-number editing remains disabled in the normal UI.
 
