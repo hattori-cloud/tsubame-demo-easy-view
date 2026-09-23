@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v183 foundation build.
+Current application: v184 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -163,3 +163,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v182 strengthens the work-summary XLSX preflight as a true blocking gate instead of a loose warning pass. It now rejects duplicate employee rows, negative/out-of-range work values, invalid target-month/date formats and over-5000-row files; separates blocking issues from 45/55/60-hour warnings; scans the first 20 rows of every worksheet for sensitive headers; exposes a `can_commit` readiness flag while still persisting nothing; and adds regression tests for valid files, duplicates, missing columns, invalid values and sensitive columns on secondary sheets.
 - v183 adds a shared server-side optimistic-concurrency guard for future production writes. Strong ETags are formatted centrally, versioned mutations must provide `If-Match`, missing preconditions return 428, weak/wildcard tags are rejected, and stale versions return 409 instead of silently overwriting newer data. Employee GET now uses the shared ETag helper, and regression tests cover the concurrency rules. No production write endpoint is enabled yet; writes remain fail-closed until a durable database adapter is connected.
 
+
+- v184 reframes Home explicitly as the manager workspace when a manager role is active. The four-step flow now reads as today's management status, today's priority actions, employee/vehicle/case search, and registration/review. This is a wording/navigation-clarity change only; permissions, save logic and business-record rules are unchanged.
