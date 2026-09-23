@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v163 foundation build.
+Current application: v164 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -136,3 +136,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v162 fixes a JavaScript syntax regression introduced in the v158 vehicle-detail guidance markup by moving the guidance HTML into a dedicated helper. A full inline-script parse check now passes, while retaining the v161 Management-screen workflow improvements.
 
 - v163 unifies employee navigation across Home, Employee list, Recent items, Favorites, and related detail views. Employee details now preserve the actual origin screen, provide direct jumps to the six main employee sections, and correctly restore employee details from nested qualification/asset/document views.
+
+- v164 clarifies the Work / Deadlines screen: each priority employee, overtime/update item, health-check deadline, and safety-training item now shows why it needs review and what to do next. The "within 30 days" KPI now opens the exact same 1–30 day population it counts, fixing the previous count/filter mismatch.
