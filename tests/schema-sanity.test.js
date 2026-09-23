@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,20);
+  assert.equal(tables.length,21);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -33,3 +33,11 @@ test('schema transaction is balanced',()=>{
   assert.match(sql,/^begin;/mi);
   assert.match(sql,/^commit;/mi)
 });
+
+test('document policy rules enforce strict security',()=>{
+  assert.match(sql,/create table document_policy_rules/i);
+  assert.match(sql,/security_class <> 'strict' or access_level = 'full_admin'/);
+  assert.match(sql,/security_class <> 'strict' or verification_required = true/);
+  assert.match(sql,/retention_years is null or retention_years between 1 and 99/)
+});
+
