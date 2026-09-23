@@ -4359,8 +4359,8 @@ function employeeSafetyTrendData(no){
  let accidents=canViewManagementRecord('accident',no)?A.filter(x=>String(x.employee_no)===String(no)):[];
  let complaints=canViewManagementRecord('complaint',no)?C.filter(x=>String(x.employee_no)===String(no)):[];
  let near=canViewManagementRecord('near_miss',no)?N.filter(x=>String(x.employee_no)===String(no)):[];
- let age=d=>d?Math.max(0,-days(d)):99999;
- let inDays=(d,n)=>d&&age(d)<=n;
+ let age=d=>d?-days(d):99999;
+ let inDays=(d,n)=>d&&age(d)>=0&&age(d)<=n;
  let stats=(n)=>({
   accidents:accidents.filter(x=>inDays(x.date,n)).length,
   complaints:complaints.filter(x=>inDays(x.occurrenceDate||x.responseDate||x.date,n)).length,
