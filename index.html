@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v145</title>
-<!-- production-sync:v145 -->
+<title>つばめ交通株式会社 社員一元管理システム v146</title>
+<!-- production-sync:v146 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -6314,6 +6314,12 @@ function updateEmployeeCreateGuide(){
  if(!document.getElementById('faptnext')?.value)missing.push('適性診断 次回');
  el.innerHTML='<b>乗務員として登録</b><div class="mini">'+(missing.length?'登録後は「要確認」で開始します。未入力：'+missing.map(esc).join('・'):'主要期限が入力されています。登録後も安全確認完了までは乗務可否を確認してください。')+'</div>'
 }
+function nextEmployeeNumber(){
+ let nums=E.map(x=>Number.parseInt(String(x.no||''),10)).filter(Number.isFinite);
+ let n=(nums.length?Math.max(...nums):1000)+1;
+ while(E.some(x=>String(x.no)===String(n)))n++;
+ return String(n)
+}
 function openEmployeeForm(){
  if(!canCreateEmployee()){alert('社員の新規登録は全社管理者のみ行えます');return}
  fttl.textContent='社員を登録';setFormSaveLabel('社員を登録する');
@@ -6353,7 +6359,7 @@ function openEmployeeForm(){
   if(!canCreateEmployee())return alert('社員の新規登録は全社管理者のみ行えます');
   if(!fn.value.trim()||!fhire.value)return alert('氏名と入社日を入力してください');
   let rule=validateOfficeDept(fbranch.value,fd.value);if(rule)return alert(rule);
-  let no=String(Math.max(...E.map(x=>+x.no))+1),driver=['タクシー課','バス課'].includes(fd.value);
+  let no=nextEmployeeNumber(),driver=['タクシー課','バス課'].includes(fd.value);
   let expired=driver&&flicenseexp.value&&days(flicenseexp.value)<0;
   let rec={
     no,name:fn.value.trim(),furigana:ffuri.value.trim(),hire:fhire.value,
@@ -6958,7 +6964,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v145';
+const RELEASE_VERSION='v146';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
