@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v130</title>
-<!-- production-sync:v130 -->
+<title>つばめ交通株式会社 社員一元管理システム v131</title>
+<!-- production-sync:v131 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -3472,6 +3472,21 @@ let LAST_SELF_DIAGNOSTIC=null;
 function systemDiagnosticCheck(name,ok,detail,level='bad'){
  return {name,ok:!!ok,detail:String(detail||''),level:ok?'ok':level}
 }
+function uiInteractionHealth(){
+ const attrs=['onclick','onchange','oninput','onkeydown','onsubmit'],selector=attrs.map(a=>'['+a+']').join(',');
+ let missing=new Set(),scanned=0;
+ document.querySelectorAll(selector).forEach(el=>{
+  attrs.forEach(attr=>{
+   let code=el.getAttribute(attr);if(!code)return;scanned++;
+   for(const m of code.matchAll(/(?<!\.)\b([A-Za-z_$][\w$]*)\s*\(/g)){
+    let name=m[1];
+    if(['if','for','while','switch','catch','function'].includes(name))continue;
+    if(typeof window[name]!=='function')missing.add(name)
+   }
+  })
+ });
+ return {scanned,missing:[...missing].sort()}
+}
 function runSystemDiagnosticChecks(){
  let out=[];
  let requiredIds=['nav','home','my','emp','work','safe','vehicles','comms','manage','detail','preview','form','foundationStatus','foundationProgress','productionGate','homeDailySummary','homeDraftSummary','authReadiness','uatSummary','dataModelSummary','qualitySummary','adminDailyCenter','empTodaySummary','companySpec','auditHistory'];
@@ -3480,7 +3495,11 @@ function runSystemDiagnosticChecks(){
  document.querySelectorAll('[id]').forEach(el=>{idCounts[el.id]=(idCounts[el.id]||0)+1});
  let dupIds=Object.entries(idCounts).filter(([,n])=>n>1).map(([id,n])=>id+'×'+n);
  out.push(systemDiagnosticCheck('DOM ID重複',dupIds.length===0,dupIds.length?'重複：'+dupIds.join('、'):'重複なし'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole'];
+ let navMissing=[...document.querySelectorAll('nav button[data-p]')].map(x=>x.dataset.p).filter(id=>!document.getElementById(id));
+ out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
+ let uiHealth=uiInteractionHealth();
+ out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -6173,7 +6192,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v129';
+const RELEASE_VERSION='v131';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
