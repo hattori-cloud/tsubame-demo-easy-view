@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v181 foundation build.
+Current application: v182 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -160,4 +160,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v179 hardens the work-summary Excel import foundation. The browser now accepts .xlsx only, fingerprints the selected workbook with SHA-256 and binds a preflight result to that exact file before any later confirmation. An authenticated full-administrator-only server preflight endpoint parses XLSX in memory, detects likely work-summary fields, reports missing fields and malformed rows, flags overtime at 60 hours or more, returns a bounded preview, and persists nothing. The raw-file limit is 4 MB to stay below the Vercel Function request payload limit.
 - v180 centralizes sensitive-data guardrails. The work-summary XLSX preflight rejects columns that appear to contain My Number/personal number, insurance or pension identifiers, salary/payment fields, bank-account fields, diagnosis results or disease history. The shared demo also scans stored business objects for forbidden/restricted key names during system self-diagnostics. The production gate explicitly keeps sensitive information separation as a blocking item until server-side field/API authorization is implemented.
 - v181 adds Node regression tests for production authorization behavior. The tests cover full-company, assigned-scope, Fuchu-scope, self-service and pagination behavior, including the rule that request filters cannot expand a user's fixed server-side scope.
+- v182 strengthens the work-summary XLSX preflight as a true blocking gate instead of a loose warning pass. It now rejects duplicate employee rows, negative/out-of-range work values, invalid target-month/date formats and over-5000-row files; separates blocking issues from 45/55/60-hour warnings; scans the first 20 rows of every worksheet for sensitive headers; exposes a `can_commit` readiness flag while still persisting nothing; and adds regression tests for valid files, duplicates, missing columns, invalid values and sensitive columns on secondary sheets.
 
