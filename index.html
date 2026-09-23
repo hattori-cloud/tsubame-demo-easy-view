@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v170</title>
-<!-- production-sync:v170 -->
+<title>つばめ交通株式会社 社員一元管理システム v171</title>
+<!-- production-sync:v171 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -2208,6 +2208,15 @@ function deadlineTimingText(x){
  if(n===1)return '明日';
  return 'あと'+n+'日'
 }
+function deadlineReasonText(x){
+ let n=Number(x?.n);
+ if(!Number.isFinite(n))return '期限日の確認が必要';
+ if(n<0)return '期限を'+Math.abs(n)+'日超過';
+ if(n===0)return '期限が本日';
+ if(n<=7)return '期限まで'+n+'日';
+ if(n<=30)return '30日以内に期限到来';
+ return '今後の更新予定を確認'
+}
 function deadlineUpdateLabel(type){
  return ({'事故':'対応・期限を更新','苦情':'対応・期限を更新','資格':'資格期限を更新','安全指導':'指導期限を更新','適性診断':'診断期限を更新','貸与品':'返却予定を更新','書類':'書類期限を更新','車検':'車検期限を更新','健康診断':'健診期限を更新'})[type]||'期限を更新'
 }
@@ -2252,7 +2261,7 @@ function renderDeadlineCenterRows(){
   let tone=x.bucket==='over'?'quality-bad':x.bucket==='today'||x.bucket==='7'?'quality-warn':'';
   let badgeTone=x.bucket==='over'?'danger':x.bucket==='today'||x.bucket==='7'?'warn':'ok';
   let person=x.no?employeeNameLinkHtml(x.no,x.employee_name||x.no,'deadline-employee-link'):'<b>'+esc(x.employee_name||'対象未設定')+'</b>';
-  return '<div class="deadline-action-row '+tone+'"><div class="deadline-action-main"><div class="deadline-row-head"><span class="deadline-kind">'+esc(x.type)+'</span>'+person+'<span class="deadline-target">'+esc(x.label)+'</span><span class="badge '+badgeTone+'">'+esc(deadlineTimingText(x))+'</span></div><div class="deadline-action-guide"><div><span>いつまで</span><b>'+esc(x.due)+'</b></div><div><span>やること</span>'+esc(x.action)+'</div><div><span>担当</span>'+esc(x.responsible)+'</div></div><div class="mini deadline-source">登録元：'+esc(x.source)+'</div></div>'+deadlineActionsHtml(x)+'</div>'
+  return '<div class="deadline-action-row '+tone+'"><div class="deadline-action-main"><div class="deadline-row-head"><span class="deadline-kind">'+esc(x.type)+'</span>'+person+'<span class="deadline-target">'+esc(x.label)+'</span><span class="badge '+badgeTone+'">'+esc(deadlineTimingText(x))+'</span></div><div class="deadline-action-guide"><div><span>なぜ確認？</span><b>'+esc(deadlineReasonText(x))+'</b></div><div><span>やること</span>'+esc(x.action)+'</div><div><span>担当</span>'+esc(x.responsible)+'</div><div><span>いつまで</span><b>'+esc(x.due)+'</b></div></div><div class="mini deadline-source">登録元：'+esc(x.source)+'</div></div>'+deadlineActionsHtml(x)+'</div>'
  }).join(''):'<div class="notice"><div><b>この条件で対応が必要な期限はありません。</b><div class="mini">別の期間または区分を確認してください。</div></div><span class="badge ok">OK</span></div>'
 }
 function openDeadlineCenter(filter='all'){
@@ -5155,7 +5164,7 @@ function employeeDetail(no){
  </div>
  ${employeeTaxiDriverSnapshotHtml(no)}
  <div class="detail-alert ${safetyClass}">${esc(alertText)}</div>
- ${(()=>{let n=employeeNextActionInfo(e);return commonNextActionPanelHtml(n.action,n.owner,n.due,n.tone)})()}
+ ${(()=>{let n=employeeNextActionInfo(e);return commonNextActionPanelHtml(n.action,n.owner,n.due,n.tone,n.reason)})()}
  ${employeeDailyAttentionHtml(no)}
  ${employeeDetailAttentionHtml(no)}
  <details class="detail-fold"><summary>関連情報（号車・認定・安全記録）</summary><div class="detail-fold-body">${employeeOperationalOverviewHtml(no)}</div></details>
@@ -5862,15 +5871,10 @@ function caseActionPanelHtml(kind,rec){
  let owner=rec.owner||'未設定';
  let next=kind==='ヒヤリ'?(rec.nextAction||nearDefaultNextAction(rec.action)):(rec.nextAction||'未設定');
  let due=kind==='事故'?rec.due:kind==='苦情'?rec.followupDue:rec.due;
- let b=due?deadlineBucket(due):'none',cls=done?'done':b==='over'?'danger':(['today','7'].includes(b)||!due)?'warn':'';
  let dueText=done?(due?due+' / '+deadlineBucketLabel(due):'完了'):due?(due+' / '+deadlineBucketLabel(due)):'期限未設定';
- let info=kind==='事故'?accidentAttentionInfo(rec):kind==='苦情'?complaintAttentionInfo(rec):{reason:'内容を確認',action:next};
- return '<div class="case-action-pin '+cls+'"><div class="case-action-grid">'+
-  '<div class="case-action-item"><small>なぜ確認？</small><b>'+esc(info.reason)+'</b></div>'+
-  '<div class="case-action-item"><small>次にやること</small><b>'+esc(done?'対応完了':info.action||next)+'</b></div>'+
-  '<div class="case-action-item"><small>担当者</small><b>'+esc(owner)+'</b></div>'+
-  '<div class="case-action-item"><small>期限</small><b>'+esc(dueText)+'</b><div class="case-action-due">'+(done?'完了済み':b==='over'?'期限超過':!due?'期限設定を推奨':'')+'</div></div>'+
- '</div></div>'
+ let info=kind==='事故'?accidentAttentionInfo(rec):kind==='苦情'?complaintAttentionInfo(rec):nearAttentionInfo(rec);
+ let tone=done?'done':info.tone||'';
+ return commonNextActionPanelHtml(done?'対応完了':info.action||next,owner,dueText,tone,info.reason)
 }
 function currentFormRequiredFields(){
  return [...fbody.querySelectorAll('.field')].filter(field=>field.querySelector('.req')).map(field=>({
@@ -6008,20 +6012,21 @@ function organizeCurrentFormSections(options={}){
  setTimeout(updateCurrentFormFastStatus,0)
 }
 
-function commonNextActionPanelHtml(nextAction,owner,dueText,tone=''){
+function commonNextActionPanelHtml(nextAction,owner,dueText,tone='',reason=''){
  let cls=tone==='danger'?'danger':tone==='warn'?'warn':tone==='done'?'done':'';
  return '<div class="case-action-pin '+cls+'"><div class="case-action-grid">'+
+  '<div class="case-action-item"><small>なぜ確認？</small><b>'+esc(reason||'登録内容の確認')+'</b></div>'+
   '<div class="case-action-item"><small>次にやること</small><b>'+esc(nextAction||'内容を確認')+'</b></div>'+
-  '<div class="case-action-item"><small>確認担当</small><b>'+esc(owner||'担当者')+'</b></div>'+
+  '<div class="case-action-item"><small>担当</small><b>'+esc(owner||'担当者')+'</b></div>'+
   '<div class="case-action-item"><small>期限・状態</small><b>'+esc(dueText||'期限未設定')+'</b></div>'+
  '</div></div>'
 }
 function employeeNextActionInfo(e){
  let nearest=employeeNearestDeadline(e),elig=e.eligibility||e.driverLedger?.eligibility||'対象外',update=workUpdateStatus(e),ot=Number(e.overtime||0);
- if(String(elig).includes('不可')||e.safetyState==='期限切れ'||(nearest&&nearest.n<0))return {tone:'danger',action:'安全・期限を最優先で確認',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest?nearest.label+' '+nearest.date+' / '+deadlineBucketLabel(nearest.date):'乗務可否 '+elig};
- if(nearest&&nearest.n<=30)return {tone:'warn',action:'期限更新の予定を確認',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest.label+' '+nearest.date+' / '+deadlineBucketLabel(nearest.date)};
- if(ot>=45||update==='更新確認')return {tone:'warn',action:ot>=45?'勤務時間・残業状況を確認':'勤務集計の更新状況を確認',owner:PREVIEW_ROLE==='管理者'?'所属管理者':'本人',due:update==='更新確認'?'勤務集計 更新確認':'残業 '+ot+'時間'};
- return {tone:'done',action:'定期確認のみ',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest?nearest.label+' '+nearest.date:'緊急期限なし'}
+ if(String(elig).includes('不可')||e.safetyState==='期限切れ'||(nearest&&nearest.n<0))return {tone:'danger',reason:String(elig).includes('不可')?'乗務可否に停止・不可の確認あり':e.safetyState==='期限切れ'?'安全上の期限切れあり':'期限超過あり',action:'安全・期限を最優先で確認',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest?nearest.label+' '+nearest.date+' / '+deadlineBucketLabel(nearest.date):'乗務可否 '+elig};
+ if(nearest&&nearest.n<=30)return {tone:'warn',reason:nearest.label+'の期限が近い',action:'期限更新の予定を確認',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest.label+' '+nearest.date+' / '+deadlineBucketLabel(nearest.date)};
+ if(ot>=45||update==='更新確認')return {tone:'warn',reason:ot>=45?'残業時間の確認が必要':'勤務集計の更新確認が必要',action:ot>=45?'勤務時間・残業状況を確認':'勤務集計の更新状況を確認',owner:PREVIEW_ROLE==='管理者'?'所属管理者':'本人',due:update==='更新確認'?'勤務集計 更新確認':'残業 '+ot+'時間'};
+ return {tone:'done',reason:'現在、大きな要確認事項なし',action:'定期確認のみ',owner:PREVIEW_ROLE==='管理者'?'担当管理者':'本人',due:nearest?nearest.label+' '+nearest.date:'緊急期限なし'}
 }
 function vehicleNextActionInfo(v){
  let state=vehicleDeadlineState(v),maintenanceBucket=v.nextMaintenance?deadlineBucket(v.nextMaintenance):'';
@@ -6291,7 +6296,7 @@ function nearDetail(id){
  dttl.textContent='ヒヤリハット詳細 '+n.id;
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button><button class="btn soft" onclick="returnToSafetyList('near')">ヒヤリ一覧へ</button><button class="btn soft" onclick="employeeDetail('${n.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(n.employee_no)?`<button class="btn primary" onclick="openNearForm(${idx})">報告内容を編集</button>`:''}</div>
  ${safetyRecordContextHtml('ヒヤリ',n)}
- ${safetyActionGuideHtml(nearAttentionInfo(n))}
+ ${(()=>{let x=nearAttentionInfo(n);return commonNextActionPanelHtml(x.action,'安全管理','期限なし（分析・教育記録）',x.tone,x.reason)})()}
  <div class="detail-primary"><h3>報告の要点</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>発生日時</label><b>${esc(n.date||'未設定')} ${esc(n.time||'')}</b></div>
   <div class="detail-primary-item"><label>対象社員</label>${employeeNameLinkHtml(n.employee_no,n.driver||e?.name||'','detail-employee-link')}<div class="mini">社員番号 ${esc(n.employee_no)}</div></div>
@@ -6492,8 +6497,7 @@ function vehicleDetail(id){
  let next=vehicleNextActionInfo(v);
  dbody.innerHTML=`<div class="detail-actions"><button class="btn soft" onclick="closeDetail()">← 戻る</button>${canEditEmployee(v.employee_no)?`<button class="btn primary" onclick="openVehicleForm(${idx})">編集・担当変更</button>`:''}</div>
  ${state==='over'?`<div class="detail-alert danger">車検期限を ${Math.abs(days(v.inspection))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">車検期限は本日です。</div>':''}
- ${vehicleDetailGuideHtml(v,next,idx)}
- ${commonNextActionPanelHtml(next.action,next.owner,next.due,next.tone)}
+ ${commonNextActionPanelHtml(next.action,next.owner,next.due,next.tone,next.reason)}
  <div class="detail-primary"><h3>車両情報</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>管理番号</label><b>${esc(v.id)}</b></div>
   <div class="detail-primary-item"><label>号車</label><b>${esc(v.plate)}号車</b></div>
@@ -7682,7 +7686,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v170';
+const RELEASE_VERSION='v171';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
