@@ -34,8 +34,11 @@ Recommended write request header:
 Concurrency:
 
 - PATCH/complete/reopen/archive operations must compare the supplied version with the current DB version.
-- A mismatch returns `409 Conflict`.
+- `If-Match` is mandatory for versioned writes; omission returns `428 Precondition Required`.
+- Only a strong ETag returned by the API is accepted; wildcard and weak ETags are rejected.
+- A stale version returns `409 Conflict`.
 - The server must not silently overwrite a newer record.
+- Shared helpers in `api/_lib/concurrency.js` centralize ETag formatting and version comparison before any production write adapter is enabled.
 
 Common error body:
 
@@ -57,6 +60,7 @@ Typical status codes:
 - `404` resource not available to the current user
 - `409` version conflict / invalid state transition
 - `422` business-rule validation failed
+- `428` required `If-Match` precondition missing
 - `500` unexpected server error
 
 ## 2. Authorization model
