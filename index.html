@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v174</title>
-<!-- production-sync:v174 -->
+<title>つばめ交通株式会社 社員一元管理システム v175</title>
+<!-- production-sync:v175 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1630,13 +1630,33 @@ const USERS=[
  {id:'ADMIN-RESERVE',name:'予備管理アカウント（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:false,scope:'担当未設定',scopes:[],state:'停止',mfa:'未設定',sessions:0,authMethod:'本番未接続',loginKey:'ADM-10',lastLogin:'未接続'},
  {id:'EMP-1001',employee_no:'1001',name:'安芸 太郎',role:'一般社員',adminLevel:'self',scope:'本人のみ',scopes:[],state:'有効',mfa:'未設定（デモ）',sessions:1,authMethod:'本番未接続',loginKey:'EMP-1001',lastLogin:'デモ確認中'}
 ];
+function userLinkedEmployeeNo(u){
+ if(!u)return '';
+ if(u.employee_no)return String(u.employee_no);
+ let m=String(u.id||'').match(/^EMP-(\d+)$/);
+ return m&&E.some(e=>String(e.no)===m[1])?m[1]:''
+}
+function userLinkedEmployee(u){
+ let no=userLinkedEmployeeNo(u);
+ return no?emp(no):null
+}
+function userEffectiveState(u){
+ if(!u)return '停止';
+ let e=userLinkedEmployee(u);
+ if(e&&e.status==='退職')return '停止';
+ return u.state||'停止'
+}
+function userLifecycleReason(u){
+ let e=userLinkedEmployee(u);
+ if(e&&e.status==='退職')return '社員台帳が退職のためログイン停止対象';
+ return ''
+}
 function currentPreviewUser(){
- if(PREVIEW_MODE==='full')return USERS.find(u=>u.id==='EMP-1002');
- if(PREVIEW_MODE==='scoped')return USERS.find(u=>u.id==='ADMIN-OPS');
- return USERS.find(u=>u.id==='EMP-1001')
+ let u=PREVIEW_MODE==='full'?USERS.find(u=>u.id==='EMP-1002'):PREVIEW_MODE==='scoped'?USERS.find(u=>u.id==='ADMIN-OPS'):USERS.find(u=>u.id==='EMP-1001');
+ return u&&userEffectiveState(u)==='有効'?u:null
 }
 function previewRoleLabel(){return PREVIEW_MODE==='full'?'全社管理者':PREVIEW_MODE==='scoped'?'担当管理者':'一般社員'}
-function activeManagers(){return USERS.filter(u=>u.role==='管理者'&&u.state==='有効')}
+function activeManagers(){return USERS.filter(u=>u.role==='管理者'&&userEffectiveState(u)==='有効')}
 function managerById(id){return activeManagers().find(u=>u.id===String(id))}
 function managerByName(name){return activeManagers().find(u=>u.name===String(name))}
 function managerSelectOptions(selectedId='',selectedName=''){
@@ -3178,8 +3198,8 @@ function trainingTab(id){document.querySelectorAll('#training .tabpane').forEach
 
 
 function currentSelfNo(){
- let u=USERS.find(x=>x.role==='一般社員'&&x.employee_no);
- return u?u.employee_no:'1001'
+ let u=USERS.find(x=>x.role==='一般社員'&&x.employee_no&&userEffectiveState(x)==='有効');
+ return u?u.employee_no:''
 }
 function workStatusClass(status,overtime){
  if(Number(overtime)>=60)return'danger';
@@ -3487,7 +3507,7 @@ function renderCompanySpec(){
  <div class="company-item"><span class="mini">安全原則</span><b>免許期限切れは乗務不可</b></div>
  <div class="company-item"><span class="mini">社員番号範囲</span><b>${empNos.length?empNos[0]+' ～ '+empNos[empNos.length-1]:'未登録'}</b></div>
  <div class="company-item"><span class="mini">マイナンバー</span><b>保存しない</b></div>`;
- let roles=['全社管理者','担当管理者','一般社員'],activeUsers=USERS.filter(u=>u.state==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
+ let roles=['全社管理者','担当管理者','一般社員'],activeUsers=USERS.filter(u=>userEffectiveState(u)==='有効'),managers=activeUsers.filter(u=>u.role==='管理者');
  let adminAll=USERS.filter(u=>u.role==='管理者'),mfaMissing=adminAll.filter(u=>u.state==='有効'&&!userMfaReady(u)).length,scopeMissing=adminAll.filter(u=>u.state==='有効'&&u.adminLevel==='scoped'&&!(u.scopes||[]).length).length;
  userSummary.innerHTML=`<div class="row"><div><b>${roles.length}権限</b><div class="mini">${roles.map(esc).join(' / ')}</div></div><span class="badge ok">共通権限ポリシー</span></div>
  <div class="row"><div><b>管理者台帳 ${adminAll.length}名</b><div class="mini">有効 ${managers.length}名 / 停止 ${adminAll.length-managers.length}名 / MFA未設定 ${mfaMissing}名 / 担当範囲未設定 ${scopeMissing}名</div></div><span class="badge ${mfaMissing||scopeMissing?'warn':'ok'}">台帳確認</span></div>
@@ -3721,8 +3741,8 @@ function showAccessMatrix(){
 function userRoleLabel(u){return u?.adminLevel==='full'?'全社管理者':u?.adminLevel==='scoped'?'担当管理者':'一般社員'}
 function userMfaReady(u){return String(u?.mfa||'').includes('設定済')}
 function userAccessWarnings(u){
- let out=[];
- if(u.state!=='有効')out.push('アカウント停止中');
+ let out=[],effective=userEffectiveState(u),lifecycle=userLifecycleReason(u);
+ if(effective!=='有効')out.push(lifecycle||'アカウント停止中');
  if(AUTH_CONFIG.requireMfa&&!userMfaReady(u))out.push('MFA未設定');
  if(u.adminLevel==='scoped'&&!(u.scopes||[]).length)out.push('担当範囲未設定');
  if(u.role==='管理者'&&u.adminLevel!=='full'&&u.scope==='全社')out.push('担当管理者に全社表記');
@@ -3730,7 +3750,7 @@ function userAccessWarnings(u){
 }
 function renderAuthReadiness(){
  let el=document.getElementById('authReadiness');if(!el)return;
- let admins=USERS.filter(u=>u.role==='管理者'),active=admins.filter(u=>u.state==='有効'),mfaMissing=active.filter(u=>!userMfaReady(u)).length,scopeMissing=active.filter(u=>u.adminLevel==='scoped'&&!(u.scopes||[]).length).length;
+ let admins=USERS.filter(u=>u.role==='管理者'),active=admins.filter(u=>userEffectiveState(u)==='有効'),mfaMissing=active.filter(u=>!userMfaReady(u)).length,scopeMissing=active.filter(u=>u.adminLevel==='scoped'&&!(u.scopes||[]).length).length;
  el.innerHTML='<b>認証基盤：'+(AUTH_CONFIG.connected?'接続済み':'未接続（デモ）')+'</b><br>管理者台帳 '+admins.length+'名 / 有効 '+active.length+'名 / MFA未設定 '+mfaMissing+'名 / 担当範囲未設定 '+scopeMissing+'名<br><span class="mini">現在の「権限確認」はログインではありません。本番では認証成功後にこの利用者台帳と権限範囲をサーバー側で照合します。</span>'
 }
 function showUserAccessDetail(id){
@@ -3741,7 +3761,7 @@ function showUserAccessDetail(id){
  dbody.innerHTML=`<div class="detail-primary"><h3>アカウント</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>利用者</label><b>${esc(u.name)}</b></div>
   <div class="detail-primary-item"><label>権限</label><b>${esc(userRoleLabel(u))}</b></div>
-  <div class="detail-primary-item"><label>状態</label>${badge(u.state)}</div>
+  <div class="detail-primary-item"><label>状態</label>${badge(userEffectiveState(u))}</div>
   <div class="detail-primary-item"><label>認証</label><b>${esc(u.authMethod||'本番未接続')}</b></div>
   <div class="detail-primary-item"><label>MFA</label><b>${esc(u.mfa||'未設定')}</b></div>
   <div class="detail-primary-item"><label>安全判断権限</label><b>${u.safetyAuthority?'あり':'なし'}</b></div>
@@ -3754,8 +3774,8 @@ function showUserAccessDetail(id){
 function renderUserRows(){
  let el=document.getElementById('userRows');if(!el)return;
  let q=(document.getElementById('userQ')?.value||'').trim().toLowerCase(),role=document.getElementById('userRoleFilter')?.value||'all',state=document.getElementById('userStateFilter')?.value||'all';
- let rows=USERS.filter(u=>(role==='all'||userRoleLabel(u)===role)&&(state==='all'||u.state===state)&&(!q||[u.id,u.name,u.scope,u.loginKey,userRoleLabel(u)].join(' ').toLowerCase().includes(q)));
- el.innerHTML=rows.length?rows.map(u=>{let w=userAccessWarnings(u);return `<div class="row ${w.length?'quality-warn':''}"><div><b>${esc(u.id)} ${esc(u.name)}</b><div class="mini">${esc(userRoleLabel(u))} / ${esc(u.scope||'未設定')} / MFA ${esc(u.mfa||'未設定')} / 安全判断 ${u.safetyAuthority?'あり':'なし'}</div><div class="mini">認証 ${esc(u.authMethod||'本番未接続')} / セッション ${Number(u.sessions||0)}${w.length?' / 要確認 '+w.map(esc).join('・'):''}</div></div><div class="toolbar">${badge(u.state)}<button class="btn soft" onclick="showUserAccessDetail('${u.id}')">詳細</button></div></div>`}).join(''):'<div class="mini">条件に該当する利用者はいません。</div>'
+ let rows=USERS.filter(u=>(role==='all'||userRoleLabel(u)===role)&&(state==='all'||userEffectiveState(u)===state)&&(!q||[u.id,u.name,u.scope,u.loginKey,userRoleLabel(u)].join(' ').toLowerCase().includes(q)));
+ el.innerHTML=rows.length?rows.map(u=>{let w=userAccessWarnings(u),effective=userEffectiveState(u);return `<div class="row ${w.length?'quality-warn':''}"><div><b>${esc(u.id)} ${esc(u.name)}</b><div class="mini">${esc(userRoleLabel(u))} / ${esc(u.scope||'未設定')} / MFA ${esc(u.mfa||'未設定')} / 安全判断 ${u.safetyAuthority?'あり':'なし'}</div><div class="mini">認証 ${esc(u.authMethod||'本番未接続')} / セッション ${effective==='有効'?Number(u.sessions||0):0}${w.length?' / 要確認 '+w.map(esc).join('・'):''}</div></div><div class="toolbar">${badge(effective)}<button class="btn soft" onclick="showUserAccessDetail('${u.id}')">詳細</button></div></div>`}).join(''):'<div class="mini">条件に該当する利用者はいません。</div>'
 }
 function showLoginDesign(){
  if(!isFullCompanyAdmin())return alert('本番ログイン設計は全社管理者のみ確認できます');
@@ -7750,7 +7770,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v174';
+const RELEASE_VERSION='v175';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
