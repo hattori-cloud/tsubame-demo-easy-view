@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v188 foundation build.
+Current application: v189 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -174,3 +174,6 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v188 hardens long-running list usability after a one-year internal load review: near-miss and complaint lists are paged at 20 rows, deadline and credential/document centers at 25 rows, and browser-demo audit retention is raised to 3,000 entries. These changes improve the shared demo but do not make browser storage suitable for real production data.
 - Production capacity planning now assumes 310+ current employees, roughly 50 hires / 30 retirements per year with retirees retained, about 200 taxi drivers, and two near-miss submissions per taxi driver per month (about 4,800 near-miss rows/year). `docs/production-capacity-v189.sql` defines the additive database/index/monthly-target design, while `tests/annual-volume.test.js` locks the capacity assumptions and verifies that a department total of 400 cannot hide drivers who submitted only one report.
 - Production rule: long-term employee/safety/audit data moves to the server database and list APIs return only requested pages. The localStorage shared demo remains fictional-data-only.
+
+
+- v189 adds a manager-facing monthly near-miss submission tracker for taxi drivers. The screen evaluates each in-scope taxi driver separately as 0 / 1 / 2-or-more submissions for the selected month, shows unmet drivers first, supports direct near-miss entry from the unmet list, and paginates the employee compliance list. New near-miss records preserve employee number, office and department snapshots at report time so later transfers do not rewrite historical reporting context. The browser demo still derives the target population from the current fictional employee ledger; production uses the monthly target snapshot design in `docs/production-capacity-v189.sql`.
