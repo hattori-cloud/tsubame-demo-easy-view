@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v155</title>
-<!-- production-sync:v155 -->
+<title>つばめ交通株式会社 社員一元管理システム v156</title>
+<!-- production-sync:v156 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -803,6 +803,9 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 /* v62 work/deadline foundation */
 .deadline-task-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.deadline-action-row{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 13px;margin-top:8px}.deadline-action-row.quality-bad{border-left:7px solid #ca5f5f;background:#fff8f8}.deadline-action-row.quality-warn{border-left:7px solid #d4aa26;background:#fffdf3}.deadline-action-main{min-width:0;flex:1}.deadline-row-head{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.deadline-kind{display:inline-flex;align-items:center;min-height:28px;border-radius:999px;background:#eaf4f8;color:#28586d;padding:4px 9px;font-size:.7rem;font-weight:950}.deadline-target{font-size:.76rem;color:#536e7a;font-weight:900}.deadline-action-guide{display:grid;gap:5px;margin-top:8px}.deadline-action-guide>div{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px;align-items:start;color:#405d6a;font-size:.76rem;line-height:1.45;font-weight:800}.deadline-action-guide>div>span{display:inline-flex;align-items:center;justify-content:center;min-height:26px;border-radius:999px;background:#eef6f9;color:#2d596d;font-size:.66rem;font-weight:950;padding:3px 7px}.deadline-source{margin-top:6px}.deadline-row-actions{display:flex;gap:7px;align-items:center;flex:0 0 auto}.deadline-row-actions .btn{min-height:48px;font-weight:950}.deadline-edit-btn{min-width:138px}.deadline-view-btn{min-width:104px}.deadline-help{border-left:5px solid #73a9bf;background:#f7fbfd}
+@media(max-width:760px){.deadline-action-row{align-items:flex-start;flex-direction:column}.deadline-row-actions{width:100%}.deadline-row-actions .btn{flex:1}.deadline-action-guide>div{grid-template-columns:82px minmax(0,1fr)}}
+
 .deadline-task-meta span{font-size:.68rem;border:1px solid var(--line);border-radius:999px;padding:2px 6px;background:#f7fafb}
 .deadline-toolbar{display:grid;grid-template-columns:1fr 180px;gap:8px;margin:10px 0}
 .work-priority-row{border-left:5px solid #d9e3e8}
@@ -972,7 +975,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
 </div>
 <div class="card general-restricted home-simple-primary">
- <div class="list-summary"><div><h3 style="margin:0">まず確認する項目</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高いものを最大5件だけ表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div>
+ <div class="list-summary"><div><h3 style="margin:0">まず確認する項目</h3><div class="mini"><span id="homeTodayDate">本日</span> / 優先度の高いものを最大5件だけ表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button></div>
  <div id="today" class="notice-list"></div>
 </div>
 
@@ -1044,11 +1047,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類センター</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務</h2><p>勤務状況と全モジュールの期限を、同じ優先度で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類センター</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div class="simple-note">まず「今日・期限超過・30日以内・勤務時間要確認」を確認し、必要な社員だけ詳細を開きます。</div>
 <div id="workOverview" class="work-overview" aria-label="期限・勤務サマリー"></div>
 <div class="card simple-work-top">
- <div class="list-summary"><div><h3 style="margin:0">優先対応者</h3><div id="workKpis" class="simple-status-line"></div></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button></div></div>
+ <div class="list-summary"><div><h3 style="margin:0">優先対応者</h3><div id="workKpis" class="simple-status-line"></div></div><div class="toolbar"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button></div></div>
  <div id="workActionRows" class="list" style="margin-top:10px"></div>
 </div>
 <div class="grid2" style="margin-top:12px">
@@ -1231,7 +1234,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="card admin-daily-center"><div id="adminDailyCenter"></div></div>
 
 <div class="manage-quick-bar">
- <button class="btn primary" onclick="openDeadlineCenter('all')">期限センター</button>
+ <button class="btn primary" onclick="openDeadlineCenter('all')">期限・更新の確認</button>
  <button class="btn soft" onclick="showQualityDetails()">確認・修正が必要</button>
  <button class="btn soft" onclick="openManageSection('manage-workload')">担当状況</button>
  <button class="btn soft full-admin-only" onclick="openManageSection('manage-system')">会社設定</button>
@@ -2149,17 +2152,65 @@ let DEADLINE_FILTER='all';
 function deadlineTypeOptions(rows){
  return ['all',...new Set(rows.map(x=>x.type))].map(x=>`<option value="${esc(x)}">${x==='all'?'全区分':esc(x)}</option>`).join('')
 }
+function deadlineTimingText(x){
+ let n=Number(x?.n);
+ if(!Number.isFinite(n))return '期限を確認';
+ if(n<0)return Math.abs(n)+'日超過';
+ if(n===0)return '本日';
+ if(n===1)return '明日';
+ return 'あと'+n+'日'
+}
+function deadlineUpdateLabel(type){
+ return ({'事故':'対応・期限を更新','苦情':'対応・期限を更新','資格':'資格期限を更新','安全指導':'指導期限を更新','適性診断':'診断期限を更新','貸与品':'返却予定を更新','書類':'書類期限を更新','車検':'車検期限を更新','健康診断':'健診期限を更新'})[type]||'期限を更新'
+}
+function deadlineCanQuickEdit(x){
+ if(!x||PREVIEW_ROLE!=='管理者'||!x.no||!canEditEmployee(x.no))return false;
+ let key=String(x.key||''),no=String(x.no||'');
+ if(x.type==='事故')return A.some(a=>String(a.id)===key&&String(a.employee_no)===no);
+ if(x.type==='苦情')return C.some(r=>String(r.id)===key&&String(r.employee_no)===no);
+ if(x.type==='資格')return QUAL.some(q=>String(q.employee_no)===no&&String(q.id||q.number||q.name)===key);
+ if(x.type==='安全指導')return TR.some(t=>String(t.employee_no)===no&&String(t.id||t.course)===key);
+ if(x.type==='貸与品')return AS.some(a=>String(a.employee_no)===no&&String(a.id||a.asset_no)===key);
+ if(x.type==='書類')return DOCS.some(d=>String(d.employee_no)===no&&String(d.id)===key);
+ if(x.type==='車検')return V.some(v=>String(v.employee_no)===no&&String(v.id)===key);
+ return ['健康診断','適性診断'].includes(x.type)
+}
+function deadlineQuickEdit(type,key,no){
+ type=String(type||'');key=String(key||'');no=String(no||'');
+ let x=collectDeadlines().find(r=>r.type===type&&String(r.key)===key&&String(r.no||'')===no);
+ if(!x||!deadlineCanQuickEdit(x))return deadlineOpen(type,key,no);
+ if(type==='事故')return openAccidentEdit(key);
+ if(type==='苦情'){let idx=C.findIndex(r=>String(r.id)===key&&String(r.employee_no)===no);if(idx>=0)return openComplaintForm(idx)}
+ if(type==='資格'){let idx=QUAL.findIndex(q=>String(q.employee_no)===no&&String(q.id||q.number||q.name)===key);if(idx>=0)return openQualificationRecordForm(no,idx)}
+ if(type==='安全指導'){let idx=TR.findIndex(t=>String(t.employee_no)===no&&String(t.id||t.course)===key);if(idx>=0)return openTrainingRecordForm(no,idx)}
+ if(type==='貸与品'){let idx=AS.findIndex(a=>String(a.employee_no)===no&&String(a.id||a.asset_no)===key);if(idx>=0)return openAssetRecordForm(no,idx)}
+ if(type==='書類'){let idx=DOCS.findIndex(d=>String(d.employee_no)===no&&String(d.id)===key);if(idx>=0)return openDocumentForm(no,idx)}
+ if(type==='車検'){let idx=V.findIndex(v=>String(v.employee_no)===no&&String(v.id)===key);if(idx>=0)return openVehicleForm(idx)}
+ if(type==='健康診断'||type==='適性診断')return openEmployeeEdit(no);
+ deadlineOpen(type,key,no)
+}
+function deadlineActionsHtml(x){
+ let type=String(x.type||'').replaceAll("'",""),key=String(x.key||'').replaceAll("'",""),no=String(x.no||'').replaceAll("'","");
+ let view='<button class="btn soft deadline-view-btn" onclick="deadlineOpen(\''+type+'\',\''+key+'\',\''+no+'\')">内容を見る</button>';
+ let edit=deadlineCanQuickEdit(x)?'<button class="btn primary deadline-edit-btn" onclick="deadlineQuickEdit(\''+type+'\',\''+key+'\',\''+no+'\')">'+esc(deadlineUpdateLabel(x.type))+'</button>':'';
+ return '<div class="deadline-row-actions">'+view+edit+'</div>'
+}
 function renderDeadlineCenterRows(){
  let all=collectDeadlines(),q=(document.getElementById('deadlineQ')?.value||'').trim().toLowerCase(),type=document.getElementById('deadlineType')?.value||'all';
  let rows=all.filter(x=>(!MY_TASKS_ONLY||deadlineAssignedToCurrentManager(x))&&deadlineFilterMatch(x.due,DEADLINE_FILTER)&&(type==='all'||x.type===type)&&(!q||[x.type,x.label,x.employee_name,x.no,x.responsible,x.action,x.source,x.due].join(' ').toLowerCase().includes(q)));
  let el=document.getElementById('deadlineCenterRows'),sum=document.getElementById('deadlineCenterCount');
  if(sum)sum.textContent='表示 '+rows.length+'件 / 全期限 '+all.length+'件'+(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?' / 自分担当のみ':'');
- if(el)el.innerHTML=rows.length?rows.map(x=>`<div class="row ${x.bucket==='over'?'quality-bad':x.bucket==='today'||x.bucket==='7'?'quality-warn':''}"><div><b>${esc(x.type)} / ${esc(x.employee_name)} / ${esc(x.label)}</b><div class="mini">期限 ${x.due} / ${deadlineBucketLabel(x.due)}</div><div class="deadline-task-meta"><span>確認担当 ${esc(x.responsible)}</span><span>次の対応 ${esc(x.action)}</span><span>${esc(x.source)}</span></div></div><button class="btn soft" onclick="deadlineOpen('${x.type}','${String(x.key).replaceAll("'","")}','${x.no||''}')">開く</button></div>`).join(''):'<div class="mini">条件に該当する期限項目はありません。</div>'
+ if(el)el.innerHTML=rows.length?rows.map(x=>{
+  let tone=x.bucket==='over'?'quality-bad':x.bucket==='today'||x.bucket==='7'?'quality-warn':'';
+  let badgeTone=x.bucket==='over'?'danger':x.bucket==='today'||x.bucket==='7'?'warn':'ok';
+  let person=x.no?employeeNameLinkHtml(x.no,x.employee_name||x.no,'deadline-employee-link'):'<b>'+esc(x.employee_name||'対象未設定')+'</b>';
+  return '<div class="deadline-action-row '+tone+'"><div class="deadline-action-main"><div class="deadline-row-head"><span class="deadline-kind">'+esc(x.type)+'</span>'+person+'<span class="deadline-target">'+esc(x.label)+'</span><span class="badge '+badgeTone+'">'+esc(deadlineTimingText(x))+'</span></div><div class="deadline-action-guide"><div><span>いつまで</span><b>'+esc(x.due)+'</b></div><div><span>やること</span>'+esc(x.action)+'</div><div><span>担当</span>'+esc(x.responsible)+'</div></div><div class="mini deadline-source">登録元：'+esc(x.source)+'</div></div>'+deadlineActionsHtml(x)+'</div>'
+ }).join(''):'<div class="notice"><div><b>この条件で対応が必要な期限はありません。</b><div class="mini">別の期間または区分を確認してください。</div></div><span class="badge ok">OK</span></div>'
 }
 function openDeadlineCenter(filter='all'){
  DEADLINE_FILTER=filter;
  let all=collectDeadlines(),counts={over:0,today:0,'7':0,'30':0,'60':0};all.forEach(x=>{if(counts[x.bucket]!==undefined)counts[x.bucket]++});
- dttl.textContent='期限センター';
+ dttl.textContent='期限・更新の確認';
  dbody.innerHTML=`<div class="deadline-summary-grid">
   <div class="deadline-summary-box over" onclick="openDeadlineCenter('over')"><small>期限超過</small><b>${counts.over}</b></div>
   <div class="deadline-summary-box today" onclick="openDeadlineCenter('today')"><small>本日</small><b>${counts.today}</b></div>
@@ -2177,7 +2228,7 @@ function openDeadlineCenter(filter='all'){
   <button class="btn ${filter==='60'?'active':''}" onclick="openDeadlineCenter('60')">31〜60日</button>
  </div>
  <div class="deadline-toolbar"><input id="deadlineQ" placeholder="社員名・番号・区分・担当・対応内容で検索" oninput="renderDeadlineCenterRows()"><select id="deadlineType" onchange="renderDeadlineCenterRows()">${deadlineTypeOptions(all)}</select></div>
- <div class="list-summary"><div><b id="deadlineCenterCount"></b><div class="mini">全モジュールで共通の期限判定・対応情報を使用します。</div></div></div><div id="deadlineCenterRows"></div>`;
+ <div class="list-summary deadline-help"><div><b id="deadlineCenterCount"></b><div class="mini">赤＝期限超過、黄＝本日〜7日以内です。各項目は「いつまで → やること → 更新する」の順で処理できます。</div></div></div><div id="deadlineCenterRows"></div>`;
  showDetailModal();renderDeadlineCenterRows()
 }
 function exportDeadlinesCsv(){
@@ -3769,7 +3820,7 @@ function renderAdminDailyCenter(){
   <div class="admin-daily-kpi ${qualityBad?'danger':''}"><small>今すぐ確認</small><b>${qualityBad}</b></div>
  </div>
  <div class="admin-daily-rows">${rows.length?rows.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}${homeQueueBodyHtml(x)}</div>${homeQueueActionsHtml(x)}</div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">担当範囲の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>'}</div>
- ${items.length>8?'<div class="mini" style="margin-top:8px">ほか '+(items.length-8)+'件。ホームの「今日の処理キュー」または期限センターから続けて確認できます。</div>':''}`
+ ${items.length>8?'<div class="mini" style="margin-top:8px">ほか '+(items.length-8)+'件。ホームの「今日の処理キュー」または期限・更新の確認から続けて確認できます。</div>':''}`
 }
 function renderAdminOverview(){
  let el=document.getElementById('adminOverview');if(!el)return;
@@ -3863,6 +3914,9 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('ホーム検索 関連度優先',!searchPreSlice,searchPreSlice?'検索候補を関連度順に並べる前の件数制限が残っています':'全候補を関連度順に並べてから上位表示'));
  let quickSafetySource=Function.prototype.toString.call(employeeSafetyQuickActionsHtml),quickSafetyOk=['openAccidentForm','openNearForm','openComplaintForm'].every(x=>quickSafetySource.includes(x));
  out.push(systemDiagnosticCheck('社員詳細 安全記録ショートカット',quickSafetyOk,quickSafetyOk?'事故・ヒヤリ・苦情の社員指定入力を確認':'安全記録ショートカットが不足しています'));
+ let deadlineGuideFns=['deadlineTimingText','deadlineCanQuickEdit','deadlineQuickEdit','deadlineActionsHtml'];
+ let deadlineGuideMissing=deadlineGuideFns.filter(name=>typeof window[name]!=='function');
+ out.push(systemDiagnosticCheck('期限・更新の確認 導線',deadlineGuideMissing.length===0,deadlineGuideMissing.length?'未定義：'+deadlineGuideMissing.join('、'):'期限・やること・直接更新の導線を確認'));
  let employeeTodayGuideOk=typeof employeeAttentionNextText==='function'&&Function.prototype.toString.call(renderEmployeeTodaySummary).includes('employeeAttentionNextText(first)');
  out.push(systemDiagnosticCheck('今日確認する社員の処理案内',employeeTodayGuideOk,employeeTodayGuideOk?'理由・最初にすること・直接処理を確認':'今日確認する社員の処理案内が不足しています'));
  let queueFixFns=['homeQueueCanQuickFix','homeQueueQuickFixLabel','actionQueueQuickFix','homeQueueActionsHtml'];
@@ -4507,7 +4561,7 @@ function employeeHealthWork(no){
   <div class="detail-primary-item"><label>期限</label><b>${esc(e.health||'未登録')}</b></div>
   <div class="detail-primary-item"><label>期限状態</label><span class="badge ${healthTone}">${e.health?esc(deadlineBucketLabel(e.health)):'未設定'}</span></div>
  </div><div class="sensitive-note" style="margin-top:9px">健康診断は期限・受診予定だけを扱い、結果・病名などはこのシステムに表示しません。</div></div>
- <div class="detail-actions"><button class="btn soft" onclick="openDeadlineCenter('all')">期限センター</button><button class="btn" onclick="employeeDetail('${no}');setTimeout(()=>setEmployeeDetailTab('work'),30)">社員台帳の勤務タブ</button></div>`;
+ <div class="detail-actions"><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新の確認</button><button class="btn" onclick="employeeDetail('${no}');setTimeout(()=>setEmployeeDetailTab('work'),30)">社員台帳の勤務タブ</button></div>`;
  showDetailModal()
 }
 
@@ -7176,7 +7230,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v155';
+const RELEASE_VERSION='v156';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
