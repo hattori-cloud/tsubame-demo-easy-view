@@ -59,3 +59,12 @@ test('strict document categories cannot be registered by scoped admins',()=>{
   assert.ok(form.includes("documentRule(fdcat.value).securityClass==='厳格'&&!isFullCompanyAdmin()"));
 });
 
+test('verification requirement is snapshotted per document',()=>{
+  const migration=block('function ensureCredentialLinks','function qualificationEvidenceDocument');
+  const helper=block('function documentRuleVerificationLabel','function openDocumentRuleTable');
+  const form=block('function openDocumentForm','function replaceDocument');
+  assert.ok(migration.includes('verificationRequired'));
+  assert.ok(helper.includes("d?.verificationRequired!==undefined"));
+  assert.ok(form.includes('verificationRequired:d?.verificationRequired!==undefined'));
+});
+
