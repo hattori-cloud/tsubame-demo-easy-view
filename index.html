@@ -5153,6 +5153,67 @@ function nextDocumentId(no){
  });
  return prefix+String(max+1).padStart(2,'0')
 }
+function documentRule(category){
+ let key=String(category||'その他');
+ return DOCUMENT_RULES[key]||DOCUMENT_RULES['その他']||DEFAULT_DOCUMENT_RULES['その他']
+}
+function documentRuleRetentionLabel(rule){
+ let n=Number(rule?.retentionYears);
+ return Number.isFinite(n)&&n>0?n+'年':esc(rule?.retentionNote||'会社決裁待ち')
+}
+function documentRetentionDate(baseDate,years){
+ let n=Number(years);if(!baseDate||!Number.isFinite(n)||n<=0)return '';
+ let d=new Date(baseDate+'T00:00:00');if(Number.isNaN(d.getTime()))return '';
+ d.setFullYear(d.getFullYear()+n);
+ return d.toISOString().slice(0,10)
+}
+function applyDocumentRuleToForm(force=false){
+ let catEl=document.getElementById('fdcat'),orig=document.getElementById('fdorig'),security=document.getElementById('fdsecurity'),access=document.getElementById('fdaccess'),retain=document.getElementById('fdretain'),date=document.getElementById('fddate');
+ if(!catEl||!orig||!security||!access)return;
+ if(catEl.dataset.newdoc!=='1'&&!force)return;
+ let rule=documentRule(catEl.value);
+ orig.value=rule.originalHandling||'電子原本';
+ security.value=rule.securityClass||'要配慮';
+ access.value=rule.accessLevel||'担当管理者まで';
+ if(retain&&!retain.value)retain.value=documentRetentionDate(date?.value||TODAY,rule.retentionYears);
+ let info=document.getElementById('documentRuleApplied');
+ if(info)info.innerHTML='<b>適用ルール：</b> '+esc(rule.category)+' / '+esc(rule.originalHandling)+' / '+esc(rule.accessLevel)+' / 保管 '+(Number(rule.retentionYears)>0?esc(String(rule.retentionYears))+'年':'会社決裁待ち')
+}
+function documentRuleVerificationLabel(rule){return rule?.verificationRequired?'原本確認 必須':'原本確認 任意'}
+function openDocumentRuleTable(){
+ if(PREVIEW_ROLE!=='管理者')return alert('原本ルール表は管理者のみ確認できます');
+ dttl.textContent='原本ルール表';
+ let rows=Object.values(DOCUMENT_RULES).map(r=>{
+  let edit=isFullCompanyAdmin()?'<button class="btn primary" onclick="openDocumentRuleForm(\''+String(r.category||'').replaceAll("'","")+'\')">変更</button>':'';
+  return '<div class="credential-action-row"><div class="credential-action-main"><div class="credential-row-head"><b>'+esc(r.category)+'</b><span class="badge '+(r.securityClass==='厳格'?'danger':r.securityClass==='要配慮'?'warn':'ok')+'">'+esc(r.securityClass)+'</span></div><div class="credential-row-primary"><div><span>原本の持ち方</span><b>'+esc(r.originalHandling)+'</b></div><div><span>閲覧範囲</span><b>'+esc(r.accessLevel)+'</b></div><div><span>保管年限</span><b>'+(Number(r.retentionYears)>0?esc(String(r.retentionYears))+'年':esc(r.retentionNote||'会社決裁待ち'))+'</b></div></div><div class="credential-support-line"><span>'+esc(documentRuleVerificationLabel(r))+'</span><span>初期値として新規登録時に適用</span></div></div><div class="toolbar">'+edit+'</div></div>'
+ }).join('');
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="openOriginalDocumentCenter()">← 原本管理へ戻る</button></div><div class="detail-alert warn"><b>保存年限は会社決裁後に設定します。</b><div class="mini">法令や社内規程をこちらで推測して年数を固定しません。決裁済みの年数だけ入力してください。</div></div><div class="credential-filter-summary"><span class="badge ok">基本5項目</span><b>区分 / 原本 / 閲覧 / 保管 / 原本確認</b><span class="mini">新規書類はこのルールを初期値として使います。</span></div>'+rows;
+ showDetailModal();audit('原本ルール表閲覧','ルール '+Object.keys(DOCUMENT_RULES).length+'区分',{entity_type:'document_rule',entity_id:'rules'})
+}
+function openDocumentRuleForm(category){
+ if(!isFullCompanyAdmin())return alert('原本ルールの変更は全社管理者のみです');
+ let r=documentRule(category),key=String(r.category||category);
+ fttl.textContent=key+' の原本ルール';setFormSaveLabel('ルールを保存する');setFormAfterSaveHint('原本ルール表へ戻ります');
+ fbody.innerHTML='<div class="formnote"><b>'+esc(key)+'</b><br>この設定は新規登録時の初期値です。既存書類を一括変更しません。</div><div class="formgrid">'+
+ '<div class="field"><label>原本の持ち方</label><select id="frorig"><option>本人保管・会社は写し</option><option>会社保管・紙原本</option><option>電子原本</option><option>紙＋電子</option></select></div>'+
+ '<div class="field"><label>機密区分</label><select id="frsecurity"><option>標準</option><option>要配慮</option><option>厳格</option></select></div>'+
+ '<div class="field"><label>閲覧範囲</label><select id="fraccess"><option>本人閲覧可</option><option>担当管理者まで</option><option>全社管理者のみ</option></select></div>'+
+ '<div class="field"><label>保管年数</label><input id="fryears" type="number" min="1" max="99" placeholder="会社決裁後に入力"><div class="mini">未決定の場合は空欄のまま。</div></div>'+
+ '<div class="field"><label>原本確認</label><select id="frverify"><option value="required">必須</option><option value="optional">任意</option></select></div>'+
+ '<div class="field wide"><label>保管年限メモ</label><input id="frnote" maxlength="80" placeholder="例：会社決裁待ち"></div>'+
+ '</div>';
+ frorig.value=r.originalHandling||'電子原本';frsecurity.value=r.securityClass||'要配慮';fraccess.value=r.accessLevel||'担当管理者まで';fryears.value=Number(r.retentionYears)>0?r.retentionYears:'';frverify.value=r.verificationRequired?'required':'optional';frnote.value=r.retentionNote||'会社決裁待ち';
+ fsave.onclick=()=>{
+  if(!isFullCompanyAdmin())return alert('原本ルールの変更は全社管理者のみです');
+  if(frsecurity.value==='厳格'&&fraccess.value!=='全社管理者のみ')return alert('厳格書類は閲覧範囲を「全社管理者のみ」にしてください');
+  let years=fryears.value===''?null:Number(fryears.value);
+  if(years!==null&&(!Number.isInteger(years)||years<1||years>99))return alert('保管年数は1〜99年、または未入力にしてください');
+  DOCUMENT_RULES[key]={category:key,originalHandling:frorig.value,securityClass:frsecurity.value,accessLevel:fraccess.value,verificationRequired:frverify.value==='required',retentionYears:years,retentionNote:frnote.value.trim()||'会社決裁待ち'};
+  audit('原本ルール変更',key+' / '+frorig.value+' / '+frsecurity.value+' / '+fraccess.value+' / 保管 '+(years?years+'年':'未決定'),{entity_type:'document_rule',entity_id:key});
+  if(!save())return;closeForm();openDocumentRuleTable()
+ };
+ form.classList.add('show')
+}
 function updateDocumentFormGuide(){
  let el=document.getElementById('documentFormGuide');if(!el)return;
  let cat=document.getElementById('fdcat')?.value||'',qid=document.getElementById('fdqual')?.value||'',status=document.getElementById('fdstatus')?.value||'',exp=document.getElementById('fdexp')?.value||'';
@@ -5190,8 +5251,8 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
  fttl.textContent=d?'書類情報を編集':source?'書類を差替え登録':'書類を登録';
  setFormSaveLabel(source?'差替え書類を保存する':'書類を保存する');
  setFormAfterSaveHint(qualificationId?'資格一覧へ戻ります':'書類一覧へ戻ります');
- fbody.innerHTML='<div class="formnote">'+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'<br><b>重要：</b>共有デモではPDF・画像・スキャン原本を保存しません。原本確認・機密区分・閲覧範囲・紙原本の保管場所は全社管理者だけが変更できます。'+(preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':'')+(source?'<br><b>差替え元：</b>'+esc(source.id)+' '+esc(source.name):'')+'</div><div id="documentFormGuide" class="detail-alert ok">原本・書類セキュリティを確認します。</div><div class="formgrid">'+
-  '<div class="field"><label>書類区分</label><select id="fdcat" onchange="updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>'+
+ fbody.innerHTML='<div class="formnote">'+esc(e.name)+' / '+esc(e.branch)+' / '+esc(e.dept)+'<br><b>重要：</b>共有デモではPDF・画像・スキャン原本を保存しません。原本確認・機密区分・閲覧範囲・紙原本の保管場所は全社管理者だけが変更できます。'+(preQ?'<br><b>'+esc(preQ.name)+' の証憑として登録します。</b>':'')+(source?'<br><b>差替え元：</b>'+esc(source.id)+' '+esc(source.name):'')+'</div><div id="documentRuleApplied" class="scope-note">原本ルールを確認します。</div><div id="documentFormGuide" class="detail-alert ok">原本・書類セキュリティを確認します。</div><div class="formgrid">'+
+  '<div class="field"><label>書類区分</label><select id="fdcat" onchange="applyDocumentRuleToForm(true);updateDocumentFormGuide()"><option>資格証憑</option><option>安全指導</option><option>事故資料</option><option>手続書類</option><option>本人確認</option><option>その他</option></select></div>'+
   '<div class="field"><label>ファイル種別</label><select id="fdkind"><option value="pdf">PDF</option><option value="image">画像</option></select></div>'+
   '<div class="field wide"><label>書類名（管理情報）<span class="req">必須</span></label><input id="fdname"><div class="mini">原本ファイルを選ぶ欄は、セキュリティ上デモには設けていません。</div></div>'+
   '<div class="field"><label>登録日<span class="req">必須</span></label><input id="fddate" type="date"></div>'+
@@ -5208,10 +5269,12 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
  fdkind.value=base.kind||'pdf';
  fdname.value=d?d.name:source?(source.name.replace(/(\.[^.]+)?$/,'')+'_差替え'+(source.name.match(/\.[^.]+$/)?.[0]||'')):(preQ?preQ.name+' 証憑':'');
  fddate.value=d?d.date:TODAY;fdexp.value=d?d.expiry:(preQ?.expiry||source?.expiry||'');fdstatus.value=d?d.status:'確認待ち';
- fdorig.value=base.originalHandling||(preQ?'本人保管・会社は写し':'電子原本');
- fdsecurity.value=base.securityClass||documentSecurityClass({category:fdcat.value});
- fdaccess.value=base.accessLevel||documentAccessLevel({category:fdcat.value,securityClass:fdsecurity.value});
- fdpaper.value=base.paperLocation||'';fdretain.value=base.retentionUntil||'';if(preQ)fdqual.value=preQ.id;
+ let initialRule=documentRule(fdcat.value);
+ fdorig.value=base.originalHandling||initialRule.originalHandling||'電子原本';
+ fdsecurity.value=base.securityClass||initialRule.securityClass||'要配慮';
+ fdaccess.value=base.accessLevel||initialRule.accessLevel||'担当管理者まで';
+ fdpaper.value=base.paperLocation||'';fdretain.value=base.retentionUntil||documentRetentionDate(fddate.value,initialRule.retentionYears);if(preQ)fdqual.value=preQ.id;
+ applyDocumentRuleToForm(false);
  if(!full){
   [fdstatus,fdorig,fdsecurity,fdaccess,fdpaper,fdretain].forEach(x=>x.disabled=true);
   if(!newPlain)fdcat.disabled=true
@@ -5356,7 +5419,7 @@ function openOriginalDocumentCenter(employeeNo=''){
  dttl.textContent='書類・原本管理';
  let paperMissing=active.filter(d=>['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim()).length;
  let retentionDue=active.filter(d=>d.retentionUntil&&days(d.retentionUntil)<0).length;
- dbody.innerHTML='<div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="openDocumentRuleTable()">原本ルール表</button></div><div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
  '<div class="credential-kpis">'+
   '<button class="credential-kpi '+(pending?'warn':'')+'" onclick="setOriginalDocumentState(\'pending\')"><small>まず確認</small><b>'+pending+'</b><span>未確認</span></button>'+
   '<button class="credential-kpi '+(replace?'warn':'')+'" onclick="setOriginalDocumentState(\'replace\')"><small>次に対応</small><b>'+replace+'</b><span>差替え待ち</span></button>'+
