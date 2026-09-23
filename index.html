@@ -1737,7 +1737,7 @@ const DRIVER_CERT_DEFS=[
  {key:'tourism',label:'観光ドライバー',short:'観光'}
 ];
 const AUTH_CONFIG={connected:false,provider:'本番未選定',requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',note:'共有デモは認証なし。権限切替は画面確認専用'};
-const DOCUMENT_STORAGE_CONFIG={connected:false,provider:'本番未選定',privateByDefault:true,note:'共有デモは書類メタデータのみ。原本ファイルは保管しない'};
+const DOCUMENT_STORAGE_CONFIG={connected:false,provider:'本番未選定',privateByDefault:true,signedUrlSeconds:60,serverAuthorizationRequired:true,mfaForStrict:true,malwareScanRequired:true,encryptionRequired:true,downloadAuditRequired:true,note:'共有デモは書類メタデータのみ。原本ファイルは保管しない'};
 const USERS=[
  {id:'EMP-1002',name:'検証全社管理者',role:'管理者',adminLevel:'full',safetyAuthority:false,scope:'全社',scopes:[{office:'',dept:''}],state:'有効',mfa:'設定済',sessions:1,authMethod:'本番未接続',loginKey:'ADM-01',lastLogin:'デモ確認中'},
  {id:'ADMIN-SAFE',name:'安全管理担当（仮）',role:'管理者',adminLevel:'scoped',safetyAuthority:true,scope:'本社×タクシー課 / 府中×タクシー課',scopes:[{office:'本社',dept:'タクシー課'},{office:'府中',dept:'タクシー課'}],state:'有効',mfa:'設定済',sessions:0,authMethod:'本番未接続',loginKey:'ADM-02',lastLogin:'未接続'},
@@ -4167,15 +4167,15 @@ function credentialQualificationActionsHtml(x){
 function credentialDocumentActionsHtml(d){
  let no=String(d.employee_no||'').replaceAll("'",""),idx=DOCS.indexOf(d),id=String(d.id||'').replaceAll("'","");
  let view='<button class="btn soft" onclick="documentPreview(\''+id+'\')">書類情報を見る</button>';
- let edit=canEditEmployee(no)?'<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">書類を更新</button>':'';
+ let edit=canEditDocumentRecord(d)?'<button class="btn primary" onclick="openDocumentForm(\''+no+'\','+idx+')">書類を更新</button>':'';
  return '<div class="credential-row-actions">'+view+edit+'</div>'
 }
 function openCredentialCenter(){
- let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d));
+ let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived);
  let needMissing=quals.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
  let expired=quals.filter(q=>q.expiry&&days(q.expiry)<0).length+docs.filter(d=>d.expiry&&days(d.expiry)<0).length;
  let soon=quals.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length+docs.filter(d=>d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30).length;
- let pending=docs.filter(d=>d.status!=='原本確認済み').length;
+ let pending=docs.filter(d=>d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
  dttl.textContent='資格・書類の確認';
  dbody.innerHTML=`<div class="credential-guide"><div><b>資格と書類は「期限 → 証明 → 確認状態」の順で見ます。</b><span>期限超過を最優先にし、その後30日以内・証明書類不足・書類確認待ちを処理します。</span></div></div>
  <div class="credential-flow">
@@ -4215,7 +4215,7 @@ function renderCredentialCenterRows(){
    rows.push({priority:expired?0:evidence?1:soon?2:r.attention?3:4,sort:x.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">資格</span>'+person+'<b>'+esc(x.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':evidence?'証明未登録':soon?'30日以内':r.attention?'要確認':'正常')+'</span></div><div class="credential-row-primary"><div><span>期限</span><b>'+esc(x.expiry||'未設定')+(x.expiry?'（'+esc(deadlineBucketLabel(x.expiry))+'）':'')+'</b></div><div class="credential-next-action"><span>次にやること</span><b>'+esc(credentialNextAction('qualification',x))+'</b></div><div><span>証明書類</span><b>'+esc(qualificationEvidenceLabel(x))+'</b></div></div><div class="credential-support-line"><span>確認理由：'+esc(credentialAttentionReason('qualification',x))+'</span><span>証番号：'+esc(x.number||'未設定')+'</span></div></div>'+credentialQualificationActionsHtml(x)+'</div>'})
   }
  });
- if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)).forEach(d=>{
+ if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived).forEach(d=>{
   let e=emp(d.employee_no),expired=!!d.expiry&&days(d.expiry)<0,pending=d.status!=='原本確認済み',soon=!!d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30;
   let r={attention:expired||pending||soon,expired,soon,evidence:false,pending};
   let text=[e?.name,d.employee_no,d.name,d.category,d.status,d.expiry].join(' ').toLowerCase();
