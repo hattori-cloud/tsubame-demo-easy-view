@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v168 foundation build.
+Current application: v169 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -146,3 +146,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 - v167 makes the employee self-service page action-oriented: unread notices, unanswered confirmations, returned applications, deadline items, training items, and work-attention items are prioritized under "今やること". Health-check information now uses the employee's registered deadline instead of the prior fixed August/February placeholder, and overtime display consistently falls back to the employee record.
 
 - v168 standardizes form completion guidance: the shared form footer now shows required-field progress, provides a direct "next missing field" action, prevents save while marked required fields are blank, and shows the post-save destination. Qualification, document, asset, training, and guidance forms now mark their true required fields explicitly. New vehicle registration also opens the saved vehicle detail after save, matching edit behavior.
+- v169 adds a shared save-complete confirmation toast across modal forms so managers can immediately tell that a write succeeded and avoid duplicate entry; the confirmation is responsive and announced as a polite status message for accessibility.
+
