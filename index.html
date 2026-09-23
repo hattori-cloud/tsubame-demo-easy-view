@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v189</title>
-<!-- production-sync:v189 -->
+<title>つばめ交通株式会社 社員一元管理システム v190</title>
+<!-- production-sync:v190 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -1092,7 +1092,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <div class="card general-restricted home-search-card home-search-top">
  <div class="home-search-head"><div><h3><span class="home-flow-step">3</span>社員・号車・案件を検索</h3><div class="mini">社員名・社員番号・3桁の号車・事故番号・苦情・ヒヤリ・認定などをまとめて探せます。</div></div><span class="badge ok">全体検索</span></div>
- <div class="home-search-row"><input id="gq" placeholder="例：1001 / 安芸 / 801 / A-2026-001 / ゴールド" oninput="searchAll()" onkeydown="if(event.key==='Enter')searchAll()"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
+ <div class="home-search-row"><input id="gq" placeholder="例：1001 / 安芸 / 801 / A-2026-001 / ゴールド" oninput="scheduleGlobalSearch()" onkeydown="if(event.key==='Enter'){clearTimeout(GLOBAL_SEARCH_TIMER);searchAll()}"><select id="gtype" aria-label="検索対象" onchange="searchAll()"><option value="all">すべてから検索</option><option value="employee">社員</option><option value="safety">事故・苦情・ヒヤリ・安全指導</option><option value="qualification">資格・書類</option><option value="vehicle">車両</option><option value="application">申請</option><option value="comms">掲示</option></select><button class="btn primary home-search-btn" onclick="searchAll()">検索</button></div>
  <div class="home-search-hints"><span>氏名</span><span>社員番号</span><span>3桁号車</span><span>事故番号</span><span>ゴールド・英語・観光</span></div>
  <div id="gres" class="list home-search-results"><div class="mini">検索語を入力してください。</div></div>
 </div>
@@ -5430,8 +5430,8 @@ function employeeSafetyTimelineItems(no){
  }));
  return items.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.kind).localeCompare(String(b.kind),'ja'))
 }
-function employeeSafetyTimelineRowsHtml(no,limit=10){
- let rows=employeeSafetyTimelineItems(no),shown=limit?rows.slice(0,limit):rows;
+function employeeSafetyTimelineRowsHtml(no,limit=10,start=0){
+ let rows=employeeSafetyTimelineItems(no),shown=limit?rows.slice(start,start+limit):rows.slice(start);
  if(!shown.length)return '<div class="mini">表示できる安全履歴はありません。</div>';
  return '<div class="safety-timeline">'+shown.map(x=>
   '<div class="safety-timeline-item '+esc(x.tone||'')+'"><div class="safety-timeline-date">'+esc(x.date||'日付未設定')+'</div><div class="safety-timeline-dot"></div><div class="safety-timeline-body"><div class="safety-timeline-title"><span class="search-kind-pill">'+esc(x.kind)+'</span><b>'+esc(x.title||'')+'</b></div><div class="safety-timeline-meta">'+esc(x.meta||'')+'</div></div><button class="btn soft safety-timeline-open" onclick="'+x.open+'">開く</button></div>'
@@ -5443,23 +5443,27 @@ function employeeSafetyTimelineHtml(no){
  let summary=['事故','苦情','ヒヤリ','面談・指導','安全指導'].filter(k=>counts[k]).map(k=>'<span class="badge">'+esc(k)+' '+counts[k]+'</span>').join('');
  return '<div class="section"><div class="list-summary"><div><h3 style="margin:0">安全履歴タイムライン</h3><div class="mini">事故・苦情・ヒヤリ・指導を日付順にまとめています。直近10件を表示します。</div></div><button class="btn soft" onclick="openEmployeeSafetyTimeline(\''+String(no).replaceAll("'","")+'\')">すべての安全履歴</button></div><div class="safety-timeline-summary">'+summary+'</div>'+employeeSafetyTimelineRowsHtml(no,10)+'</div>'
 }
-function openEmployeeSafetyTimeline(no){
+function openEmployeeSafetyTimeline(no,page=1){
  if(!guardEmployeeView(no,'安全履歴'))return;
- let e=emp(no),rows=employeeSafetyTimelineItems(no);
+ let e=emp(no),rows=employeeSafetyTimelineItems(no),per=25,pages=Math.max(1,Math.ceil(rows.length/per));
+ page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,safeNo=String(no).replaceAll("'","");
  dttl.textContent=(e?e.name:no)+' の安全履歴';
- dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+String(no).replaceAll("'","")+'\');setTimeout(()=>setEmployeeDetailTab(\'safety\'),20)">← 社員詳細・安全へ戻る</button></div>'+
-  '<div class="list-summary"><div><b>安全履歴 '+rows.length+'件</b><div class="mini">事故・苦情・ヒヤリ・面談/指導・安全指導を新しい順に表示します。</div></div></div>'+
-  employeeSafetyTimelineRowsHtml(no,0)
+ dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+safeNo+'\');setTimeout(()=>setEmployeeDetailTab(\'safety\'),20)">← 社員詳細・安全へ戻る</button></div>'+
+  '<div class="list-summary"><div><b>安全履歴 '+rows.length+'件</b><div class="mini">事故・苦情・ヒヤリ・面談/指導・安全指導を新しい順に、25件ずつ表示します。</div></div><span class="badge">'+page+' / '+pages+'ページ</span></div>'+
+  employeeSafetyTimelineRowsHtml(no,per,start)+
+  (pages>1?'<div class="year-list-pager"><button class="btn" '+(page<=1?'disabled':'')+' onclick="openEmployeeSafetyTimeline(\''+safeNo+'\','+(page-1)+')">← 前へ</button><span class="emp-page-info">'+(start+1)+'〜'+Math.min(start+per,rows.length)+'件 / 全'+rows.length+'件</span><button class="btn" '+(page>=pages?'disabled':'')+' onclick="openEmployeeSafetyTimeline(\''+safeNo+'\','+(page+1)+')">次へ →</button></div>':'')
 }
 
-function employeeNearMisses(no){
+function employeeNearMisses(no,page=1){
  if(!guardManagementRecord('near_miss',no,'ヒヤリハット'))return;
- let e=emp(no),rows=N.filter(x=>String(x.employee_no)===String(no)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
+ let e=emp(no),rows=N.filter(x=>String(x.employee_no)===String(no)).slice().sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))),per=25,pages=Math.max(1,Math.ceil(rows.length/per));
+ page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=(e?e.name:no)+' のヒヤリハット';
  let safeNo=String(no).replaceAll("'",'');
  dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="employeeDetail(\''+safeNo+'\')">← 社員詳細へ戻る</button>'+(canEditEmployee(no)?'<button class="btn primary" onclick="openNearForm(-1,\''+safeNo+'\')">＋ 新規登録</button>':'')+'</div>'+
-  '<div class="list-summary"><div><div class="related-title">ヒヤリハット '+rows.length+'件</div><div class="mini">直近90日 '+rows.filter(x=>x.date&&(-days(x.date))>=0&&(-days(x.date))<=90).length+'件 / 号車・危険度・内容を社員単位で確認</div></div></div>'+
-  (rows.length?rows.map(n=>'<div class="row"><div><b>'+esc(n.date||'未設定')+' / '+esc(n.id)+'</b><div class="mini">号車 '+esc(n.vehicle||'未設定')+' / 危険度 '+esc(n.riskLevel||'未設定')+' / '+esc(n.summary||'')+'</div></div><button class="btn soft" onclick="nearDetail(\''+String(n.id||'').replaceAll("'",'')+'\')">開く</button></div>').join(''):'<div class="mini">ヒヤリハット記録はありません。</div>')
+  '<div class="list-summary"><div><div class="related-title">ヒヤリハット '+rows.length+'件</div><div class="mini">直近90日 '+rows.filter(x=>x.date&&(-days(x.date))>=0&&(-days(x.date))<=90).length+'件 / 25件ずつ表示</div></div><span class="badge">'+page+' / '+pages+'ページ</span></div>'+
+  (shown.length?shown.map(n=>'<div class="row"><div><b>'+esc(n.date||'未設定')+' / '+esc(n.id)+'</b><div class="mini">号車 '+esc(n.vehicle||'未設定')+' / 危険度 '+esc(n.riskLevel||'未設定')+' / '+esc(n.summary||'')+'</div></div><button class="btn soft" onclick="nearDetail(\''+String(n.id||'').replaceAll("'",'')+'\')">開く</button></div>').join(''):'<div class="mini">ヒヤリハット記録はありません。</div>')+
+  (pages>1?'<div class="year-list-pager"><button class="btn" '+(page<=1?'disabled':'')+' onclick="employeeNearMisses(\''+safeNo+'\','+(page-1)+')">← 前へ</button><span class="emp-page-info">'+(start+1)+'〜'+Math.min(start+per,rows.length)+'件 / 全'+rows.length+'件</span><button class="btn" '+(page>=pages?'disabled':'')+' onclick="employeeNearMisses(\''+safeNo+'\','+(page+1)+')">次へ →</button></div>':'')
 }
 function employeeSafetyQuickActionsHtml(e){
  if(PREVIEW_ROLE!=='管理者'||!canEditEmployee(e.no))return '';
@@ -7091,7 +7095,13 @@ function renderGlobalSearchResults(results,type,total,q){
  }).join('');
  return summary+sections
 }
+let GLOBAL_SEARCH_TIMER=0;
+function scheduleGlobalSearch(){
+ clearTimeout(GLOBAL_SEARCH_TIMER);
+ GLOBAL_SEARCH_TIMER=setTimeout(searchAll,180)
+}
 function searchAll(){
+ clearTimeout(GLOBAL_SEARCH_TIMER);
  let q=(gq.value||'').trim().toLowerCase(),type=document.getElementById('gtype')?.value||'all';
  if(!q){gres.innerHTML='<div class="mini">検索語を入力すると候補を表示します。</div>';return}
  let results=[];
@@ -8112,7 +8122,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v189';
+const RELEASE_VERSION='v190';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
