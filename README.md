@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v129 foundation build.
+Current application: v131 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -12,7 +12,7 @@ Current application: v129 foundation build.
 - Dynamic Japan business date (Asia/Tokyo)
 - Actionable data-quality dashboard with direct navigation and CSV export
 - Office and department are managed independently: HQ and Fuchu may use any department; Maki is restricted to the Bus Department
-- Application release schema and core-record schema are separated: app v129.0 / core data core-2.0
+- Application release schema and core-record schema are separated: app v131.0 / core data core-2.0
 - Employee counts are flexible; 120 fictional employees are only the initial seed
 - Backup restore is transactional: pre-restore snapshot, post-write verification, and automatic rollback on failure
 - Normal operational saves are transactional across core datasets with post-write verification and rollback
@@ -82,6 +82,8 @@ Current application: v129 foundation build.
 - v127 standardizes related-detail navigation: employee names inside accident, complaint, near-miss and vehicle detail are clickable; vehicle/employee detail jumps preserve the previous detail in a stack; and the detail close controls clearly return one level or back to the originating list/search position.
 - v128 adds compact Home recent-detail shortcuts for the last eight employee, vehicle, accident, complaint and near-miss details opened. Entries are deduplicated, permission-filtered, locally persisted, and hidden entirely when empty.
 - v129 reorganizes Home quick actions into clear Register and Review sections. Safety registration actions are grouped together, employee registration remains full-admin only, daily review links cover employee/vehicle/safety/work, and lower-frequency communication/admin links stay collapsed.
+- v130 makes employee names directly clickable from the prioritized employee-attention view, keeping name-based navigation consistent with employee, safety, work and vehicle screens.
+- v131 extends the administrator self-diagnostic with navigation-target and inline click/input handler checks so missing UI functions can be detected before they become a production click failure.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
