@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v162</title>
-<!-- production-sync:v162 -->
+<title>つばめ交通株式会社 社員一元管理システム v163</title>
+<!-- production-sync:v163 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -245,6 +245,14 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:850px){.employee-profile-hero{grid-template-columns:1fr}.detail-kpi-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){.detail-kpi-grid{grid-template-columns:1fr}}
 
+
+/* v163 employee detail route and direct navigation */
+.employee-detail-route{display:flex;justify-content:space-between;gap:12px;align-items:center;border:1px solid #c9dce5;border-left:6px solid #2a87ad;background:#f6fbfd;border-radius:13px;padding:11px 13px;margin:0 0 10px}
+.employee-detail-route-main{min-width:0}.employee-detail-route-main small{display:block;color:#687e89;font-size:.66rem;font-weight:950}.employee-detail-route-main b{display:block;color:#173f57;font-size:.9rem;line-height:1.4}.employee-detail-route-main span{display:block;color:#607783;font-size:.69rem;font-weight:820;margin-top:2px}
+.employee-detail-route-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.employee-detail-route-actions .btn{min-height:44px}
+.employee-detail-jumps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 11px}.employee-detail-jumps .btn{min-height:40px;padding:7px 11px;font-size:.75rem}
+@media(max-width:720px){.employee-detail-route{align-items:flex-start;flex-direction:column}.employee-detail-route-actions{width:100%}.employee-detail-route-actions .btn{flex:1 1 46%}.employee-detail-jumps{display:grid;grid-template-columns:1fr 1fr}.employee-detail-jumps .btn{width:100%}}
+@media(max-width:420px){.employee-detail-jumps{grid-template-columns:1fr}}
 
 /* v46 employee detail tabs */
 .employee-detail-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 12px;position:sticky;top:0;z-index:4;background:#fff;padding:8px 0;border-bottom:1px solid var(--line)}
@@ -1043,7 +1051,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="simple-note" id="employeeDemoNote">検証環境の社員データを表示しています。</div>
+<div class="simple-note" id="employeeDemoNote">検証環境の社員データを表示しています。社員名または「詳細」を押すと社員詳細を開き、閉じると元の一覧位置へ戻ります。</div>
 <div class="card simple-filter-card">
  <div class="simple-filter-title"><div><h3>社員を検索</h3><div class="mini">普段は検索とクイック絞り込みだけで使えます。</div></div></div>
  <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職・号車・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';es.value='';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
@@ -1991,7 +1999,7 @@ function recentDetailInfo(item){
  let kind=String(item.kind||''),id=String(item.id||'');
  if(kind==='employee'){
   let e=emp(id);if(!e||!canAccess('employee','view',e.no))return null;
-  return {kind:'社員',title:e.name,sub:'社員番号 '+e.no+' / '+e.branch+' / '+e.dept,open:"go('emp');setTimeout(()=>employeeDetail('"+String(e.no).replaceAll("'","")+"'),40)"}
+  return {kind:'社員',title:e.name,sub:'社員番号 '+e.no+' / '+e.branch+' / '+e.dept,open:"employeeDetail('"+String(e.no).replaceAll("'","")+"')"}
  }
  if(kind==='vehicle'){
   let v=V.find(x=>String(x.id)===id);if(!v||PREVIEW_ROLE!=='管理者'||!v.employee_no||!canAccess('vehicle','view',v.employee_no))return null;
@@ -2507,7 +2515,7 @@ function renderAudit(){
 }
 function renderRecent(){
  let el=document.getElementById('recentEmployees');if(!el)return;let allowed=new Set(scopedEmployees().map(e=>e.no)),rows=RECENT.map(no=>emp(no)).filter(e=>e&&allowed.has(e.no));
- el.innerHTML=rows.length?rows.map(e=>`<button class="recent-btn" onclick="go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)"><b>${e.name}</b><div class="mini">${e.no} / ${e.dept}</div></button>`).join(''):'<div class="mini">社員詳細を開くと、ここに表示されます。</div>'
+ el.innerHTML=rows.length?rows.map(e=>`<button class="recent-btn" onclick="employeeDetail('${e.no}')"><b>${e.name}</b><div class="mini">${e.no} / ${e.dept}</div></button>`).join(''):'<div class="mini">社員詳細を開くと、ここに表示されます。</div>'
 }
 function printDetail(){
  let title=dttl.textContent,body=dbody.innerHTML;
@@ -4420,6 +4428,29 @@ function employeeNameLinkHtml(no,name,extraClass=''){
  if(!safeNo)return esc(name||'未設定');
  return '<button class="link employee-name-link '+esc(extraClass||'')+'" data-employee-no="'+esc(safeNo)+'" onclick="employeeDetail(this.dataset.employeeNo)">'+esc(name||safeNo)+'</button>'
 }
+function employeePageLabel(id){
+ return {home:'ホーム',my:'自分',emp:'社員一覧',work:'期限・勤務',safe:'運行・安全',vehicles:'車両',comms:'掲示・申請',manage:'管理'}[id]||'元の画面'
+}
+function employeeDetailSourceLabel(){
+ let existing=document.getElementById('employeeDetailSourceLabel');
+ if(detail.classList.contains('show')&&existing)return existing.dataset.source||existing.textContent||'元の画面';
+ if(detail.classList.contains('show')&&String(dttl.textContent||'').trim())return '前の詳細：'+String(dttl.textContent||'').trim();
+ return employeePageLabel(activePageId())
+}
+function openEmployeeInList(no){
+ let safeNo=String(no||'');if(!safeNo)return;
+ detail.classList.remove('show');DETAIL_HISTORY=[];DETAIL_ORIGIN=null;ACTION_QUEUE_ACTIVE=false;ACTION_QUEUE_CURRENT='';
+ go('emp');
+ let q=document.getElementById('eq'),b=document.getElementById('eb'),d=document.getElementById('ed'),s=document.getElementById('es'),r=document.getElementById('erisk'),cert=document.getElementById('ecert');
+ if(q)q.value=safeNo;if(b)b.value='';if(d)d.value='';if(s)s.value='';if(r)r.value='';if(cert)cert.value='';
+ EMP_PAGE=1;renderEmp();
+ requestAnimationFrame(()=>document.getElementById('empListSummary')?.scrollIntoView({behavior:'smooth',block:'start'}))
+}
+function employeeDetailRouteHtml(e,source){
+ let src=String(source||'元の画面');
+ return '<div class="employee-detail-route"><div class="employee-detail-route-main"><small>開いた場所</small><b id="employeeDetailSourceLabel" data-source="'+esc(src)+'">'+esc(src)+' → 社員詳細</b><span>社員番号 '+esc(e.no)+' / 閉じると元の画面・検索結果・位置へ戻ります</span></div><div class="employee-detail-route-actions"><button class="btn soft" onclick="closeDetail()">← 元の画面へ</button><button class="btn" onclick="openEmployeeInList(\''+String(e.no).replaceAll("'","")+'\')">社員一覧で表示</button></div></div>'+
+ '<div class="employee-detail-jumps" aria-label="社員詳細の区分へ移動"><button class="btn soft" onclick="setEmployeeDetailTab(\'safety\')">安全</button><button class="btn soft" onclick="setEmployeeDetailTab(\'basic\')">基本</button><button class="btn soft" onclick="setEmployeeDetailTab(\'work\')">勤務</button><button class="btn soft" onclick="setEmployeeDetailTab(\'qualification\')">資格</button><button class="btn soft" onclick="setEmployeeDetailTab(\'affiliation\')">所属</button><button class="btn soft" onclick="setEmployeeDetailTab(\'documents\')">書類</button></div>'
+}
 function employeeListVehicleInfo(e){
  let vehicles=employeeAssignedVehicles(e.no);
  let primary=vehicles.find(v=>String(v.employee_no)===String(e.no))||vehicles[0]||null;
@@ -4467,7 +4498,7 @@ function toggleFavorite(no){
 function renderFavorites(){
  let el=document.getElementById('favoriteEmployees');if(!el)return;
  let allowed=new Set(scopedEmployees().map(e=>e.no)),rows=FAVORITES.map(no=>emp(no)).filter(e=>e&&allowed.has(e.no));
- el.innerHTML=rows.length?rows.map(e=>`<button class="favorite-card" onclick="go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)"><b>★ ${esc(e.name)}</b><div class="mini">${e.no} / ${e.dept}</div></button>`).join(''):'<div class="mini">社員詳細の「★注目社員」を押すと、ここに固定表示されます。</div>'
+ el.innerHTML=rows.length?rows.map(e=>`<button class="favorite-card" onclick="employeeDetail('${e.no}')"><b>★ ${esc(e.name)}</b><div class="mini">${e.no} / ${e.dept}</div></button>`).join(''):'<div class="mini">社員詳細の「★注目社員」を押すと、ここに固定表示されます。</div>'
 }
 function employeeTransitionRelated(no){
  let openAcc=A.filter(x=>String(x.employee_no)===String(no)&&x.phase!=='完了');
@@ -5017,6 +5048,7 @@ function employeeSafetyQuickActionsHtml(e){
 }
 function employeeDetail(no){
  let e=emp(no);if(!e||!canAccess('employee','view',no)){alert('この画面確認の権限では表示できません');return}
+ let sourceLabel=employeeDetailSourceLabel();
  rememberEmployee(no);rememberRecentDetail('employee',no);
  let aa=A.filter(x=>x.employee_no===no),tt=TR.filter(x=>x.employee_no===no),assets=AS.filter(x=>x.employee_no===no),qq=QUAL.filter(x=>x.employee_no===no),gg=GUIDANCE.filter(x=>x.employee_no===no),dd=DOCS.filter(x=>x.employee_no===no&&canViewDocumentRecord(x)),pp=procedureTemplate(e.status);
  let accYear=String(TODAY).slice(0,4),accYearStats=employeeAccidentStatsForYear(no,accYear);
@@ -5027,7 +5059,7 @@ function employeeDetail(no){
  let nearestText=nearest?`${nearest.label} ${nearest.date}（${nearest.n<0?Math.abs(nearest.n)+'日超過':nearest.n===0?'本日':nearest.n+'日後'}）`:'期限登録なし';
  let alertText=danger?`乗務・期限に重大な確認事項があります。${String(elig).includes('不可')?'更新確認が完了するまで乗務不可です。':''}`:warn?'期限接近または要確認項目があります。':'登録されている主要期限に緊急の警告はありません。';
  dttl.textContent='社員詳細｜'+e.name;
- dbody.innerHTML=`<div class="detail-actions"><button class="btn soft detail-origin-action" onclick="closeDetail()">← 元の画面へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openEmployeeEdit('${no}')">社員情報を編集</button>`:''}${PREVIEW_ROLE!=='一般社員'?`<button class="star-btn ${isFavorite(no)?'on':''}" onclick="toggleFavorite('${no}')">${isFavorite(no)?'★ 注目社員':'☆ 注目社員に追加'}</button>`:''}</div>
+ dbody.innerHTML=`${employeeDetailRouteHtml(e,sourceLabel)}<div class="detail-actions">${canEditEmployee(no)?`<button class="btn primary" onclick="openEmployeeEdit('${no}')">社員情報を編集</button>`:''}${PREVIEW_ROLE!=='一般社員'?`<button class="star-btn ${isFavorite(no)?'on':''}" onclick="toggleFavorite('${no}')">${isFavorite(no)?'★ 注目社員':'☆ 注目社員に追加'}</button>`:''}</div>
  <div class="employee-profile-hero">
    <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${systemEmployeeId(e.no)}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)} ${driverCertBadgesHtml(e)}</div></div>
    <div class="employee-safety-panel ${safetyClass}"><small>${safetyTitle}</small><strong>乗務可否 ${esc(elig)}</strong><div>${badge(e.safetyState||'正常')}</div><div class="mini">最優先期限：${esc(nearestText)}</div></div>
@@ -6473,7 +6505,7 @@ function searchAll(){
  let results=[];
  scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).forEach(e=>{
   let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・'),cars=employeeAssignedVehicles(e.no).map(v=>v.plate).filter(Boolean);
-  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`go('emp');setTimeout(()=>employeeDetail('${e.no}'),40)`})
+  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`employeeDetail('${e.no}')`})
  });
  let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  quals.forEach(x=>results.push({label:'資格',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.name}`,sub:`${x.number||'番号未登録'} / 期限 ${x.expiry||'未設定'}`,open:`go('emp');setTimeout(()=>employeeQualification('${x.employee_no}'),40)`}));
@@ -7330,7 +7362,7 @@ function restoreDetailState(){
 function restoreEmployeeDetailState(){
  while(DETAIL_HISTORY.length){
   let s=DETAIL_HISTORY.pop();
-  if(s&&s.title==='社員詳細')return applyDetailState(s)
+  if(s&&String(s.title||'').startsWith('社員詳細'))return applyDetailState(s)
  }
  return false
 }
@@ -7417,7 +7449,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v162';
+const RELEASE_VERSION='v163';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
