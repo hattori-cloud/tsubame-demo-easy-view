@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v147 foundation build.
+Current application: v148 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -100,6 +100,7 @@ Current application: v147 foundation build.
 - v145 fixes fast-entry progress refresh after draft restore and programmatic quick-fill actions, and clears the temporary missing-field highlight as soon as a required value is supplied.
 - v146 hardens new-employee numbering so registration still works safely after empty, partial or mixed imported employee data instead of relying on a non-empty all-numeric list.
 - v147 rechecks employee assignment, lifecycle and safety-decision permissions at the moment of save so a role/scope change after opening the edit form cannot carry stale elevated permissions into the write.
+- v148 expands the built-in self-diagnostic to verify employee-number generation, fast-entry required-field navigation, save-time employee permission rechecks, complete access-policy coverage and save/audit coverage across 12 major write flows.
 - Home now surfaces browser-local safety drafts for the current demo user and provides direct return-to-entry actions
 - Production DB/API blueprint maps employee, safety, credential/document, vehicle, draft and audit resources to tables, endpoints and server-side scope rules
 - `docs/production-schema.sql` contains a PostgreSQL schema draft with immutable IDs, business-key constraints, relationships, indexes, version columns and append-only audit/history structures
