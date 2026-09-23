@@ -3410,7 +3410,7 @@ function go(id){
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
  let target=document.getElementById(id);if(!target)return;target.classList.add('active');
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.p===id));
- if(id==='my')renderMyPage();if(id==='work')renderWork();if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
+ if(id==='home')renderHome();if(id==='my')renderMyPage();if(id==='emp'){renderEmployeeStatusSummary();renderEmp();renderEmployeeTodaySummary()}if(id==='work')renderWork();if(id==='safe'){renderSafetyOverview();renderSafetyMonthlySummary();if(SAFE_ACTIVE_TAB==='acc')renderAcc();else if(SAFE_ACTIVE_TAB==='near')renderNear();else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()}if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
  if(id==='manage'){renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderDeadlineKpis('deadlineManage');renderCompanySpec()}
  window.scrollTo(0,0)
 }
@@ -6075,7 +6075,14 @@ function clearAllSafetySearch(){
  renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderSafetyMonthlySummary()
 }
 function renderSafetyMutationViews(){
- renderHome();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderSafetyMonthlySummary();renderSafetyAnalysis()
+ let page=activePageId();
+ if(page==='home'){renderHome();return}
+ if(page!=='safe')return;
+ renderSafetyOverview();renderSafetyMonthlySummary();
+ if(SAFE_ACTIVE_TAB==='acc')renderAcc();
+ else if(SAFE_ACTIVE_TAB==='near')renderNear();
+ else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();
+ else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()
 }
 function openSafetyExportMenu(){
  dttl.textContent='運行・安全 CSV出力';
