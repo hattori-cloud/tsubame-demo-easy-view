@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v135</title>
-<!-- production-sync:v135 -->
+<title>つばめ交通株式会社 社員一元管理システム v136</title>
+<!-- production-sync:v136 -->
 <!-- production-redeploy:2026-09-23 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -527,6 +527,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .acc-v50-kpi b{display:block;color:var(--b);font-size:1.45rem;line-height:1.2}
 .acc-v50-kpi.over{border-left:6px solid #ca5f5f;background:#fff8f8}
 .acc-v50-kpi.today{border-left:6px solid #d4aa26;background:#fffdf3}
+/* v136 unified safety-list overview */
+.safety-list-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.safety-list-kpi{border:1px solid var(--line);border-radius:11px;background:#fff;padding:10px 12px;cursor:pointer;text-align:left}
+.safety-list-kpi small{display:block;color:var(--muted);font-weight:900}
+.safety-list-kpi b{display:block;color:var(--b);font-size:1.4rem;line-height:1.2}
+.safety-list-kpi.danger{border-left:6px solid #ca5f5f;background:#fff8f8}
+.safety-list-kpi.warn{border-left:6px solid #d4aa26;background:#fffdf3}
+.safety-list-kpi.active{outline:2px solid #84b5c9}
+@media(max-width:850px){.safety-list-kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.safety-list-kpis{grid-template-columns:1fr}}
 .acc-v50-row-over{background:#fff8f8!important}
 .acc-v50-row-today{background:#fffdf3!important}
 .acc-v50-deadline.over{color:#922c2c;font-weight:950}
@@ -865,6 +875,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn" id="accOpenBtn" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()">未完了</button>
   <button class="btn" id="accOverBtn" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()">期限超過</button>
   <button class="btn" id="accTodayBtn" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()">本日期限</button>
+  <button class="btn" id="accAttentionBtn" onclick="ACC_FILTER='attention';ACC_PAGE=1;renderAcc()">要確認</button>
   <button class="btn" id="accDoneBtn" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()">完了</button>
  </div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件・まとめ方</summary><div class="detail-fold-body">
@@ -878,7 +889,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div id="accSummary"></div>
 </div>
 <div id="accGroupView" class="acc-group-grid" style="display:none"></div>
-<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
+<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div></div>
 
 <div class="tabpane" id="safe-near">
 <div class="safety-search-card">
@@ -887,6 +898,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <input id="nearq" type="text" placeholder="番号・社員名・社員番号・号車・内容・場所・行動・原因などで検索" oninput="renderNear()">
   <select id="nearRisk" onchange="renderNear()"><option value="">全危険度</option><option>高い</option><option>中程度</option><option>低い</option><option>未設定</option></select>
   <button class="btn soft" onclick="clearSafetySearch('near')">条件をクリア</button>
+ </div>
+ <div class="safety-search-sub"><span class="group-label">よく使う状態</span>
+  <button class="btn" id="nearAllBtn" onclick="NEAR_FILTER='all';renderNear()">全報告</button>
+  <button class="btn" id="nearHighBtn" onclick="NEAR_FILTER='high';renderNear()">高危険</button>
+  <button class="btn" id="nearTodayBtn" onclick="NEAR_FILTER='today';renderNear()">本日発生</button>
+  <button class="btn" id="nearAttentionBtn" onclick="NEAR_FILTER='attention';renderNear()">分析要確認</button>
  </div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body">
   <div class="safety-search-sub"><span class="group-label">発生日・原因側</span>
@@ -910,6 +927,8 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn" id="complaintAllBtn" onclick="COMPLAINT_FILTER='all';renderComplaints()">全件</button>
   <button class="btn" id="complaintOpenBtn" onclick="COMPLAINT_FILTER='open';renderComplaints()">未完了</button>
   <button class="btn" id="complaintOverBtn" onclick="COMPLAINT_FILTER='over';renderComplaints()">期限超過</button>
+  <button class="btn" id="complaintTodayBtn" onclick="COMPLAINT_FILTER='today';renderComplaints()">本日期限</button>
+  <button class="btn" id="complaintAttentionBtn" onclick="COMPLAINT_FILTER='attention';renderComplaints()">要確認</button>
   <button class="btn" id="complaintDoneBtn" onclick="COMPLAINT_FILTER='done';renderComplaints()">完了</button>
  </div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="safety-search-sub"><span class="group-label">受付・発生日</span><input id="complaintDate" type="date" aria-label="クレーム日付で検索" onchange="renderComplaints()"></div></div></details>
@@ -3540,7 +3559,7 @@ function runSystemDiagnosticChecks(){
  out.push(systemDiagnosticCheck('画面ナビゲーション',navMissing.length===0,navMissing.length?'遷移先なし：'+navMissing.join('、'):'ナビ '+document.querySelectorAll('nav button[data-p]').length+'件の遷移先を確認'));
  let uiHealth=uiInteractionHealth();
  out.push(systemDiagnosticCheck('クリック・入力イベント',uiHealth.missing.length===0,uiHealth.missing.length?'未定義関数：'+uiHealth.missing.join('、'):'イベント '+uiHealth.scanned+'件 / 呼出関数を確認'));
- let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml'];
+ let requiredFns=['renderAll','renderHome','renderEmp','employeeDetail','accidentDetail','complaintDetail','nearDetail','vehicleDetail','showQualityDetails','renderProductionGate','showProductionGate','showProductionImplementationSpecs','showProductionTechArchitecture','showProductionApiBlueprint','renderFoundationProgress','showFoundationProgress','nearAnalysisChecklistHtml','complaintManagementChecklistHtml','updateEmployeeCreateGuide','applyNearPreset','setFormDateOffset','saveSafetyDraft','restoreSafetyDraft','renderHomeDraftSummary','renderHomeDailySummary','renderEmployeeTodaySummary','employeeDailyAttentionItems','employeeHealthWork','vehicleOperationalChecklistHtml','updateVehicleFormGuide','vehicleAssignedEmployeeNos','employeeTransitionRelated','employeeTransitionHistoryHtml','renderAuthReadiness','renderUserRows','showLoginDesign','renderUatSummary','showUatChecklist','renderDataModelSummary','showDataModel','relationIntegrityIssues','dataModelMeta','dataWritePolicyHtml','updateDocumentFormGuide','updateQualificationFormGuide','save','audit','exportSystemBackup','prepareSystemRestore','restoreSystemBackup','validateSystemBackupPayload','qualityIssues','canAccess','setPreviewRole','uiInteractionHealth','employeeSafetyTimelineItems','openEmployeeSafetyTimeline','safetyRecordContextHtml','accidentNeedsAttention','complaintNeedsAttention','nearNeedsAnalysis'];
  let missingFns=requiredFns.filter(name=>typeof window[name]!=='function');
  out.push(systemDiagnosticCheck('主要関数',missingFns.length===0,missingFns.length?'未定義：'+missingFns.join('、'):'主要 '+requiredFns.length+'関数を確認'));
  let policyKeys=['employee','qualification','training','asset','document','accident','complaint','near_miss','vehicle','application','procedures','admin_sensitive'];
@@ -4731,7 +4750,7 @@ function clearSafetySearch(kind){
  }
  if(kind==='near'){
   let q=document.getElementById('nearq'),d=document.getElementById('nearDate'),r=document.getElementById('nearRisk'),c=document.getElementById('nearCause');
-  if(q)q.value='';if(d)d.value='';if(r)r.value='';if(c)c.value='';renderNear();return
+  if(q)q.value='';if(d)d.value='';if(r)r.value='';if(c)c.value='';NEAR_FILTER='all';renderNear();return
  }
  if(kind==='complaint'){
   let q=document.getElementById('complaintq'),d=document.getElementById('complaintDate');if(q)q.value='';if(d)d.value='';COMPLAINT_FILTER='all';renderComplaints()
@@ -4769,12 +4788,16 @@ function accidentDeadlineState(a){
  if(n<=7)return 'soon';
  return 'normal'
 }
+function accidentNeedsAttention(a){
+ if(!a||a.phase==='完了')return false;
+ return !String(a.owner||'').trim()||!String(a.nextAction||'').trim()||!String(a.due||'').trim()||!String(a.accidentType||'').trim()||a.accidentType==='未設定'
+}
 function renderAcc(){
  const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().filter(a=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(a)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
- const counts={open:all.filter(a=>a.phase!=='完了').length,over:all.filter(a=>accidentDeadlineState(a)==='over').length,today:all.filter(a=>accidentDeadlineState(a)==='today').length,done:all.filter(a=>a.phase==='完了').length};
+ const counts={open:all.filter(a=>a.phase!=='完了').length,over:all.filter(a=>accidentDeadlineState(a)==='over').length,today:all.filter(a=>accidentDeadlineState(a)==='today').length,attention:all.filter(accidentNeedsAttention).length,done:all.filter(a=>a.phase==='完了').length};
  let rows=all.filter(a=>{
    let state=accidentDeadlineState(a);
-   let pass=ACC_FILTER==='all'||(ACC_FILTER==='open'&&a.phase!=='完了')||(ACC_FILTER==='over'&&state==='over')||(ACC_FILTER==='today'&&state==='today')||(ACC_FILTER==='done'&&a.phase==='完了');
+   let pass=ACC_FILTER==='all'||(ACC_FILTER==='open'&&a.phase!=='完了')||(ACC_FILTER==='over'&&state==='over')||(ACC_FILTER==='today'&&state==='today')||(ACC_FILTER==='attention'&&accidentNeedsAttention(a))||(ACC_FILTER==='done'&&a.phase==='完了');
    return pass&&(!date||a.date===date)&&(!q||[a.id,a.date,a.time,a.employee_no,a.driver,a.address,a.summary,a.vehicle,a.service,a.operationState,a.district,a.accidentType,a.faultRate,a.opponentRepair,a.opponentRepairCost,a.companyRepair,a.companyRepairCost,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{
    const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};
@@ -4783,9 +4806,9 @@ function renderAcc(){
  });
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));ACC_PAGE=Math.min(Math.max(1,ACC_PAGE),pages);
  const st=(ACC_PAGE-1)*per,shown=rows.slice(st,st+per);
- [['accAllBtn','all'],['accOpenBtn','open'],['accOverBtn','over'],['accTodayBtn','today'],['accDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_FILTER===k)});
+ [['accAllBtn','all'],['accOpenBtn','open'],['accOverBtn','over'],['accTodayBtn','today'],['accAttentionBtn','attention'],['accDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_FILTER===k)});
  [['accViewList','list'],['accViewMonth','month'],['accViewEmployee','employee']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_VIEW===k)});
- if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="acc-v50-kpis"><div class="acc-v50-kpi" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></div><div class="acc-v50-kpi over" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></div><div class="acc-v50-kpi today" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></div><div class="acc-v50-kpi" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / キーワード・発生日から検索できます</div></div></div>`;
+ if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${ACC_FILTER==='open'?'active':''}" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${ACC_FILTER==='over'?'active':''}" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='today'?'active':''}" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='attention'?'active':''}" onclick="ACC_FILTER='attention';ACC_PAGE=1;renderAcc()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / 要確認は担当・期限・次回対応・事故形態の不足を含みます</div></div></div>`;
  let group=document.getElementById('accGroupView'),table=document.getElementById('accTableView');
  if(group&&table){
   if(ACC_VIEW==='list'){group.style.display='none';table.style.display='';}
@@ -4805,7 +4828,7 @@ function renderAcc(){
    }).join(''):'<div class="mini">該当する事故はありません。</div>'
   }
  }
- accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><button class="link" onclick="accidentDetail('${a.id}')"><b>${a.id}</b></button></td><td>${employeeNameLinkHtml(a.employee_no,a.driver)}<div class="mini">社員番号 ${esc(a.employee_no)}</div></td><td>${a.vehicle&&a.vehicle!=='未設定'?vehicleNumberLinkHtml(a.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td></tr>`}).join('');
+ accbody.innerHTML=shown.map(a=>{let state=accidentDeadlineState(a),n=a.due?days(a.due):9999,rowClass=state==='over'?'acc-v50-row-over':state==='today'?'acc-v50-row-today':'',deadline=a.due?(state==='over'?`<span class="acc-v50-deadline over">${a.due}（${Math.abs(n)}日超過）</span>`:state==='today'?`<span class="acc-v50-deadline today">${a.due}（本日）</span>`:state==='soon'?`<span class="acc-v50-deadline soon">${a.due}（${n}日後）</span>`:a.due):'未設定';return `<tr class="${rowClass}"><td>${a.date}<div class="mini">期限 ${deadline}</div></td><td><button class="link" onclick="accidentDetail('${a.id}')"><b>${a.id}</b></button></td><td>${employeeNameLinkHtml(a.employee_no,a.driver)}<div class="mini">社員番号 ${esc(a.employee_no)}</div></td><td>${a.vehicle&&a.vehicle!=='未設定'?vehicleNumberLinkHtml(a.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="accidentDetail('${a.id}')">${esc(a.summary)} ›</button><div class="mini">${esc(a.address)}</div><div class="mini">担当 ${esc(a.owner||'未設定')} / 次回 ${esc(a.nextAction||'未設定')}</div></td><td>${badge(a.phase)}</td><td><button class="btn soft" onclick="accidentDetail('${a.id}')">詳細</button></td></tr>`}).join('');
  if(typeof accPager!=='undefined')accPager.innerHTML=ACC_VIEW==='list'&&pages>1?`<div class="acc-pager"><button class="btn" ${ACC_PAGE<=1?'disabled':''} onclick="ACC_PAGE--;renderAcc()">← 前へ</button><span class="pill">${st+1}〜${Math.min(st+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${ACC_PAGE>=pages?'disabled':''} onclick="ACC_PAGE++;renderAcc()">次へ →</button></div>`:''
 }
 function nearDefaultNextAction(state){
@@ -5043,21 +5066,29 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  showDetailModal()
 }
 function appendAccidentHistory(id){appendCaseNote('事故',id,'accQuickHistory')}
+let NEAR_FILTER='all';
+function nearNeedsAnalysis(n){
+ let tags=[...(n?.locationTags||[]),...(n?.situationTags||[]),...(n?.roadTags||[]),...(n?.targetTags||[]),...(n?.internalFactors||[])];
+ return !n||!n.riskLevel||n.riskLevel==='未設定'||!n.causeSide||n.causeSide==='未設定'||!String(n.prevention||'').trim()||tags.length===0
+}
 function renderNear(){
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',
  risk=document.getElementById('nearRisk')?.value||'',cause=document.getElementById('nearCause')?.value||'',
  all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+ let counts={all:all.length,high:all.filter(n=>n.riskLevel==='高い').length,today:all.filter(n=>n.date===TODAY).length,attention:all.filter(nearNeedsAnalysis).length};
  let rows=all.filter(n=>{
   let text=[n.id,n.date,n.time,n.vehicle,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
-  return (!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
+  let quick=NEAR_FILTER==='all'||(NEAR_FILTER==='high'&&n.riskLevel==='高い')||(NEAR_FILTER==='today'&&n.date===TODAY)||(NEAR_FILTER==='attention'&&nearNeedsAnalysis(n));
+  return quick&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
  });
- let high=rows.filter(n=>n.riskLevel==='高い').length;
- let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div><b>表示 ${rows.length}件</b><div class="mini">全ヒヤリハット ${all.length}件 / 危険度「高い」 ${high}件 / 内容・分類項目まで検索できます</div></div>`;
+ [['nearAllBtn','all'],['nearHighBtn','high'],['nearTodayBtn','today'],['nearAttentionBtn','attention']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',NEAR_FILTER===k)});
+ let summary=document.getElementById('nearSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${NEAR_FILTER==='all'?'active':''}" onclick="NEAR_FILTER='all';renderNear()"><small>全報告</small><b>${counts.all}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='high'?'active':''}" onclick="NEAR_FILTER='high';renderNear()"><small>高危険</small><b>${counts.high}</b></button><button class="safety-list-kpi ${NEAR_FILTER==='today'?'active':''}" onclick="NEAR_FILTER='today';renderNear()"><small>本日発生</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${NEAR_FILTER==='attention'?'active':''}" onclick="NEAR_FILTER='attention';renderNear()"><small>分析要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">ヒヤリは管理案件ではなく、危険度・原因・対策・分類の入力状態を確認します</div></div></div>`;
  nearbody.innerHTML=rows.map(n=>{
-  let tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4);
-  return `<tr><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${employeeNameLinkHtml(n.employee_no,n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div></td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">開く</button></td></tr>`;
+  let tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4),needs=nearNeedsAnalysis(n);
+  return `<tr class="${needs?'complaint-row-today':''}"><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${employeeNameLinkHtml(n.employee_no,n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div>${needs?'<div class="mini">分析項目 要確認</div>':''}</td><td>${badge(n.riskLevel||'未設定')}</td><td><button class="btn soft" onclick="nearDetail('${n.id}')">詳細</button></td></tr>`;
  }).join('')
 }
+
 function nearAnalysisChecklistHtml(n){
  let tagCount=[...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].length;
  let checks=[
@@ -5106,17 +5137,21 @@ function complaintState(c){
  let b=deadlineBucket(c.followupDue);
  return b==='over'?'over':b==='today'?'today':b==='7'?'soon':'normal'
 }
+function complaintNeedsAttention(c){
+ if(!c||c.status==='完了')return false;
+ return !String(c.owner||'').trim()||!String(c.nextAction||'').trim()||!String(c.followupDue||'').trim()||!c.rank||c.rank==='未判定'
+}
 function renderComplaints(){
  let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),date=document.getElementById('complaintDate')?.value||'',all=scopedComplaints().filter(c=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(c)).slice();
- let counts={open:all.filter(c=>c.status!=='完了').length,over:all.filter(c=>complaintState(c)==='over').length,today:all.filter(c=>complaintState(c)==='today').length,done:all.filter(c=>c.status==='完了').length};
+ let counts={open:all.filter(c=>c.status!=='完了').length,over:all.filter(c=>complaintState(c)==='over').length,today:all.filter(c=>complaintState(c)==='today').length,attention:all.filter(complaintNeedsAttention).length,done:all.filter(c=>c.status==='完了').length};
  let rows=all.filter(c=>{
-  let s=complaintState(c),pass=COMPLAINT_FILTER==='all'||(COMPLAINT_FILTER==='open'&&c.status!=='完了')||(COMPLAINT_FILTER==='over'&&s==='over')||(COMPLAINT_FILTER==='done'&&c.status==='完了');
+  let s=complaintState(c),pass=COMPLAINT_FILTER==='all'||(COMPLAINT_FILTER==='open'&&c.status!=='完了')||(COMPLAINT_FILTER==='over'&&s==='over')||(COMPLAINT_FILTER==='today'&&s==='today')||(COMPLAINT_FILTER==='attention'&&complaintNeedsAttention(c))||(COMPLAINT_FILTER==='done'&&c.status==='完了');
   let dateMatch=!date||c.responseDate===date||c.date===date||c.occurrenceDate===date||c.guidanceDate===date;
   return pass&&dateMatch&&(!q||[c.id,c.employee_no,c.responseDate,c.occurrenceDate,c.guidanceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.customerName,c.rank,c.responder,c.instructor].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};let ra=rank[complaintState(a)]??9,rb=rank[complaintState(b)]??9;return ra!==rb?ra-rb:String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date))});
- [['complaintAllBtn','all'],['complaintOpenBtn','open'],['complaintOverBtn','over'],['complaintDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',COMPLAINT_FILTER===k)});
- let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="complaint-kpis"><div class="complaint-kpi" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></div><div class="complaint-kpi over" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></div><div class="complaint-kpi today"><small>本日期限</small><b>${counts.today}</b></div><div class="complaint-kpi" onclick="COMPLAINT_FILTER='done';renderComplaints()"><small>完了</small><b>${counts.done}</b></div></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">キーワード・受付日・発生日・指導日から検索できます</div></div></div>`;
- complaintbody.innerHTML=rows.map(c=>{let idx=C.indexOf(c),state=complaintState(c),cls=state==='over'?'complaint-row-over':state==='today'?'complaint-row-today':'',due=c.followupDue?`${c.followupDue}（${deadlineBucketLabel(c.followupDue)}）`:'未設定';return `<tr class="${cls}"><td>${esc(c.responseDate||c.date)}<div class="mini">${esc(c.responseTime||'')}</div></td><td><button class="link" onclick="complaintDetail('${c.id}')"><b>${esc(c.id)}</b></button></td><td>${employeeNameLinkHtml(c.employee_no,c.driverName||c.name)}<div class="mini">${esc(c.dept||'')} / 号車 ${esc(c.vehicle||'未設定')}</div></td><td>${complaintRankChip(c.rank||'未判定')}</td><td><b>${esc(c.nextAction||'未設定')}</b><div class="mini">担当 ${esc(c.owner||'未設定')} / ${esc(due)}</div></td><td>${badge(c.status||'受付')}</td><td>${canEditEmployee(c.employee_no)?`<button class="btn soft" onclick="openComplaintForm(${idx})">編集</button>`:''}</td></tr>`}).join('')
+ [['complaintAllBtn','all'],['complaintOpenBtn','open'],['complaintOverBtn','over'],['complaintTodayBtn','today'],['complaintAttentionBtn','attention'],['complaintDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',COMPLAINT_FILTER===k)});
+ let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${COMPLAINT_FILTER==='open'?'active':''}" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${COMPLAINT_FILTER==='over'?'active':''}" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='today'?'active':''}" onclick="COMPLAINT_FILTER='today';renderComplaints()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='attention'?'active':''}" onclick="COMPLAINT_FILTER='attention';renderComplaints()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">要確認は担当・期限・次回対応・ランクの不足を含みます</div></div></div>`;
+ complaintbody.innerHTML=rows.map(c=>{let idx=C.indexOf(c),state=complaintState(c),cls=state==='over'?'complaint-row-over':state==='today'?'complaint-row-today':'',due=c.followupDue?`${c.followupDue}（${deadlineBucketLabel(c.followupDue)}）`:'未設定';return `<tr class="${cls}"><td>${esc(c.responseDate||c.date)}<div class="mini">${esc(c.responseTime||'')}</div></td><td><button class="link" onclick="complaintDetail('${c.id}')"><b>${esc(c.id)}</b></button></td><td>${employeeNameLinkHtml(c.employee_no,c.driverName||c.name)}<div class="mini">${esc(c.dept||'')} / 号車 ${esc(c.vehicle||'未設定')}</div></td><td>${complaintRankChip(c.rank||'未判定')}</td><td><b>${esc(c.nextAction||'未設定')}</b><div class="mini">担当 ${esc(c.owner||'未設定')} / ${esc(due)}</div></td><td>${badge(c.status||'受付')}</td><td><div class="toolbar"><button class="btn soft" onclick="complaintDetail('${c.id}')">詳細</button>${canEditEmployee(c.employee_no)?`<button class="btn soft" onclick="openComplaintForm(${idx})">編集</button>`:''}</div></td></tr>`}).join('')
 }
 function vehicleByNumber(value){
  let no=String(value||'').trim();
@@ -6328,7 +6363,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v135';
+const RELEASE_VERSION='v136';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
