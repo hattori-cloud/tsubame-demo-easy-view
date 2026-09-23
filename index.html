@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v192</title>
-<!-- production-sync:v192 -->
+<title>つばめ交通株式会社 社員一元管理システム v193</title>
+<!-- production-sync:v193 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -662,6 +662,15 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .acc-group-card b{display:block;color:#214f64}
 .acc-group-card .acc-group-count{font-size:1.45rem;font-weight:950;margin:4px 0}
 .acc-group-card .mini{margin-top:3px}
+.acc-month-dashboard{border:2px solid #bfd8e3;border-radius:14px;background:#f7fbfd;padding:13px;margin-bottom:11px}
+.acc-month-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.acc-month-head h3{margin:0;color:#173f57}.acc-month-head .mini{margin-top:3px}
+.acc-month-controls{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.acc-month-controls input{min-height:44px;background:#fff}
+.acc-month-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;margin-top:10px}
+.acc-month-kpi{border:1px solid #d2e2e9;border-radius:11px;background:#fff;padding:10px;text-align:left}
+.acc-month-kpi small{display:block;color:#637b87;font-size:.66rem;font-weight:950}.acc-month-kpi b{display:block;color:#173f57;font-size:1.35rem;line-height:1.2;margin-top:2px}.acc-month-kpi span{display:block;color:#637b87;font-size:.65rem;font-weight:850;margin-top:2px;line-height:1.35}
+.acc-month-kpi.warn{border-left:6px solid #d4aa26;background:#fffdf3}.acc-month-kpi.danger{border-left:6px solid #ca5f5f;background:#fff8f8}.acc-month-kpi.ok{border-left:6px solid #5b9a6b;background:#f7fcf8}
+.acc-month-active{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-top:9px;padding:8px 10px;border:1px solid #d8e5eb;border-radius:10px;background:#fff;font-size:.7rem;font-weight:850;color:#526e7a}
+@media(max-width:1050px){.acc-month-kpis{grid-template-columns:repeat(3,1fr)}}@media(max-width:620px){.acc-month-head{flex-direction:column}.acc-month-controls,.acc-month-controls input,.acc-month-controls .btn{width:100%}.acc-month-kpis{grid-template-columns:1fr 1fr}}
 .safety-search-card{border:1px solid #c9dde6;background:#f8fcfd;border-radius:13px;padding:12px;margin-bottom:10px}
 .safety-search-title{font-weight:950;color:#214f64;margin-bottom:7px}
 .safety-search-main{display:flex;flex-wrap:wrap;gap:8px;align-items:center}.safety-search-main input[type="text"]{flex:2 1 320px}.safety-search-main input[type="date"],.safety-search-main select{flex:1 1 170px}.safety-search-main .btn{flex:0 0 auto;min-width:110px}
@@ -1201,6 +1210,10 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div id="safetyPriorityQueue" class="safety-priority-queue" aria-label="今日の安全優先対応"></div>
 <div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="analysis" onclick="safeTab('analysis')">安全分析</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
 <div class="tabpane active" id="safe-acc">
+<div class="acc-month-dashboard">
+ <div class="acc-month-head"><div><h3>月次事故管理</h3><div class="mini">月約20件の事故を、件数だけでなく未完了・期限・修理費までまとめて確認します。</div></div><div class="acc-month-controls"><input id="accDashboardMonth" type="month" aria-label="事故集計月" onchange="renderAccMonthDashboard()"><button class="btn primary" onclick="applyAccDashboardMonth()">この月だけ表示</button><button class="btn soft" onclick="clearAccMonthFilter()">全期間</button></div></div>
+ <div id="accMonthDashboard"></div>
+</div>
 <div class="safety-search-card">
  <div class="safety-search-title">事故を検索</div>
  <div class="safety-search-main">
@@ -6084,7 +6097,7 @@ function renderSafetyOverview(){
 }
 function clearSafetySearch(kind){
  if(kind==='accident'){
-  let q=document.getElementById('accq'),d=document.getElementById('accDate');if(q)q.value='';if(d)d.value='';ACC_FILTER='all';ACC_PAGE=1;renderAcc();return
+  let q=document.getElementById('accq'),d=document.getElementById('accDate');if(q)q.value='';if(d)d.value='';ACC_FILTER='all';ACC_MONTH='';ACC_PAGE=1;renderAcc();return
  }
  if(kind==='near'){
   let q=document.getElementById('nearq'),d=document.getElementById('nearDate'),r=document.getElementById('nearRisk'),c=document.getElementById('nearCause');
@@ -6094,8 +6107,32 @@ function clearSafetySearch(kind){
   let q=document.getElementById('complaintq'),d=document.getElementById('complaintDate');if(q)q.value='';if(d)d.value='';COMPLAINT_FILTER='all';COMPLAINT_PAGE=1;renderComplaints()
  }
 }
-let ACC_PAGE=1,ACC_FILTER='all',ACC_VIEW=localStorage.getItem('v68ACC_VIEW')||'list';
+let ACC_PAGE=1,ACC_FILTER='all',ACC_MONTH='',ACC_VIEW=localStorage.getItem('v68ACC_VIEW')||'list';
 if(!['list','month','employee'].includes(ACC_VIEW))ACC_VIEW='list';
+function accidentMonthStats(month){
+ let rows=scopedAccidents().filter(a=>(!MY_TASKS_ONLY||recordAssignedToCurrentManager(a))&&accidentMonthKey(a)===month);
+ let open=rows.filter(a=>a.phase!=='完了').length,over=rows.filter(a=>accidentDeadlineState(a)==='over').length,attention=rows.filter(accidentNeedsAttention).length;
+ return {rows,total:rows.length,open,over,attention,repair:rows.reduce((s,a)=>s+accidentTotalRepairCost(a),0),drivers:new Set(rows.map(a=>String(a.employee_no))).size}
+}
+function renderAccMonthDashboard(){
+ let root=document.getElementById('accMonthDashboard'),input=document.getElementById('accDashboardMonth');if(!root)return;
+ let month=input?.value||TODAY.slice(0,7);if(input&&!input.value)input.value=month;
+ let s=accidentMonthStats(month);
+ root.innerHTML='<div class="acc-month-kpis">'+
+  '<div class="acc-month-kpi"><small>事故件数</small><b>'+s.total+'</b><span>'+esc(accidentMonthLabel(month))+'</span></div>'+
+  '<div class="acc-month-kpi '+(s.open?'warn':'ok')+'"><small>未完了</small><b>'+s.open+'</b><span>対応継続中</span></div>'+
+  '<div class="acc-month-kpi '+(s.over?'danger':'ok')+'"><small>期限超過</small><b>'+s.over+'</b><span>最優先で確認</span></div>'+
+  '<div class="acc-month-kpi '+(s.attention?'warn':'ok')+'"><small>管理要確認</small><b>'+s.attention+'</b><span>担当・期限・次回対応など</span></div>'+
+  '<div class="acc-month-kpi"><small>修理費合計</small><b>'+s.repair.toLocaleString('ja-JP')+'円</b><span>相手＋自社</span></div>'+
+  '<div class="acc-month-kpi"><small>事故社員</small><b>'+s.drivers+'</b><span>対象社員数</span></div></div>'+
+  '<div class="acc-month-active"><span class="badge '+(ACC_MONTH?'warn':'ok')+'">'+(ACC_MONTH?'月指定中':'全期間表示')+'</span><span>'+(ACC_MONTH?esc(accidentMonthLabel(ACC_MONTH))+' の事故だけを一覧表示しています。':'下の事故一覧は全期間です。月を選び「この月だけ表示」で絞れます。')+'</span></div>'
+}
+function applyAccDashboardMonth(){
+ let month=document.getElementById('accDashboardMonth')?.value||TODAY.slice(0,7);ACC_MONTH=month;ACC_PAGE=1;ACC_FILTER='all';ACC_VIEW='list';renderAcc()
+}
+function clearAccMonthFilter(){
+ ACC_MONTH='';ACC_PAGE=1;ACC_FILTER='all';renderAcc()
+}
 function setAccView(v){
  ACC_VIEW=['list','month','employee'].includes(v)?v:'list';
  localStorage.setItem('v68ACC_VIEW',ACC_VIEW);
@@ -6112,8 +6149,8 @@ function openAccidentGroup(kind,key){
  rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let title=kind==='month'?accidentMonthLabel(key):((emp(key)?.name||key)+' の事故');
  dttl.textContent=title;
- let open=rows.filter(a=>a.phase!=='完了').length,done=rows.filter(a=>a.phase==='完了').length,drivers=new Set(rows.map(a=>a.employee_no)).size;
- dbody.innerHTML='<div class="list-summary"><div><b>'+esc(title)+'</b><div class="mini">事故 '+rows.length+'件 / 未完了 '+open+'件 / 完了 '+done+'件'+(kind==='month'?' / 対象社員 '+drivers+'名':'')+'</div></div></div>'+
+ let open=rows.filter(a=>a.phase!=='完了').length,done=rows.filter(a=>a.phase==='完了').length,drivers=new Set(rows.map(a=>a.employee_no)).size,over=rows.filter(a=>accidentDeadlineState(a)==='over').length,attention=rows.filter(accidentNeedsAttention).length,repair=rows.reduce((s,a)=>s+accidentTotalRepairCost(a),0);
+ dbody.innerHTML='<div class="list-summary"><div><b>'+esc(title)+'</b><div class="mini">事故 '+rows.length+'件 / 未完了 '+open+'件 / 完了 '+done+'件 / 期限超過 '+over+'件 / 管理要確認 '+attention+'件'+(kind==='month'?' / 対象社員 '+drivers+'名':'')+'</div></div><span class="badge">修理費 '+repair.toLocaleString('ja-JP')+'円</span></div>'+
  (rows.length?rows.map(a=>'<div class="row"><div><b>'+esc(a.date)+' / '+esc(a.id)+' / '+esc(a.driver)+'</b><div class="mini">'+esc(a.summary)+' / '+esc(a.phase)+'</div></div><button class="btn soft" onclick="accidentDetail(\''+a.id+'\')">開く</button></div>').join(''):'<div class="mini">該当する事故はありません。</div>');
  showDetailModal()
 }
@@ -6148,12 +6185,13 @@ function accidentAttentionInfo(a){
 }
 
 function renderAcc(){
+ renderAccMonthDashboard();
  const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().filter(a=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(a)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  const counts={open:all.filter(a=>a.phase!=='完了').length,over:all.filter(a=>accidentDeadlineState(a)==='over').length,today:all.filter(a=>accidentDeadlineState(a)==='today').length,attention:all.filter(accidentNeedsAttention).length,done:all.filter(a=>a.phase==='完了').length};
  let rows=all.filter(a=>{
    let state=accidentDeadlineState(a);
    let pass=ACC_FILTER==='all'||(ACC_FILTER==='open'&&a.phase!=='完了')||(ACC_FILTER==='over'&&state==='over')||(ACC_FILTER==='today'&&state==='today')||(ACC_FILTER==='attention'&&accidentNeedsAttention(a))||(ACC_FILTER==='done'&&a.phase==='完了');
-   return pass&&(!date||a.date===date)&&(!q||[a.id,a.date,a.time,a.employee_no,a.driver,a.address,a.summary,a.vehicle,a.service,a.operationState,a.district,a.accidentType,a.faultRate,a.opponentRepair,a.opponentRepairCost,a.companyRepair,a.companyRepairCost,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
+   return pass&&(!ACC_MONTH||accidentMonthKey(a)===ACC_MONTH)&&(!date||a.date===date)&&(!q||[a.id,a.date,a.time,a.employee_no,a.driver,a.address,a.summary,a.vehicle,a.service,a.operationState,a.district,a.accidentType,a.faultRate,a.opponentRepair,a.opponentRepairCost,a.companyRepair,a.companyRepairCost,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{
    const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};
    let ra=rank[accidentDeadlineState(a)]??9,rb=rank[accidentDeadlineState(b)]??9;
@@ -6163,7 +6201,7 @@ function renderAcc(){
  const st=(ACC_PAGE-1)*per,shown=rows.slice(st,st+per);
  [['accAllBtn','all'],['accOpenBtn','open'],['accOverBtn','over'],['accTodayBtn','today'],['accAttentionBtn','attention'],['accDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_FILTER===k)});
  [['accViewList','list'],['accViewMonth','month'],['accViewEmployee','employee']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',ACC_VIEW===k)});
- if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${ACC_FILTER==='open'?'active':''}" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${ACC_FILTER==='over'?'active':''}" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='today'?'active':''}" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='attention'?'active':''}" onclick="ACC_FILTER='attention';ACC_PAGE=1;renderAcc()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件 / 要確認は担当・期限・次回対応・事故形態の不足を含みます</div></div></div>`;
+ if(typeof accSummary!=='undefined')accSummary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${ACC_FILTER==='open'?'active':''}" onclick="ACC_FILTER='open';ACC_PAGE=1;renderAcc()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${ACC_FILTER==='over'?'active':''}" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='today'?'active':''}" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${ACC_FILTER==='attention'?'active':''}" onclick="ACC_FILTER='attention';ACC_PAGE=1;renderAcc()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary" style="margin-top:8px"><div><b>表示 ${rows.length}件</b><div class="mini">全事故 ${all.length}件${ACC_MONTH?' / '+accidentMonthLabel(ACC_MONTH)+'に絞り込み中':''} / 要確認は担当・期限・次回対応・事故形態の不足を含みます</div></div></div>`;
  let group=document.getElementById('accGroupView'),table=document.getElementById('accTableView');
  if(group&&table){
   if(ACC_VIEW==='list'){group.style.display='none';table.style.display='';}
@@ -6176,10 +6214,10 @@ function renderAcc(){
    });
    let entries=Object.entries(groups).sort((a,b)=>ACC_VIEW==='month'?String(b[0]).localeCompare(String(a[0])):String(emp(a[0])?.name||a[0]).localeCompare(String(emp(b[0])?.name||b[0]),'ja'));
    group.innerHTML=entries.length?entries.map(([key,list])=>{
-    let open=list.filter(a=>a.phase!=='完了').length,done=list.length-open,latest=list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+    let open=list.filter(a=>a.phase!=='完了').length,done=list.length-open,over=list.filter(a=>accidentDeadlineState(a)==='over').length,attention=list.filter(accidentNeedsAttention).length,repair=list.reduce((s,a)=>s+accidentTotalRepairCost(a),0),latest=list.slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
     let title=ACC_VIEW==='month'?accidentMonthLabel(key):(emp(key)?.name||key);
     let sub=ACC_VIEW==='month'?'対象社員 '+new Set(list.map(a=>a.employee_no)).size+'名':'社員番号 '+key+' / '+esc(emp(key)?.branch||'')+' / '+esc(emp(key)?.dept||'');
-    return '<button class="acc-group-card" onclick="openAccidentGroup(\''+ACC_VIEW+'\',\''+key+'\')"><b>'+esc(title)+'</b><div class="acc-group-count">'+list.length+'件</div><div class="mini">未完了 '+open+' / 完了 '+done+'</div><div class="mini">'+sub+'</div><div class="mini">最新 '+esc(latest?.date||'-')+'</div></button>'
+    return '<button class="acc-group-card" onclick="openAccidentGroup(\''+ACC_VIEW+'\',\''+key+'\')"><b>'+esc(title)+'</b><div class="acc-group-count">'+list.length+'件</div><div class="mini">未完了 '+open+' / 完了 '+done+' / 期限超過 '+over+'</div><div class="mini">管理要確認 '+attention+' / 修理費 '+repair.toLocaleString('ja-JP')+'円</div><div class="mini">'+sub+'</div><div class="mini">最新 '+esc(latest?.date||'-')+'</div></button>'
    }).join(''):'<div class="mini">該当する事故はありません。</div>'
   }
  }
@@ -8127,7 +8165,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v192';
+const RELEASE_VERSION='v193';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
