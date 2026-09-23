@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex,nofollow,noarchive,nosnippet">
 <meta name="referrer" content="no-referrer">
-<title>つばめ交通株式会社 社員一元管理システム v198</title>
-<!-- production-sync:v198 -->
+<title>つばめ交通株式会社 社員一元管理システム v199</title>
+<!-- production-sync:v199 -->
 <!-- production-redeploy:2026-09-23-v178 -->
 <style>
 :root{--b:#075b88;--b2:#064765;--bg:#f4f7f9;--line:#d6e2e8;--ink:#173442;--muted:#667c88;--ok:#e8f6ec;--warn:#fff5d1;--danger:#ffe8e8;--fs:20px}
@@ -5271,7 +5271,7 @@ function originalDocumentState(d){
  return 'ok'
 }
 function originalDocumentStateLabel(state){
- return ({all:'すべて',pending:'未確認',replace:'差替え待ち',expired:'期限超過',soon:'30日以内',strict:'厳格書類',paper:'紙原本',archived:'無効・履歴',ok:'確認済み'})[state]||'すべて'
+ return ({all:'すべて',pending:'未確認',replace:'差替え待ち',expired:'期限超過',soon:'30日以内',strict:'厳格書類',paper:'紙原本',paper_missing:'保管場所未設定',retention:'保管期限到来',archived:'無効・履歴',ok:'確認済み'})[state]||'すべて'
 }
 function originalDocumentNextAction(d){
  if(d.archived)return '履歴として保持。通常業務では使用しません。';
@@ -5292,6 +5292,40 @@ function originalDocumentActionsHtml(d){
  if(isFullCompanyAdmin()&&!d.archived)out+='<button class="btn danger" onclick="deleteDocument(\''+id+'\')">無効化</button>';
  return '<div class="toolbar">'+out+'</div>'
 }
+function originalDocumentPriorityReason(d){
+ if(d.archived)return '';
+ if(d.expiry&&days(d.expiry)<0)return '期限超過 '+Math.abs(days(d.expiry))+'日';
+ if(d.status==='差替え待ち')return '差替え待ち';
+ if(d.status!=='原本確認済み'&&d.status!=='差替え済み')return '原本未確認';
+ if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return '紙原本の保管場所未設定';
+ if(d.retentionUntil&&days(d.retentionUntil)<0)return '保管期限到来';
+ if(d.expiry&&days(d.expiry)<=30)return '期限まで'+days(d.expiry)+'日';
+ return ''
+}
+function originalDocumentPriorityScore(d){
+ if(d.archived)return 99;
+ if(d.expiry&&days(d.expiry)<0)return 0;
+ if(d.status==='差替え待ち')return 1;
+ if(d.status!=='原本確認済み'&&d.status!=='差替え済み')return 2;
+ if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return 3;
+ if(d.retentionUntil&&days(d.retentionUntil)<0)return 4;
+ if(d.expiry&&days(d.expiry)<=30)return 5;
+ return 9
+}
+function originalDocumentPriorityRows(docs){
+ return docs.filter(d=>!d.archived&&originalDocumentPriorityReason(d)).sort((a,b)=>originalDocumentPriorityScore(a)-originalDocumentPriorityScore(b)||String(a.expiry||a.retentionUntil||'9999-12-31').localeCompare(String(b.expiry||b.retentionUntil||'9999-12-31'))||String(a.employee_no).localeCompare(String(b.employee_no),'ja',{numeric:true}))
+}
+function originalDocumentPriorityHtml(docs){
+ let rows=originalDocumentPriorityRows(docs),shown=rows.slice(0,5);
+ if(!shown.length)return '<div class="notice"><div><b>今日の優先確認はありません。</b><div class="mini">新しい未確認・期限・差替え対象が出るとここに表示されます。</div></div><span class="badge ok">OK</span></div>';
+ return '<div class="section" style="margin-top:10px"><div class="list-summary"><div><h3 style="margin:0">今日、先に確認する原本</h3><div class="mini">期限・差替え・未確認・保管不備の順に表示</div></div><span class="badge warn">'+rows.length+'件</span></div>'+
+  shown.map(d=>{
+   let e=emp(d.employee_no),reason=originalDocumentPriorityReason(d),tone=reason.startsWith('期限超過')?'danger':'warn',id=String(d.id||'').replaceAll("'","");
+   return '<div class="row '+(tone==='danger'?'quality-bad':'quality-warn')+'"><div style="flex:1;min-width:0"><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'） / '+esc(d.name)+'</b><div class="mini">'+esc(reason)+' / '+esc(d.originalHandling||'原本区分未設定')+'</div></div><div class="toolbar"><span class="badge '+tone+'">'+esc(reason)+'</span><button class="btn primary" onclick="documentPreview(\''+id+'\')">確認する</button></div></div>'
+  }).join('')+
+  (rows.length>shown.length?'<div class="mini" style="margin-top:7px">上位5件を表示 / 全'+rows.length+'件。下の一覧で残りを確認できます。</div>':'')+
+ '</div>'
+}
 function openOriginalDocumentCenter(employeeNo=''){
  if(PREVIEW_ROLE!=='管理者')return alert('書類・原本管理センターは管理者のみ利用できます');
  ORIGINAL_DOCUMENT_FILTER_NO=String(employeeNo||'');ORIGINAL_DOCUMENT_PAGE=1;
@@ -5301,6 +5335,8 @@ function openOriginalDocumentCenter(employeeNo=''){
  let expiring=active.filter(d=>d.expiry&&days(d.expiry)<=30).length;
  let strict=active.filter(d=>documentSecurityClass(d)==='厳格').length;
  dttl.textContent='書類・原本管理';
+ let paperMissing=active.filter(d=>['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim()).length;
+ let retentionDue=active.filter(d=>d.retentionUntil&&days(d.retentionUntil)<0).length;
  dbody.innerHTML='<div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
  '<div class="credential-kpis">'+
   '<button class="credential-kpi '+(pending?'warn':'')+'" onclick="setOriginalDocumentState(\'pending\')"><small>まず確認</small><b>'+pending+'</b><span>未確認</span></button>'+
@@ -5308,8 +5344,9 @@ function openOriginalDocumentCenter(employeeNo=''){
   '<button class="credential-kpi '+(expiring?'danger':'')+'" onclick="setOriginalDocumentState(\'soon\')"><small>期限確認</small><b>'+expiring+'</b><span>30日以内・超過</span></button>'+
   '<button class="credential-kpi '+(strict?'warn':'')+'" onclick="setOriginalDocumentState(\'strict\')"><small>高セキュリティ</small><b>'+strict+'</b><span>厳格書類</span></button>'+
  '</div>'+
- '<div class="credential-filter-summary"><span class="badge ok">見方</span><b>社員 → 書類 → 原本 → 次にやること</b><span class="mini">必要な情報だけ一覧表示し、詳細は開いた時に確認します。</span></div>'+
- '<div class="deadline-toolbar credential-toolbar"><input id="originalDocumentQ" aria-label="原本管理を検索" placeholder="社員名・社員番号・書類名・区分で検索" oninput="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><select id="originalDocumentState" onchange="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><option value="all">すべて</option><option value="pending">未確認</option><option value="replace">差替え待ち</option><option value="soon">30日以内・超過</option><option value="strict">厳格書類</option><option value="paper">紙原本</option>'+(isFullCompanyAdmin()?'<option value="archived">無効・履歴</option>':'')+'</select></div>'+
+ originalDocumentPriorityHtml(active)+
+ '<div class="credential-filter-summary"><span class="badge ok">見方</span><b>社員 → 書類 → 原本 → 次にやること</b><span class="mini">保管場所未設定 '+paperMissing+'件 / 保管期限到来 '+retentionDue+'件。必要な情報だけ一覧表示します。</span></div>'+
+ '<div class="deadline-toolbar credential-toolbar"><input id="originalDocumentQ" aria-label="原本管理を検索" placeholder="社員名・社員番号・書類名・区分で検索" oninput="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><select id="originalDocumentState" onchange="ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()"><option value="all">すべて</option><option value="pending">未確認</option><option value="replace">差替え待ち</option><option value="soon">30日以内・超過</option><option value="strict">厳格書類</option><option value="paper">紙原本</option><option value="paper_missing">保管場所未設定</option><option value="retention">保管期限到来</option>'+(isFullCompanyAdmin()?'<option value="archived">無効・履歴</option>':'')+'</select></div>'+
  '<div id="originalDocumentRows"></div><div id="originalDocumentPager"></div>';
  showDetailModal();renderOriginalDocumentRows();
  audit('原本管理センター閲覧',ORIGINAL_DOCUMENT_FILTER_NO?'社員 '+ORIGINAL_DOCUMENT_FILTER_NO:'担当範囲',{employee_no:ORIGINAL_DOCUMENT_FILTER_NO,entity_type:'document_center',entity_id:'original-documents'})
@@ -5326,6 +5363,8 @@ function renderOriginalDocumentRows(){
   if(state==='soon')return !d.archived&&!!d.expiry&&days(d.expiry)<=30;
   if(state==='strict')return !d.archived&&documentSecurityClass(d)==='厳格';
   if(state==='paper')return !d.archived&&['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'');
+  if(state==='paper_missing')return !d.archived&&['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim();
+  if(state==='retention')return !d.archived&&!!d.retentionUntil&&days(d.retentionUntil)<0;
   if(state==='archived')return isFullCompanyAdmin()&&d.archived;
   return true
  }).sort((a,b)=>{
@@ -8577,7 +8616,7 @@ detail.onclick=e=>{if(e.target===detail)closeDetail()};preview.onclick=e=>{if(e.
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(form.classList.contains('show'))closeForm();else if(preview.classList.contains('show'))closePreview();else closeDetail()}})
 function renderAll(){renderHome();renderMyPage();renderEmployeeStatusSummary();renderEmp();renderAcc();renderNear();renderComplaints();renderSafetyOverview();renderSafetyMonthlySummary();renderVehicles();renderTraining();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderManageGuide();renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderFoundationStatus();renderProductionGate();renderFoundationProgress();renderUatSummary();renderDataModelSummary();renderSelfDiagnosticSummary();renderRecent();renderFavorites();renderDeadlineKpis('deadlineHome');renderDeadlineKpis('deadlineManage');renderWork();renderComms();renderCompanySpec()}
 
-const RELEASE_VERSION='v198';
+const RELEASE_VERSION='v199';
 const APP_DATA_SCHEMA=RELEASE_VERSION+'.0';
 const BOOT_HEALTH={schema:APP_DATA_SCHEMA,previousSchema:'',steps:[],errors:[],completed:false};
 function runBootStep(label,fn){
