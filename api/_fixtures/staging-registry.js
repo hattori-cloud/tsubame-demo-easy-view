@@ -1,7 +1,8 @@
 const USERS=[
   {id:'11111111-1111-4111-8111-111111111111',external_subject:'demo-admin-full',display_name:'デモ全社管理者',role_level:'full',safety_authority:true,state:'active',mfa_required:true,employee_id:null,scopes:[]},
   {id:'22222222-2222-4222-8222-222222222222',external_subject:'demo-admin-hq-taxi',display_name:'デモ本社担当管理者',role_level:'scoped',safety_authority:false,state:'active',mfa_required:true,employee_id:null,scopes:[{office:'本社',department:'タクシー1課'}]},
-  {id:'33333333-3333-4333-8333-333333333333',external_subject:'demo-admin-fuchu-taxi',display_name:'デモ府中担当管理者',role_level:'scoped',safety_authority:false,state:'active',mfa_required:true,employee_id:null,scopes:[{office:'府中',department:'タクシー2課'}]}
+  {id:'33333333-3333-4333-8333-333333333333',external_subject:'demo-admin-fuchu-taxi',display_name:'デモ府中担当管理者',role_level:'scoped',safety_authority:false,state:'active',mfa_required:true,employee_id:null,scopes:[{office:'府中',department:'タクシー2課'}]},
+  {id:'44444444-4444-4444-8444-444444444444',external_subject:'demo-self-hq-taxi',display_name:'デモ一般社員',role_level:'self',safety_authority:false,state:'active',mfa_required:false,employee_id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',scopes:[]}
 ];
 const EMPLOYEES=[
   {id:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',employee_no:'DEMO-1001',name:'架空 一郎',office:'本社',department:'タクシー1課',position:'乗務員',lifecycle_status:'active',safety_state:'通常',version:1},
