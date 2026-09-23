@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v169 foundation build.
+Current application: v170 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -147,4 +147,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 
 - v168 standardizes form completion guidance: the shared form footer now shows required-field progress, provides a direct "next missing field" action, prevents save while marked required fields are blank, and shows the post-save destination. Qualification, document, asset, training, and guidance forms now mark their true required fields explicitly. New vehicle registration also opens the saved vehicle detail after save, matching edit behavior.
 - v169 adds a shared save-complete confirmation toast across modal forms so managers can immediately tell that a write succeeded and avoid duplicate entry; the confirmation is responsive and announced as a polite status message for accessibility.
+- v170 makes save feedback trustworthy and action-oriented: the shared confirmation now appears only after the transactional core save actually succeeds, and detail destinations show a temporary post-save guide with a direct jump to the next-action/important-information area. A static audit of 569 inline interaction handlers and full inline-script parsing found no missing application handler functions or syntax errors.
 
