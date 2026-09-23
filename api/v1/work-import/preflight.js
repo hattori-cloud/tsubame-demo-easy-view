@@ -1,10 +1,10 @@
 const crypto=require('crypto');
 const ExcelJS=require('@ayocore/exceljs');
-const {authenticateRequest,sendApiError,AuthError}=require('../../../_lib/auth');
-const {applySecurityHeaders,requestId}=require('../../../_lib/security');
-const {resolveCurrentUser}=require('../../../_lib/authorization');
+const {authenticateRequest,sendApiError,AuthError}=require('../../_lib/auth');
+const {applySecurityHeaders,requestId}=require('../../_lib/security');
+const {resolveCurrentUser}=require('../../_lib/authorization');
 
-const MAX_FILE_BYTES=8*1024*1024;
+const MAX_FILE_BYTES=4*1024*1024;
 const FIELD_ALIASES={
   employee_no:['社員番号','社員コード','社員no','社員ｎｏ','従業員番号','従業員コード'],
   month:['対象月','年月','計上月','勤務月'],
@@ -73,13 +73,15 @@ module.exports=async function handler(req,res){
     const identity=await authenticateRequest(req);
     const user=resolveCurrentUser(identity);
     if(user.role_level!=='full')throw new AuthError(403,'FULL_ADMIN_REQUIRED','勤務集計の取込前チェックは全社管理者のみ利用できます');
-    const fileName=String(req.body?.file_name||'').trim();
-    const fileBase64=String(req.body?.file_base64||'');
+    const fileName=String(req.headers['x-file-name']||req.query?.file_name||'').trim();
     if(!/\.xlsx$/i.test(fileName))throw new AuthError(422,'XLSX_REQUIRED','.xlsx形式のみ対応しています');
     let buffer;
-    try{buffer=Buffer.from(fileBase64,'base64')}catch(_){throw new AuthError(400,'INVALID_FILE','ファイルを読み込めません')}
+    if(Buffer.isBuffer(req.body))buffer=req.body;
+    else if(typeof req.body==='string')buffer=Buffer.from(req.body,'binary');
+    else if(req.body?.file_base64)buffer=Buffer.from(String(req.body.file_base64),'base64');
+    else throw new AuthError(400,'INVALID_FILE','Excelファイル本体を読み込めません');
     if(!buffer.length)throw new AuthError(400,'EMPTY_FILE','ファイルが空です');
-    if(buffer.length>MAX_FILE_BYTES)throw new AuthError(413,'FILE_TOO_LARGE','ファイルサイズは8MB以下にしてください');
+    if(buffer.length>MAX_FILE_BYTES)throw new AuthError(413,'FILE_TOO_LARGE','ファイルサイズは4MB以下にしてください');
 
     const workbook=new ExcelJS.Workbook();
     try{await workbook.xlsx.load(buffer)}catch(_){throw new AuthError(422,'INVALID_XLSX','Excelファイルを解析できません')}
