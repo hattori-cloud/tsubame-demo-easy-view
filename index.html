@@ -4705,7 +4705,8 @@ function renderHomeDailySummary(){
  let deadlines=collectDeadlines(),over=deadlines.filter(x=>x.bucket==='over').length,todayN=deadlines.filter(x=>x.bucket==='today').length;
  let accidents=scopedAccidents().filter(a=>a.phase!=='完了').length,complaints=scopedComplaints().filter(x=>x.status!=='完了').length,openCases=accidents+complaints;
  let workAttention=workAttentionRows().length;
- let total=blocked+over+todayN+openCases+workAttention;
+ let quotaRows=nearQuotaRows(TODAY.slice(0,7)),quotaStats=nearQuotaStats(quotaRows),quotaUnmet=quotaStats.unmet;
+ let total=blocked+over+todayN+openCases+workAttention+quotaUnmet;
  el.innerHTML=`<div class="home-morning-head"><div><h3><span class="home-flow-step">1</span>今日の管理状況</h3><div class="mini">まず全体の件数を確認し、下の「今日の優先対応」から処理を始めます。</div></div><span class="badge ${blocked||over?'danger':total?'warn':'ok'}">${total?'要確認あり':'大きな警告なし'}</span></div>
  <div class="home-morning-grid">
   <button class="home-morning-card ${blocked?'danger':'ok'}" onclick="go('emp');setTimeout(()=>setEmployeeQuickFilter('blocked'),40)"><small>乗務不可</small><b>${blocked}</b><span>免許・安全状態など</span></button>
@@ -4713,6 +4714,7 @@ function renderHomeDailySummary(){
   <button class="home-morning-card ${todayN?'warn':'ok'}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${todayN}</b><span>今日中に確認</span></button>
   <button class="home-morning-card ${openCases?'warn':'ok'}" onclick="openHomeSafetyCases()"><small>事故・苦情 未完了</small><b>${openCases}</b><span>事故 ${accidents} / 苦情 ${complaints}</span></button>
   <button class="home-morning-card ${workAttention?'warn':'ok'}" onclick="openWorkAttentionCenter()"><small>勤務 要確認</small><b>${workAttention}</b><span>残業・集計更新</span></button>
+  <button class="home-morning-card ${quotaUnmet?'warn':'ok'}" onclick="go('safe');safeTab('near');setTimeout(()=>openNearQuotaCenter('unmet'),60)"><small>ヒヤリ月2件 未達</small><b>${quotaUnmet}</b><span>1件 ${quotaStats.short} / 0件 ${quotaStats.zero}</span></button>
  </div>`
 }
 function renderHome(){
