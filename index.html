@@ -1692,13 +1692,13 @@ function ensureCredentialLinks(){
 }
 function qualificationEvidenceDocument(q){
  if(!q?.document_id)return null;
- let d=DOCS.find(x=>x.id===q.document_id);
+ let d=DOCS.find(x=>x.id===q.document_id&&!x.archived);
  return d&&String(d.employee_no)===String(q.employee_no)?d:null
 }
 function qualificationEvidenceLabel(q){
  if(q.evidenceRequirement==='不要')return '証憑不要';
  let d=qualificationEvidenceDocument(q);
- if(d)return d.status==='原本確認済み'?'証憑確認済み':'証憑 '+(d.status||'確認待ち');
+ if(d){if(!canViewDocumentRecord(d))return '証憑登録済み';return d.status==='原本確認済み'?'証憑確認済み':'証憑 '+(d.status||'確認待ち')}
  return q.evidenceRequirement==='必要'?'証憑未紐付け':'証憑ルール未設定'
 }
 function qualificationEvidenceClass(q){
@@ -1709,7 +1709,7 @@ function qualificationOptionsForDocument(no,selected=''){
  return '<option value="">関連資格なし</option>'+QUAL.filter(q=>String(q.employee_no)===String(no)).map(q=>`<option value="${esc(q.id)}" ${q.id===selected?'selected':''}>${esc(q.name)} / ${esc(q.number||'番号未登録')}</option>`).join('')
 }
 function documentOptionsForQualification(no,selected=''){
- return '<option value="">証憑未紐付け</option>'+DOCS.filter(d=>String(d.employee_no)===String(no)&&d.category==='資格証憑').map(d=>`<option value="${esc(d.id)}" ${d.id===selected?'selected':''}>${esc(d.name)} / ${esc(d.status||'確認待ち')}</option>`).join('')
+ return '<option value="">証憑未紐付け</option>'+DOCS.filter(d=>String(d.employee_no)===String(no)&&d.category==='資格証憑'&&!d.archived&&canViewDocumentRecord(d)).map(d=>`<option value="${esc(d.id)}" ${d.id===selected?'selected':''}>${esc(d.name)} / ${esc(d.status||'確認待ち')}</option>`).join('')
 }
 function syncQualificationDocumentLink(q,docId){
  let old=q.document_id||'';
