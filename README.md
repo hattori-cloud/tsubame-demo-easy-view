@@ -2,7 +2,7 @@
 
 Vercel production deployment source.
 
-Current application: v159 foundation build.
+Current application: v160 foundation build.
 - Employee / work / vehicle / communication management
 - Accident / near-miss / complaint management and analysis
 - Role and scope controls for demo verification
@@ -128,3 +128,5 @@ Production note: the shared demo still uses fictional data and browser storage. 
 
 - v158 makes Vehicle Management action-oriented: each attention vehicle explains why it needs review and what to do next, and attention detection now includes missing inspection dates, overdue maintenance review dates, non-active states, and missing primary drivers.
 - v159 makes the communications/application screen action-oriented: unread notices, unanswered confirmations, pending applications, and returned applications are summarized at the top; application rows and details show why attention is needed and the next processing step, with clearer manager processing actions.
+
+- v160 makes Education / Assets action-oriented: top cards summarize unfinished and overdue safety training plus outstanding and overdue asset returns, while each row explains why attention is needed, what to do next, and provides direct record/update actions.
