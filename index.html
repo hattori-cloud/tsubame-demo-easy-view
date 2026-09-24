@@ -5133,7 +5133,7 @@ function employeeDocuments(no,page=1){
  dttl.textContent=`${e.name} の書類`;
  let addBtn=canRegisterDocumentForEmployee(no)?`<button class="btn primary" onclick="openDocumentForm('${no}')">＋ 書類を登録</button>`:'';let centerBtn=PREVIEW_ROLE==='管理者'?`<button class="btn soft" onclick="openOriginalDocumentCenter('${no}')">原本管理センター</button>`:'';
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${addBtn}${centerBtn}</div><div class="detail-alert warn"><b>電子原本ストレージ：未接続</b><div class="mini">この共有デモは原本の管理情報だけを扱い、PDF・画像・スキャンデータは一切保存しません。本番接続後も非公開ストレージから権限確認済みの短時間URLだけで取得します。</div></div><div class="list-summary"><div><div class="related-title">登録書類情報 ${rows.length}件</div><div class="mini">${PREVIEW_ROLE==='一般社員'?'本人確認・資格証憑のみ':'資格証憑・安全指導・事故資料・手続書類'} / 原本保管なし</div></div><span class="badge warn">メタデータのみ</span></div>`+
- (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditDocumentRecord(d)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',replace=canEditDocumentRecord(d)&&!d.replacedByDocumentId?`<button class="btn soft" onclick="replaceDocument('${d.id}')">差替え</button>`:'',invalidate=isFullCompanyAdmin()&&!d.archived?`<button class="btn danger" onclick="deleteDocument('${d.id}')">無効化</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${d.status||'確認待ち'}</div><div class="mini">機密区分 ${esc(documentSecurityClass(d))} / 閲覧 ${esc(documentAccessLevel(d))} / 原本 ${esc(d.originalHandling||'未設定')}</div><div class="mini">${d.qualification_id?'関連資格 '+esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id):'関連資格なし'}${d.verifiedDate?' / 最終確認 '+esc(d.verifiedDate)+' '+esc(d.verifiedByName||''):''}${d.replacedByDocumentId?' / 差替え済み → '+esc(d.replacedByDocumentId):''}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">情報を見る</button>${edit}${replace}${invalidate}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
+ (shown.length?shown.map(d=>{let idx=DOCS.indexOf(d),edit=canEditDocumentRecord(d)?`<button class="btn soft" onclick="openDocumentForm('${no}',${idx})">編集</button>`:'',replace=canEditDocumentRecord(d)&&!d.replacedByDocumentId?`<button class="btn soft" onclick="replaceDocument('${d.id}')">差替え</button>`:'',invalidate=isFullCompanyAdmin()&&!d.archived?`<button class="btn danger" onclick="deleteDocument('${d.id}')">無効化</button>`:'';return `<div class="doc-card ${docExpiryClass(d.expiry)}"><div class="row" style="border:0;padding:0"><div><b>${esc(d.name)}</b><div class="mini">${esc(d.category)} / 登録日 ${d.date}${d.expiry?' / 期限 '+d.expiry:''} / 状態 ${documentOperationalStatusLabel(d)}</div><div class="mini">機密区分 ${esc(documentSecurityClass(d))} / 閲覧 ${esc(documentAccessLevel(d))} / 原本 ${esc(d.originalHandling||'未設定')}</div><div class="mini">${d.qualification_id?'関連資格 '+esc(QUAL.find(q=>q.id===d.qualification_id)?.name||d.qualification_id):'関連資格なし'}${d.verifiedDate?' / 最終確認 '+esc(d.verifiedDate)+' '+esc(d.verifiedByName||''):''}${d.replacedByDocumentId?' / 差替え済み → '+esc(d.replacedByDocumentId):''}</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview('${d.id}')">情報を見る</button>${edit}${replace}${invalidate}</div></div></div>`}).join(''):'<div class="mini">登録書類はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeDocuments('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeDocuments('${no}',${page+1})">次へ →</button></div>`:'')
 }
 function documentPreview(id){
@@ -5348,22 +5348,33 @@ function originalDocumentState(d){
  if(d.replacedByDocumentId||d.status==='差替え済み')return 'replaced';
  if(d.status==='差替え待ち')return 'replace';
  if(d.expiry&&days(d.expiry)<0)return 'expired';
+ if(documentVerificationRequired(d)&&d.status!=='原本確認済み')return 'pending';
+ if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return 'paper_missing';
+ if(d.retentionUntil&&days(d.retentionUntil)<0)return 'retention';
  if(d.expiry&&days(d.expiry)<=30)return 'soon';
- if(d.status!=='原本確認済み')return 'pending';
  return 'ok'
 }
 function originalDocumentStateLabel(state){
- return ({all:'すべて',pending:'未確認',replace:'差替え待ち',expired:'期限超過',soon:'30日以内',strict:'厳格書類',paper:'紙原本',paper_missing:'保管場所未設定',retention:'保管期限到来',archived:'無効・履歴',ok:'確認済み'})[state]||'すべて'
+ return ({all:'すべて',pending:'原本未確認',replace:'差替え待ち',expired:'期限超過',soon:'30日以内',strict:'厳格書類',paper:'紙原本',paper_missing:'保管場所未設定',retention:'保管期限到来',archived:'無効・履歴',ok:'対応不要'})[state]||'すべて'
+}
+function documentOperationalStatusLabel(d){
+ if(d?.archived)return '無効';
+ if(d?.replacedByDocumentId||d?.status==='差替え済み')return '差替え済み';
+ if(d?.status==='差替え待ち')return '差替え待ち';
+ if(documentVerificationRequired(d))return d?.status||'確認待ち';
+ if(d?.status==='確認待ち')return '原本確認 任意';
+ return d?.status||'登録済み'
 }
 function originalDocumentNextAction(d){
  if(d.archived)return '履歴として保持。通常業務では使用しません。';
  if(d.replacedByDocumentId)return '差替え先 '+d.replacedByDocumentId+' を確認します。';
  if(d.status==='差替え待ち')return '新しい書類を登録し、旧版との関係を残します。';
  if(d.expiry&&days(d.expiry)<0)return '更新・差替えを行い、旧版は削除せず履歴として残します。';
- if(d.status!=='原本確認済み')return isFullCompanyAdmin()?'原本と登録情報を照合して確認します。':'全社管理者の原本確認を待ちます。';
- if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!d.paperLocation)return '紙原本の保管場所を登録します。';
+ if(documentVerificationRequired(d)&&d.status!=='原本確認済み')return isFullCompanyAdmin()?'原本と登録情報を照合して確認します。':'全社管理者の原本確認を待ちます。';
+ if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return '紙原本の保管場所を登録します。';
  if(d.retentionUntil&&days(d.retentionUntil)<0)return '保管期限到来。会社ルールに沿って廃棄可否を判断します。自動削除はしません。';
- return '現在、大きな対応はありません。'
+ if(d.expiry&&days(d.expiry)<=30)return '期限を確認し、必要なら更新・差替えを準備します。';
+ return documentVerificationRequired(d)?'現在、大きな対応はありません。':'原本確認は任意です。現在、大きな対応はありません。'
 }
 function originalDocumentActionsHtml(d){
  let id=String(d.id||'').replaceAll("'",""),idx=DOCS.indexOf(d),no=String(d.employee_no||'').replaceAll("'","");
@@ -5388,7 +5399,7 @@ function originalDocumentPriorityScore(d){
  if(d.archived)return 99;
  if(d.expiry&&days(d.expiry)<0)return 0;
  if(d.status==='差替え待ち')return 1;
- if(d.status!=='原本確認済み'&&d.status!=='差替え済み')return 2;
+ if(documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み')return 2;
  if(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim())return 3;
  if(d.retentionUntil&&days(d.retentionUntil)<0)return 4;
  if(d.expiry&&days(d.expiry)<=30)return 5;
@@ -5457,7 +5468,7 @@ function renderOriginalDocumentRows(){
   if(state==='archived')return isFullCompanyAdmin()&&d.archived;
   return true
  }).sort((a,b)=>{
-  let rank={expired:0,replace:1,pending:2,soon:3,ok:4,replaced:5,archived:9};
+  let rank={expired:0,replace:1,pending:2,paper_missing:3,retention:4,soon:5,ok:6,replaced:7,archived:9};
   return (rank[originalDocumentState(a)]??6)-(rank[originalDocumentState(b)]??6)||String(a.expiry||'9999-12-31').localeCompare(String(b.expiry||'9999-12-31'))||String(a.employee_no).localeCompare(String(b.employee_no),'ja',{numeric:true})
  });
  let pages=Math.max(1,Math.ceil(rows.length/ORIGINAL_DOCUMENT_PER_PAGE));ORIGINAL_DOCUMENT_PAGE=Math.min(Math.max(1,ORIGINAL_DOCUMENT_PAGE),pages);let start=(ORIGINAL_DOCUMENT_PAGE-1)*ORIGINAL_DOCUMENT_PER_PAGE,shown=rows.slice(start,start+ORIGINAL_DOCUMENT_PER_PAGE);
@@ -5465,7 +5476,7 @@ function renderOriginalDocumentRows(){
  if(el)el.innerHTML=shown.length?shown.map(d=>{
   let e=emp(d.employee_no),st=originalDocumentState(d),tone=st==='expired'?'danger':['replace','pending','soon'].includes(st)?'warn':'ok';
   let location=isFullCompanyAdmin()?(d.paperLocation||(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')?'未設定':'対象なし')):(['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')?'会社保管（詳細は全社管理者のみ）':'対象なし');
-  return '<div class="credential-action-row '+(tone==='danger'?'quality-bad':tone==='warn'?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">書類</span><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'）</b><b>'+esc(d.name)+'</b><span class="badge '+tone+'">'+esc(d.archived?'無効':d.status||'確認待ち')+'</span></div><div class="credential-row-primary"><div><span>原本区分</span><b>'+esc(d.originalHandling||'未設定')+'</b></div><div><span>保管場所</span><b>'+esc(location)+'</b></div><div><span>次にやること</span><b>'+esc(originalDocumentNextAction(d))+'</b></div></div><div class="credential-support-line"><span>機密：'+esc(documentSecurityClass(d))+' / 閲覧：'+esc(documentAccessLevel(d))+'</span><span>期限：'+esc(d.expiry||'設定なし')+(d.expiry?'（'+esc(deadlineBucketLabel(d.expiry))+'）':'')+'</span></div></div>'+originalDocumentActionsHtml(d)+'</div>'
+  return '<div class="credential-action-row '+(tone==='danger'?'quality-bad':tone==='warn'?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">書類</span><b>'+esc(e?.name||d.employee_no)+'（'+esc(d.employee_no)+'）</b><b>'+esc(d.name)+'</b><span class="badge '+tone+'">'+esc(documentOperationalStatusLabel(d))+'</span></div><div class="credential-row-primary"><div><span>原本区分</span><b>'+esc(d.originalHandling||'未設定')+'</b></div><div><span>保管場所</span><b>'+esc(location)+'</b></div><div><span>次にやること</span><b>'+esc(originalDocumentNextAction(d))+'</b></div></div><div class="credential-support-line"><span>機密：'+esc(documentSecurityClass(d))+' / 閲覧：'+esc(documentAccessLevel(d))+'</span><span>期限：'+esc(d.expiry||'設定なし')+(d.expiry?'（'+esc(deadlineBucketLabel(d.expiry))+'）':'')+'</span></div></div>'+originalDocumentActionsHtml(d)+'</div>'
  }).join(''):'<div class="notice"><div><b>この条件の書類はありません。</b><div class="mini">検索条件または表示条件を変更してください。</div></div><span class="badge ok">OK</span></div>';
  let pager=document.getElementById('originalDocumentPager');if(pager)pager.innerHTML=rows.length>ORIGINAL_DOCUMENT_PER_PAGE?'<div class="year-list-pager"><button class="btn" '+(ORIGINAL_DOCUMENT_PAGE<=1?'disabled':'')+' onclick="ORIGINAL_DOCUMENT_PAGE--;renderOriginalDocumentRows()">← 前へ</button><span class="emp-page-info">'+(start+1)+'〜'+Math.min(start+ORIGINAL_DOCUMENT_PER_PAGE,rows.length)+'件 / 全'+rows.length+'件（'+ORIGINAL_DOCUMENT_PAGE+'/'+pages+'ページ）</span><button class="btn" '+(ORIGINAL_DOCUMENT_PAGE>=pages?'disabled':'')+' onclick="ORIGINAL_DOCUMENT_PAGE++;renderOriginalDocumentRows()">次へ →</button></div>':''
 }
