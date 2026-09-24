@@ -39,8 +39,7 @@ create table employees (
 
 create table users (
   id uuid primary key default gen_random_uuid(),
-  external_subject text unique,
-  employee_id uuid references employees(id),
+  employee_id uuid not null unique references employees(id),
   login_id text not null unique,
   password_hash text not null,
   password_changed_at timestamptz,
@@ -51,7 +50,13 @@ create table users (
   role_level text not null check (role_level in ('full','scoped','self')),
   safety_authority boolean not null default false,
   state text not null default 'active' check (state in ('active','suspended')),
-  mfa_required boolean not null default true,
+  mfa_required boolean not null default false,
+  mfa_secret_ciphertext text,
+  mfa_secret_iv text,
+  mfa_secret_tag text,
+  mfa_enrolled_at timestamptz,
+  check (role_level = 'self' or mfa_required = true),
+  check (mfa_secret_ciphertext is null or (mfa_secret_iv is not null and mfa_secret_tag is not null and mfa_enrolled_at is not null)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1)

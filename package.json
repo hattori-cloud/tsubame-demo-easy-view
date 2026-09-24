@@ -7,7 +7,9 @@
     "node": ">=22"
   },
   "dependencies": {
-    "@ayocore/exceljs": "5.0.4"
+    "@ayocore/exceljs": "5.0.4",
+    "pg": "8.23.0",
+    "@node-rs/argon2": "2.2.1"
   },
   "scripts": {
     "test": "node --test tests/*.test.js"

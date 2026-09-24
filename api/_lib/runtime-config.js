@@ -8,7 +8,7 @@ function isNonProductionRuntime(){
   return !isProductionRuntime()
 }
 function authEnvPresent(){
-  return Boolean(databaseEnvPresent() && process.env.TSUBAME_SESSION_SECRET)
+  return Boolean(databaseEnvPresent() && String(process.env.TSUBAME_SESSION_SECRET||'').length>=32)
 }
 function legacyOidcEnvPresent(){
   return Boolean(process.env.TSUBAME_AUTH_ISSUER || process.env.TSUBAME_AUTH_AUDIENCE || process.env.TSUBAME_AUTH_JWKS_URL)

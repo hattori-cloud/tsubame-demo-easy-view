@@ -15,6 +15,7 @@ function requireFixtures(){
   if(!fixturesEnabled()){const e=new Error('STAGING_FIXTURES_DISABLED');e.code='STAGING_FIXTURES_DISABLED';throw e}
 }
 function findUserBySubject(subject){requireFixtures();return USERS.find(x=>x.external_subject===subject)||null}
+function findUserById(id){requireFixtures();return USERS.find(x=>x.id===id)||null}
 function findEmployeeById(id){requireFixtures();return EMPLOYEES.find(x=>x.id===id)||null}
 function listEmployees(){requireFixtures();return EMPLOYEES.map(x=>({...x}))}
-module.exports={fixturesEnabled,findUserBySubject,findEmployeeById,listEmployees};
+module.exports={fixturesEnabled,findUserBySubject,findUserById,findEmployeeById,listEmployees};

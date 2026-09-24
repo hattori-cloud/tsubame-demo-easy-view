@@ -1,6 +1,8 @@
 const crypto=require('crypto');
 const {applySecurityHeaders,requestId,errorBody,productionAuthConfigured}=require('./security');
 const {stagingFixturesAllowed}=require('./runtime-config');
+const {loadSessionByTokenHash}=require('./auth-store');
+const {findUserBySubject}=require('../_fixtures/staging-registry');
 
 class AuthError extends Error{
   constructor(status,code,message){super(message);this.status=status;this.code=code}
@@ -27,20 +29,45 @@ function rawSessionToken(req){
   }
   throw new AuthError(401,'AUTH_REQUIRED','認証が必要です')
 }
-function tokenHash(token){
-  return crypto.createHash('sha256').update(String(token)).digest('hex')
+function sessionSecret(){
+  const secret=String(process.env.TSUBAME_SESSION_SECRET||'');
+  if(secret.length<32)throw new AuthError(503,'AUTH_NOT_CONFIGURED','セッション秘密鍵が未設定または短すぎます');
+  return secret
 }
-async function loadSessionByHash(_hash){
-  throw new AuthError(503,'SESSION_STORE_NOT_CONFIGURED','本番セッション保存先が未接続です')
+function tokenHash(token){
+  return crypto.createHmac('sha256',sessionSecret()).update(String(token)).digest('hex')
+}
+function newRawToken(){return crypto.randomBytes(32).toString('base64url')}
+function secureCookie(token,maxAge=28800){
+  return `tsubame_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`
+}
+function clearSessionCookie(){
+  return 'tsubame_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'
+}
+function stagingFixtureIdentity(req){
+  if(!stagingFixturesAllowed())return null;
+  const raw=String(req.headers.authorization||'');
+  const m=/^Bearer\s+fixture:([^:]+)(?::(mfa))?$/i.exec(raw);
+  if(!m)return null;
+  const user=findUserBySubject(m[1]);
+  if(!user)throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません');
+  return {subject:user.external_subject,user_id:user.id,mfa:m[2]==='mfa',session_id:'fixture-session',user:{...user,employee_lifecycle_status:null},fixture:true}
 }
 async function authenticateRequest(req){
+  const fixture=stagingFixtureIdentity(req);if(fixture)return fixture;
   if(!productionAuthConfigured())throw new AuthError(503,'AUTH_NOT_CONFIGURED','本番認証が未設定です');
   const token=rawSessionToken(req);
-  const session=await loadSessionByHash(tokenHash(token));
+  const session=await loadSessionByTokenHash(tokenHash(token));
   if(!session)throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません');
   if(session.revoked_at)throw new AuthError(401,'SESSION_REVOKED','認証セッションは失効しています');
   if(new Date(session.expires_at).getTime()<=Date.now())throw new AuthError(401,'SESSION_EXPIRED','認証セッションの有効期限が切れています');
-  return {subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id)}
+  const user={
+    id:String(session.user_id),employee_id:session.employee_id||null,display_name:session.display_name,
+    role_level:session.role_level,safety_authority:Boolean(session.safety_authority),state:session.state,
+    mfa_required:Boolean(session.mfa_required),scopes:session.scopes||[],
+    employee_lifecycle_status:session.employee_lifecycle_status||null,employee_no:session.employee_no||null
+  };
+  return {subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id),user}
 }
 function sendApiError(req,res,err){
   const id=requestId(req);
@@ -51,4 +78,4 @@ function sendApiError(req,res,err){
   const message=err instanceof AuthError?err.message:structured?err.message:'サーバー処理に失敗しました';
   return res.status(status).json(errorBody(code,message,id))
 }
-module.exports={AuthError,authenticateRequest,sendApiError,parseCookies,rawSessionToken,tokenHash};
+module.exports={AuthError,authenticateRequest,sendApiError,parseCookies,rawSessionToken,tokenHash,newRawToken,secureCookie,clearSessionCookie,stagingFixtureIdentity};
