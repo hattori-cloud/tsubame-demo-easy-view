@@ -23,9 +23,9 @@ test('employee number can change without changing the stable internal employee i
 });
 
 test('new employees receive stable id and employee edits retain old employee numbers',()=>{
-  const create=block('function openEmployeeForm','function openEmployeeEdit');
+  const create=block('function openEmployeeForm','function openAccidentForm');
   assert.ok(create.includes('system_id:nextStableEmployeeId(),oldNos:[]'));
-  const edit=block('function openEmployeeEdit','function employeeTransitionRelated');
+  const edit=block('function openEmployeeEdit','function openEmployeeForm');
   assert.ok(edit.includes('id="feno"'));
   assert.ok(edit.includes('社員番号に空白は使用できません'));
   assert.ok(edit.includes('employeeNumberOwner(requestedNo,e.system_id)'));
@@ -55,6 +55,6 @@ test('near-miss monthly quota uses stable employee id so number changes do not m
 test('employee number collisions include historical employee numbers',()=>{
   const helpers=block('function systemEmployeeId','function badge');
   assert.ok(helpers.includes('Array.isArray(e.oldNos)&&e.oldNos.map(String).includes(value)'));
-  const edit=block('function openEmployeeEdit','function employeeTransitionRelated');
+  const edit=block('function openEmployeeEdit','function openEmployeeForm');
   assert.ok(edit.includes('現在番号または旧社員番号として既に使用されています'));
 });
