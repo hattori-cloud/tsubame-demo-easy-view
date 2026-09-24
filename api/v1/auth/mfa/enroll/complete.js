@@ -20,12 +20,16 @@ module.exports=async function handler(req,res){
   const rawSession=newRawToken(),ua=hashMetadata(String(req.headers['user-agent']||'').slice(0,500)),ip=hashMetadata(String(req.headers['x-forwarded-for']||'').split(',')[0].trim());
   let session;
   try{session=await withTransaction(async client=>{
-    await enrollUserMfa(challenge.user_id,{ciphertext:challenge.pending_secret_ciphertext,iv:challenge.pending_secret_iv,tag:challenge.pending_secret_tag},client);
     await markMfaVerified(challenge.id,client);
+    await enrollUserMfa(challenge.user_id,{ciphertext:challenge.pending_secret_ciphertext,iv:challenge.pending_secret_iv,tag:challenge.pending_secret_tag},client);
     const created=await createSession({userId:challenge.user_id,mfaVerified:true,tokenHash:tokenHash(rawSession),ttlSeconds:28800,userAgentHash:ua,ipPrefixHash:ip},client);
+    if(!created){const e=new Error('account is no longer eligible for a session');e.code='SESSION_NOT_ALLOWED';throw e}
     await writeAuthAudit({action:'mfa_enrolled',userId:challenge.user_id,result:'success',requestId:id,summary:'MFA enrolled and verified'},client);
     return created
-  })}catch(_){return res.status(503).json(errorBody('MFA_ENROLLMENT_COMMIT_FAILED','MFA登録を保存できません',id))}
+  })}catch(err){
+    if(err?.code==='SESSION_NOT_ALLOWED')return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を確認できません',id));
+    return res.status(503).json(errorBody('MFA_ENROLLMENT_COMMIT_FAILED','MFA登録を保存できません',id))
+  }
   res.setHeader('Set-Cookie',secureCookie(rawSession,28800));
   return res.status(200).json({authenticated:true,mfa_enrolled:true,mfa_verified:true,session_expires_at:session.expires_at})
 };
