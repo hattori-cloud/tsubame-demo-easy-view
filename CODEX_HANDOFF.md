@@ -2,6 +2,12 @@
 
 更新日: 2026-09-24  
 対象リリース: **v200**  
+
+> **2026-09-24 staging監査追記**  
+> CODEX再監査の固定対象は `staging-v200-backend` の `e69d406b56cfe79a7469a3ed5bb245e7d753d1f6` です。  
+> この固定コミットではV200 Staging Safety Testsが **121/121成功**。起動時TDZ、不正な勤務対象月、production schemaのSHA-256/マルウェア列不整合を修正済みです。  
+> 詳細は `docs/audits/CODEX_AUDIT_REQUEST_V200_20260924.md` と `docs/v200-staging-status.md` を参照してください。  
+> 下記の「対象ブランチ: main」「本番URL」はproduction側の説明であり、staging監査対象とは分けて扱ってください。  
 対象リポジトリ: **hattori-cloud/tsubame-demo-easy-view**  
 対象ブランチ: **main**  
 本番URL: **https://tsubame-demo-easy-view.vercel.app**  
