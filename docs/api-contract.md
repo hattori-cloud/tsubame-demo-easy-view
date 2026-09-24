@@ -446,6 +446,13 @@ Handoff actions are audited.
 
 ## 12. Audit logs
 
+Production audit/history persistence is append-only.
+
+- Application roles receive INSERT/SELECT only.
+- `audit_logs` and `record_histories` reject UPDATE/DELETE at the PostgreSQL trigger layer.
+- Corrections are recorded as new audit/history rows; existing rows are not rewritten.
+- Database-owner emergency procedures must be separately controlled and audited.
+
 ### GET /api/v1/audit-logs
 
 Full administrator only, with filters by actor, entity type/id and date range.
