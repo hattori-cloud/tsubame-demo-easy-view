@@ -12,7 +12,7 @@ test('audit-only and favorites storage writes sync locally without triggering st
   assert.ok(start>=0&&end>start);
   const block=source.slice(start,end);
   assert.ok(block.includes('CORE_CONCURRENCY_SYNC_KEYS.has(e.key)'));
-  assert.ok(block.includes("if(e.key==='v29AUDIT'){AUDIT=next.slice(0,AUDIT_RETENTION_LIMIT);renderAudit()}"));
+  assert.ok(block.includes("if(e.key==='v29AUDIT'){AUDIT=mergeAuditRows(AUDIT,next);renderAudit()}"));
   assert.ok(block.includes("if(e.key==='v30FAVORITES'){FAVORITES=next;renderFavorites()}"));
   const syncEnd=block.indexOf('let tracked=');
   assert.ok(syncEnd>0);
@@ -32,4 +32,22 @@ test('business data and revision changes remain concurrency-tracked',()=>{
   );
   assert.ok(listener.includes('e.key===CORE_REVISION_KEY'));
   assert.ok(listener.includes('coreSaveItems().some'));
+});
+
+
+test('core save merges latest stored audit rows before snapshotting business data',()=>{
+  const start=source.indexOf('function save(){');
+  const end=source.indexOf('let ADMIN_OFFICE_SCOPE=',start);
+  const block=source.slice(start,end);
+  const merge=block.indexOf('mergeStoredAuditIntoMemory();');
+  const items=block.indexOf('let items=coreSaveItems()');
+  assert.ok(merge>=0,'save must merge stored audit rows');
+  assert.ok(items>merge,'audit merge must happen before core-save snapshot/write');
+});
+
+test('audit standalone persistence merges stored and in-memory audit rows',()=>{
+  const start=source.indexOf('function persistAuditStandalone(){');
+  const end=source.indexOf('function scheduleAuditPersistence',start);
+  const block=source.slice(start,end);
+  assert.ok(block.includes('AUDIT=mergeAuditRows(AUDIT,stored)'));
 });
