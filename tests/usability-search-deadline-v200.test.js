@@ -79,3 +79,22 @@ test('global search shows employee lifecycle and opens the exact document',()=>{
   assert.ok(b.includes("open:\`documentPreview('"));
   assert.ok(b.includes("\${d.id}"))
 });
+
+test('daily deadline routing opens the exact target and visible modal',()=>{
+  const open=block('function deadlineOpen',"let DEADLINE_PAGE=");
+  assert.ok(open.includes("employeeQualification(no,1,key)"));
+  assert.ok(open.includes("employeeTraining(no,1,key)"));
+  assert.ok(open.includes("employeeAssets(no,1,key)"));
+  assert.ok(open.includes("documentPreview(key)"));
+  assert.ok(open.includes("if(type==='適性診断'){employeeDetail(no);setTimeout(()=>setEmployeeDetailTab('work'),30);return}"));
+
+  const training=block('function employeeTraining','function employeeQualification');
+  const qualification=block('function employeeQualification','function employeeAssets');
+  const assets=block('function employeeAssets','function analysisDateInRange');
+  for(const source of [training,qualification,assets]){
+    assert.ok(source.includes("focusKey=''"));
+    assert.ok(source.includes('record-focus-row'));
+    assert.ok(source.includes('期限対象'));
+    assert.ok(source.includes('showDetailModal()'))
+  }
+});
