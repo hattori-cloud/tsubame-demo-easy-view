@@ -2410,7 +2410,7 @@ function collectDeadlines(){
   row.source=row.source||row.type;
   rows.push(row)
  };
- QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)).forEach(q=>{
+ QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)&&q.status!=='無効'&&q.status!=='失効').forEach(q=>{
   if(q.expiry)push({type:'資格',label:q.name,due:q.expiry,no:q.employee_no,key:q.id||q.number||q.name,notifyKey:'license',action:'資格の有効期限・更新状況を確認',source:'資格台帳'})
  });
  scopedEmployees().forEach(e=>{
@@ -2424,7 +2424,7 @@ function collectDeadlines(){
   scopedComplaints().filter(c=>c.status!=='完了'&&c.followupDue).forEach(c=>push({type:'苦情',label:c.id,due:c.followupDue,no:c.employee_no,key:c.id,notifyKey:'task',responsible:c.owner||'担当管理者',owner:c.owner||'',ownerId:c.ownerId||'',action:c.nextAction||'お客様対応を確認',source:'苦情管理'}))
  }
  scopedAssets().filter(a=>a.status==='未返却'&&a.return_due).forEach(a=>push({type:'貸与品',label:a.item,due:a.return_due,no:a.employee_no,key:a.id||a.asset_no,notifyKey:'task',action:'返却状況を確認',source:'貸与品'}));
- DOCS.filter(d=>d.expiry&&canViewDocumentRecord(d)).forEach(d=>push({type:'書類',label:d.name,due:d.expiry,no:d.employee_no,key:d.id,notifyKey:'task',action:'期限・差替え要否を確認',source:'書類管理'}));
+ DOCS.filter(d=>d.expiry&&canViewDocumentRecord(d)&&!d.archived&&!d.replacedByDocumentId&&d.status!=='差替え済み'&&d.status!=='無効').forEach(d=>push({type:'書類',label:d.name,due:d.expiry,no:d.employee_no,key:d.id,notifyKey:'task',action:'期限・差替え要否を確認',source:'書類管理'}));
  return rows.sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||a.n-b.n||String(a.type).localeCompare(String(b.type),'ja'))
 }
 function deadlineClass(d){let b=deadlineBucket(d);return b==='over'?'over':b==='today'||b==='7'?'soon':''}
