@@ -3451,11 +3451,42 @@ function verifyCoreSave(items){
  });
  return errors
 }
+let CORE_LAST_GOOD_MEMORY=null;
+function captureCoreMemorySnapshot(){
+ let snapshot={};
+ coreSaveItems().forEach(([key,value])=>{
+  if(snapshot[key]===undefined)snapshot[key]=JSON.stringify(value)
+ });
+ return snapshot
+}
+function restoreCoreMemorySnapshot(snapshot){
+ let failed=[],targets=new Map();
+ coreSaveItems().forEach(([key,value])=>{if(!targets.has(key))targets.set(key,value)});
+ Object.entries(snapshot||{}).forEach(([key,raw])=>{
+  let target=targets.get(key);if(!target)return;
+  try{
+   let value=JSON.parse(raw);
+   if(Array.isArray(target)&&Array.isArray(value)){
+    target.splice(0,target.length,...value)
+   }else if(target&&typeof target==='object'&&value&&typeof value==='object'&&!Array.isArray(value)){
+    Object.keys(target).forEach(k=>delete target[k]);
+    Object.assign(target,value)
+   }
+  }catch(_){failed.push(key)}
+ });
+ return failed
+}
+function rememberCoreMemoryAsGood(){CORE_LAST_GOOD_MEMORY=captureCoreMemorySnapshot()}
+function restoreLastGoodCoreMemory(){
+ if(!CORE_LAST_GOOD_MEMORY)return [];
+ return restoreCoreMemorySnapshot(CORE_LAST_GOOD_MEMORY)
+}
 let CORE_SAVE_SUCCESS_SEQ=0;
 function save(){
  if(AUDIT_FLUSH_TIMER!==null){clearTimeout(AUDIT_FLUSH_TIMER);AUDIT_FLUSH_TIMER=null}
  mergeStoredAuditIntoMemory();
  if(!coreSaveRevisionIsCurrent()){
+  restoreLastGoodCoreMemory();
   if(CORE_RECOVERY_REQUIRED){
    showRecoveryRequiredBanner();
    alert('前回の保存で自動復旧まで失敗したため、以後の保存を停止しています。\n\n管理画面から検証済みバックアップを復元し、データ整合性を確認してください。');
@@ -3479,16 +3510,19 @@ function save(){
   CORE_KNOWN_REVISION=newRevision;
   CORE_EXTERNAL_CHANGE=false;
   CORE_SAVE_SUCCESS_SEQ++;
+  rememberCoreMemoryAsGood();
   return true
  }catch(err){
   let rollbackFailed=snapshot?rollbackCoreSave(snapshot):[];
+  let memoryRollbackFailed=restoreLastGoodCoreMemory();
   CORE_KNOWN_REVISION=currentCoreRevision();
   STORAGE_HEALTH.writeErrors.push({key:'core-save',message:String(err?.message||err),time:new Date().toISOString()});
   STORAGE_HEALTH.lastError='通常保存';
   STORAGE_HEALTH.lastSave='保存失敗 '+appNowLabel();
-  if(rollbackFailed.length){
+  if(rollbackFailed.length||memoryRollbackFailed.length){
    markCoreRecoveryRequired();
-   alert('保存に失敗し、元データへの自動復旧にも失敗した項目があります。\n'+String(err?.message||err)+'\n復旧失敗：'+rollbackFailed.join('、')+'\n\n安全のため、この端末での以後の保存を停止しました。');
+   let failed=[...rollbackFailed,...memoryRollbackFailed.map(x=>'メモリ:'+x)];
+   alert('保存に失敗し、元データへの自動復旧にも失敗した項目があります。\n'+String(err?.message||err)+'\n復旧失敗：'+failed.join('、')+'\n\n安全のため、この端末での以後の保存を停止しました。');
   }else{
    alert('保存に失敗したため、保存前の状態へ自動で戻しました。\nブラウザ容量や設定を確認してください。\n'+String(err?.message||err));
    setTimeout(()=>location.reload(),0)
@@ -9827,6 +9861,7 @@ function runBootMigrations(){
  }
 }
 runBootMigrations();
+rememberCoreMemoryAsGood();
 setSize(localStorage.getItem('v23Size')||'normal');
 rolePreview.value=PREVIEW_MODE;
 setPreviewRole(PREVIEW_MODE);
