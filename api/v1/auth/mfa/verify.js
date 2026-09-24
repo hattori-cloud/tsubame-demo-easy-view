@@ -25,9 +25,13 @@ module.exports=async function handler(req,res){
   try{session=await withTransaction(async client=>{
     await markMfaVerified(challenge.id,client);
     const created=await createSession({userId:challenge.user_id,mfaVerified:true,tokenHash:tokenHash(rawSession),ttlSeconds:28800,userAgentHash:ua,ipPrefixHash:ip},client);
+    if(!created){const e=new Error('account is no longer eligible for a session');e.code='SESSION_NOT_ALLOWED';throw e}
     await writeAuthAudit({action:'mfa_success',userId:challenge.user_id,result:'success',requestId:id,summary:'MFA verified; session issued'},client);
     return created
-  })}catch(_){return res.status(503).json(errorBody('SESSION_CREATE_FAILED','ログインセッションを開始できません',id))}
+  })}catch(err){
+    if(err?.code==='SESSION_NOT_ALLOWED')return res.status(401).json(errorBody('MFA_FAILED','追加認証を確認できません',id));
+    return res.status(503).json(errorBody('SESSION_CREATE_FAILED','ログインセッションを開始できません',id))
+  }
   res.setHeader('Set-Cookie',secureCookie(rawSession,28800));
   return res.status(200).json({authenticated:true,mfa_verified:true,session_expires_at:session.expires_at})
 };
