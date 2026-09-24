@@ -1123,7 +1123,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 </head><body>
 <div class="demo">検証環境｜本番運用画面を確認中｜架空データ｜実社員データ入力禁止</div>
 <header class="top-header"><div class="brand-panel"><div class="brand-company">つばめ交通株式会社</div><div class="brand-system">社員一元管理システム</div><div class="sub">社員・勤務・安全・資格・車両情報を一元管理</div></div><div class="control-panel"><div class="control-row"><span class="control-label">表示権限（検証）</span><select id="rolePreview" onchange="setPreviewRole(this.value)"><option value="full">全社管理者</option><option value="scoped">担当管理者</option><option value="self">一般社員</option></select></div><div class="control-row admin-scope"><span class="control-label">表示事業所</span><select id="adminOfficeScope" onchange="setAdminScope()"><option value="">全事業所</option><option value="本社">本社</option><option value="府中">府中</option><option value="馬木">馬木</option></select></div><div class="control-row admin-scope"><span class="control-label">表示部署</span><select id="adminDeptScope" onchange="setAdminScope()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select></div><div class="scope-summary" id="roleBadge">管理者 / 全社</div><div class="size-row"><button class="btn" onclick="setSize('normal')">標準</button><button class="btn soft" onclick="setSize('large')">大</button><button class="btn soft" onclick="setSize('xlarge')">特大</button></div></div></header>
-<nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
+<nav id="nav"><button class="active" data-p="home">ホーム</button><button data-p="my" class="self-only">自分</button><button data-p="emp">社員</button><button data-p="work" class="general-restricted">期限・勤務</button><button data-p="safe" class="general-restricted">運行・安全</button><button data-p="analysis" class="general-restricted">分析</button><button data-p="vehicles" class="general-restricted">車両</button><button data-p="comms">掲示・申請</button><button data-p="manage" class="admin-only general-restricted">管理</button></nav>
 <main>
 <section class="page active" id="home"><div class="page-title"><div><h2 id="homePageTitle">ホーム</h2><p id="homePageLead">今日の確認から処理、検索、登録までを上から順に進められます。</p></div></div>
 <div id="homeScopeBar" class="home-scope-bar general-restricted"></div>
@@ -1160,6 +1160,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
    <button class="home-action-tile" onclick="go('emp')"><b>社員一覧</b><span>社員・号車・認定を確認</span></button>
    <button class="home-action-tile" onclick="go('vehicles')"><b>車両管理</b><span>号車・車検・担当を確認</span></button>
    <button class="home-action-tile" onclick="go('safe')"><b>運行・安全</b><span>事故・ヒヤリ・苦情</span></button>
+   <button class="home-action-tile" onclick="go('analysis')"><b>分析センター</b><span>安全・人事・総務を横断</span></button>
    <button class="home-action-tile" onclick="go('work')"><b>期限・勤務</b><span>期限・残業・健診を確認</span></button>
   </div>
  </div>
@@ -1430,6 +1431,63 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="card general-restricted"><h3>申請・承認</h3><div id="applicationRows" class="list"></div></div>
 </div></section>
 
+
+
+
+
+<section class="page" id="analysis"><div class="page-title"><div><h2>分析センター</h2><p>安全・人事・総務の情報を、会社全体の改善につながる形で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="renderAnalysisCenter()">再集計</button></div></div>
+<div class="simple-note">個人の順位付け・退職予測・危険人物判定は行いません。件数・変化・再発・未確認・教育テーマなど、会社側が改善できる傾向を確認します。</div>
+<div class="tabs analysis-center-tabs">
+ <button class="active" data-a="company" onclick="analysisCenterTab('company')">会社全体</button>
+ <button data-a="safety" onclick="analysisCenterTab('safety')">安全</button>
+ <button data-a="hr" onclick="analysisCenterTab('hr')">人事</button>
+ <button data-a="general" onclick="analysisCenterTab('general')">総務</button>
+</div>
+
+<div class="tabpane active" id="analysis-company">
+ <div id="analysisCompanyKpis" class="analysis-kpi-grid"></div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>会社全体の変化・確認ポイント</h3><div id="analysisCompanySignals" class="list"></div></div>
+  <div class="card"><h3>横断して見る</h3><div id="analysisCrossSignals" class="list"></div></div>
+ </div>
+ <div class="card" style="margin-top:12px"><div class="list-summary"><div><h3 style="margin:0">分析の入口</h3><div class="mini">数字を見て終わらず、該当する実務画面へ移動します。</div></div></div>
+  <div class="home-action-grid">
+   <button class="home-action-tile" onclick="analysisCenterTab('safety')"><b>安全分析</b><span>事故・ヒヤリ・苦情・教育</span></button>
+   <button class="home-action-tile" onclick="analysisCenterTab('hr')"><b>人事分析</b><span>入社・退職・在籍・定着</span></button>
+   <button class="home-action-tile" onclick="analysisCenterTab('general')"><b>総務分析</b><span>期限・健診・資格・勤務</span></button>
+   <button class="home-action-tile" onclick="go('safe');safeTab('analysis')"><b>詳細安全分析</b><span>既存の安全分析へ</span></button>
+  </div>
+ </div>
+</div>
+
+<div class="tabpane" id="analysis-safety">
+ <div id="analysisSafetyKpis" class="analysis-kpi-grid"></div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>安全の見方</h3><div id="analysisSafetySignals" class="list"></div></div>
+  <div class="card"><h3>次に確認すること</h3><div class="list">
+   <div class="row"><div><b>ヒヤリの重点リスク</b><div class="mini">頻出パターン・再発・教育テーマを確認</div></div><button class="btn primary" onclick="go('safe');safeTab('analysis')">開く</button></div>
+   <div class="row"><div><b>未完了の事故・苦情</b><div class="mini">対応漏れや期限超過を確認</div></div><button class="btn soft" onclick="go('safe')">開く</button></div>
+  </div></div>
+ </div>
+</div>
+
+<div class="tabpane" id="analysis-hr">
+ <div id="analysisHrKpis" class="analysis-kpi-grid"></div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>入退職・在籍の傾向</h3><div id="analysisHrSignals" class="list"></div></div>
+  <div class="card"><h3>所属別の在籍状況</h3><div id="analysisHrDepartments"></div></div>
+ </div>
+ <div class="spec-note" style="margin-top:12px">退職日は、在籍状態変更履歴に記録された日付を使用します。履歴がない退職者は退職月・早期離職率へ推測で含めません。本番では退職日を独立項目として保存します。</div>
+</div>
+
+<div class="tabpane" id="analysis-general">
+ <div id="analysisGeneralKpis" class="analysis-kpi-grid"></div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>期限・健診・資格</h3><div id="analysisGeneralSignals" class="list"></div></div>
+  <div class="card"><h3>勤務・手続</h3><div id="analysisGeneralWork" class="list"></div></div>
+ </div>
+</div>
+</section>
 
 <section class="page" id="manage"><div class="page-title"><div><h2>管理</h2><p>普段の確認と、設定・監査を分けて表示します。</p></div></div>
 <div class="simple-note">この画面は「今日の処理 → 担当状況 → 通知・監査」の順に確認します。会社設定や本番準備は日常業務と分けています。</div>
@@ -3521,11 +3579,133 @@ function go(id){
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
  let target=document.getElementById(id);if(!target)return;target.classList.add('active');
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.p===id));
- if(id==='home')renderHome();if(id==='my')renderMyPage();if(id==='emp'){renderEmployeeStatusSummary();renderEmp();renderEmployeeTodaySummary()}if(id==='work')renderWork();if(id==='safe'){renderSafetyOverview();renderSafetyMonthlySummary();if(SAFE_ACTIVE_TAB==='acc')renderAcc();else if(SAFE_ACTIVE_TAB==='near')renderNear();else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()}if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
+ if(id==='home')renderHome();if(id==='my')renderMyPage();if(id==='emp'){renderEmployeeStatusSummary();renderEmp();renderEmployeeTodaySummary()}if(id==='work')renderWork();if(id==='safe'){renderSafetyOverview();renderSafetyMonthlySummary();if(SAFE_ACTIVE_TAB==='acc')renderAcc();else if(SAFE_ACTIVE_TAB==='near')renderNear();else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()}if(id==='analysis')renderAnalysisCenter();if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
  if(id==='manage'){renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderDeadlineKpis('deadlineManage');renderCompanySpec()}
  window.scrollTo(0,0)
 }
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
+
+let ANALYSIS_CENTER_TAB='company';
+function analysisCenterTab(id){
+ ANALYSIS_CENTER_TAB=id||'company';
+ document.querySelectorAll('#analysis .tabpane').forEach(x=>x.classList.remove('active'));
+ document.getElementById('analysis-'+ANALYSIS_CENTER_TAB)?.classList.add('active');
+ document.querySelectorAll('#analysis .tabs button').forEach(x=>x.classList.toggle('active',x.dataset.a===ANALYSIS_CENTER_TAB));
+ renderAnalysisCenter()
+}
+function analysisDateValue(v){
+ let s=String(v||'').trim().replaceAll('/','-');
+ if(!/^\d{4}-\d{2}-\d{2}/.test(s))return null;
+ let d=new Date(s.slice(0,10)+'T00:00:00');
+ return Number.isNaN(d.getTime())?null:d
+}
+function analysisFiscalYearStart(date=new Date(TODAY+'T00:00:00')){
+ let y=date.getFullYear(),m=date.getMonth()+1;
+ return new Date((m>=4?y:y-1)+'-04-01T00:00:00')
+}
+function analysisInRange(date,from,to){
+ let d=analysisDateValue(date);return !!d&&d>=from&&d<=to
+}
+function analysisScopedSafety(){
+ let ok=(type,no)=>canAccess(type,'view',String(no||''));
+ return {
+  accidents:A.filter(x=>ok('accident',x.employee_no)),
+  complaints:C.filter(x=>ok('complaint',x.employee_no)),
+  near:N.filter(x=>ok('near_miss',x.employee_no))
+ }
+}
+function analysisRetirementEvents(employees){
+ let rows=[];
+ employees.forEach(e=>{
+  let hs=Array.isArray(e.transitionHistory)?e.transitionHistory:[];
+  hs.forEach(h=>{
+   if(h.kind!=='在籍状態変更')return;
+   let to=String(h.to||'').split('/').map(x=>x.trim());
+   if(!to.includes('退職'))return;
+   let d=analysisDateValue(h.date);
+   if(d)rows.push({employee:e,date:d,dateText:String(h.date),branch:e.branch,dept:e.dept,employment:e.employment,hire:analysisDateValue(e.hire)})
+  })
+ });
+ return rows
+}
+function analysisCountListHtml(map,limit=10){
+ let rows=Object.entries(map||{}).sort((a,b)=>b[1]-a[1]).slice(0,limit),max=Math.max(1,...rows.map(x=>x[1]));
+ return rows.length?rows.map(([k,v])=>'<div class="analysis-bar-row"><div class="analysis-bar-label">'+esc(k)+'</div><div class="analysis-bar-track"><span style="width:'+Math.max(4,Math.round(v/max*100))+'%"></span></div><b>'+v+'</b></div>').join(''):'<div class="mini">集計対象がありません。</div>'
+}
+function analysisSignal(title,detail,tone=''){
+ return '<div class="row '+(tone==='danger'?'quality-bad':tone==='warn'?'quality-warn':'')+'"><div><b>'+esc(title)+'</b><div class="mini">'+esc(detail)+'</div></div>'+(tone?'<span class="badge '+tone+'">'+(tone==='danger'?'要対応':'確認')+'</span>':'')+'</div>'
+}
+function renderAnalysisCenter(){
+ let root=document.getElementById('analysis');if(!root||PREVIEW_ROLE==='一般社員')return;
+ let employees=scopedEmployees(),active=employees.filter(e=>e.status==='在籍'),leave=employees.filter(e=>e.status==='休職'),planned=employees.filter(e=>e.status==='退職予定'),retired=employees.filter(e=>e.status==='退職');
+ let safety=analysisScopedSafety(),today=new Date(TODAY+'T23:59:59'),fyStart=analysisFiscalYearStart(today),yearAgo=new Date(today);yearAgo.setFullYear(yearAgo.getFullYear()-1);
+ let hiresFy=employees.filter(e=>analysisInRange(e.hire,fyStart,today));
+ let hire1y=employees.filter(e=>analysisInRange(e.hire,yearAgo,today));
+ let retireEvents=analysisRetirementEvents(employees),retireFy=retireEvents.filter(x=>x.date>=fyStart&&x.date<=today);
+ let earlyRetire=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=365&&x.date>=x.hire);
+ let openAcc=safety.accidents.filter(x=>x.phase!=='完了'),openComp=safety.complaints.filter(x=>x.status!=='完了'),highNear=safety.near.filter(x=>x.riskLevel==='高い');
+ let overdueHealth=active.filter(e=>e.health&&days(e.health)<0),soonHealth=active.filter(e=>e.health&&days(e.health)>=0&&days(e.health)<=30);
+ let overdueQual=QUAL.filter(q=>q.expiry&&days(q.expiry)<0&&inGrantedEmployeeScope(q.employee_no));
+ let openTraining=TR.filter(t=>t.status!=='完了'&&inGrantedEmployeeScope(t.employee_no));
+ let overtime45=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=45),overtime60=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=60);
+ let newNos=new Set(hire1y.map(e=>String(e.no)));
+ let newSafety=safety.accidents.filter(x=>newNos.has(String(x.employee_no))).length+safety.near.filter(x=>newNos.has(String(x.employee_no))).length;
+ let newHighNear=safety.near.filter(x=>newNos.has(String(x.employee_no))&&x.riskLevel==='高い').length;
+ let employeeSafetyNos=new Set([...safety.accidents,...safety.complaints,...safety.near].map(x=>String(x.employee_no)));
+ let overtimeSafety=overtime45.filter(e=>employeeSafetyNos.has(String(e.no))).length;
+ let kpi=(small,big,sub)=>'<div class="analysis-kpi"><small>'+esc(small)+'</small><b>'+esc(String(big))+'</b><div class="mini">'+esc(sub)+'</div></div>';
+
+ let company=document.getElementById('analysisCompanyKpis');if(company)company.innerHTML=
+  kpi('在籍',active.length+'名','休職 '+leave.length+' / 退職予定 '+planned.length)+
+  kpi('今年度入社',hiresFy.length+'名','4月1日から現在')+
+  kpi('今年度退職',retireFy.length+'名','履歴日が確認できる分')+
+  kpi('年度純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名','入社－退職（確認済み日付のみ）')+
+  kpi('安全記録',safety.accidents.length+safety.complaints.length+safety.near.length+'件','事故・苦情・ヒヤリ')+
+  kpi('期限超過',overdueHealth.length+overdueQual.length+'件','健診＋資格');
+ let cs=document.getElementById('analysisCompanySignals');if(cs)cs.innerHTML=
+  analysisSignal('今年度の人員変化','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
+  analysisSignal('安全対応','未完了事故 '+openAcc.length+'件 / 未完了苦情 '+openComp.length+'件 / 高危険ヒヤリ '+highNear.length+'件',(openAcc.length+openComp.length+highNear.length)?'warn':'')+
+  analysisSignal('総務期限','健診期限超過 '+overdueHealth.length+'名 / 資格期限超過 '+overdueQual.length+'件',(overdueHealth.length+overdueQual.length)?'danger':'')+
+  analysisSignal('勤務確認','残業45時間以上 '+overtime45.length+'名（うち60時間以上 '+overtime60.length+'名）',overtime60.length?'danger':overtime45.length?'warn':'');
+ let cross=document.getElementById('analysisCrossSignals');if(cross)cross.innerHTML=
+  analysisSignal('入社1年以内 × 安全記録','入社1年以内 '+hire1y.length+'名に対し、事故＋ヒヤリ '+newSafety+'件 / 高危険ヒヤリ '+newHighNear+'件。個人評価ではなく新人教育テーマの確認材料です。',newHighNear?'warn':'')+
+  analysisSignal('勤務 × 安全記録','残業45時間以上の社員のうち、安全記録にも登場する社員 '+overtimeSafety+'名。因果関係ではなく、管理者が勤務と安全を併せて確認する入口です。',overtimeSafety?'warn':'')+
+  analysisSignal('早期退職','退職日を履歴で確認できる範囲で、入社1年以内の退職 '+earlyRetire.length+'名。退職理由・配属時点情報を追加すると今後さらに分析できます。');
+
+ let sk=document.getElementById('analysisSafetyKpis');if(sk)sk.innerHTML=
+  kpi('事故',safety.accidents.length+'件','表示権限内')+kpi('苦情',safety.complaints.length+'件','お客様対応')+
+  kpi('ヒヤリ',safety.near.length+'件','報告件数')+kpi('高危険ヒヤリ',highNear.length+'件','危険度「高い」')+
+  kpi('未完了事故',openAcc.length+'件','対応継続中')+kpi('未完了苦情',openComp.length+'件','対応継続中');
+ let ss=document.getElementById('analysisSafetySignals');if(ss)ss.innerHTML=
+  analysisSignal('重点確認','高危険ヒヤリ '+highNear.length+'件 / 未完了案件 '+(openAcc.length+openComp.length)+'件',(highNear.length+openAcc.length+openComp.length)?'warn':'')+
+  analysisSignal('分析方針','ヒヤリは報告件数の個人ランキングをせず、同種パターン・再発・時間帯・対策後の変化を見ます。')+
+  analysisSignal('率で見る準備','将来、走行距離・乗務回数・勤務日数が取れれば、単純件数に加えて10万km当たり等の発生率を表示できます。');
+
+ let hk=document.getElementById('analysisHrKpis');if(hk)hk.innerHTML=
+  kpi('在籍',active.length+'名','現在')+kpi('今年度入社',hiresFy.length+'名','4月1日から')+
+  kpi('今年度退職',retireFy.length+'名','履歴確認分')+kpi('純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名','今年度')+
+  kpi('休職',leave.length+'名','現在')+kpi('退職予定',planned.length+'名','現在');
+ let deptCount={};active.forEach(e=>{let k=(e.branch||'未設定')+' / '+(e.dept||'未設定');deptCount[k]=(deptCount[k]||0)+1});
+ let hd=document.getElementById('analysisHrDepartments');if(hd)hd.innerHTML=analysisCountListHtml(deptCount,14);
+ let hs=document.getElementById('analysisHrSignals');if(hs)hs.innerHTML=
+  analysisSignal('今年度の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
+  analysisSignal('入社1年以内','現在の対象 '+hire1y.filter(e=>e.status!=='退職').length+'名。安全教育・資格・健診の初期フォローと横断できます。')+
+  analysisSignal('早期離職の把握','履歴で退職日を確認できる範囲の入社1年以内退職 '+earlyRetire.length+'名。退職理由は未構造化のため、現時点では理由別集計をしません。');
+
+ let gk=document.getElementById('analysisGeneralKpis');if(gk)gk.innerHTML=
+  kpi('健診期限超過',overdueHealth.length+'名','在籍者')+kpi('健診30日以内',soonHealth.length+'名','在籍者')+
+  kpi('資格期限超過',overdueQual.length+'件','担当範囲')+kpi('安全指導未完了',openTraining.length+'件','担当範囲')+
+  kpi('残業45h以上',overtime45.length+'名','在籍者')+kpi('残業60h以上',overtime60.length+'名','在籍者');
+ let gs=document.getElementById('analysisGeneralSignals');if(gs)gs.innerHTML=
+  analysisSignal('健康診断','期限超過 '+overdueHealth.length+'名 / 30日以内 '+soonHealth.length+'名',overdueHealth.length?'danger':soonHealth.length?'warn':'')+
+  analysisSignal('資格管理','期限超過 '+overdueQual.length+'件',overdueQual.length?'danger':'')+
+  analysisSignal('安全指導','未完了 '+openTraining.length+'件',openTraining.length?'warn':'');
+ let gw=document.getElementById('analysisGeneralWork');if(gw)gw.innerHTML=
+  analysisSignal('勤務時間','45時間以上 '+overtime45.length+'名 / 60時間以上 '+overtime60.length+'名',overtime60.length?'danger':overtime45.length?'warn':'')+
+  analysisSignal('休職・退職予定','休職 '+leave.length+'名 / 退職予定 '+planned.length+'名。手続・貸与品・権限・未完了案件を引継ぎ確認します。',(leave.length+planned.length)?'warn':'')+
+  '<div class="row"><div><b>期限・勤務の実務画面</b><div class="mini">超過 → 本日 → 30日以内 → 勤務時間の順で処理</div></div><button class="btn primary" onclick="go(\'work\')">開く</button></div>'
+}
+
 let SAFE_ACTIVE_TAB='acc';
 function safeTab(id){
  SAFE_ACTIVE_TAB=id;
