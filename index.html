@@ -1098,6 +1098,27 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .concurrent-change-banner{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:260;width:min(760px,calc(100vw - 28px));display:none;align-items:center;justify-content:space-between;gap:12px;border:2px solid #c9791a;border-left:8px solid #c9791a;border-radius:14px;background:#fff8e8;box-shadow:0 12px 30px rgba(44,55,63,.22);padding:12px 14px}
 .concurrent-change-banner.show{display:flex}.concurrent-change-banner b{color:#7c4b09}.concurrent-change-banner span{display:block;color:#6a5a43;font-size:.74rem;font-weight:850;line-height:1.45}
 @media(max-width:620px){.concurrent-change-banner{top:8px;align-items:stretch;flex-direction:column}.concurrent-change-banner .btn{width:100%;min-height:48px}}
+
+.near-analysis-dashboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.near-analysis-dashboard .full{grid-column:1/-1}
+.near-analysis-hero{border:2px solid #b9d7cf;background:linear-gradient(135deg,#f5fbf9,#fff)}
+.near-analysis-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
+.near-analysis-kpi{border:1px solid #d7e2e5;border-radius:12px;padding:10px;background:#fff}
+.near-analysis-kpi small{display:block;color:#5b727e;font-weight:800}
+.near-analysis-kpi b{display:block;font-size:22px;margin-top:3px}
+.near-risk-list,.near-theme-list,.near-effect-list{display:grid;gap:8px}
+.near-risk-row,.near-theme-row,.near-effect-row{border:1px solid #d7e2e5;border-radius:12px;padding:10px;background:#fff}
+.near-risk-row.strong{border-color:#e1b1a8;background:#fff8f6}
+.near-risk-head,.near-effect-head{display:flex;gap:8px;align-items:flex-start;justify-content:space-between}
+.near-risk-meta,.near-effect-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.near-risk-meta span,.near-effect-meta span{font-size:12px;border-radius:999px;background:#edf3f5;padding:3px 7px}
+.near-pattern-label{font-weight:900;line-height:1.45}
+.near-analysis-note{font-size:12px;color:#5b727e;margin-top:8px;line-height:1.6}
+.analysis-culture-note{display:grid;gap:6px;padding:10px;border:1px solid #c9ddd7;border-radius:12px;background:#f6fbf9}
+.analysis-culture-note span{font-size:12px;color:#526770;line-height:1.6}
+.near-theme-row b{display:block}
+.near-theme-row span{display:block;color:#526770;font-size:12px;margin-top:4px;line-height:1.55}
+@media(max-width:800px){.near-analysis-dashboard{grid-template-columns:1fr}.near-analysis-dashboard .full{grid-column:auto}.near-analysis-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 </head><body>
 <div class="demo">検証環境｜本番運用画面を確認中｜架空データ｜実社員データ入力禁止</div>
@@ -1326,6 +1347,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  </div>
  <div id="analysisKpis" class="analysis-kpis"></div>
  <div id="analysisDataNote" class="analysis-note"></div>
+ <div class="near-analysis-dashboard">
+  <div class="analysis-card full near-analysis-hero"><div class="list-summary"><div><h3 style="margin:0">ヒヤリ分析ダッシュボード</h3><div class="mini">個人の報告件数ではなく、事故につながり得る共通パターン・再発・対策後の変化を確認します。</div></div><span class="badge ok">報告文化を守る分析</span></div><div id="nearAnalysisExecutive"></div></div>
+  <div class="analysis-card full"><h3>今月・直近の重点リスク TOP5</h3><div id="nearPriorityRisks"></div></div>
+  <div class="analysis-card"><h3>発生パターン</h3><div id="nearPatternAnalysis"></div></div>
+  <div class="analysis-card"><h3>再発パターン</h3><div id="nearRecurrencePatterns"></div></div>
+  <div class="analysis-card"><h3>時間帯</h3><div id="nearTimeBands"></div></div>
+  <div class="analysis-card"><h3>曜日</h3><div id="nearWeekdays"></div></div>
+  <div class="analysis-card full"><h3>対策・教育後の変化</h3><div id="nearCountermeasureEffect"></div></div>
+  <div class="analysis-card full"><h3>安全教育テーマ候補</h3><div id="nearEducationThemes"></div></div>
+ </div>
  <div class="analysis-grid" style="margin-top:10px">
   <div class="analysis-card full"><h3>前年同期との比較</h3><div id="analysisYearCompare"></div></div>
   <div class="analysis-card"><h3>月次の増減</h3><div id="analysisMonthChange"></div></div>
@@ -1335,7 +1366,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="analysis-card"><h3>事業所別 安全記録件数</h3><div id="analysisWorkplaces"></div></div>
   <div class="analysis-card"><h3>部署別 安全記録件数</h3><div id="analysisDepts"></div></div>
   <div class="analysis-card"><h3>号車別 安全記録件数</h3><div id="analysisVehicles"></div></div>
-  <div class="analysis-card"><h3>社員別 安全記録件数</h3><div id="analysisEmployees"></div></div>
+  <div class="analysis-card"><h3>個人ヒヤリ件数の扱い</h3><div class="analysis-culture-note"><b>件数ランキングは表示しません。</b><span>ヒヤリ報告が多いこと自体をマイナス評価にせず、同種パターンの再発・高危険・教育後の変化を安全管理のサインとして確認します。</span></div></div>
   <div class="analysis-card"><h3>苦情ランク</h3><div id="analysisComplaintRank"></div></div>
   <div class="analysis-card"><h3>未完了案件</h3><div id="analysisOpenCases"></div></div>
   <div class="analysis-card"><h3>社員別 修理費</h3><div id="analysisEmployeeRepair"></div></div>
@@ -6465,11 +6496,119 @@ function clearSafetyAnalysis(){
  ['analysisWorkplace','analysisDept','analysisEmployee','analysisVehicle'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=''});
  let t=document.getElementById('analysisType');if(t)t.value='all';renderSafetyAnalysis()
 }
+
+function nearDateValue(n){return String(n?.date||n?.reportDate||'').slice(0,10)}
+function nearRiskWeight(n){return ({'高い':3,'中程度':2,'低い':1})[n?.riskLevel]||1}
+function nearTimeBand(time){
+ let m=String(time||'').match(/^(\d{1,2}):/);if(!m)return '時間未設定';
+ let h=Number(m[1]);if(h<5)return '深夜 0〜5時';if(h<8)return '早朝 5〜8時';if(h<12)return '午前 8〜12時';if(h<17)return '午後 12〜17時';if(h<20)return '夕方 17〜20時';return '夜間 20〜24時'
+}
+function nearWeekday(date){
+ let d=new Date(String(date||'')+'T00:00:00');if(Number.isNaN(d.getTime()))return '曜日未設定';
+ return ['日','月','火','水','木','金','土'][d.getDay()]+'曜日'
+}
+function nearPatternEntries(n){
+ let groups=[
+  ['場所',Array.isArray(n.locationTags)?n.locationTags:[]],
+  ['行動',Array.isArray(n.situationTags)?n.situationTags:[]],
+  ['道路',Array.isArray(n.roadTags)?n.roadTags:[]],
+  ['対象',Array.isArray(n.targetTags)?n.targetTags:[]],
+  ['内的',Array.isArray(n.internalFactors)?n.internalFactors:[]]
+ ].map(([k,v])=>[k,v.filter(Boolean).slice(0,3)]).filter(x=>x[1].length);
+ let out=[],add=parts=>{
+  let label=parts.map(x=>x[1]).join(' × '),key=parts.map(x=>x[0]+':'+x[1]).join('|');
+  if(label&&!out.some(y=>y.key===key))out.push({key,label})
+ };
+ for(let a=0;a<groups.length;a++)for(let b=a+1;b<groups.length;b++){
+  for(let va of groups[a][1])for(let vb of groups[b][1])add([[groups[a][0],va],[groups[b][0],vb]])
+ }
+ for(let a=0;a<groups.length;a++)for(let b=a+1;b<groups.length;b++)for(let d=b+1;d<groups.length;d++){
+  for(let va of groups[a][1].slice(0,2))for(let vb of groups[b][1].slice(0,2))for(let vd of groups[d][1].slice(0,2))add([[groups[a][0],va],[groups[b][0],vb],[groups[d][0],vd]])
+ }
+ return out
+}
+function nearPatternStats(rows){
+ let map={};
+ rows.forEach(n=>{
+  let date=nearDateValue(n),month=date.slice(0,7);
+  nearPatternEntries(n).forEach(p=>{
+   let x=map[p.key]||(map[p.key]={key:p.key,label:p.label,count:0,high:0,risk:0,months:new Set(),dates:[],records:[]});
+   x.count++;x.high+=n.riskLevel==='高い'?1:0;x.risk+=nearRiskWeight(n);if(month)x.months.add(month);if(date)x.dates.push(date);x.records.push(n)
+  })
+ });
+ let today=new Date(TODAY+'T00:00:00'),d90=new Date(today);d90.setDate(d90.getDate()-90);let d180=new Date(today);d180.setDate(d180.getDate()-180);
+ let iso=d=>d.toISOString().slice(0,10);
+ return Object.values(map).map(x=>{
+  let r90=x.dates.filter(d=>d>=iso(d90)&&d<=TODAY).length,p90=x.dates.filter(d=>d>=iso(d180)&&d<iso(d90)).length;
+  x.recurrence=Math.max(0,x.months.size-1);x.score=x.count*2+x.high*4+x.risk+x.recurrence*3+Math.max(0,r90-p90)*2;
+  x.trend=r90>p90?'↑':r90<p90?'↓':'→';x.recent90=r90;x.previous90=p90;return x
+ }).sort((a,b)=>b.score-a.score||b.count-a.count||String(a.label).localeCompare(String(b.label),'ja'))
+}
+function nearPriorityHtml(stats){
+ let rows=stats.filter(x=>x.count>=2||x.high>0).slice(0,5);
+ if(!rows.length)return '<div class="mini">重点リスクとして表示するパターンはまだありません。報告が蓄積すると自動表示します。</div>';
+ return '<div class="near-risk-list">'+rows.map((x,i)=>'<div class="near-risk-row '+(x.high||x.recurrence>=2?'strong':'')+'"><div class="near-risk-head"><div><small>重点 '+(i+1)+'</small><div class="near-pattern-label">'+esc(x.label)+'</div></div><span class="badge '+(x.high?'warn':'')+'">'+x.trend+'</span></div><div class="near-risk-meta"><span>'+x.count+'件</span><span>高危険 '+x.high+'件</span><span>'+x.months.size+'か月で発生</span><span>直近90日 '+x.recent90+' / 前90日 '+x.previous90+'</span></div></div>').join('')+'</div>'
+}
+function nearRecurrenceHtml(stats){
+ let rows=stats.filter(x=>x.count>=2&&x.months.size>=2).sort((a,b)=>b.months.size-a.months.size||b.count-a.count).slice(0,8);
+ if(!rows.length)return '<div class="mini">複数月にまたがる同種ヒヤリはまだありません。</div>';
+ return rows.map(x=>'<div class="analysis-bar-row"><div><b>'+esc(x.label)+'</b><div class="mini">'+x.months.size+'か月 / '+x.count+'件 / 高危険 '+x.high+'件</div></div><span>'+x.trend+'</span></div>').join('')
+}
+function nearEducationTheme(label){
+ let s=String(label||'');
+ if(/バック|後退/.test(s))return '後退時の死角確認・降車確認・バック前の停止確認';
+ if(/右折|左折|右左折|交差点/.test(s)&&/自転車|二輪/.test(s))return '交差点右左折時の二輪巻込み・側方確認';
+ if(/右折|左折|右左折|交差点/.test(s))return '交差点進入前の減速・左右確認・横断者確認';
+ if(/乗降|ドア/.test(s)&&/二輪|自転車/.test(s))return '乗降時の後方二輪確認とドア開放前確認';
+ if(/乗降|ドア/.test(s))return '乗降時の周囲確認・ドアサービス時の安全確認';
+ if(/進路変更|車線変更/.test(s))return '進路変更時のミラー・目視・合図の基本動作';
+ if(/歩行者/.test(s))return '歩行者・横断者の早期発見と速度調整';
+ if(/自転車|二輪/.test(s))return '自転車・二輪の死角と側方間隔の確認';
+ if(/眠気|疲労|焦り|急ぎ/.test(s))return '疲労・焦りを感じた時の休憩判断と余裕を持った運行';
+ return '該当パターンを使った危険予知（KYT）と基本確認動作の再確認'
+}
+function nearEducationThemesHtml(stats){
+ let seen=new Set(),rows=[];
+ stats.filter(x=>x.count>=2||x.high).forEach(x=>{let theme=nearEducationTheme(x.label);if(!seen.has(theme)&&rows.length<5){seen.add(theme);rows.push({theme,x})}});
+ if(!rows.length)return '<div class="mini">教育テーマ候補は、ヒヤリ報告が蓄積すると自動表示します。</div>';
+ return '<div class="near-theme-list">'+rows.map(r=>'<div class="near-theme-row"><b>'+esc(r.theme)+'</b><span>根拠：'+esc(r.x.label)+' / '+r.x.count+'件'+(r.x.high?' / 高危険 '+r.x.high+'件':'')+'。朝礼・点呼・安全会議で扱う際は個別記録を確認して内容を確定してください。</span></div>').join('')+'</div>'
+}
+function nearDateShift(date,daysCount){
+ let d=new Date(String(date||'')+'T00:00:00');if(Number.isNaN(d.getTime()))return '';d.setDate(d.getDate()+daysCount);return d.toISOString().slice(0,10)
+}
+function nearEffectHtml(stats){
+ let rows=[];
+ stats.slice(0,20).forEach(x=>{
+  let intervention=x.records.filter(n=>String(n.education||'').trim()||String(n.prevention||'').trim()).map(n=>({n,date:nearDateValue(n)})).filter(x=>x.date&&x.date<=nearDateShift(TODAY,-30)).sort((a,b)=>String(b.date).localeCompare(String(a.date)))[0];
+  if(!intervention)return;
+  let ref=intervention.date,bFrom=nearDateShift(ref,-90),aTo=nearDateShift(ref,90);
+  let before=x.dates.filter(d=>d>=bFrom&&d<ref).length,after=x.dates.filter(d=>d>ref&&d<=aTo&&d<=TODAY).length;
+  let elapsed=Math.max(0,Math.round((new Date(TODAY+'T00:00:00')-new Date(ref+'T00:00:00'))/86400000));
+  let complete=elapsed>=90,status=!complete?'経過確認中':after<before?'減少傾向':after>before?'増加傾向':'横ばい';
+  rows.push({label:x.label,ref,before,after,status,complete})
+ });
+ rows=rows.slice(0,6);
+ if(!rows.length)return '<div class="mini">教育事項または対策が記録され、30日以上経過したパターンから比較します。現在は比較対象がありません。</div>';
+ return '<div class="near-effect-list">'+rows.map(x=>'<div class="near-effect-row"><div class="near-effect-head"><div><b>'+esc(x.label)+'</b><div class="mini">対策・教育記録日を基準：'+esc(x.ref)+'</div></div><span class="badge '+(x.status==='増加傾向'?'warn':x.status==='減少傾向'?'ok':'')+'">'+esc(x.status)+'</span></div><div class="near-effect-meta"><span>前90日 '+x.before+'件</span><span>後90日 '+x.after+'件</span></div></div>').join('')+'</div><div class="near-analysis-note">これは対策実施日が独立項目でない現行データでの参考比較です。因果関係の判定ではありません。本番では「対策実施日」を追加すると精度が上がります。</div>'
+}
+function renderNearAnalysisDashboard(near){
+ let stats=nearPatternStats(near),high=near.filter(n=>n.riskLevel==='高い').length,missing=near.filter(nearNeedsAnalysis).length,recurring=stats.filter(x=>x.count>=2&&x.months.size>=2).length;
+ let executive=document.getElementById('nearAnalysisExecutive');if(executive)executive.innerHTML='<div class="near-analysis-kpis"><div class="near-analysis-kpi"><small>ヒヤリ報告</small><b>'+near.length+'件</b></div><div class="near-analysis-kpi"><small>高危険</small><b>'+high+'件</b></div><div class="near-analysis-kpi"><small>分析要確認</small><b>'+missing+'件</b></div><div class="near-analysis-kpi"><small>複数月で再発</small><b>'+recurring+'パターン</b></div><div class="near-analysis-kpi"><small>重点テーマ</small><b>'+(stats[0]?esc(stats[0].label):'—')+'</b></div></div><div class="near-analysis-note">社員別のヒヤリ件数順位は表示しません。報告数ではなく、共通パターン・危険度・再発性・対策後の変化を見ます。</div>';
+ let p=document.getElementById('nearPriorityRisks');if(p)p.innerHTML=nearPriorityHtml(stats);
+ let pa=document.getElementById('nearPatternAnalysis');if(pa)pa.innerHTML=stats.length?analysisBarsHtml(Object.fromEntries(stats.slice(0,10).map(x=>[x.label,x.count])),10):'<div class="mini">パターン分析に必要な分類データがありません。</div>';
+ let re=document.getElementById('nearRecurrencePatterns');if(re)re.innerHTML=nearRecurrenceHtml(stats);
+ let tb=document.getElementById('nearTimeBands');if(tb)tb.innerHTML=analysisBarsHtml(analysisCount(near.map(n=>nearTimeBand(n.time))),8);
+ let wd=document.getElementById('nearWeekdays');if(wd)wd.innerHTML=analysisBarsHtml(analysisCount(near.map(n=>nearWeekday(nearDateValue(n)))),7);
+ let ef=document.getElementById('nearCountermeasureEffect');if(ef)ef.innerHTML=nearEffectHtml(stats);
+ let th=document.getElementById('nearEducationThemes');if(th)th.innerHTML=nearEducationThemesHtml(stats)
+}
+
 function renderSafetyAnalysis(){
  let root=document.getElementById('safe-analysis');if(!root)return;
  populateSafetyAnalysisFilters();
  let {from,to,no,type,workplace,dept,vehicle,accidents,complaints,near}=safetyAnalysisData();
  renderSafetyComparisons({from,to,no,type,workplace,dept,vehicle});
+ renderNearAnalysisDashboard(near);
  let total=accidents.length+complaints.length+near.length,high=near.filter(n=>n.riskLevel==='高い').length;
  let openAcc=accidents.filter(a=>a.phase!=='完了').length,openComp=complaints.filter(x=>x.status!=='完了').length;
  let people=new Set([...accidents.map(x=>String(x.employee_no)),...complaints.map(x=>String(x.employee_no)),...near.map(x=>String(x.employee_no))]).size;
