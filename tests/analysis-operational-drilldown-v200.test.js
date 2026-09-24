@@ -2,7 +2,8 @@ const fs=require('fs');
 const assert=require('assert');
 const html=fs.readFileSync('index.html','utf8');
 
-assert(html.includes("let employees=scopedEmployees().slice();"),'detailed safety filters must use scoped employee master');
+assert(html.includes("let employees=scopedEmployees().slice()"),'detailed safety filters must use scoped employee master');
+assert(html.includes("recordScopes=records.map(rec=>({rec,scope:safetyAnalysisRecordSnapshot(rec)}))"),'detailed safety filters must include historical record scopes');
 assert(!html.includes("let employees=[...new Set(records.map(x=>String(x.employee_no||'')).filter(Boolean))].map(emp).filter(Boolean);"),'record-only employee options must not return');
 assert(html.includes("kpi(range.label+'入社'"),'HR hire KPI must use selected period');
 assert(html.includes("kpi(range.label+'退職'"),'HR retirement KPI must use selected period');
