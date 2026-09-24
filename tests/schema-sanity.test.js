@@ -77,3 +77,11 @@ test('every simple production index references an existing table column',()=>{
   }
   assert.deepEqual(invalid,[])
 });
+
+
+test('audit and record history tables are append-only at database layer',()=>{
+  assert.match(sql,/create or replace function reject_append_only_mutation\(\)/i);
+  assert.match(sql,/raise exception 'append-only table % does not allow %'/i);
+  assert.match(sql,/create trigger audit_logs_append_only_guard[\s\S]*before update or delete on audit_logs/i);
+  assert.match(sql,/create trigger record_histories_append_only_guard[\s\S]*before update or delete on record_histories/i);
+});
