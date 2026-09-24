@@ -1130,7 +1130,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div id="homeDailySummary" class="general-restricted"></div>
 
 <div class="card general-restricted home-simple-primary home-task-card">
- <div class="list-summary"><div><h3 style="margin:0"><span class="home-flow-step">2</span>今日の優先対応</h3><div class="mini"><span id="homeTodayDate">本日</span> / 管理者が先に対応する項目を最大5件表示します。</div></div><button class="btn soft" onclick="openDeadlineCenter('all')">期限・更新を確認</button></div>
+ <div class="list-summary"><div><h3 style="margin:0"><span class="home-flow-step">2</span>今日の優先対応</h3><div class="mini"><span id="homeTodayDate">本日</span> / 上から順に確認すると、今日の主要な処理を進められます。</div></div><button class="btn primary" onclick="openDeadlineCenter('action')">今対応する期限を見る</button></div>
  <div id="today" class="notice-list"></div>
 </div>
 
@@ -1539,10 +1539,10 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="card admin-daily-center"><div id="adminDailyCenter"></div></div>
 
 <div class="manage-quick-bar">
- <button class="btn primary" onclick="openDeadlineCenter('all')">期限・更新の確認</button>
- <button class="btn soft" onclick="showQualityDetails()">確認・修正が必要</button>
+ <button class="btn primary" onclick="openDeadlineCenter('action')">今対応する期限</button>
+ <button class="btn soft" onclick="showQualityDetails()">データの要確認</button>
  <button class="btn soft" onclick="openManageSection('manage-workload')">担当状況</button>
- <button class="btn soft full-admin-only" onclick="openManageSection('manage-system')">会社設定</button>
+ <button class="btn soft full-admin-only" onclick="openManageSection('manage-system')">設定・本番準備</button>
 </div>
 
 <details class="manage-section" id="manage-workload" open>
@@ -2541,8 +2541,9 @@ function deadlinePriority(date){
 function deadlineFilterMatch(date,filter){
  let b=deadlineBucket(date);
  if(filter==='all')return b!=='none';
+ if(filter==='action')return ['over','today','7','30'].includes(b);
  if(filter==='over'||filter==='today')return b===filter;
- if(filter==='within30')return b==='7'||b==='30';
+ if(filter==='within30')return ['today','7','30'].includes(b);
  if(filter==='7')return b==='7';
  if(filter==='30')return b==='30';
  if(filter==='60')return b==='60';
@@ -2717,7 +2718,7 @@ function deadlineReasonText(x){
  return '今後の更新予定を確認'
 }
 function deadlineFilterLabel(filter){
- return ({all:'すべての期限',over:'期限超過',today:'本日期限',within30:'30日以内','7':'1〜7日','30':'8〜30日','60':'31〜60日'})[filter]||'すべての期限'
+ return ({all:'すべての期限',action:'今対応する期限',over:'期限超過',today:'本日期限',within30:'本日〜30日以内','7':'1〜7日','30':'8〜30日','60':'31〜60日'})[filter]||'すべての期限'
 }
 function deadlineUpdateLabel(type){
  return ({'事故':'対応・期限を更新','苦情':'対応・期限を更新','資格':'資格期限を更新','安全指導':'指導期限を更新','適性診断':'診断期限を更新','貸与品':'返却予定を更新','書類':'書類期限を更新','車検':'車検期限を更新','健康診断':'健診期限を更新'})[type]||'期限を更新'
@@ -2756,7 +2757,7 @@ function deadlineActionsHtml(x){
 }
 function renderDeadlineCenterRows(){
  let all=collectDeadlines(),q=(document.getElementById('deadlineQ')?.value||'').trim().toLowerCase(),type=document.getElementById('deadlineType')?.value||'all';
- let rows=all.filter(x=>(!MY_TASKS_ONLY||deadlineAssignedToCurrentManager(x))&&deadlineFilterMatch(x.due,DEADLINE_FILTER)&&(type==='all'||x.type===type)&&(!q||[x.type,x.label,x.employee_name,x.no,x.responsible,x.action,x.source,x.due].join(' ').toLowerCase().includes(q)));
+ let rows=all.filter(x=>(!MY_TASKS_ONLY||deadlineAssignedToCurrentManager(x))&&deadlineFilterMatch(x.due,DEADLINE_FILTER)&&(type==='all'||x.type===type)&&(!q||[x.type,x.label,x.employee_name,x.no,...employeeRecordLookupTerms({employee_no:x.no}),x.responsible,x.action,x.source,x.due].join(' ').toLowerCase().includes(q)));
  let pages=Math.max(1,Math.ceil(rows.length/DEADLINE_PER_PAGE));DEADLINE_PAGE=Math.min(Math.max(1,DEADLINE_PAGE),pages);let start=(DEADLINE_PAGE-1)*DEADLINE_PER_PAGE,shown=rows.slice(start,start+DEADLINE_PER_PAGE);
  let el=document.getElementById('deadlineCenterRows'),sum=document.getElementById('deadlineCenterCount');
  if(sum)sum.textContent='表示 '+rows.length+'件 / 全期限 '+all.length+'件'+(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'?' / 自分担当のみ':'');
@@ -2771,21 +2772,22 @@ function renderDeadlineCenterRows(){
 function openDeadlineCenter(filter='all'){
  DEADLINE_FILTER=filter;DEADLINE_PAGE=1;
  let all=collectDeadlines(),counts={over:0,today:0,'7':0,'30':0,'60':0};all.forEach(x=>{if(counts[x.bucket]!==undefined)counts[x.bucket]++});
- let within30=counts.today+counts['7']+counts['30'];
+ let within30=counts.today+counts['7']+counts['30'],actionCount=counts.over+within30;
  dttl.textContent='期限・更新の確認';
  dbody.innerHTML=analysisOperationScopeBannerHtml()+`<div class="deadline-center-intro">
-  <div><b>期限が近いものから順番に処理します</b><div class="mini">まず赤い「期限超過」、次に「本日」、その後「30日以内」を確認してください。各行には、期限・やること・担当を先に表示します。</div></div>
-  <div class="deadline-center-steps"><span>① 期限を見る</span><span>② やることを確認</span><span>③ 更新する</span></div>
+  <div><b>まず「今対応する期限」を確認します</b><div class="mini">期限超過 → 本日 → 30日以内の順に確認します。先の予定は必要なときだけ31〜60日または「すべて」を開きます。</div></div>
+  <div class="deadline-center-steps"><span>① 今対応を確認</span><span>② やることを見る</span><span>③ その場で更新</span></div>
  </div>
  <div class="deadline-summary-grid">
+  <div class="deadline-summary-box ${filter==='action'?'selected':''}" onclick="openDeadlineCenter('action')"><small>まずここ：今対応</small><b>${actionCount}</b><span>期限超過〜30日以内</span></div>
   <div class="deadline-summary-box over ${filter==='over'?'selected':''}" onclick="openDeadlineCenter('over')"><small>最優先：期限超過</small><b>${counts.over}</b><span>期限を過ぎています</span></div>
   <div class="deadline-summary-box today ${filter==='today'?'selected':''}" onclick="openDeadlineCenter('today')"><small>今日：本日期限</small><b>${counts.today}</b><span>今日中に確認します</span></div>
-  <div class="deadline-summary-box ${filter==='within30'?'selected':''}" onclick="openDeadlineCenter('within30')"><small>次：30日以内</small><b>${within30}</b><span>今日を含む30日以内</span></div>
-  <div class="deadline-summary-box ${filter==='60'?'selected':''}" onclick="openDeadlineCenter('60')"><small>予定：31〜60日</small><b>${counts['60']}</b><span>今後の更新予定</span></div>
-  <div class="deadline-summary-box ${filter==='all'?'selected':''}" onclick="openDeadlineCenter('all')"><small>全期限</small><b>${all.length}</b><span>すべて表示</span></div>
+  <div class="deadline-summary-box ${filter==='within30'?'selected':''}" onclick="openDeadlineCenter('within30')"><small>次：本日〜30日以内</small><b>${within30}</b><span>更新予定を先回り</span></div>
+  <div class="deadline-summary-box ${filter==='60'?'selected':''}" onclick="openDeadlineCenter('60')"><small>予定：31〜60日</small><b>${counts['60']}</b><span>今後の予定</span></div>
  </div>
  <div class="deadline-primary-filters">
   ${PREVIEW_ROLE==='管理者'?'<button class="btn '+(MY_TASKS_ONLY?'primary':'soft')+'" onclick="toggleMyTasksOnly()">'+(MY_TASKS_ONLY?'✓ 自分の担当だけ表示中':'自分の担当に絞る')+'</button>':''}
+  <button class="btn ${filter==='action'?'active':''}" onclick="openDeadlineCenter('action')">今対応</button>
   <button class="btn ${filter==='over'?'active':''}" onclick="openDeadlineCenter('over')">期限超過</button>
   <button class="btn ${filter==='today'?'active':''}" onclick="openDeadlineCenter('today')">本日</button>
   <button class="btn ${filter==='within30'?'active':''}" onclick="openDeadlineCenter('within30')">30日以内</button>
@@ -2796,8 +2798,8 @@ function openDeadlineCenter(filter='all'){
   <button class="btn ${filter==='30'?'active':''}" onclick="openDeadlineCenter('30')">8〜30日</button>
   <button class="btn ${filter==='60'?'active':''}" onclick="openDeadlineCenter('60')">31〜60日</button>
  </div></div></details>
- <div class="deadline-current-filter"><span class="badge ok">現在の表示</span><b>${esc(deadlineFilterLabel(filter))}</b><span class="mini">必要なら下の検索で社員・担当・区分を絞れます。</span></div>
- <div class="deadline-toolbar"><input id="deadlineQ" aria-label="期限を検索" placeholder="社員名・社員番号・担当・対応内容で検索" oninput="DEADLINE_PAGE=1;renderDeadlineCenterRows()"><select id="deadlineType" aria-label="期限区分" onchange="DEADLINE_PAGE=1;renderDeadlineCenterRows()">${deadlineTypeOptions(all)}</select></div>
+ <div class="deadline-current-filter"><span class="badge ok">現在の表示</span><b>${esc(deadlineFilterLabel(filter))}</b><span class="mini">${filter==='action'?'この一覧を上から処理すれば、直近の期限確認を進められます。':'必要なら下の検索で社員・担当・区分を絞れます。'}</span></div>
+ <div class="deadline-toolbar"><input id="deadlineQ" aria-label="期限を検索" placeholder="社員名・社員番号（旧番号も可）・担当・対応内容で検索" oninput="DEADLINE_PAGE=1;renderDeadlineCenterRows()"><select id="deadlineType" aria-label="期限区分" onchange="DEADLINE_PAGE=1;renderDeadlineCenterRows()">${deadlineTypeOptions(all)}</select></div>
  <div class="list-summary deadline-help"><div><b id="deadlineCenterCount"></b><div class="mini">赤は期限超過、黄は本日〜7日以内です。社員名で社員詳細、「内容を見る」で登録内容、「期限を更新」等のボタンで直接修正できます。</div></div></div><div id="deadlineCenterRows"></div><div id="deadlinePager"></div>`;
  showDetailModal();renderDeadlineCenterRows()
 }
