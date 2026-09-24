@@ -54,21 +54,14 @@ where e.id = n.employee_id
 
 -- High-volume list/search indexes. The UI/API should still paginate; indexes
 -- prevent each request from scanning all historical near-miss rows.
+-- V200 base schema already provides employee+reported_on, office+department+reported_on,
+-- and active reported_on indexes. This addendum only creates capacity indexes that
+-- are not already present in the canonical base schema.
 create index if not exists near_misses_reported_on_idx
   on near_misses (reported_on desc, id);
 
-create index if not exists near_misses_employee_reported_idx
-  on near_misses (employee_id, reported_on desc, id);
-
 create index if not exists near_misses_department_reported_idx
   on near_misses (department_at_report, reported_on desc, id);
-
-create index if not exists near_misses_office_department_reported_idx
-  on near_misses (office_at_report, department_at_report, reported_on desc, id);
-
-create index if not exists near_misses_active_reported_idx
-  on near_misses (reported_on desc, id)
-  where archived_at is null;
 
 -- Monthly target snapshot.
 -- The target population is frozen per month so later transfers/retirements do
