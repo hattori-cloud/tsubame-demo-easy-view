@@ -7354,6 +7354,10 @@ function renderSafetyAnalysis(){
  let people=new Set([...accidents.map(x=>String(x.employee_no)),...complaints.map(x=>String(x.employee_no)),...near.map(x=>String(x.employee_no))]).size;
  let repairTotal=accidents.reduce((sum,a)=>sum+accidentTotalRepairCost(a),0);
  let snapshotCount=[...accidents,...complaints,...near].filter(r=>safetyAnalysisRecordSnapshot(r).source==='snapshot').length;
+ let accidentAnalysisReady=accidents.filter(a=>String(a.accidentType||'').trim()&&!['未設定','未入力'].includes(String(a.accidentType||'').trim())&&String(a.district||'').trim()&&!['未設定','未入力'].includes(String(a.district||'').trim())).length;
+ let complaintAnalysisReady=complaints.filter(c=>c.rank&&c.rank!=='未判定').length;
+ let nearAnalysisReady=near.filter(n=>!nearNeedsAnalysis(n)).length;
+ let analysisReady=accidentAnalysisReady+complaintAnalysisReady+nearAnalysisReady;
  let averageRepair=accidents.length?Math.round(repairTotal/accidents.length):0;
  let kpi=document.getElementById('analysisKpis');if(kpi)kpi.innerHTML=
   '<div class="analysis-kpi"><small>事故</small><b>'+accidents.length+'</b><div class="mini">該当条件</div></div>'+
@@ -7366,6 +7370,7 @@ function renderSafetyAnalysis(){
   '<div class="analysis-kpi"><small>高危険比率</small><b>'+analysisPercent(high,near.length)+'</b><div class="mini">高危険ヒヤリ÷ヒヤリ</div></div>'+
   '<div class="analysis-kpi"><small>未完了比率</small><b>'+analysisPercent(openAcc+openComp,accidents.length+complaints.length)+'</b><div class="mini">事故・苦情内</div></div>'+
   '<div class="analysis-kpi"><small>所属スナップショット</small><b>'+analysisPercent(snapshotCount,total)+'</b><div class="mini">記録時所属を保持</div></div>'+
+  '<div class="analysis-kpi"><small>分析項目充足率</small><b>'+analysisPercent(analysisReady,total)+'</b><div class="mini">不足 '+Math.max(0,total-analysisReady)+'件</div></div>'+
   '<div class="analysis-kpi"><small>対象社員</small><b>'+people+'</b><div class="mini">安全記録に登場</div></div>';
  let months={};
  let monthAdd=(date,key)=>{let k=String(date||'').slice(0,7)||'日付未設定';months[k]=months[k]||{acc:0,comp:0,near:0};months[k][key]++};
