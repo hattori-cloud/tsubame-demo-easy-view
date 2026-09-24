@@ -9,7 +9,7 @@ CODEXが監査する固定ソース:
 
 この固定点は変更しません。
 
-現在のstagingは固定点より **26 commits ahead** です。
+現在のstagingは固定点より **30 commits ahead** です。
 CODEX最終報告を受け取ったら、各指摘をこの台帳と突き合わせて「監査後に修正済み / 未修正 / 別問題 / 誤検知」に分類します。
 
 ## 固定点以降の主要な実装修正
@@ -60,6 +60,19 @@ CODEX最終報告を受け取ったら、各指摘をこの台帳と突き合わ
 - V200基準schemaに既にある同一検索経路のindexをcapacity addendumから削除。
 - regression: `0fd27e8fcbf91aa74a148676df9e1cca4bd61c6d`
 - combined schema check: `b47f8f5febf3f32edcb89f142c17109cfc7c0bec`
+
+### 6. バックアップ・復元整合性
+
+- backup coverage regression: `39d0805ac65a512f7d53ff00cedd7fc563255d14`
+  - core saveに追加した業務キーがsystem backupから漏れないことを固定。
+- relation validation fix: `ca67335aab9c6417498424a9305aa4f10119e2c9`
+  - 車両の追加利用乗務員
+  - 資格 → 書類
+  - 書類 → 資格
+  - 書類差替え元/先
+  の参照切れを復元前にblocking errorへ変更。
+- relation regression: `b6a7ac5b91f936bd87f52d1fdd060d7d06730e73`
+- 最新確認: **142 tests / 142 pass / 0 fail**
 
 ## 固定点以降に追加した主要な安全テスト
 
