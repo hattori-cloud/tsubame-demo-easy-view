@@ -1,12 +1,13 @@
 # CODEX 引継ぎ資料 — つばめ交通 社員一元管理システム
 
-更新日: 2026-09-24  
+更新日: 2026-09-25  
 対象リリース: **v200**  
 
-> **2026-09-24 staging監査追記**  
-> CODEX再監査の固定対象は `staging-v200-backend` の `e69d406b56cfe79a7469a3ed5bb245e7d753d1f6` です。  
-> この固定コミットではV200 Staging Safety Testsが **121/121成功**。起動時TDZ、不正な勤務対象月、production schemaのSHA-256/マルウェア列不整合を修正済みです。  
-> 詳細は `docs/audits/CODEX_AUDIT_REQUEST_V200_20260924.md` と `docs/v200-staging-status.md` を参照してください。  
+> **2026-09-25 最終大監査候補**  
+> CODEXの新しいコード監査固定対象は `staging-v200-backend` の `c27567900713b58e29abcf2a703d27357a3a7a0a` です。  
+> この固定点では **268/268回帰テスト成功**に加え、PostgreSQL 16空DB実適用、append-only監査保護、同時更新競合、pg_dump/pg_restore復元、Vercel preview READYまで確認済みです。  
+> 最終大監査依頼は `docs/audits/CODEX_FINAL_AUDIT_REQUEST_V200_20260925.md`、詳細な現在地は `docs/v200-staging-status.md` を参照してください。  
+> 旧固定点 `e69d406b56cfe79a7469a3ed5bb245e7d753d1f6` と旧監査依頼は監査履歴として残しており、最終候補と混同しないでください。  
 > 下記の「対象ブランチ: main」「本番URL」はproduction側の説明であり、staging監査対象とは分けて扱ってください。  
 対象リポジトリ: **hattori-cloud/tsubame-demo-easy-view**  
 対象ブランチ: **main**  
