@@ -9674,6 +9674,12 @@ form.addEventListener('input',()=>{updateFormDirtyState();updateFormFooterProgre
 form.addEventListener('change',()=>{updateFormDirtyState();updateFormFooterProgress()},true);
 fsave.addEventListener('click',e=>{
  if(blockSaveIfRequiredMissing(e))return;
+ if(!coreSaveRevisionIsCurrent()){
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  save();
+  return
+ }
  FORM_SAVE_ATTEMPT=true;
  let saveSeq=CORE_SAVE_SUCCESS_SEQ;
  let saveContext={
