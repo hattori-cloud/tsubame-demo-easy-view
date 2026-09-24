@@ -115,12 +115,41 @@ Authenticated user changes their own password after confirming the current passw
 
 Administrative recovery workflow. A full administrator may initiate a reset but can never view or retrieve the current password. Reset issuance and completion are audited.
 
+### POST /api/v1/users/{id}/suspend
+
+Full administrator only. The server changes the user state to suspended and invalidates **all active sessions in the same logical operation**. Future business API requests are rejected immediately. The action and reason are audited.
+
+### POST /api/v1/users/{id}/reactivate
+
+Full administrator only. Requires the linked employee to be active and the account configuration to be valid. Management users must have required MFA enrollment before a normal business session can be issued.
+
+### PATCH /api/v1/users/{id}/access
+
+Full administrator only. Updates role level, office × department scopes and safety authority with version/concurrency protection. Existing sessions must either be re-evaluated on every request or invalidated when the effective authorization is reduced.
+
+### POST /api/v1/users
+
+Full administrator only. Creates an account linked to an existing immutable `employees.id`. `login_id` must be unique. The initial credential is a one-time setup/reset flow; the API never returns a stored password or password hash.
+
+### Employee retirement coupling
+
+When an employee transition is committed to `retired`, production must atomically or fail-closed:
+
+1. suspend linked user accounts,
+2. invalidate all active sessions,
+3. prevent new login,
+4. write employee-transition history,
+5. write authentication/access audit events.
+
+The operator must not need a second manual "disable login" step after retirement.
+
 Employee-number change behavior:
 
 - `login_id` remains unchanged.
 - `users.employee_id` remains unchanged.
 - password/hash remains unchanged unless separately reset.
 - after the employee-number transaction commits, the next login uses the **new current employee number**.
+- existing authenticated sessions remain tied to immutable user/employee IDs, not the textual employee number; policy may invalidate them, but they must never become attached to another employee.
 - the old employee number continues to work in authorized business search, not authentication.
 
 ## 3. Authorization model

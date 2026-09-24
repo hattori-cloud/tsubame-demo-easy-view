@@ -1944,6 +1944,14 @@ function userLifecycleReason(u){
  if(e&&e.status==='退職')return '社員台帳が退職のためログイン停止対象';
  return ''
 }
+function userAccountNextAction(u){
+ let e=userLinkedEmployee(u),effective=userEffectiveState(u);
+ if(e?.status==='退職')return '退職連動：本番では即時停止＋全セッション失効';
+ if(effective!=='有効')return '停止中：必要なら本人確認後に再有効化';
+ if(u.role==='管理者'&&!userMfaReady(u))return 'MFA設定完了までは管理者ログインを許可しない';
+ if(u.adminLevel==='scoped'&&!(u.scopes||[]).length)return '担当範囲を設定してから業務利用を開始';
+ return '利用可：ID・現在社員番号・パスワードでログイン'
+}
 function currentPreviewUser(){
  let u=PREVIEW_MODE==='full'?USERS.find(u=>u.id==='EMP-1002'):PREVIEW_MODE==='scoped'?USERS.find(u=>u.id==='ADMIN-OPS'):USERS.find(u=>u.id==='EMP-1001');
  return u&&userEffectiveState(u)==='有効'?u:null
@@ -4953,14 +4961,21 @@ function showUserAccessDetail(id){
  </div></div>
  ${warnings.length?'<div class="detail-alert warn"><b>確認事項：</b> '+warnings.map(esc).join(' / ')+'</div>':'<div class="detail-alert ok">利用者台帳上の大きな警告はありません。</div>'}
  <div class="section"><h3>担当範囲</h3>${u.adminLevel==='full'?'<div class="row"><b>全社</b><span class="badge ok">固定</span></div>':scopes.length?scopes.map(s=>'<div class="row"><div><b>'+esc((s.office||'全事業所')+' × '+(s.dept||'全部署'))+'</b></div><span class="badge ok">許可</span></div>').join(''):'<div class="notice"><div><b>担当範囲が未設定です。</b><div class="mini">本番ではログインできても業務データを表示しない状態にします。</div></div><span class="badge warn">要設定</span></div>'}</div>
- <div class="section"><h3>ログイン運用情報</h3><div class="infogrid"><div class="info"><label>ログイン識別子（架空）</label><b>${esc(u.loginKey||'-')}</b></div><div class="info"><label>最終ログイン</label><b>${esc(u.lastLogin||'未接続')}</b></div><div class="info"><label>セッション</label><b>${userEffectiveState(u)==='有効'?Number(u.sessions||0):0}</b></div></div><div class="scope-note" style="margin-top:9px">共有デモでは認証・セッションは実動していません。本番ではサーバー側で管理します。</div></div>`;
+ <div class="section"><h3>ログイン運用情報</h3><div class="infogrid"><div class="info"><label>ログインID（架空）</label><b>${esc(u.loginKey||'-')}</b></div><div class="info"><label>現在社員番号</label><b>${esc(userLinkedEmployeeNo(u)||'-')}</b></div><div class="info"><label>最終ログイン</label><b>${esc(u.lastLogin||'未接続')}</b></div><div class="info"><label>有効セッション</label><b>${userEffectiveState(u)==='有効'?Number(u.sessions||0):0}</b></div></div><div class="scope-note" style="margin-top:9px"><b>次の対応：</b> ${esc(userAccountNextAction(u))}<br>共有デモでは認証・パスワード・セッションは実動していません。本番ではサーバー側で管理します。</div></div>
+ <div class="section"><h3>本番アカウント操作</h3><div class="readiness-grid">
+  <div class="ready-item ok"><b>アカウント発行</b><div class="mini">固定employee_idへログインIDを1つ紐付け、初期パスワードは本人に安全な方法で渡し、初回変更を必須化。</div></div>
+  <div class="ready-item ok"><b>権限変更</b><div class="mini">全社／担当範囲／本人のみを変更し、変更直後からAPI側で強制。監査ログへ記録。</div></div>
+  <div class="ready-item ok"><b>パスワードリセット</b><div class="mini">現在パスワードは表示せず、期限付きリセットだけを発行。完了後は必要に応じて既存セッションを失効。</div></div>
+  <div class="ready-item ok"><b>停止</b><div class="mini">停止操作と同時に全セッションを失効し、その後のAPIアクセスを拒否。</div></div>
+  <div class="ready-item ok"><b>退職連動</b><div class="mini">社員台帳を退職に確定した時点でログイン停止・セッション失効。本番では別操作を待たない。</div></div>
+ </div><div class="detail-alert warn"><b>このデモから本物のパスワード発行・停止はしません。</b><div class="mini">実社員データと本番認証を接続した後、全社管理者専用のサーバー操作として実装します。</div></div></div>`;
  showDetailModal()
 }
 function renderUserRows(){
  let el=document.getElementById('userRows');if(!el)return;
  let q=(document.getElementById('userQ')?.value||'').trim().toLowerCase(),role=document.getElementById('userRoleFilter')?.value||'all',state=document.getElementById('userStateFilter')?.value||'all';
- let rows=USERS.filter(u=>(role==='all'||userRoleLabel(u)===role)&&(state==='all'||userEffectiveState(u)===state)&&(!q||[u.id,u.name,u.scope,u.loginKey,userRoleLabel(u)].join(' ').toLowerCase().includes(q)));
- el.innerHTML=rows.length?rows.map(u=>{let w=userAccessWarnings(u),effective=userEffectiveState(u);return `<div class="row ${w.length?'quality-warn':''}"><div><b>${esc(u.id)} ${esc(u.name)}</b><div class="mini">${esc(userRoleLabel(u))} / ${esc(u.scope||'未設定')} / MFA ${esc(u.mfa||'未設定')} / 安全判断 ${u.safetyAuthority?'あり':'なし'}</div><div class="mini">認証 ${esc(u.authMethod||'本番未接続')} / セッション ${effective==='有効'?Number(u.sessions||0):0}${w.length?' / 要確認 '+w.map(esc).join('・'):''}</div></div><div class="toolbar">${badge(effective)}<button class="btn soft" onclick="showUserAccessDetail('${u.id}')">詳細</button></div></div>`}).join(''):'<div class="mini">条件に該当する利用者はいません。</div>'
+ let rows=USERS.filter(u=>{let eno=userLinkedEmployeeNo(u);return (role==='all'||userRoleLabel(u)===role)&&(state==='all'||userEffectiveState(u)===state)&&(!q||[u.id,u.name,u.scope,u.loginKey,eno,userRoleLabel(u)].join(' ').toLowerCase().includes(q))});
+ el.innerHTML=rows.length?rows.map(u=>{let w=userAccessWarnings(u),effective=userEffectiveState(u),eno=userLinkedEmployeeNo(u),next=userAccountNextAction(u);return `<div class="row ${w.length?'quality-warn':''}"><div><b>${esc(u.loginKey||u.id)} / ${esc(u.name)}</b><div class="mini">社員番号 ${esc(eno||'未紐付け')} / ${esc(userRoleLabel(u))} / ${esc(u.scope||'未設定')} / MFA ${esc(u.mfa||'未設定')}</div><div class="mini">次：${esc(next)}${w.length?' / 要確認 '+w.map(esc).join('・'):''}</div></div><div class="toolbar">${badge(effective)}<button class="btn primary" onclick="showUserAccessDetail('${u.id}')">確認・設定</button></div></div>`}).join(''):'<div class="mini">条件に該当する利用者はいません。</div>'
 }
 function showLoginDesign(){
  if(!isFullCompanyAdmin())return alert('本番ログイン設計は全社管理者のみ確認できます');
@@ -4986,9 +5001,15 @@ function showLoginDesign(){
 }
 function showUsers(){
  if(!isFullCompanyAdmin()){alert('利用者・権限設定は全社管理者のみ確認できます');return}
- dttl.textContent='利用者・権限設定（全社管理者専用）';
- dbody.innerHTML=`<div class="spec-note">管理者約10名での利用を想定した架空アカウント台帳です。本番では認証サービスのアカウントとこの台帳をサーバー側で照合します。</div>
- <div class="deadline-toolbar"><input id="userQ" placeholder="利用者ID・氏名・担当範囲で検索" oninput="renderUserRows()"><select id="userRoleFilter" onchange="renderUserRows()"><option value="all">全権限</option><option>全社管理者</option><option>担当管理者</option><option>一般社員</option></select><select id="userStateFilter" onchange="renderUserRows()"><option value="all">全状態</option><option>有効</option><option>停止</option></select></div>
+ dttl.textContent='利用者・ログイン・権限設定（全社管理者専用）';
+ dbody.innerHTML=`<div class="spec-note"><b>本番運用：</b>ログインは「ID＋現在社員番号＋パスワード」。この画面では、誰がログインできるか・どの範囲を操作できるか・停止すべき状態かを一緒に確認します。共有デモなので本物のパスワードは扱いません。</div>
+ <div class="readiness-grid" style="margin-bottom:10px">
+  <div class="ready-item ok"><b>① 発行</b><div class="mini">社員へ個人IDを発行</div></div>
+  <div class="ready-item ok"><b>② 権限</b><div class="mini">全社／担当範囲／本人</div></div>
+  <div class="ready-item ok"><b>③ MFA</b><div class="mini">管理者は必須</div></div>
+  <div class="ready-item ok"><b>④ 運用</b><div class="mini">停止・リセット・退職連動</div></div>
+ </div>
+ <div class="deadline-toolbar"><input id="userQ" placeholder="ログインID・社員番号・氏名・担当範囲で検索" oninput="renderUserRows()"><select id="userRoleFilter" onchange="renderUserRows()"><option value="all">全権限</option><option>全社管理者</option><option>担当管理者</option><option>一般社員</option></select><select id="userStateFilter" onchange="renderUserRows()"><option value="all">全状態</option><option>有効</option><option>停止</option></select></div>
  <div id="userRows"></div>`;
  showDetailModal();renderUserRows()
 }
