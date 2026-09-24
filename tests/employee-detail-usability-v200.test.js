@@ -87,3 +87,12 @@ test('retired employees sort below operational staff',()=>{
   assert.ok(sort.includes("b.status==='退職'"));
   assert.ok(sort.includes("if(aRetired!==bRetired)return aRetired?1:-1"));
 });
+
+
+test('top-level safety and analysis pages explain their different jobs',()=>{
+  assert.ok(html.includes('事故・ヒヤリ・苦情の日常処理を、登録から完了までまとめて管理します。'));
+  assert.ok(html.includes('分析センターへ'));
+  assert.ok(html.includes('詳細安全分析'));
+  assert.ok(html.includes('日々の案件処理とは分けて、安全・人事・総務の傾向と改善ポイントを確認します。'));
+  assert.ok(html.includes('旧社員番号でも検索できます。社員名または「見る」を押すと詳細を開き'));
+});

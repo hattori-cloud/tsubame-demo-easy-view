@@ -1196,7 +1196,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="emp"><div class="page-title"><div><h2>社員</h2><p>在籍・休職・退職予定・退職者をまとめて検索できます。</p></div><div class="toolbar"><button class="btn soft" onclick="exportEmployeesCsv()" title="現在の担当範囲だけを出力">CSV出力（担当範囲）</button><button id="employeeCreateBtn" class="btn primary" onclick="openEmployeeForm()">＋ 社員を登録</button></div></div>
-<div class="simple-note" id="employeeDemoNote">検証環境の社員データを表示しています。社員名または「詳細」を押すと社員詳細を開き、閉じると元の一覧位置へ戻ります。</div>
+<div class="simple-note" id="employeeDemoNote">検証環境の社員データを表示しています。旧社員番号でも検索できます。社員名または「見る」を押すと詳細を開き、閉じると元の一覧位置へ戻ります。</div>
 <div class="card simple-filter-card">
  <div class="simple-filter-title"><div><h3>社員を検索</h3><div class="mini">普段は検索とクイック絞り込みだけで使えます。</div></div></div>
  <div class="home-search-row"><input id="eq" placeholder="社員番号（旧番号も可）・氏名・部署・役職・号車・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';eemployment.value='';es.value='在籍';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
@@ -1243,12 +1243,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 </div></section>
 
 
-<section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリ・苦情を検索・登録・分析します。</p></div><div class="toolbar"><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情</button><button class="btn" onclick="openSafetyExportMenu()">CSV</button></div></div>
-<div class="simple-safety-bar"><div class="mini">未完了・期限超過・危険度の高い報告を優先して確認します。</div><div class="toolbar"><button class="btn" id="safeMyTaskBtn" onclick="toggleMyTasksOnly()">自分担当</button><button class="btn soft" onclick="clearAllSafetySearch()">検索解除</button></div></div>
+<section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリ・苦情の日常処理を、登録から完了までまとめて管理します。</p></div><div class="toolbar"><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情</button><button class="btn" onclick="openSafetyExportMenu()">CSV</button></div></div>
+<div class="simple-safety-bar"><div class="mini"><b>日常処理：</b>未完了・期限超過・危険度の高い報告をここで確認します。会社全体の傾向を見るときは「分析センター」へ進みます。</div><div class="toolbar"><button class="btn soft" onclick="go('analysis');setTimeout(()=>analysisCenterTab('safety'),40)">分析センターへ</button><button class="btn" id="safeMyTaskBtn" onclick="toggleMyTasksOnly()">自分担当</button><button class="btn soft" onclick="clearAllSafetySearch()">検索解除</button></div></div>
 <div id="safetyOverview" class="safety-overview" aria-label="運行・安全サマリー"></div>
 <div id="safetyPriorityQueue" class="safety-priority-queue" aria-label="今日の安全優先確認"></div>
 <div id="safetyMonthlySummary" class="safety-monthly-shell" aria-label="月次安全管理サマリー"></div>
-<div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="analysis" onclick="safeTab('analysis')">安全分析</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
+<div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="analysis" onclick="safeTab('analysis')">詳細安全分析</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
 <div class="tabpane active" id="safe-acc">
 <div class="acc-month-dashboard">
  <div class="acc-month-head"><div><h3>月次事故管理</h3><div class="mini">月約20件の事故を、件数だけでなく未完了・期限・修理費までまとめて確認します。</div></div><div class="acc-month-controls"><input id="accDashboardMonth" type="month" aria-label="事故集計月" onchange="renderAccMonthDashboard()"><button class="btn primary" onclick="applyAccDashboardMonth()">この月だけ表示</button><button class="btn soft" onclick="clearAccMonthFilter()">全期間</button></div></div>
@@ -1438,7 +1438,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="analysis"><div class="page-title"><div><h2>分析センター</h2><p>安全・人事・総務の情報を、会社全体の改善につながる形で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="renderAnalysisCenter()">再集計</button></div></div>
+<section class="page" id="analysis"><div class="page-title"><div><h2>分析センター</h2><p>日々の案件処理とは分けて、安全・人事・総務の傾向と改善ポイントを確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="renderAnalysisCenter()">再集計</button></div></div>
 <div class="simple-note">個人の順位付け・退職予測・危険人物判定は行いません。件数・変化・再発・未確認・教育テーマなど、会社側が改善できる傾向を確認します。</div>
 <div class="card analysis-center-filter-card" style="margin:12px 0">
  <div class="list-summary"><div><h3 style="margin:0">共通の分析条件</h3><div class="mini">ここで選んだ条件を、会社全体・安全・人事・総務へ共通適用します。</div></div><button class="btn soft" onclick="clearAnalysisCenterFilters()">条件をクリア</button></div>
