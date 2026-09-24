@@ -497,12 +497,10 @@ create table audit_logs (
 create or replace function reject_append_only_mutation()
 returns trigger
 language plpgsql
-as $
-begin
-  raise exception 'append-only table % does not allow %', TG_TABLE_NAME, TG_OP
-    using errcode = '55000';
-end;
-$;
+as 'begin
+  raise exception ''append-only table % does not allow %'', TG_TABLE_NAME, TG_OP
+    using errcode = ''55000'';
+end;';
 
 create trigger audit_logs_append_only_guard
 before update or delete on audit_logs
