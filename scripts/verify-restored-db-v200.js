@@ -27,7 +27,7 @@ async function expectAppendOnly(client,sql,label){
         exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid where c.relname='record_histories' and t.tgname='record_histories_append_only_guard' and not t.tgisinternal) as history_guard
     `);
     const o=objects.rows[0];
-    assert(Number(o.tables)===23,'restored table count expected 23, got '+o.tables);
+    assert(Number(o.tables)===29,'restored table count expected 29, got '+o.tables);
     assert(o.targets_ready&&o.compliance_ready&&o.audit_guard&&o.history_guard,'restored schema protection missing: '+JSON.stringify(o));
 
     const counts=await client.query(`
