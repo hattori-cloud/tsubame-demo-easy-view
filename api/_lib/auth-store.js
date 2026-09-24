@@ -51,10 +51,15 @@ async function clearLoginFailures(userId,client=null){
 async function createSession({userId,mfaVerified=false,tokenHash,ttlSeconds=28800,userAgentHash=null,ipPrefixHash=null},client=null){
   const r=await query(`
     insert into auth_sessions(user_id,token_hash,mfa_verified,expires_at,user_agent_hash,ip_prefix_hash)
-    values($1,$2,$3,now()+($4::text||' seconds')::interval,$5,$6)
+    select u.id,$2,$3,now()+($4::text||' seconds')::interval,$5,$6
+      from users u
+      join employees e on e.id=u.employee_id
+     where u.id=$1
+       and u.state='active'
+       and e.lifecycle_status<>'retired'
     returning id,user_id,mfa_verified,issued_at,expires_at
   `,[userId,tokenHash,Boolean(mfaVerified),String(ttlSeconds),userAgentHash,ipPrefixHash],client);
-  return r.rows[0]
+  return r.rows[0]||null
 }
 async function createMfaChallenge({userId,challengeHash,purpose='verify',ttlSeconds=300},client=null){
   const r=await query(`
