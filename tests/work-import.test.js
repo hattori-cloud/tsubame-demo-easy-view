@@ -98,6 +98,29 @@ test('impossible month and calendar date are blocking',async()=>{
   assert.ok(p.blocking_issues.some(x=>x.employee_no==='1002'&&x.issues.some(v=>v.includes('最終計上日'))))
 });
 
+test('invalid explicit target month is rejected instead of being replaced by last posted month',async()=>{
+  const buffer=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','September 2026',228,72,10,'2026-09-20'])
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,false);
+  assert.equal(p.preview[0].month,'September 2026');
+  assert.ok(p.blocking_issues.some(x=>x.employee_no==='1001'&&x.issues.some(v=>v.includes('対象月'))))
+});
+
+test('blank target month may be derived from a valid last posted date',async()=>{
+  const buffer=await workbookBuffer(async wb=>{
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    ws.addRow(['1001','',228,72,10,'2026-09-20'])
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,true);
+  assert.equal(p.preview[0].month,'2026-09')
+});
+
 test('leap-day validation accepts real leap day and rejects non-leap equivalent',async()=>{
   const good=await workbookBuffer(async wb=>{
     const ws=wb.addWorksheet('勤務');
