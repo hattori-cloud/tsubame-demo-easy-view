@@ -1161,7 +1161,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
    <button class="home-action-tile" onclick="go('vehicles')"><b>車両管理</b><span>号車・車検・担当を確認</span></button>
    <button class="home-action-tile" onclick="go('safe')"><b>運行・安全</b><span>事故・ヒヤリ・苦情</span></button>
    <button class="home-action-tile" onclick="go('analysis')"><b>分析センター</b><span>安全・人事・総務を横断</span></button>
-   <button class="home-action-tile" onclick="go('work')"><b>期限・勤務</b><span>期限・残業・健診を確認</span></button>
+   <button class="home-action-tile" onclick="openAnalysisWorkScreen('work')"><b>期限・勤務</b><span>期限・残業・健診を確認</span></button>
   </div>
  </div>
  <details class="detail-fold home-action-other"><summary>その他の操作</summary><div class="detail-fold-body"><div class="home-actions">
@@ -1211,7 +1211,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openOriginalDocumentCenter()">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openAnalysisWorkScreen('document')">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div class="work-manager-flow" aria-label="期限勤務の確認手順">
  <div class="work-manager-step"><span>1</span><div><b>まず期限</b><small>超過 → 本日 → 30日以内</small></div></div>
  <div class="work-manager-step"><span>2</span><div><b>次に勤務時間</b><small>残業時間と集計更新を確認</small></div></div>
@@ -3732,6 +3732,15 @@ function openSafetyAnalysisFromCenter(type='all'){
  let t=document.getElementById('analysisType');if(t)t.value=type||'all';
  renderSafetyAnalysis()
 }
+function openAnalysisWorkScreen(kind){
+ if(kind==='safety'){openSafetyAnalysisFromCenter();return}
+ if(kind==='credential'){openCredentialCenter();return}
+ if(kind==='document'){openOriginalDocumentCenter();return}
+ if(kind==='work'){go('work');return}
+ if(kind==='asset'){go('training');renderTraining();trainingTab('asset');return}
+ if(kind==='employee'){go('emp');return}
+ if(kind==='retired'){go('manage');requestAnimationFrame(()=>document.getElementById('retiredList')?.scrollIntoView({block:'center'}));return}
+}
 function analysisCenterTab(id){
  ANALYSIS_CENTER_TAB=id||'company';
  document.querySelectorAll('#analysis .tabpane').forEach(x=>x.classList.remove('active'));
@@ -3975,8 +3984,8 @@ function renderAnalysisCenter(){
   analysisSignal('率で見る準備','将来、走行距離・乗務回数・勤務日数が取れれば、単純件数に加えて10万km当たり等の発生率を表示できます。');
 
  let hk=document.getElementById('analysisHrKpis');if(hk)hk.innerHTML=
-  kpi('在籍',active.length+'名','現在')+kpi('今年度入社',hiresFy.length+'名','4月1日から')+
-  kpi('今年度退職',retireFy.length+'名','履歴確認分')+kpi('純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名','今年度')+
+  kpi('在籍',active.length+'名','現在')+kpi(range.label+'入社',hiresFy.length+'名',analysisCenterDateText(range.from)+'～'+analysisCenterDateText(range.to))+
+  kpi(range.label+'退職',retireFy.length+'名','退職日確認分')+kpi('純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名',range.label)+
   kpi('休職',leave.length+'名','現在')+kpi('退職予定',planned.length+'名','現在');
  let deptCount={};active.forEach(e=>{let k=(e.branch||'未設定')+' / '+(e.dept||'未設定');deptCount[k]=(deptCount[k]||0)+1});
  let hd=document.getElementById('analysisHrDepartments');if(hd)hd.innerHTML=analysisCountListHtml(deptCount,14);
@@ -4010,9 +4019,10 @@ function renderAnalysisCenter(){
  let newHireHigh=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&r.riskLevel==='高い').length;
  let hs=document.getElementById('analysisHrSignals');if(hs)hs.innerHTML=
   analysisSignal(range.label+'の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
-  analysisSignal('入社1年未満 × 安全','現在在籍 '+newHireNos.size+'名 / 直近12か月の事故 '+newHireAcc+'件 / ヒヤリ '+newHireNear+'件 / 高危険 '+newHireHigh+'件。新人教育の内容確認に使います。',newHireHigh?'warn':'')+
+  analysisSignal('入社1年未満 × 安全','現在在籍 '+newHireNos.size+'名 / '+range.label+'の事故 '+newHireAcc+'件 / ヒヤリ '+newHireNear+'件 / 高危険 '+newHireHigh+'件。新人教育の内容確認に使います。',newHireHigh?'warn':'')+
   analysisSignal('入社1年以内','現在の対象 '+hire1y.filter(e=>e.status!=='退職').length+'名。安全教育・資格・健診の初期フォローと横断できます。')+
-  analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。');
+  analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。')+
+  '<div class="row"><div><b>社員台帳・退職者を確認</b><div class="mini">分析から原記録へ移動します。</div></div><div class="toolbar"><button class="btn soft" onclick="openAnalysisWorkScreen(\'employee\')">社員台帳</button><button class="btn soft" onclick="openAnalysisWorkScreen(\'retired\')">退職者</button></div></div>';
 
  let gk=document.getElementById('analysisGeneralKpis');if(gk)gk.innerHTML=
   kpi('健診期限超過',overdueHealth.length+'名','在籍者')+kpi('資格期限超過',overdueQual.length+'件','在籍者の資格')+
@@ -4023,7 +4033,8 @@ function renderAnalysisCenter(){
   analysisSignal('健康診断','期限超過 '+overdueHealth.length+'名 / 30日以内 '+soonHealth.length+'名',overdueHealth.length?'danger':soonHealth.length?'warn':'')+
   analysisSignal('資格管理','期限超過 '+overdueQual.length+'件 / 30日以内 '+soonQual.length+'件',overdueQual.length?'danger':soonQual.length?'warn':'')+
   analysisSignal('適性診断','期限超過 '+overdueAptitude.length+'名 / 30日以内 '+soonAptitude.length+'名',overdueAptitude.length?'danger':soonAptitude.length?'warn':'')+
-  analysisSignal('安全指導・適性診断フォロー','期限超過 '+overdueTraining.length+'件 / 30日以内 '+soonTraining.length+'件 / 未完了 '+openTraining.length+'件',overdueTraining.length?'danger':openTraining.length?'warn':'');
+  analysisSignal('安全指導・適性診断フォロー','期限超過 '+overdueTraining.length+'件 / 30日以内 '+soonTraining.length+'件 / 未完了 '+openTraining.length+'件',overdueTraining.length?'danger':openTraining.length?'warn':'')+
+  '<div class="row"><div><b>資格・書類の実務画面</b><div class="mini">更新期限・証憑・原本のつながりを確認</div></div><button class="btn primary" onclick="openAnalysisWorkScreen(\'credential\')">開く</button></div>';
  let gw=document.getElementById('analysisGeneralWork');if(gw)gw.innerHTML=
   analysisSignal('勤務時間','45時間以上 '+overtime45.length+'名 / 60時間以上 '+overtime60.length+'名',overtime60.length?'danger':overtime45.length?'warn':'')+
   analysisSignal('勤務集計','更新確認が必要 '+workNeedsReview.length+'名',workNeedsReview.length?'warn':'')+
@@ -7005,7 +7016,7 @@ function safetyAnalysisData(){
 }
 function populateSafetyAnalysisFilters(){
  let records=[...scopedAccidents(),...scopedComplaints(),...scopedNearMisses()];
- let employees=[...new Set(records.map(x=>String(x.employee_no||'')).filter(Boolean))].map(emp).filter(Boolean);
+ let employees=scopedEmployees().slice();
  let setOptions=(id,values,label,current)=>{
   let el=document.getElementById(id);if(!el)return;
   let vals=[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
