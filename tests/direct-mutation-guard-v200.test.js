@@ -45,3 +45,23 @@ test('coreMutationReady delegates stale-state messaging to save without modifyin
     assert.equal(block.includes(token),false,token+' must not appear in readiness guard')
   }
 });
+
+
+test('future direct save actions cannot bypass stale-state guard silently',()=>{
+  const allowedInfrastructure=new Set([
+    'ensureStableEmployeeReferences',
+    'ensureRecordMetadata',
+    'save',
+    'coreMutationReady',
+    'runSystemDiagnosticChecks'
+  ]);
+  const unguarded=[];
+  for(const match of source.matchAll(/function\s+([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*\{/g)){
+    const name=match[1],block=functionBlock(name);
+    if(!block.includes('save()'))continue;
+    if(block.includes('fsave.onclick'))continue;
+    if(allowedInfrastructure.has(name))continue;
+    if(!block.includes('coreMutationReady()'))unguarded.push(name);
+  }
+  assert.deepEqual(unguarded,[]);
+});
