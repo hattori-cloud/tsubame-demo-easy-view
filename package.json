@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Tsubame employee and operations management demo / production foundation",
   "engines": {
-    "node": ">=22"
+    "node": "22.x"
   },
   "dependencies": {
     "@ayocore/exceljs": "5.0.4",
