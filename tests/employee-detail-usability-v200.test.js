@@ -54,7 +54,7 @@ test('retired employees never appear in operational risk filters',()=>{
 });
 
 test('employee list shows daily attention separately from lifecycle status',()=>{
-  const list=block('function employeeListOperationHtml','function isFavorite');
+  const list=block('function employeeDeadlineHtml','function isFavorite');
   assert.ok(list.includes('function employeeListAttentionHtml'));
   assert.ok(list.includes('今日の確認'));
   assert.ok(list.includes('employeeListAttentionHtml(e)'));
@@ -69,13 +69,13 @@ test('retired employee deadlines are presented as history, not urgent work',()=>
 });
 
 test('retired rows do not receive operational danger or warning classes',()=>{
-  const list=block('function renderEmp','function employeePage');
+  const list=block('function renderEmp()','function employeePage(page)');
   assert.ok(list.includes("operational=e.status!=='退職'"));
   assert.ok(list.includes('operational&&'));
 });
 
 test('mobile employee cards expose lifecycle and daily attention',()=>{
-  const list=block('function renderEmp','function employeePage');
+  const list=block('function renderEmp()','function employeePage(page)');
   assert.ok(list.includes("${esc(e.status||'未設定')}"));
   assert.ok(list.includes('<label class="mini">今日の確認</label>'));
   assert.ok(list.includes('employeeListAttentionHtml(e)'));
