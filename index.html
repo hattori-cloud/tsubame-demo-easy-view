@@ -7167,15 +7167,16 @@ function safetyAnalysisRecordEmployee(rec){
 }
 function safetyAnalysisRecordSnapshot(rec){
  let e=safetyAnalysisRecordEmployee(rec);
- let workplace=String(rec?.officeAtRecord||rec?.officeAtReport||rec?.branchAtRecord||'').trim();
- let dept=String(rec?.departmentAtRecord||rec?.departmentAtReport||rec?.deptAtRecord||rec?.dept||'').trim();
- let employment=String(rec?.employmentAtRecord||rec?.employmentAtReport||'').trim();
- let hasSnapshot=!!(workplace||dept||employment);
+ let workplaceSnapshot=String(rec?.officeAtRecord||rec?.officeAtReport||rec?.branchAtRecord||'').trim();
+ let deptSnapshot=String(rec?.departmentAtRecord||rec?.departmentAtReport||rec?.deptAtRecord||rec?.dept||'').trim();
+ let employmentSnapshot=String(rec?.employmentAtRecord||rec?.employmentAtReport||'').trim();
+ let snapshotFields=[workplaceSnapshot,deptSnapshot,employmentSnapshot].filter(Boolean).length;
  return {
-  workplace:workplace||String(e?.workplace||e?.branch||''),
-  dept:dept||String(e?.dept||''),
-  employment:employment||String(e?.employment||''),
-  source:hasSnapshot?'snapshot':'current'
+  workplace:workplaceSnapshot||String(e?.workplace||e?.branch||''),
+  dept:deptSnapshot||String(e?.dept||''),
+  employment:employmentSnapshot||String(e?.employment||''),
+  source:snapshotFields===3?'snapshot':snapshotFields>0?'partial':'current',
+  snapshotFields
  }
 }
 function safetyAnalysisRecordMatches(rec,workplace,dept,employment,employeeNo,vehicle){
@@ -7359,7 +7360,8 @@ function renderSafetyAnalysis(){
  let openAcc=accidents.filter(a=>a.phase!=='完了').length,openComp=complaints.filter(x=>x.status!=='完了').length;
  let people=new Set([...accidents.map(x=>String(x.employee_no)),...complaints.map(x=>String(x.employee_no)),...near.map(x=>String(x.employee_no))]).size;
  let repairTotal=accidents.reduce((sum,a)=>sum+accidentTotalRepairCost(a),0);
- let snapshotCount=[...accidents,...complaints,...near].filter(r=>safetyAnalysisRecordSnapshot(r).source==='snapshot').length;
+ let snapshotStates=[...accidents,...complaints,...near].map(r=>safetyAnalysisRecordSnapshot(r).source);
+ let snapshotCount=snapshotStates.filter(x=>x==='snapshot').length,partialSnapshotCount=snapshotStates.filter(x=>x==='partial').length,currentScopeFallbackCount=snapshotStates.filter(x=>x==='current').length;
  let accidentAnalysisReady=accidents.filter(a=>String(a.accidentType||'').trim()&&!['未設定','未入力'].includes(String(a.accidentType||'').trim())&&String(a.district||'').trim()&&!['未設定','未入力'].includes(String(a.district||'').trim())).length;
  let complaintAnalysisReady=complaints.filter(c=>c.rank&&c.rank!=='未判定').length;
  let nearAnalysisReady=near.filter(n=>!nearNeedsAnalysis(n)).length;
@@ -7375,7 +7377,7 @@ function renderSafetyAnalysis(){
   '<div class="analysis-kpi"><small>事故1件平均修理費</small><b>'+averageRepair.toLocaleString('ja-JP')+'円</b><div class="mini">合計÷事故件数</div></div>'+
   '<div class="analysis-kpi"><small>高危険比率</small><b>'+analysisPercent(high,near.length)+'</b><div class="mini">高危険ヒヤリ÷ヒヤリ</div></div>'+
   '<div class="analysis-kpi"><small>未完了比率</small><b>'+analysisPercent(openAcc+openComp,accidents.length+complaints.length)+'</b><div class="mini">事故・苦情内</div></div>'+
-  '<div class="analysis-kpi"><small>所属スナップショット</small><b>'+analysisPercent(snapshotCount,total)+'</b><div class="mini">記録時所属を保持</div></div>'+
+  '<div class="analysis-kpi"><small>所属スナップショット完全率</small><b>'+analysisPercent(snapshotCount,total)+'</b><div class="mini">完全 '+snapshotCount+' / 一部 '+partialSnapshotCount+'</div></div>'+
   '<div class="analysis-kpi"><small>分析項目充足率</small><b>'+analysisPercent(analysisReady,total)+'</b><div class="mini">不足 '+Math.max(0,total-analysisReady)+'件</div></div>'+
   '<div class="analysis-kpi"><small>対象社員</small><b>'+people+'</b><div class="mini">安全記録に登場</div></div>';
  let months={};
@@ -7421,7 +7423,7 @@ function renderSafetyAnalysis(){
   let typeLabel={all:'事故＋苦情＋ヒヤリ',accident:'事故のみ',complaint:'苦情のみ',near:'ヒヤリのみ'}[type]||type;
   note.innerHTML='<b>集計条件：</b> '+esc(period)+' / '+esc(typeLabel)+(scope.length?' / '+scope.map(esc).join(' / '):' / 表示権限範囲全体')+
    '<div class="analysis-scope-summary"><span>安全記録 '+total+'件</span><span>対象社員 '+people+'名</span><span>未完了 '+(openAcc+openComp)+'件</span><span>高危険ヒヤリ '+high+'件</span></div>'+
-   '<span class="mini">事業所・部署・雇用区分は記録時スナップショットを優先し、旧データで未保存の場合だけ社員台帳の現在所属を代用します（現在所属代用 '+Math.max(0,total-snapshotCount)+'件）。号車別は3桁号車が登録された記録のみ。件数は走行距離・乗務回数で補正していないため、真の発生率や社員・部署の評価にはそのまま使わず、個別記録確認の入口として利用してください。</span>'
+   '<span class="mini">事業所・部署・雇用区分は記録時スナップショットを優先します。完全 '+snapshotCount+'件 / 一部のみ '+partialSnapshotCount+'件 / 3項目とも現在台帳を代用 '+currentScopeFallbackCount+'件。旧データを推測で埋めません。号車別は3桁号車が登録された記録のみ。件数は走行距離・乗務回数で補正していないため、真の発生率や社員・部署の評価にはそのまま使わず、個別記録確認の入口として利用してください。</span>'
  }
 }
 
