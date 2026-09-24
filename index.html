@@ -1183,7 +1183,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 </div>
 <div id="empListSummary" class="emp-list-summary"></div>
 <div id="empTodaySummary" class="card" style="margin:12px 0"></div>
-<div class="table-card"><div class="table-head"><strong>社員一覧</strong><span class="mini">重要な確認がある社員から表示</span></div><div class="tablewrap"><table><thead><tr><th>社員</th><th>所属</th><th>号車・認定</th><th>最優先期限</th><th>安全・乗務</th><th>状態</th><th>操作</th></tr></thead><tbody id="empbody"></tbody></table></div></div>
+<div class="table-card"><div class="table-head"><strong>社員一覧</strong><span class="mini">重要な確認がある社員から表示</span></div><div class="tablewrap"><table><thead><tr><th>社員</th><th>所属</th><th>号車・認定</th><th>今日の確認</th><th>最優先期限</th><th>安全・乗務</th><th>操作</th></tr></thead><tbody id="empbody"></tbody></table></div></div>
 <div id="empMobileList" class="emp-mobile-list"></div><div id="empPager" class="emp-pager"></div></section>
 
 
@@ -4960,6 +4960,7 @@ function renderEmployeeTodaySummary(list=scopedEmployees()){
 }
 function employeeRiskMatch(e,risk){
  if(!risk)return true;
+ if(e.status==='退職'&&['daily','attention','expired','soon','blocked'].includes(risk))return false;
  if(risk==='daily')return employeeDailyAttentionItems(e.no).length>0;
  let d=employeeNearestDeadline(e),n=d?d.n:9999;
  if(risk==='expired')return e.safetyState==='期限切れ'||n<0;
@@ -4969,10 +4970,18 @@ function employeeRiskMatch(e,risk){
  return true
 }
 function employeeDeadlineHtml(e){
+ if(e.status==='退職')return '<div class="emp-deadline"><strong>退職履歴</strong><small>日常の期限対応対象外</small></div>';
  let d=employeeNearestDeadline(e);
  if(!d)return '<span class="mini">期限登録なし</span>';
  let cls=d.n<0?'over':d.n<=30?'soon':'',txt=d.n<0?Math.abs(d.n)+'日超過':d.n===0?'本日':d.n+'日後';
  return `<div class="emp-deadline ${cls}"><strong>${esc(d.label)} ${esc(d.date)}</strong><small>${txt}</small></div>`
+}
+function employeeListAttentionHtml(e){
+ if(e.status==='退職')return '<div class="emp-list-attention history"><span class="badge">履歴</span><small>日常対応なし</small></div>';
+ let meta=employeeDailyAttentionMeta(e);
+ if(!meta.count)return '<div class="emp-list-attention ok"><span class="badge ok">確認なし</span><small>通常確認</small></div>';
+ let first=meta.items[0],tone=meta.danger?'danger':'warn';
+ return '<div class="emp-list-attention '+tone+'"><span class="badge '+tone+'">確認 '+meta.count+'件</span><small>'+esc(first?.title||'要確認')+'</small></div>'
 }
 function employeeRiskRank(e){
  let d=employeeNearestDeadline(e),elig=String(e.eligibility||''),state=e.safetyState||'正常';
@@ -5061,9 +5070,9 @@ function renderEmp(){
  let summary=document.getElementById('empListSummary');
  if(summary){let scopeLabel=PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent,attention=filtered.filter(e=>employeeRiskMatch(e,'attention')).length,scopeRows=scopedEmployees(),daily=scopeRows.filter(e=>e.status!=='退職'&&employeeRiskMatch(e,'daily')).length;summary.innerHTML=`<div><b>表示範囲：${esc(scopeLabel)}</b><div class="mini">検索・絞り込み後 ${filtered.length}名 / 担当範囲 ${scopeRows.length}名 ・ ${es.value==='退職'?'退職履歴を表示中':es.value?'在籍状態で絞り込み中':'全状態'} ・ ${risk==='daily'?'今日は総合優先順':'標準は安全優先順'}</div></div><div class="toolbar"><button class="btn ${daily?'warn':'soft'}" style="min-height:38px;padding:6px 10px" onclick="setEmployeeQuickFilter('daily')">今日確認 ${daily}名</button><span class="badge ${attention?'warn':'ok'}">期限・安全 ${attention}名</span>${employeeCertSummaryHtml(scopeRows)}</div>`}
  renderEmployeeTodaySummary(scopedEmployees());
- empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),rowClass=(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></td><td><div class="emp-affiliation"><b>${esc(e.branch)}</b><span>${esc(e.dept)}</span>${e.taxiSection?`<small>${esc(e.taxiSection)}${e.team?' / '+esc(e.team):''}</small>`:''}</div></td><td>${employeeListOperationHtml(e)}</td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td>${badge(e.status)}</td><td><button class="btn primary emp-open-btn" onclick="employeeDetail('${e.no}')">見る</button></td></tr>`}).join('');
+ empbody.innerHTML=arr.map(e=>{let d=employeeNearestDeadline(e),operational=e.status!=='退職',rowClass=operational&&(e.safetyState==='期限切れ'||String(e.eligibility||'').includes('不可')||(d&&d.n<0))?'emp-row-danger':operational&&((e.safetyState&&e.safetyState!=='正常')||(d&&d.n<=30))?'emp-row-warn':'';return `<tr class="${rowClass}"><td><button class="link emp-person-name" onclick="employeeDetail('${e.no}')">${esc(e.name)}</button><div class="emp-person-meta">社員番号 ${e.no} / ${esc(e.position||'一般')} / ${badge(e.status)}</div></td><td><div class="emp-affiliation"><b>${esc(e.branch)}</b><span>${esc(e.dept)}</span>${e.taxiSection?`<small>${esc(e.taxiSection)}${e.team?' / '+esc(e.team):''}</small>`:''}</div></td><td>${employeeListOperationHtml(e)}</td><td>${employeeListAttentionHtml(e)}</td><td>${employeeDeadlineHtml(e)}</td><td><div class="emp-safety-stack">${badge(e.safetyState||'正常')}${badge(e.eligibility||'対象外')}<span class="emp-safety-note">${operational&&String(e.eligibility||'').includes('不可')?'更新確認まで乗務不可':''}</span></div></td><td><button class="btn primary emp-open-btn" onclick="employeeDetail('${e.no}')">見る</button></td></tr>`}).join('');
  let mobile=document.getElementById('empMobileList');
- if(mobile){mobile.innerHTML=arr.length?arr.map(e=>{let vi=employeeListVehicleInfo(e);return `<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>所属</label><b>${esc(e.branch)} / ${esc(e.dept)}</b></div><div><label>号車</label><b>${e.dept==='タクシー課'?(vi.plate?esc(vi.plate)+'号車':'未登録'):'対象外'}</b></div></div>${e.dept==='タクシー課'?'<div class="emp-mobile-operation"><label class="mini">乗務員認定</label><div>'+(driverCertBadgesHtml(e)||'<span class="mini">認定なし</span>')+'</div></div>':''}<div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div><button class="btn primary" onclick="event.stopPropagation();employeeDetail('${e.no}')">見る</button></article>`}).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
+ if(mobile){mobile.innerHTML=arr.length?arr.map(e=>{let vi=employeeListVehicleInfo(e);return `<article class="emp-mobile-card" onclick="employeeDetail('${e.no}')"><div class="emp-mobile-card-top"><div><div class="emp-mobile-card-name">${esc(e.name)}</div><div class="emp-mobile-card-no">社員番号 ${e.no} / ${esc(e.position||'一般')} / ${esc(e.status||'未設定')}</div></div>${badge(e.safetyState||'正常')}</div><div class="emp-mobile-card-meta"><div><label>所属</label><b>${esc(e.branch)} / ${esc(e.dept)}</b></div><div><label>号車</label><b>${e.dept==='タクシー課'?(vi.plate?esc(vi.plate)+'号車':'未登録'):'対象外'}</b></div></div>${e.dept==='タクシー課'?'<div class="emp-mobile-operation"><label class="mini">乗務員認定</label><div>'+(driverCertBadgesHtml(e)||'<span class="mini">認定なし</span>')+'</div></div>':''}<div class="emp-mobile-operation"><label class="mini">今日の確認</label>${employeeListAttentionHtml(e)}</div><div class="emp-mobile-deadline"><label class="mini">最優先期限</label>${employeeDeadlineHtml(e)}</div><div class="mini" style="margin-top:7px">乗務可否：${esc(e.eligibility||'対象外')}</div><button class="btn primary" onclick="event.stopPropagation();employeeDetail('${e.no}')">見る</button></article>`}).join(''):'<div class="emp-mobile-empty">該当する社員はいません。</div>'}
  let pager=document.getElementById('empPager');
  if(pager){if(filtered.length===0){pager.innerHTML=''}else{let from=start+1,to=Math.min(start+EMP_PER_PAGE,filtered.length);pager.innerHTML=`<button class="btn" ${EMP_PAGE<=1?'disabled':''} onclick="employeePage(${EMP_PAGE-1})">← 前へ</button><span class="emp-page-info">${from}〜${to}件 / 全${filtered.length}件 （${EMP_PAGE}/${pages}ページ）</span><button class="btn" ${EMP_PAGE>=pages?'disabled':''} onclick="employeePage(${EMP_PAGE+1})">次へ →</button>`}}
 }
