@@ -265,7 +265,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 @media(max-width:420px){.employee-detail-jumps{grid-template-columns:1fr}}
 
 /* v46 employee detail tabs */
-.employee-detail-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 12px;position:sticky;top:0;z-index:4;background:#fff;padding:8px 0;border-bottom:1px solid var(--line)}
+.employee-detail-tabs{display:grid;grid-template-columns:1fr;gap:9px;margin:14px 0 12px;position:sticky;top:0;z-index:4;background:#fff;padding:8px 0;border-bottom:1px solid var(--line)}
+.employee-detail-tab-group{display:grid;grid-template-columns:150px repeat(3,minmax(0,1fr));gap:8px;align-items:stretch}
+.employee-detail-tab-group-label{display:flex;flex-direction:column;justify-content:center;border-radius:12px;padding:8px 10px;background:#eef6fa;border:1px solid #d6e5ec;color:#31596b}
+.employee-detail-tab-group-label b{font-size:.78rem}.employee-detail-tab-group-label span{font-size:.64rem;font-weight:800;color:#6a808b;margin-top:2px}
+.employee-detail-tab-group.secondary .employee-detail-tab-group-label{background:#f7f8f9;color:#5d7079}
 .employee-detail-tab{min-height:52px;border:1px solid #c9dbe4;border-radius:12px;background:#f7fafc;color:#31596b;font-weight:950;cursor:pointer;padding:9px 10px}
 .employee-detail-tab:hover{background:#eef7fb}
 .employee-detail-tab.active{background:var(--b);color:#fff;border-color:var(--b);box-shadow:0 4px 12px rgba(22,56,76,.12)}
@@ -277,7 +281,8 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .employee-history-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
 .employee-history-summary .mini-card{border:1px solid var(--line);border-radius:11px;background:#f8fbfc;padding:10px}
 .employee-history-summary .mini-card b{display:block;font-size:1.1rem;color:#173f57}
-@media(max-width:700px){.employee-detail-tabs{grid-template-columns:1fr;position:static}.employee-history-summary{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.employee-detail-tab-group{grid-template-columns:1fr 1fr}.employee-detail-tab-group-label{grid-column:1/-1;min-height:auto}.employee-detail-tabs{position:static}}
+@media(max-width:520px){.employee-detail-tab-group{grid-template-columns:1fr}.employee-detail-tab-group-label{grid-column:auto}.employee-history-summary{grid-template-columns:1fr 1fr}}
 /* v46 home usability */
 .home-scope-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #cfe0e8;background:#f6fafc;border-radius:13px;padding:12px 14px;margin-bottom:12px}
 .home-scope-bar strong{color:#173f57;font-size:1.03rem}
@@ -4924,7 +4929,7 @@ function employeeNearestDeadline(e){
  if(e.licenseExpiry)items.push({label:'免許',date:e.licenseExpiry,n:days(e.licenseExpiry)});
  if(e.health)items.push({label:'健康診断',date:e.health,n:days(e.health)});
  if(e.aptitudeNext)items.push({label:'適性診断',date:e.aptitudeNext,n:days(e.aptitudeNext)});
- QUAL.filter(q=>q.employee_no===e.no&&q.expiry).forEach(q=>items.push({label:q.name||'資格',date:q.expiry,n:days(q.expiry)}));
+ QUAL.filter(q=>q.employee_no===e.no&&q.expiry&&q.status!=='無効'&&q.status!=='失効').forEach(q=>items.push({label:q.name||'資格',date:q.expiry,n:days(q.expiry)}));
  TR.filter(t=>t.employee_no===e.no&&t.status!=='完了'&&t.due).forEach(t=>items.push({label:t.course||'安全指導',date:t.due,n:days(t.due)}));
  items=items.filter(x=>Number.isFinite(x.n)).sort((a,b)=>deadlinePriority(a.date)-deadlinePriority(b.date)||a.n-b.n);
  return items[0]||null
@@ -5031,8 +5036,7 @@ function openEmployeeInList(no){
 }
 function employeeDetailRouteHtml(e,source){
  let src=String(source||'元の画面');
- return '<div class="employee-detail-route"><div class="employee-detail-route-main"><small>開いた場所</small><b id="employeeDetailSourceLabel" data-source="'+esc(src)+'">'+esc(src)+' → 社員詳細</b><span>社員番号 '+esc(e.no)+' / 閉じると元の画面・検索結果・位置へ戻ります</span></div><div class="employee-detail-route-actions"><button class="btn soft" onclick="closeDetail()">← 元の画面へ</button><button class="btn" onclick="openEmployeeInList(\''+String(e.no).replaceAll("'","")+'\')">社員一覧で表示</button></div></div>'+
- '<div class="employee-detail-jumps" aria-label="社員詳細の区分へ移動"><button class="btn soft" onclick="setEmployeeDetailTab(\'safety\')">安全</button><button class="btn soft" onclick="setEmployeeDetailTab(\'basic\')">基本</button><button class="btn soft" onclick="setEmployeeDetailTab(\'work\')">勤務</button><button class="btn soft" onclick="setEmployeeDetailTab(\'qualification\')">資格</button><button class="btn soft" onclick="setEmployeeDetailTab(\'affiliation\')">所属</button><button class="btn soft" onclick="setEmployeeDetailTab(\'documents\')">書類</button></div>'
+ return '<div class="employee-detail-route"><div class="employee-detail-route-main"><small>開いた場所</small><b id="employeeDetailSourceLabel" data-source="'+esc(src)+'">'+esc(src)+' → 社員詳細</b><span>社員番号 '+esc(e.no)+' / 閉じると元の画面・検索結果・位置へ戻ります</span></div><div class="employee-detail-route-actions"><button class="btn soft" onclick="closeDetail()">← 元の画面へ</button><button class="btn" onclick="openEmployeeInList(\''+String(e.no).replaceAll("'","")+'\')">社員一覧で表示</button></div></div>'
 }
 function employeeListVehicleInfo(e){
  let vehicles=employeeAssignedVehicles(e.no);
@@ -5656,12 +5660,12 @@ function employeeDetailAttentionHtml(no){
  let openComplaint=C.filter(x=>x.employee_no===no&&x.status!=='完了').length;
  let recentNear=N.filter(x=>x.employee_no===no&&x.date).filter(x=>{let age=-days(x.date);return age>=0&&age<=90}).length;
  let deadlineDates=[e.licenseExpiry,e.health,e.aptitudeNext,
-   ...QUAL.filter(q=>q.employee_no===no&&q.expiry).map(q=>q.expiry),
+   ...QUAL.filter(q=>q.employee_no===no&&q.expiry&&q.status!=='無効'&&q.status!=='失効').map(q=>q.expiry),
    ...TR.filter(t=>t.employee_no===no&&t.status!=='完了'&&t.due).map(t=>t.due)
  ].filter(Boolean);
  let deadlineAttention=deadlineDates.filter(d=>days(d)<=30).length,deadlineOver=deadlineDates.filter(d=>days(d)<0).length;
  let tone=(openAcc||deadlineOver)?'danger':(openComplaint||deadlineAttention||recentNear)?'warn':'ok';
- return `<div class="detail-primary"><h3>現在の管理サマリー</h3><div class="detail-primary-grid">
+ return `<div class="detail-primary"><h3>普段の管理サマリー</h3><div class="detail-primary-grid">
   <div class="detail-primary-item"><label>未完了事故</label><b>${openAcc}件</b><span class="badge ${openAcc?'danger':'ok'}">${openAcc?'対応中':'なし'}</span></div>
   <div class="detail-primary-item"><label>未完了苦情</label><b>${openComplaint}件</b><span class="badge ${openComplaint?'warn':'ok'}">${openComplaint?'対応中':'なし'}</span></div>
   <div class="detail-primary-item"><label>直近90日ヒヤリ</label><b>${recentNear}件</b><span class="badge ${recentNear?'warn':'ok'}">${recentNear?'傾向確認':'なし'}</span></div>
@@ -5988,13 +5992,19 @@ function employeeDetail(no){
  ${employeeDetailAttentionHtml(no)}
  <details class="detail-fold"><summary>関連情報（号車・認定・安全記録）</summary><div class="detail-fold-body">${employeeOperationalOverviewHtml(no)}</div></details>
  <div id="employeeDetailTabRoot">
-  <div class="employee-detail-tabs" role="tablist" aria-label="社員台帳 6区分">
-   <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="safety" onclick="setEmployeeDetailTab('safety')">安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="work" onclick="setEmployeeDetailTab('work')">勤務</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="qualification" onclick="setEmployeeDetailTab('qualification')">資格</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="affiliation" onclick="setEmployeeDetailTab('affiliation')">所属</button>
-   <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="documents" onclick="setEmployeeDetailTab('documents')">書類</button>
+  <div class="employee-detail-tabs" role="tablist" aria-label="社員詳細 6区分">
+   <div class="employee-detail-tab-group primary">
+    <div class="employee-detail-tab-group-label"><b>普段見る</b><span>安全・期限・資格</span></div>
+    <button class="employee-detail-tab active" role="tab" aria-selected="true" data-tab="safety" onclick="setEmployeeDetailTab('safety')">安全${danger||warn?'<span class="tab-alert">要確認</span>':''}</button>
+    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="work" onclick="setEmployeeDetailTab('work')">勤務・期限</button>
+    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="qualification" onclick="setEmployeeDetailTab('qualification')">資格</button>
+   </div>
+   <div class="employee-detail-tab-group secondary">
+    <div class="employee-detail-tab-group-label"><b>必要な時に見る</b><span>台帳・所属・書類</span></div>
+    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="basic" onclick="setEmployeeDetailTab('basic')">基本台帳</button>
+    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="affiliation" onclick="setEmployeeDetailTab('affiliation')">所属</button>
+    <button class="employee-detail-tab" role="tab" aria-selected="false" data-tab="documents" onclick="setEmployeeDetailTab('documents')">書類</button>
+   </div>
   </div>
 
   <div class="employee-detail-panel" data-panel="basic">
