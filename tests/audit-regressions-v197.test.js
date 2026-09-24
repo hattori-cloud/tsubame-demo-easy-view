@@ -93,3 +93,11 @@ test('deadline center excludes inactive credentials and historical document vers
   assert.ok(block.includes("d.status!=='差替え済み'"));
   assert.ok(block.includes("d.status!=='無効'"))
 });
+
+test('recovery-required key is not evaluated before its declaration',()=>{
+  const declaration=source.indexOf("const CORE_RECOVERY_REQUIRED_KEY='v197CORE_RECOVERY_REQUIRED'");
+  assert.ok(declaration>=0,'recovery key declaration missing');
+  const prefix=source.slice(0,declaration);
+  assert.equal(prefix.includes('CORE_RECOVERY_REQUIRED_KEY'),false,'recovery key referenced before initialization');
+  assert.ok(source.includes("const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE','v197CORE_RECOVERY_REQUIRED']"));
+});
