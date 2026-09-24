@@ -1211,7 +1211,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 
-<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openAnalysisWorkScreen('document')">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openOriginalDocumentCenter()">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
 <div id="workAnalysisScopeNotice"></div>
 <div class="work-manager-flow" aria-label="期限勤務の確認手順">
  <div class="work-manager-step"><span>1</span><div><b>まず期限</b><small>超過 → 本日 → 30日以内</small></div></div>
@@ -4131,7 +4131,7 @@ function renderAnalysisCenter(){
   analysisSignal('乗務社員の健康診断期限','未設定 '+missingDriverHealth.length+'名',missingDriverHealth.length?'danger':'')+
   analysisSignal('乗務社員の適性診断次回','未設定 '+missingDriverAptitude.length+'名',missingDriverAptitude.length?'danger':'')+
   analysisSignal('原本管理','原本ファイル本体は共有デモに保存しません。現在は管理メタデータのみを分析しています。');
-
+}
 
 let SAFE_ACTIVE_TAB='acc';
 function safeTab(id){
