@@ -42,6 +42,18 @@ test('document policy rules enforce strict security',()=>{
 });
 
 test('document storage lifecycle and purge approval are fail-closed',()=>{
+  assert.match(sql,/content_sha256 char\(64\) check \(content_sha256 is null or content_sha256 ~ '\^\[0-9a-f\]\{64\}\  assert.match(sql,/storage_state text not null default 'not_uploaded'/);
+  assert.match(sql,/storage_state in \('not_uploaded','quarantine','active','blocked','restore_only','purged'\)/);
+  assert.match(sql,/uploaded_by_user_id uuid references users\(id\)/);
+  assert.match(sql,/content_sha256 char\(64\)/);
+  assert.match(sql,/create table document_purge_requests/i);
+  assert.match(sql,/approved_by_user_id <> requested_by_user_id/);
+  assert.match(sql,/state in \('requested','approved','rejected','executed','failed','cancelled'\)/);
+});
+\),/);
+  assert.match(sql,/malware_scan_status text not null default 'not_scanned'/);
+  assert.match(sql,/malware_scan_status in \('not_scanned','pending','clean','blocked','error'\)/);
+  assert.match(sql,/malware_scanned_at timestamptz/);
   assert.match(sql,/storage_state text not null default 'not_uploaded'/);
   assert.match(sql,/storage_state in \('not_uploaded','quarantine','active','blocked','restore_only','purged'\)/);
   assert.match(sql,/uploaded_by_user_id uuid references users\(id\)/);
