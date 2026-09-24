@@ -57,12 +57,19 @@ function numberValue(v){
   return Number.isFinite(n)?n:null
 }
 function numberCellValue(cell){
-  const raw=cellValue(cell);
-  if(typeof raw==='number'&&Number.isFinite(raw)){
-    const fmt=String(cell?.numFmt||'').toLowerCase();
-    if(/\[h\]|h+:mm|h:mm/.test(fmt))return raw*24
+  const fmt=String(cell?.numFmt||'').toLowerCase();
+  const durationFormat=/\[h\]|h+:mm|h:mm/.test(fmt);
+  let direct=cell?.value;
+  if(direct&&typeof direct==='object'&&direct.result!==undefined)direct=direct.result;
+  if(durationFormat){
+    if(typeof direct==='number'&&Number.isFinite(direct))return direct*24;
+    if(direct instanceof Date){
+      const excelEpoch=Date.UTC(1899,11,30);
+      const hours=(direct.getTime()-excelEpoch)/3600000;
+      if(Number.isFinite(hours)&&hours>=0)return hours
+    }
   }
-  return numberValue(raw)
+  return numberValue(cellValue(cell))
 }
 function validDateParts(y,m,d){
   if(!Number.isInteger(y)||!Number.isInteger(m)||!Number.isInteger(d)||m<1||m>12||d<1||d>31)return false;
