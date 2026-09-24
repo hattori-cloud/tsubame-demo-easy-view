@@ -37,7 +37,7 @@ v200原本ルール・差替え履歴・保管期限確認・書類監査履歴�
 - 詳細な安全要件・合格条件は `docs/production-document-storage-v200.md`
 - 本番DBは `documents` の storage_state / content_type / size_bytes / SHA-256 / malware状態 / upload actor と、`document_purge_requests` を持つ
 - 2026-09-24の静的監査で JavaScript構文、原本安全要件、API契約、DB重複を再確認し **35/35 合格**
-- 監査中に production-schema.sql の正規 commit 後ろへ残っていた古い重複断片を検出し、22テーブル・重複0へ修正
+- 監査時点では production-schema.sql の古い重複断片を除去して22テーブル・重複0へ修正。その後、認証・確認回答等の本番API基盤追加に伴い、現在の正規基準スキーマは28テーブル
 
 重要: `DOCUMENT_STORAGE_CONFIG.connected=false` のままです。  
 実社員の原本ファイル投入は、本番認証・サーバー権限・DB・監査・バックアップ復元・原本ストレージの実接続と受入試験が完了するまで禁止です。
