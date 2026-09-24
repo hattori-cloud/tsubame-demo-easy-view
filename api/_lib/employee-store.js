@@ -116,8 +116,15 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     const updated=(await query(`update employees set office=$2,department=$3,lifecycle_status=$4,retired_on=$5,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next.office,next.department,next.lifecycle_status,next.retired_on],client)).rows[0];
     await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1,$1,$2,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
     if(next.lifecycle_status==='retired'){
-      const users=await query(`update users set state='suspended',updated_at=now(),version=version+1 where employee_id=$1 returning id`,[employeeId],client);
-      for(const u of users.rows)await query(`update auth_sessions set revoked_at=now(),revoke_reason='employee_retired' where user_id=$1 and revoked_at is null`,[u.id],client)
+      const accounts=await query('select id,state from users where employee_id=$1 order by id',[employeeId],client);
+      for(const u of accounts.rows){
+        await query(`update mfa_challenges set verified_at=now() where user_id=$1 and verified_at is null`,[u.id],client);
+        await query(`update password_reset_tokens set used_at=now() where user_id=$1 and used_at is null`,[u.id],client);
+        const changed=await query(`update users set state='suspended',updated_at=now(),version=version+1 where id=$1 and state<>'suspended' returning id`,[u.id],client);
+        if(changed.rows[0])await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('user',$1,$2,$3,'retirement_auto_suspend',$4::jsonb,$5::jsonb,$6)`,[u.id,employeeId,actorUserId,JSON.stringify({state:u.state}),JSON.stringify({state:'suspended'}),reason||handoffNote||'退職連動'],client);
+        const revoked=await query(`update auth_sessions set revoked_at=now(),revoke_reason='employee_retired' where user_id=$1 and revoked_at is null returning id`,[u.id],client);
+        await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'退職連動利用者停止','user',$2,$3,'success',$4,$5)`,[actorUserId,u.id,employeeId,requestId,(changed.rows[0]?'active → suspended':'suspended維持')+' / sessions '+revoked.rows.length+'件失効 / 保留中認証を無効化'],client)
+      }
     }
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員状態変更','employee',$2,$2,'success',$3,$4)`,[actorUserId,employeeId,requestId,before.lifecycle_status+' → '+next.lifecycle_status],client);
     return updated
