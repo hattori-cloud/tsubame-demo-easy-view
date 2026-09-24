@@ -1410,6 +1410,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <section class="page" id="training"><div class="page-title"><div><h2>教育・貸与品</h2><p>未完了の安全指導と、貸与品の返却状況をまとめて確認します。</p></div></div>
 <div class="simple-note">期限超過・未完了・返却確認が必要なものを先に表示します。社員名から個別記録にも移動できます。</div>
+<div id="trainingAnalysisScopeNotice"></div>
 <div id="trainingOverview" class="training-overview"></div>
 <div class="tabs"><button class="active" data-t="train" onclick="trainingTab('train')">安全指導・適性診断</button><button data-t="asset" onclick="trainingTab('asset')">貸与品</button></div>
 <div class="tabpane active" id="training-train"><div class="table-card"><div class="tablewrap"><table><thead><tr><th>社員</th><th>指導・診断</th><th>期限・やること</th><th>状態</th><th>操作</th></tr></thead><tbody id="trainingbody"></tbody></table></div></div></div>
@@ -3644,7 +3645,7 @@ function syncOfficeDeptControls(branchId,deptId,preserveCurrent=false){
  if(note)note.textContent=branch.value==='馬木'?'馬木はバス課のみ選択できます。':'事業所と部署は別管理です。部署は固定されません。'
 }
 function go(id){
- if(ANALYSIS_OPERATION_SCOPE?.mode==='work'&&id!=='work')ANALYSIS_OPERATION_SCOPE=null;
+ if(ANALYSIS_OPERATION_SCOPE?.mode==='work'&&ANALYSIS_OPERATION_SCOPE.targetPage&&id!==ANALYSIS_OPERATION_SCOPE.targetPage)ANALYSIS_OPERATION_SCOPE=null;
  if(PREVIEW_ROLE==='一般社員'&&!['home','my','emp','comms'].includes(id))id='home';
  if(PREVIEW_ROLE!=='一般社員'&&id==='my')id='home';
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
@@ -3659,10 +3660,10 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p)
 let ANALYSIS_CENTER_TAB='company';
 let ANALYSIS_CENTER_FILTERS={period:'fy',from:'',to:'',workplace:'',dept:'',employment:''};
 let ANALYSIS_OPERATION_SCOPE=null;
-function setAnalysisOperationScopeFromCenter(mode='modal'){
+function setAnalysisOperationScopeFromCenter(mode='modal',targetPage=''){
  let rows=analysisCenterFilteredEmployees(scopedEmployees());
  ANALYSIS_OPERATION_SCOPE={
-  mode,
+  mode,targetPage,
   employeeNos:rows.map(e=>String(e.no)),
   workplace:ANALYSIS_CENTER_FILTERS.workplace||'',
   dept:ANALYSIS_CENTER_FILTERS.dept||'',
@@ -3685,7 +3686,9 @@ function analysisOperationScopeBannerHtml(){
 function clearAnalysisOperationScope(){
  ANALYSIS_OPERATION_SCOPE=null;
  let el=document.getElementById('workAnalysisScopeNotice');if(el)el.innerHTML='';
- if(document.getElementById('work')?.classList.contains('active'))renderWork()
+ let tr=document.getElementById('trainingAnalysisScopeNotice');if(tr)tr.innerHTML='';
+ if(document.getElementById('work')?.classList.contains('active'))renderWork();
+ if(document.getElementById('training')?.classList.contains('active'))renderTraining()
 }
 function analysisCenterDateText(d){return d instanceof Date&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):''}
 function analysisCenterRange(today=new Date(TODAY+'T23:59:59')){
@@ -3768,8 +3771,8 @@ function openAnalysisWorkScreen(kind){
  if(kind==='credential'){setAnalysisOperationScopeFromCenter('modal');openCredentialCenter();return}
  if(kind==='document'){setAnalysisOperationScopeFromCenter('modal');openOriginalDocumentCenter();return}
  if(kind==='deadline'){setAnalysisOperationScopeFromCenter('modal');openDeadlineCenter('all');return}
- if(kind==='work'){setAnalysisOperationScopeFromCenter('work');go('work');return}
- if(kind==='asset'){go('training');renderTraining();trainingTab('asset');return}
+ if(kind==='work'){setAnalysisOperationScopeFromCenter('work','work');go('work');return}
+ if(kind==='asset'){setAnalysisOperationScopeFromCenter('work','training');go('training');renderTraining();trainingTab('asset');return}
  if(kind==='employee'||kind==='retired'){
   ANALYSIS_OPERATION_SCOPE=null;
   go('emp');
@@ -8486,11 +8489,13 @@ function trainingActionHtml(info){
  return '<div class="training-action '+cls+'"><small>なぜ確認？</small><b>'+esc(info.reason)+'</b><small>やること</small><span>'+esc(info.action)+'</span><div class="mini">期限 '+esc(info.due||'未設定')+'</div></div>'
 }
 function renderTraining(){
- let trainings=scopedTraining().slice().sort((a,b)=>{
+ let scopeNotice=document.getElementById('trainingAnalysisScopeNotice');
+ if(scopeNotice)scopeNotice.innerHTML=ANALYSIS_OPERATION_SCOPE?'<div class="scope-note" style="margin:12px 0"><div class="list-summary"><div><b>分析条件から絞込み中：'+esc(analysisOperationScopeLabel())+'</b><div class="mini">分析期間は教育・貸与品画面へは適用せず、現在の未完了・返却状態を確認します。</div></div><button class="btn soft" onclick="clearAnalysisOperationScope()">絞込み解除</button></div></div>':'';
+ let trainings=scopedTraining().filter(t=>analysisOperationScopeMatchNo(t.employee_no)).slice().sort((a,b)=>{
   const rank=x=>{let i=trainingActionInfo(x);return i.tone==='danger'?0:i.tone==='warn'?1:x.status==='完了'?3:2};
   return rank(a)-rank(b)||deadlinePriority(a.due)-deadlinePriority(b.due)
  });
- let assets=scopedAssets().slice().sort((a,b)=>{
+ let assets=scopedAssets().filter(a=>analysisOperationScopeMatchNo(a.employee_no)).slice().sort((a,b)=>{
   const rank=x=>{let i=assetActionInfo(x);return i.tone==='danger'?0:i.tone==='warn'?1:x.status==='返却済み'?3:2};
   return rank(a)-rank(b)||deadlinePriority(a.return_due)-deadlinePriority(b.return_due)
  });
