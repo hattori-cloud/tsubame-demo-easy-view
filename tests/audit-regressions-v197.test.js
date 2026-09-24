@@ -113,3 +113,14 @@ test('complaint edit comparison covers guidance and all editable response fields
   }
   assert.ok(block.includes("guidanceContent:'指導内容'"));
 });
+
+
+test('form save guard blocks stale or recovery-required state before form mutation handlers run',()=>{
+  const block=between("fsave.addEventListener('click',e=>{","window.addEventListener('storage'");
+  const guard=block.indexOf('if(!coreSaveRevisionIsCurrent())');
+  const attempt=block.indexOf('FORM_SAVE_ATTEMPT=true');
+  assert.ok(guard>=0,'missing pre-mutation save guard');
+  assert.ok(attempt>guard,'save guard must run before form save attempt and onclick mutation');
+  assert.ok(block.includes('e.stopImmediatePropagation()'));
+  assert.ok(block.includes('save();'));
+});
