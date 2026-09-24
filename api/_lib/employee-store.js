@@ -36,6 +36,51 @@ async function getEmployeeForUser(user,id){
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象データが見つかりません');
   return r.rows[0]
 }
+function requireEmployeeManager(user){
+  if(!user||!['full','scoped'].includes(user.role_level))throw problem(403,'MANAGER_REQUIRED','社員情報の更新は管理者のみ実行できます');
+  return user
+}
+async function createEmployee({user,body,requestId}){
+  if(!user||user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','社員登録は全社管理者のみ実行できます');
+  const no=String(body.employee_no||'').trim(),name=String(body.name||'').trim(),office=String(body.office||'').trim(),department=String(body.department||'').trim();
+  if(!no||!name||!office||!department||no.length>64||/\s/.test(no))throw problem(422,'REQUIRED_FIELDS','社員番号・氏名・事業所・部署を確認してください');
+  return withTransaction(async client=>{
+    const current=await query('select id from employees where employee_no=$1 limit 1',[no],client);
+    const historical=await query('select employee_id from employee_number_history where old_employee_no=$1 limit 1',[no],client);
+    if(current.rows[0]||historical.rows[0])throw problem(409,'EMPLOYEE_NO_ALREADY_USED','その社員番号は現在番号または旧番号として使用済みです');
+    const r=await query(`
+      insert into employees(employee_no,name,furigana,office,department,position,taxi_section,team,employment_type,lifecycle_status,work_pattern,main_license,license_expiry,health_check_due,aptitude_due,safety_state,eligibility,hired_on)
+      values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
+      returning *
+    `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||null,body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
+    const employee=r.rows[0];
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員登録','employee',$2,$2,'success',$3,$4)`,[user.id,employee.id,requestId,no+' '+name],client);
+    return employee
+  })
+}
+async function updateEmployee({user,employeeId,body,expectedVersion,requestId}){
+  requireEmployeeManager(user);
+  return withTransaction(async client=>{
+    const params=[employeeId],scope=scopeSql(user,params,'e');
+    const before=(await query(`select e.* from employees e where e.id=$1 and ${scope} for update`,params,client)).rows[0];
+    if(!before)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
+    if(Number(before.version)!==Number(expectedVersion))throw problem(409,'VERSION_CONFLICT','別の利用者が先に更新しています。最新データを読み直してください');
+    if(Object.prototype.hasOwnProperty.call(body||{},'employee_no'))throw problem(422,'USE_RENUMBER_ENDPOINT','社員番号変更は専用操作を使用してください');
+    if(['office','department','lifecycle_status','retired_on'].some(k=>Object.prototype.hasOwnProperty.call(body||{},k)))throw problem(422,'USE_TRANSITION_ENDPOINT','所属・在籍状態の変更は異動/退職操作を使用してください');
+    const safetyKeys=['safety_state','eligibility'];
+    if(safetyKeys.some(k=>Object.prototype.hasOwnProperty.call(body||{},k))&&user.role_level!=='full'&&!user.safety_authority)throw problem(403,'SAFETY_AUTHORITY_REQUIRED','安全判断項目の変更権限がありません');
+    const allowed=['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due','safety_state','eligibility','hired_on'];
+    const patch={};for(const k of allowed)if(Object.prototype.hasOwnProperty.call(body||{},k))patch[k]=body[k]===undefined?null:body[k];
+    if('name' in patch&&!String(patch.name||'').trim())throw problem(422,'NAME_REQUIRED','氏名を入力してください');
+    const changed=Object.entries(patch).filter(([k,v])=>String(before[k]??'')!==String(v??''));
+    if(!changed.length)return before;
+    const values=[employeeId],sets=changed.map(([k,v])=>{values.push(v);return `${k}=$${values.length}`});
+    const after=(await query(`update employees set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,values,client)).rows[0];
+    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1,$1,$2,'profile_update',$3::jsonb,$4::jsonb,'通常編集')`,[employeeId,user.id,JSON.stringify(Object.fromEntries(changed.map(([k])=>[k,before[k]]))),JSON.stringify(Object.fromEntries(changed))],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員情報更新','employee',$2,$2,'success',$3,$4)`,[user.id,employeeId,requestId,changed.map(([k])=>k).join(',')],client);
+    return after
+  })
+}
 async function changeEmployeeNumber({employeeId,newEmployeeNo,reason,actorUserId,expectedVersion,requestId}){
   return withTransaction(async client=>{
     const r=await query('select * from employees where id=$1 for update',[employeeId],client);
@@ -78,4 +123,4 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     return updated
   })
 }
-module.exports={listEmployeesForUser,getEmployeeForUser,changeEmployeeNumber,transitionEmployee,scopeSql};
+module.exports={listEmployeesForUser,getEmployeeForUser,createEmployee,updateEmployee,changeEmployeeNumber,transitionEmployee,scopeSql,requireEmployeeManager};
