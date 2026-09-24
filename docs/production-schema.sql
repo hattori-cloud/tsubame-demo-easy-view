@@ -66,6 +66,43 @@ create table user_scopes (
   unique (user_id, office, department)
 );
 
+create table auth_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  mfa_verified boolean not null default false,
+  issued_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  revoke_reason text,
+  user_agent_hash text,
+  ip_prefix_hash text,
+  check (expires_at > issued_at)
+);
+
+create table password_reset_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  requested_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  check (expires_at > created_at)
+);
+
+create table mfa_challenges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  challenge_hash text not null unique,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  verified_at timestamptz,
+  failed_attempts integer not null default 0 check (failed_attempts >= 0),
+  check (expires_at > created_at)
+);
+
 create table employee_number_history (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
@@ -457,6 +494,10 @@ create index employees_retired_on_idx on employees (retired_on desc) where lifec
 
 create index employee_number_history_old_idx on employee_number_history (old_employee_no, changed_at desc);
 create index employee_number_history_employee_idx on employee_number_history (employee_id, changed_at desc);
+
+create index auth_sessions_user_active_idx on auth_sessions (user_id, expires_at desc) where revoked_at is null;
+create index password_reset_tokens_user_idx on password_reset_tokens (user_id, expires_at desc) where used_at is null;
+create index mfa_challenges_user_idx on mfa_challenges (user_id, expires_at desc) where verified_at is null;
 
 create index users_employee_idx on users (employee_id);
 create index users_state_role_idx on users (state, role_level);

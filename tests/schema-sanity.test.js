@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,23);
+  assert.equal(tables.length,26);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -106,4 +106,16 @@ test('production users schema supports three-field login without storing plainte
   assert.match(sql,/locked_until timestamptz/i);
   assert.match(sql,/last_login_at timestamptz/i);
   assert.doesNotMatch(sql,/\bpassword\s+text\b/i);
+});
+
+
+test('production auth persistence supports revocable sessions reset tokens and MFA challenges',()=>{
+  assert.match(sql,/create table auth_sessions/i);
+  assert.match(sql,/token_hash text not null unique/i);
+  assert.match(sql,/mfa_verified boolean not null default false/i);
+  assert.match(sql,/revoked_at timestamptz/i);
+  assert.match(sql,/create table password_reset_tokens/i);
+  assert.match(sql,/create table mfa_challenges/i);
+  assert.match(sql,/challenge_hash text not null unique/i);
+  assert.doesNotMatch(sql,/create table auth_sessions[\s\S]*\btoken text\b/i);
 });

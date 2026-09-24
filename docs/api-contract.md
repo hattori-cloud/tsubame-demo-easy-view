@@ -99,6 +99,14 @@ Server processing order:
 
 The browser never receives `password_hash`.
 
+Session persistence rules:
+
+- The raw session token is returned only in a secure, HttpOnly, SameSite cookie; the database stores only `auth_sessions.token_hash`.
+- Password-reset and MFA challenge values are also stored only as hashes.
+- Suspending a user or retiring the linked employee revokes every non-revoked `auth_sessions` row for that user.
+- Authorization is re-evaluated from the current user row/scopes on protected requests; a stale browser role never grants access.
+- Expired/revoked sessions and expired/used reset or MFA challenges are rejected and may be cleaned up asynchronously.
+
 ### POST /api/v1/auth/mfa/verify
 
 Completes the short-lived MFA challenge. Management accounts must not receive a normal business session until this succeeds.

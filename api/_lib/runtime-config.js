@@ -8,11 +8,10 @@ function isNonProductionRuntime(){
   return !isProductionRuntime()
 }
 function authEnvPresent(){
-  return Boolean(
-    process.env.TSUBAME_AUTH_ISSUER &&
-    process.env.TSUBAME_AUTH_AUDIENCE &&
-    process.env.TSUBAME_AUTH_JWKS_URL
-  )
+  return Boolean(databaseEnvPresent() && process.env.TSUBAME_SESSION_SECRET)
+}
+function legacyOidcEnvPresent(){
+  return Boolean(process.env.TSUBAME_AUTH_ISSUER || process.env.TSUBAME_AUTH_AUDIENCE || process.env.TSUBAME_AUTH_JWKS_URL)
 }
 function databaseEnvPresent(){
   return Boolean(process.env.DATABASE_URL||process.env.TSUBAME_DATABASE_URL)
@@ -43,6 +42,6 @@ function backendReadiness(){
 }
 module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
-  authEnvPresent,databaseEnvPresent,documentStorageEnvPresent,
+  authEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageEnvPresent,
   stagingFixturesRequested,stagingFixturesAllowed,backendReadiness
 };

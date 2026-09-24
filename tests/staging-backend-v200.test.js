@@ -14,6 +14,7 @@ function envSnapshot(){
     TSUBAME_AUTH_ISSUER:process.env.TSUBAME_AUTH_ISSUER,
     TSUBAME_AUTH_AUDIENCE:process.env.TSUBAME_AUTH_AUDIENCE,
     TSUBAME_AUTH_JWKS_URL:process.env.TSUBAME_AUTH_JWKS_URL,
+    TSUBAME_SESSION_SECRET:process.env.TSUBAME_SESSION_SECRET,
     DATABASE_URL:process.env.DATABASE_URL,
     TSUBAME_DATABASE_URL:process.env.TSUBAME_DATABASE_URL,
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
@@ -58,6 +59,7 @@ test('backend readiness reports booleans without secret values',()=>{
     process.env.TSUBAME_AUTH_AUDIENCE='secret-audience-value';
     process.env.TSUBAME_AUTH_JWKS_URL='https://issuer.example.invalid/jwks';
     process.env.DATABASE_URL='postgres://secret-user:secret-password@example.invalid/db';
+    process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value';
     process.env.BLOB_READ_WRITE_TOKEN='secret-storage-token';
     const readiness=runtime.backendReadiness();
     assert.equal(readiness.auth_env_present,true);
@@ -68,7 +70,8 @@ test('backend readiness reports booleans without secret values',()=>{
     const serialized=JSON.stringify(readiness);
     assert.equal(serialized.includes('secret-password'),false);
     assert.equal(serialized.includes('secret-storage-token'),false);
-    assert.equal(serialized.includes('secret-audience-value'),false)
+    assert.equal(serialized.includes('secret-audience-value'),false);
+    assert.equal(serialized.includes('secret-session-signing-value'),false)
   }finally{restoreEnv(saved)}
 });
 
@@ -89,4 +92,20 @@ test('staging readiness route is hidden in production and never returns secret e
   assert.ok(source.includes('秘密情報の値・接続文字列・保存トークンは返しません'));
   assert.equal(source.includes('process.env.DATABASE_URL'),false);
   assert.equal(source.includes('process.env.BLOB_READ_WRITE_TOKEN'),false)
+});
+
+
+test('legacy OIDC variables alone do not mark credential-session auth as ready',()=>{
+  const saved=envSnapshot();
+  try{
+    process.env.VERCEL_ENV='preview';
+    delete process.env.DATABASE_URL;
+    delete process.env.TSUBAME_DATABASE_URL;
+    delete process.env.TSUBAME_SESSION_SECRET;
+    process.env.TSUBAME_AUTH_ISSUER='https://issuer.example.invalid';
+    process.env.TSUBAME_AUTH_AUDIENCE='aud';
+    process.env.TSUBAME_AUTH_JWKS_URL='https://issuer.example.invalid/jwks';
+    assert.equal(runtime.legacyOidcEnvPresent(),true);
+    assert.equal(runtime.authEnvPresent(),false);
+  }finally{restoreEnv(saved)}
 });
