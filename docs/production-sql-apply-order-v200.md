@@ -28,6 +28,7 @@
 - documents.content_sha256 CHECK作成成功
 - malware_scan_status / malware_scanned_at列あり
 - document_purge_requests作成成功
+- audit_logs / record_histories の UPDATE・DELETE がDBトリガーで拒否される
 
 ### 容量追加SQL適用後
 
