@@ -141,10 +141,11 @@ test('communications persist notice reads and confirmation responses by immutabl
 });
 
 
-test('production PL/pgSQL functions use valid dollar quoting',()=>{
+test('production PL/pgSQL append-only function uses a valid stable body literal',()=>{
   const schema=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
   assert.ok(schema.includes('create or replace function reject_append_only_mutation()'));
-  assert.ok(schema.includes('as $$\\nbegin'));
-  assert.ok(schema.includes('\\nend;\\n$$;'));
+  assert.ok(schema.includes("language plpgsql\\nas 'begin"));
+  assert.ok(schema.includes("using errcode = ''55000'';"));
+  assert.ok(schema.includes("end;';"));
   assert.equal(/\\bas \\$\\r?\\n/.test(schema),false);
 });
