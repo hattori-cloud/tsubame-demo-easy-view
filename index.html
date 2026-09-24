@@ -1485,6 +1485,14 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="card"><h3>雇用区分</h3><div id="analysisHrEmployment"></div></div>
   <div class="card"><h3>退職時の勤続年数</h3><div class="mini">退職日が確認できる退職者だけを集計します。</div><div id="analysisHrExitTenure" style="margin-top:10px"></div></div>
  </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>年代 × 部署</h3><div class="mini">現在在籍者の年代構成を部署別に比較します。</div><div id="analysisHrAgeDept" style="margin-top:10px"></div></div>
+  <div class="card"><h3>社歴 × 部署</h3><div class="mini">現在在籍者の勤続年数構成を部署別に比較します。</div><div id="analysisHrTenureDept" style="margin-top:10px"></div></div>
+ </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>年代 × 安全</h3><div class="mini">直近12か月・現在在籍者。件数と対象人数を併記します。</div><div id="analysisHrAgeSafety" style="margin-top:10px"></div></div>
+  <div class="card"><h3>社歴 × 安全</h3><div class="mini">直近12か月・現在在籍者。新人層を含めて教育テーマ確認に使います。</div><div id="analysisHrTenureSafety" style="margin-top:10px"></div></div>
+ </div>
  <div class="spec-note" style="margin-top:12px">退職日は社員台帳の独立項目を優先し、過去データは在籍状態変更履歴の日付を補助的に使用します。日付が確認できない退職者は推測で期間集計へ含めません。</div>
 </div>
 
@@ -3683,6 +3691,42 @@ function analysisAgeBand(age){
 function analysisTenureBand(years){
  if(years===null)return '不明';if(years<1)return '1年未満';if(years<3)return '1～3年未満';if(years<5)return '3～5年未満';if(years<10)return '5～10年未満';if(years<20)return '10～20年未満';return '20年以上'
 }
+function analysisSafetyRecordDate(kind,r){
+ let v=kind==='accident'?r?.date:kind==='near'?(r?.date||r?.reportDate):(r?.occurrenceDate||r?.date||r?.responseDate);
+ return analysisDateValue(v)
+}
+function analysisMatrixHtml(rows,columns,rowLabel='区分'){
+ if(!rows.length)return '<div class="mini">集計対象がありません。</div>';
+ return '<div class="tablewrap"><table><thead><tr><th>'+esc(rowLabel)+'</th>'+columns.map(x=>'<th>'+esc(x)+'</th>').join('')+'<th>計</th></tr></thead><tbody>'+
+ rows.map(r=>'<tr><td><b>'+esc(r.label)+'</b></td>'+columns.map(k=>'<td>'+Number(r.values[k]||0)+'</td>').join('')+'<td><b>'+Number(r.total||0)+'</b></td></tr>').join('')+
+ '</tbody></table></div>'
+}
+function analysisDeptBandRows(active,bandFn,columns){
+ let map={};
+ active.forEach(e=>{
+  let dept=e.dept||'未設定',band=bandFn(e);
+  if(!map[dept])map[dept]={label:dept,values:{},total:0};
+  map[dept].values[band]=(map[dept].values[band]||0)+1;map[dept].total++
+ });
+ return Object.values(map).sort((a,b)=>b.total-a.total||String(a.label).localeCompare(String(b.label),'ja')).slice(0,12)
+}
+function analysisSafetyByBandHtml(active,safety,today,bandFn,columns){
+ let start=new Date(today);start.setFullYear(start.getFullYear()-1);
+ let activeByNo=new Map(active.map(e=>[String(e.no),e]));
+ let stats={};columns.forEach(k=>stats[k]={people:0,accident:0,near:0,complaint:0,high:0});
+ active.forEach(e=>{let k=bandFn(e);if(!stats[k])stats[k]={people:0,accident:0,near:0,complaint:0,high:0};stats[k].people++});
+ const add=(kind,r)=>{
+  let d=analysisSafetyRecordDate(kind,r),e=activeByNo.get(String(r.employee_no||''));if(!d||d<start||d>today||!e)return;
+  let k=bandFn(e);if(!stats[k])stats[k]={people:0,accident:0,near:0,complaint:0,high:0};
+  if(kind==='accident')stats[k].accident++;
+  else if(kind==='near'){stats[k].near++;if(r.riskLevel==='高い')stats[k].high++}
+  else stats[k].complaint++
+ };
+ safety.accidents.forEach(r=>add('accident',r));safety.near.forEach(r=>add('near',r));safety.complaints.forEach(r=>add('complaint',r));
+ return '<div class="tablewrap"><table><thead><tr><th>層</th><th>対象人数</th><th>事故</th><th>ヒヤリ</th><th>高危険</th><th>苦情</th></tr></thead><tbody>'+
+ columns.map(k=>{let x=stats[k]||{};return '<tr><td><b>'+esc(k)+'</b></td><td>'+Number(x.people||0)+'名</td><td>'+Number(x.accident||0)+'件</td><td>'+Number(x.near||0)+'件</td><td>'+Number(x.high||0)+'件</td><td>'+Number(x.complaint||0)+'件</td></tr>'}).join('')+
+ '</tbody></table></div><div class="mini" style="margin-top:7px">件数だけで個人・年代・社歴を評価しません。母数と業務量の違いがあるため、教育・勤務・配属を確認する入口として使います。</div>'
+}
 function analysisCountListHtml(map,limit=10){
  let rows=Object.entries(map||{}).sort((a,b)=>b[1]-a[1]).slice(0,limit),max=Math.max(1,...rows.map(x=>x[1]));
  return rows.length?rows.map(([k,v])=>'<div class="analysis-bar-row"><div class="analysis-bar-label">'+esc(k)+'</div><div class="analysis-bar-track"><span style="width:'+Math.max(4,Math.round(v/max*100))+'%"></span></div><b>'+v+'</b></div>').join(''):'<div class="mini">集計対象がありません。</div>'
@@ -3755,8 +3799,20 @@ function renderAnalysisCenter(){
  let exitTenureMap={'3か月以内':0,'3～6か月':0,'6～12か月':0,'1～3年':0,'3～5年':0,'5～10年':0,'10年以上':0,'不明':0};
  retireEvents.forEach(x=>{let y=x.hire?analysisTenureYears(x.employee,x.date):null,k='不明';if(y!==null){if(y<=0.252)k='3か月以内';else if(y<=0.501)k='3～6か月';else if(y<1)k='6～12か月';else if(y<3)k='1～3年';else if(y<5)k='3～5年';else if(y<10)k='5～10年';else k='10年以上'}exitTenureMap[k]++});
  let exitEl=document.getElementById('analysisHrExitTenure');if(exitEl)exitEl.innerHTML=analysisOrderedListHtml(Object.entries(exitTenureMap));
+ let ageColumns=['29歳以下','30代','40代','50代','60代','70歳以上'];
+ let ageDept=document.getElementById('analysisHrAgeDept');if(ageDept)ageDept.innerHTML=analysisMatrixHtml(analysisDeptBandRows(active,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns),ageColumns,'部署');
+ let tenureColumns=['1年未満','1～3年未満','3～5年未満','5～10年未満','10～20年未満','20年以上'];
+ let tenureDept=document.getElementById('analysisHrTenureDept');if(tenureDept)tenureDept.innerHTML=analysisMatrixHtml(analysisDeptBandRows(active,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns),tenureColumns,'部署');
+ let ageSafety=document.getElementById('analysisHrAgeSafety');if(ageSafety)ageSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns);
+ let tenureSafety=document.getElementById('analysisHrTenureSafety');if(tenureSafety)tenureSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns);
+ let newHireNos=new Set(active.filter(e=>{let y=analysisTenureYears(e,today);return y!==null&&y<1}).map(e=>String(e.no)));
+ let last12Start=new Date(today);last12Start.setFullYear(last12Start.getFullYear()-1);
+ let newHireAcc=safety.accidents.filter(r=>newHireNos.has(String(r.employee_no))&&analysisSafetyRecordDate('accident',r)>=last12Start).length;
+ let newHireNear=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&analysisSafetyRecordDate('near',r)>=last12Start).length;
+ let newHireHigh=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&r.riskLevel==='高い'&&analysisSafetyRecordDate('near',r)>=last12Start).length;
  let hs=document.getElementById('analysisHrSignals');if(hs)hs.innerHTML=
   analysisSignal('今年度の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
+  analysisSignal('入社1年未満 × 安全','現在在籍 '+newHireNos.size+'名 / 直近12か月の事故 '+newHireAcc+'件 / ヒヤリ '+newHireNear+'件 / 高危険 '+newHireHigh+'件。新人教育の内容確認に使います。',newHireHigh?'warn':'')+
   analysisSignal('入社1年以内','現在の対象 '+hire1y.filter(e=>e.status!=='退職').length+'名。安全教育・資格・健診の初期フォローと横断できます。')+
   analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。');
 
