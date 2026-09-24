@@ -82,3 +82,14 @@ test('mobile monthly priority list is capped and category-balanced',()=>{
   assert.ok(block.includes("?3:8"));
   assert.ok(block.includes("['accident','near','quota']"))
 });
+
+
+test('deadline center excludes inactive credentials and historical document versions',()=>{
+  const block=between('function collectDeadlines','function deadlineFilterLabel');
+  assert.ok(block.includes("q.status!=='無効'"));
+  assert.ok(block.includes("q.status!=='失効'"));
+  assert.ok(block.includes("!d.archived"));
+  assert.ok(block.includes("!d.replacedByDocumentId"));
+  assert.ok(block.includes("d.status!=='差替え済み'"));
+  assert.ok(block.includes("d.status!=='無効'"))
+});
