@@ -16,11 +16,17 @@ Base path:
 
 Authentication:
 
-- Every production request requires an authenticated individual user.
-- The authenticated subject must map to an active row in `users`.
-- Management accounts require MFA.
-- Suspended or unregistered users are rejected before business data is loaded.
+- The production login screen uses exactly three primary fields: `login_id`, current `employee_no`, and `password`.
+- Login ID is an account identifier and does not change when the employee number changes.
+- Employee number must match the employee's **current** number. Historical employee numbers are searchable in business screens but are never accepted for login.
+- Passwords are never stored or logged in plain text. The server stores only a strong password hash (Argon2id or an equivalently approved password hashing implementation).
+- Every production business request requires an authenticated individual user and server-side session.
+- The authenticated user must map to an active row in `users` and its linked `employees` row.
+- Management accounts require MFA after primary ID / employee-number / password verification.
+- Suspended, retired, locked, or unregistered users are rejected before business data is loaded.
 - The server derives the user's effective role and office × department scopes. Scope is never trusted from request parameters.
+- Login failures return a generic authentication error so the response does not reveal whether the login ID, employee number, or password was wrong.
+- Repeated failures are rate-limited and may temporarily lock the account. Login success/failure, lock, unlock, password reset, MFA result and logout are audited; passwords and password hashes are never written to audit logs.
 
 Recommended common response headers:
 
@@ -63,7 +69,61 @@ Typical status codes:
 - `428` required `If-Match` precondition missing
 - `500` unexpected server error
 
-## 2. Authorization model
+## 2. Production login and session
+
+### POST /api/v1/auth/login
+
+Unauthenticated endpoint. Request body:
+
+```json
+{
+  "login_id": "ADM-01",
+  "employee_no": "1002",
+  "password": "********"
+}
+```
+
+Server processing order:
+
+1. normalize `login_id` and `employee_no` without changing their meaning,
+2. rate-limit the request by account key and network source,
+3. resolve an active user by exact `login_id`,
+4. resolve the linked employee through immutable `users.employee_id`,
+5. require the submitted employee number to equal **employees.employee_no**, never an old number from `employee_number_history`,
+6. reject retired/suspended/temporarily locked accounts,
+7. verify the password against `users.password_hash` using Argon2id or an equivalently approved password-hashing implementation,
+8. on failure increment failure controls and return one generic error,
+9. on success reset failure controls and update `last_login_at`,
+10. if MFA is required, issue only a short-lived pre-auth challenge; otherwise create the normal server-side session,
+11. write an authentication audit event without storing password, password hash, or MFA secret.
+
+The browser never receives `password_hash`.
+
+### POST /api/v1/auth/mfa/verify
+
+Completes the short-lived MFA challenge. Management accounts must not receive a normal business session until this succeeds.
+
+### POST /api/v1/auth/logout
+
+Invalidates the server-side session and writes an audit event.
+
+### POST /api/v1/auth/password/change
+
+Authenticated user changes their own password after confirming the current password. The server hashes the replacement password before storage and increments/rotates active sessions according to policy.
+
+### POST /api/v1/auth/password/reset
+
+Administrative recovery workflow. A full administrator may initiate a reset but can never view or retrieve the current password. Reset issuance and completion are audited.
+
+Employee-number change behavior:
+
+- `login_id` remains unchanged.
+- `users.employee_id` remains unchanged.
+- password/hash remains unchanged unless separately reset.
+- after the employee-number transaction commits, the next login uses the **new current employee number**.
+- the old employee number continues to work in authorized business search, not authentication.
+
+## 3. Authorization model
 
 ### Full administrator
 
@@ -83,7 +143,7 @@ Can access only explicitly allowed self-service information for their own employ
 
 Separate from administrator level. Restoring driver eligibility or changing controlled safety decisions requires this authority.
 
-## 3. Employees
+## 4. Employees
 
 ### GET /api/v1/employees
 
@@ -180,7 +240,7 @@ Request example:
 
 The server calculates related open accidents, complaints, vehicles, assets and training records and writes a transition history.
 
-## 4. Accidents
+## 5. Accidents
 
 ### GET /api/v1/accidents
 
@@ -223,7 +283,7 @@ Reopen is audited.
 
 Administrative correction only. No normal DELETE endpoint.
 
-## 5. Near misses
+## 6. Near misses
 
 ### GET /api/v1/near-misses
 
@@ -237,7 +297,7 @@ Near misses remain analysis/safety-learning records and do not require a manager
 
 At creation time the server freezes employee number, office, department and employment type into the report snapshot. Historical analysis uses these snapshot values first so later transfers do not rewrite a closed month's organization results. Snapshot fields are server-derived and immutable through normal PATCH.
 
-## 6. Complaints
+## 7. Complaints
 
 ### GET /api/v1/complaints
 ### POST /api/v1/complaints
@@ -252,7 +312,7 @@ At creation time the server freezes the target employee's office, department and
 
 Completion writes completion date and reviewer on the server.
 
-## 7. Qualifications and documents
+## 8. Qualifications and documents
 
 ### GET /api/v1/employees/{employeeId}/credentials
 
@@ -408,7 +468,7 @@ There is no normal browser-facing hard-delete endpoint for original files.
 
 Full acceptance criteria live in `docs/production-document-storage-v200.md`.
 
-## 8. Vehicles
+## 9. Vehicles
 
 ### GET /api/v1/vehicles
 ### POST /api/v1/vehicles
@@ -432,7 +492,7 @@ Updates primary/additional registered users transactionally and writes assignmen
 
 This is not a daily dispatch log.
 
-## 9. Drafts
+## 10. Drafts
 
 Production drafts are separate from official records.
 
@@ -454,7 +514,7 @@ A draft is owned by exactly one user. Other users, including scoped administrato
 
 Successful creation of the corresponding official record should delete that user's draft in the same logical workflow.
 
-## 10. Applications and communications
+## 11. Applications and communications
 
 ### GET /api/v1/applications
 ### POST /api/v1/applications
@@ -470,7 +530,7 @@ Successful creation of the corresponding official record should delete that user
 
 These endpoints still use server-side scope/role validation.
 
-## 11. Handoffs
+## 12. Handoffs
 
 ### GET /api/v1/handoffs
 
@@ -481,7 +541,7 @@ Returns handoffs visible to the authenticated manager.
 
 Handoff actions are audited.
 
-## 12. Audit logs
+## 13. Audit logs
 
 Production audit/history persistence is append-only.
 
@@ -510,7 +570,7 @@ Minimum fields:
 - request_id
 - summary
 
-## 13. Server transaction rules
+## 14. Server transaction rules
 
 Operations that change a business record and its audit/history data must commit atomically.
 
@@ -524,7 +584,7 @@ Examples:
 
 If any part fails, the transaction rolls back.
 
-## 14. Initial vertical-slice implementation
+## 15. Initial vertical-slice implementation
 
 The first production/staging slice should intentionally stay small:
 
@@ -538,7 +598,7 @@ The first production/staging slice should intentionally stay small:
 8. Back up and restore the staging DB.
 9. Only after this passes, expand the pattern to all modules.
 
-## 15. Work summary XLSX preflight
+## 16. Work summary XLSX preflight
 
 ### POST /api/v1/work-import/preflight
 

@@ -1875,7 +1875,7 @@ const DRIVER_CERT_DEFS=[
  {key:'english',label:'英語ドライバー',short:'英語'},
  {key:'tourism',label:'観光ドライバー',short:'観光'}
 ];
-const AUTH_CONFIG={connected:false,provider:'本番未選定',requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',note:'共有デモは認証なし。権限切替は画面確認専用'};
+const AUTH_CONFIG={connected:false,provider:'ログインID＋社員番号＋パスワード',loginFields:['ログインID','社員番号','パスワード'],requireMfa:true,sessionPolicy:'本番サーバー側セッション',accountSource:'利用許可台帳',passwordStorage:'Argon2id等の強固なハッシュのみ',note:'共有デモは認証なし。権限切替は画面確認専用'};
 const DOCUMENT_STORAGE_CONFIG={
  connected:false,
  provider:'本番未選定（Private Object Storage）',
@@ -4800,7 +4800,7 @@ function showDocumentStorageSecurityDesign(){
 }
 const PRODUCTION_TECH_ARCHITECTURE=[
  {layer:'Web・API',candidate:'Vercelを継続候補',status:'候補',reason:'現在のデモ配備を活かしつつ、本番はサーバーAPIを追加してブラウザ直保存を廃止',must:'HTTPS、環境分離、API認証、サーバー権限制御'},
- {layer:'認証',candidate:'OIDC対応の個人認証基盤',status:'未決定',reason:'会社アカウントとの整合・MFA・停止反映を優先。Google系を使う場合も会社許可台帳で二重確認',must:'個人ID、MFA、allow-list、セッション失効、監査'},
+ {layer:'認証',candidate:'ID＋社員番号＋パスワード＋管理者MFA',status:'方式確定 / 実装未接続',reason:'個人IDと現在社員番号を会社台帳へ直接紐付け、社員番号変更後も固定employee_idで本人を維持する',must:'個人ID、現在社員番号照合、Argon2id等のパスワードハッシュ、レート制限、一時ロック、管理者MFA、セッション失効、監査'},
  {layer:'業務DB',candidate:'Managed PostgreSQL',status:'推奨候補',reason:'社員を中心とする参照関係、履歴、トランザクション、検索索引を扱いやすい',must:'外部キー、version、履歴、暗号化、バックアップ'},
  {layer:'証憑ファイル',candidate:'Private Object Storage（最終選定は契約・復元要件確認後）',status:'安全要件設計済み / 未接続',reason:'PDF・画像本体をDBへ直接詰めず、DBはメタ情報・保存キー・ハッシュ・検査状態を保持',must:'完全非公開、サーバー認可、厳格書類MFA、隔離アップロード、SHA-256、マルウェア検査、60秒程度の短時間アクセス、全取得監査、別障害領域バックアップ、復元試験、物理削除二者承認'},
  {layer:'監査ログ',candidate:'業務DBと分離した追記保存',status:'必須設計',reason:'通常業務の更新権限から監査記録を切り離す',must:'追記専用、改変検知、actor、日時、対象、結果'},
@@ -4821,6 +4821,7 @@ const PRODUCTION_API_BLUEPRINT=[
 const PRODUCTION_DB_RULES=[
  '全業務テーブルに immutable UUID 主キー、created_at、updated_at、version を持たせる',
  'employee_no は業務キーとして UNIQUE。外部参照は内部 employee_id を使用する',
+ '本番ログインは users.login_id＋現在 employee_no＋password。password は平文保存せず強固なハッシュのみ保持し、旧社員番号はログイン照合に使わない',
  'PATCH は version または If-Match を必須とし、競合は 409 Conflict で止める',
  '業務記録の通常 DELETE は提供せず、archive / retire / inactive / 廃車等の状態遷移を使う',
  '監査ログは追記専用。通常の業務トランザクションから更新・削除できない',
@@ -4851,7 +4852,7 @@ function showProductionTechArchitecture(){
 const PRODUCTION_IMPLEMENTATION_SPECS=[
  {gate:'実サーバーHTTPS',component:'公開基盤',implementation:'本番用ドメインを確定し、HTTPS強制・証明書自動更新・HTTPからHTTPSへの転送を設定。デモURLとは環境を分離する。',acceptance:'本番URLで有効な証明書を確認し、HTTPアクセスがHTTPSへ転送される。管理画面・APIも同一方針。'},
  {gate:'実VPN・スマホ疎通',component:'ネットワーク',implementation:'社内PC・社外スマホからの利用経路を決める。VPN必須にするか、インターネット公開＋強固な認証にするかを確定し、端末別の接続条件を文書化する。',acceptance:'会社が許可したPC・スマホで接続でき、許可していない経路では想定どおり拒否される。'},
- {gate:'本番認証・利用者照合',component:'認証',implementation:'個人単位の認証を接続し、認証後に会社の利用者台帳で有効状態を照合。管理者MFAを必須にし、停止アカウントは即時拒否する。共有IDは使わない。',acceptance:'有効利用者のみログイン可。未登録・停止利用者は拒否。管理者はMFAなしで利用不可。ログイン／ログアウトを監査記録できる。'},
+ {gate:'本番認証・利用者照合',component:'認証',implementation:'ログイン画面はID・現在社員番号・パスワードの3項目。サーバー側でusers.login_id→固定employee_id→現在employee_noを照合し、パスワードはArgon2id等の強固なハッシュで検証する。旧社員番号は認証に使わない。管理者MFA、連続失敗のレート制限・一時ロック、停止・退職拒否、セッション失効、ログイン監査を実装する。',acceptance:'3項目が一致する有効利用者のみログイン可。旧社員番号・未登録・停止・退職・ロック中は拒否。管理者はMFAなしで業務セッション発行不可。成功・失敗・ロック・MFA・ログアウトを監査でき、パスワード／ハッシュがログやレスポンスへ出ない。'},
  {gate:'サーバー側権限制御',component:'API権限',implementation:'現在の事業所×部署・全社管理者・一般社員本人のみ・安全判断権限をAPIミドルウェアで再実装。画面の非表示だけに依存しない。',acceptance:'URLやAPIを直接指定しても担当外データは取得・更新不可。全社管理者／担当管理者／一般社員のUATをすべて通す。'},
  {gate:'本番データベース',component:'DB',implementation:'本番DBを作成し、内部不変ID、employee_no一意制約、外部キー、created_at/updated_at/version、状態管理、変更履歴を実装。現在のDATA_MODELを移行元仕様として使う。',acceptance:'架空データを移行し件数一致・参照切れ0・主キー重複0。競合更新が上書きされず、権限外更新も拒否される。'},
  {gate:'別故障領域バックアップ',component:'バックアップ',implementation:'本番DBとは別の障害領域へ自動バックアップを保存し、保持期間・暗号化・復旧手順を決定。復旧試験を定期実施できる形にする。',acceptance:'検証用バックアップから別環境へ復元し、件数・参照・主要画面を照合。復旧手順と実施結果を記録する。'},
@@ -4965,16 +4966,22 @@ function showLoginDesign(){
  if(!isFullCompanyAdmin())return alert('本番ログイン設計は全社管理者のみ確認できます');
  dttl.textContent='本番ログイン・アカウント設計';
  dbody.innerHTML=`<div class="detail-alert warn"><b>現在：</b>共有デモには本物のログイン機能は接続していません。「権限確認（デモ）」は画面テスト専用です。</div>
- <div class="section"><h3>本番で必須にする流れ</h3><div class="readiness-grid">
-  <div class="ready-item ok"><b>1. 本人認証</b><div class="mini">会社が承認した認証方式でログイン</div></div>
-  <div class="ready-item ok"><b>2. 利用者許可</b><div class="mini">この利用者台帳に有効アカウントがあることを確認</div></div>
-  <div class="ready-item ok"><b>3. MFA</b><div class="mini">管理者は多要素認証を必須化</div></div>
+ <div class="detail-primary"><h3>本番ログイン画面</h3><div class="detail-primary-grid">
+  <div class="detail-primary-item"><label>1</label><b>ID</b><div class="mini">会社が個人ごとに発行。社員番号が変わっても変更しません。</div></div>
+  <div class="detail-primary-item"><label>2</label><b>社員番号</b><div class="mini">現在の社員番号を入力。旧社員番号ではログインできません。</div></div>
+  <div class="detail-primary-item"><label>3</label><b>パスワード</b><div class="mini">本人専用。平文保存せず強固なハッシュだけを保持します。</div></div>
+ </div></div>
+ <div class="section"><h3>ログイン後の流れ</h3><div class="readiness-grid">
+  <div class="ready-item ok"><b>1. 3項目照合</b><div class="mini">ID＋現在社員番号＋パスワードをサーバーで確認</div></div>
+  <div class="ready-item ok"><b>2. 利用者状態</b><div class="mini">有効アカウント・在籍状態・一時ロックを確認</div></div>
+  <div class="ready-item ok"><b>3. MFA</b><div class="mini">管理者は追加認証を必須化</div></div>
   <div class="ready-item ok"><b>4. 権限範囲</b><div class="mini">全社または事業所×部署の割当範囲をサーバー側で強制</div></div>
   <div class="ready-item ok"><b>5. セッション</b><div class="mini">失効・ログアウト・停止をサーバー側で管理</div></div>
-  <div class="ready-item ok"><b>6. 監査</b><div class="mini">ログイン・権限変更・重要操作を監査ログへ保存</div></div>
+  <div class="ready-item ok"><b>6. 監査</b><div class="mini">成功・失敗・ロック・解除・MFA・ログアウトを記録</div></div>
  </div></div>
- <div class="section"><h3>認証方式</h3><div class="scope-note">方式はまだ確定していません。Googleアカウントを使う場合も、Googleにログインできただけでは入れず、会社側の利用許可台帳に登録されたアカウントだけ通す設計にします。社員ID＋パスワード方式を選ぶ場合も、共有パスワードは禁止し、個人アカウント＋MFAを前提にします。</div></div>
- <div class="section"><h3>現在の停止条件</h3><div class="row quality-bad"><div><b>本番認証未接続</b><div class="mini">実社員データ投入前に解消が必要</div></div><span class="badge danger">停止条件</span></div><div class="row quality-bad"><div><b>サーバー側権限制御未実装</b><div class="mini">画面を隠すだけではなく、API・DBでも拒否する必要があります</div></div><span class="badge danger">停止条件</span></div></div>`;
+ <div class="section"><h3>社員番号変更時</h3><div class="scope-note"><b>ID・パスワード・裏側の固定社員IDはそのままです。</b> 社員番号だけ新番号に変わり、次回ログインから新社員番号を入力します。旧社員番号は社内検索には残しますが、ログイン認証には使いません。</div></div>
+ <div class="section"><h3>パスワードの安全管理</h3><div class="scope-note">パスワードそのものはDB・監査ログ・画面に保存／表示しません。サーバー側でArgon2id等の強固な方式でハッシュ化し、連続失敗時はレート制限・一時ロックを行います。管理者でも他人の現在パスワードを見ることはできず、必要な場合はリセットだけを行います。</div></div>
+ <div class="section"><h3>現在の停止条件</h3><div class="row quality-bad"><div><b>本番認証未接続</b><div class="mini">ID＋社員番号＋パスワード認証と管理者MFAを実装・検証するまで実社員データは投入しません。</div></div><span class="badge danger">停止条件</span></div><div class="row quality-bad"><div><b>サーバー側権限制御未実装</b><div class="mini">画面を隠すだけではなく、API・DBでも拒否する必要があります</div></div><span class="badge danger">停止条件</span></div></div>`;
  showDetailModal()
 }
 function showUsers(){

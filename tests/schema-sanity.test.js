@@ -97,3 +97,13 @@ test('employee number history supports safe renumbering without rewriting employ
   assert.match(sql,/check \(old_employee_no <> new_employee_no\)/i);
   assert.match(sql,/create index employee_number_history_old_idx on employee_number_history \(old_employee_no, changed_at desc\)/i);
 });
+
+
+test('production users schema supports three-field login without storing plaintext passwords',()=>{
+  assert.match(sql,/login_id text not null unique/i);
+  assert.match(sql,/password_hash text not null/i);
+  assert.match(sql,/failed_login_count integer not null default 0/i);
+  assert.match(sql,/locked_until timestamptz/i);
+  assert.match(sql,/last_login_at timestamptz/i);
+  assert.doesNotMatch(sql,/\bpassword\s+text\b/i);
+});
