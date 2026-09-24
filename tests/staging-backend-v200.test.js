@@ -98,6 +98,21 @@ test('staging readiness route is hidden in production and never returns secret e
 });
 
 
+test('staging readiness verifies live database state instead of trusting env presence',()=>{
+  const route=fs.readFileSync(path.join(__dirname,'..','api','v1','staging-readiness.js'),'utf8');
+  const db=fs.readFileSync(path.join(__dirname,'..','api','_lib','db.js'),'utf8');
+  assert.ok(route.includes('probeDatabaseReadiness'));
+  assert.ok(route.includes('database_connection_ready'));
+  assert.ok(route.includes('database_schema_ready'));
+  assert.ok(route.includes('database_audit_guard_ready'));
+  assert.ok(route.includes('database_capacity_ready'));
+  assert.ok(db.includes("to_regclass('public.employees')"));
+  assert.ok(db.includes("audit_logs_append_only_guard"));
+  assert.ok(db.includes("record_histories_append_only_guard"));
+  assert.ok(db.includes("to_regclass('public.near_miss_monthly_compliance')"));
+});
+
+
 test('legacy OIDC variables alone do not mark credential-session auth as ready',()=>{
   const saved=envSnapshot();
   try{
