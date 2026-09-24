@@ -16,7 +16,7 @@ function block(start,end){
 
 test('safety analysis prefers historical organization snapshots over current employee assignment',()=>{
   const b=block('function safetyAnalysisRecordSnapshot','function safetyAnalysisData');
-  for(const token of ['officeAtRecord','officeAtReport','departmentAtRecord','departmentAtReport','employmentAtRecord','employmentAtReport',"source:hasSnapshot?'snapshot':'current'"]){
+  for(const token of ['officeAtRecord','officeAtReport','departmentAtRecord','departmentAtReport','employmentAtRecord','employmentAtReport',"source:snapshotFields===3?'snapshot':snapshotFields>0?'partial':'current'"]){
     assert.ok(b.includes(token),token+' missing from snapshot resolver')
   }
   assert.ok(b.includes('scope.workplace'));
@@ -38,10 +38,10 @@ test('analysis exposes safety quality ratios without calling headcount ratio a t
   assert.ok(html.includes('事故1件平均修理費'));
   assert.ok(html.includes('高危険比率'));
   assert.ok(html.includes('未完了比率'));
-  assert.ok(html.includes('所属スナップショット'));
+  assert.ok(html.includes('所属スナップショット完全率'));
   assert.ok(html.includes('100人在籍あたり参考比'));
   assert.ok(html.includes('走行距離・乗務回数で補正した発生率ではありません'));
-  assert.ok(html.includes('現在所属代用 '));
+  assert.ok(html.includes('3項目とも現在台帳を代用'));
 });
 
 test('production schema contains organization snapshots for every safety record type',()=>{
@@ -76,4 +76,14 @@ test('comparison signals and filter options also use historical organization sna
   assert.ok(filters.includes('deptSnapshots'));
   assert.ok(filters.includes('employmentSnapshots'));
   assert.ok(filters.includes('historicalNos'));
+});
+
+
+test('snapshot completeness distinguishes complete partial and current fallback records',()=>{
+  const b=block('function safetyAnalysisRecordSnapshot','function safetyAnalysisRecordMatches');
+  assert.ok(b.includes('snapshotFields=[workplaceSnapshot,deptSnapshot,employmentSnapshot].filter(Boolean).length'));
+  assert.ok(b.includes("snapshotFields===3?'snapshot':snapshotFields>0?'partial':'current'"));
+  assert.ok(html.includes('partialSnapshotCount'));
+  assert.ok(html.includes('currentScopeFallbackCount'));
+  assert.ok(html.includes('旧データを推測で埋めません'));
 });
