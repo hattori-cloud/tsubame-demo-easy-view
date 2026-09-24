@@ -72,7 +72,9 @@ create table if not exists near_miss_monthly_targets (
   exemption_reason text,
   created_at timestamptz not null default now(),
   created_by_user_id uuid references users(id),
+  updated_by_user_id uuid references users(id),
   updated_at timestamptz not null default now(),
+  version integer not null default 1 check (version >= 1),
   unique (month_start, employee_id),
   check (date_trunc('month', month_start)::date = month_start),
   check (
