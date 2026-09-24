@@ -9726,9 +9726,18 @@ fsave.addEventListener('click',e=>{
   }
  },120)
 },true);
-const CORE_CONCURRENCY_IGNORE_KEYS=new Set(['v29AUDIT','v30FAVORITES']);
+const CORE_CONCURRENCY_SYNC_KEYS=new Set(['v29AUDIT','v30FAVORITES']);
 window.addEventListener('storage',e=>{
- let tracked=e.key===CORE_REVISION_KEY||(coreSaveItems().some(([key])=>key===e.key)&&!CORE_CONCURRENCY_IGNORE_KEYS.has(e.key));
+ if(CORE_CONCURRENCY_SYNC_KEYS.has(e.key)){
+  try{
+   let next=JSON.parse(e.newValue||'[]');
+   if(!Array.isArray(next))return;
+   if(e.key==='v29AUDIT'){AUDIT=next.slice(0,AUDIT_RETENTION_LIMIT);renderAudit()}
+   if(e.key==='v30FAVORITES'){FAVORITES=next;renderFavorites()}
+  }catch(_){}
+  return
+ }
+ let tracked=e.key===CORE_REVISION_KEY||coreSaveItems().some(([key])=>key===e.key);
  if(tracked){
   if(e.key===CORE_REVISION_KEY&&String(e.newValue||'')===String(CORE_KNOWN_REVISION||''))return;
   CORE_EXTERNAL_CHANGE=true;
