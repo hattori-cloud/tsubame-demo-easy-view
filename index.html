@@ -2437,10 +2437,11 @@ function renderDeadlineKpis(targetId){
 function deadlineOpen(type,key,no){
  if(type==='事故'){accidentDetail(key,no);return}
  if(type==='苦情'){complaintDetail(key);return}
- if(type==='資格'){employeeQualification(no);return}
- if(type==='安全指導'||type==='適性診断'){employeeTraining(no);return}
- if(type==='貸与品'){employeeAssets(no);return}
- if(type==='書類'){employeeDocuments(no);return}
+ if(type==='資格'){employeeQualification(no,1,key);return}
+ if(type==='安全指導'){employeeTraining(no,1,key);return}
+ if(type==='適性診断'){employeeDetail(no);setTimeout(()=>setEmployeeDetailTab('work'),30);return}
+ if(type==='貸与品'){employeeAssets(no,1,key);return}
+ if(type==='書類'){documentPreview(key);return}
  if(type==='車検'){vehicleDetail(key);return}
  if(type==='健康診断'){employeeDetail(no);setTimeout(()=>setEmployeeDetailTab('work'),30);return}
 }
@@ -6169,33 +6170,45 @@ function employeeAccidents(no,page=1,filter='all'){
  (shown.length?shown.map(a=>`<div class="row acc-row ${a.phase==='完了'?'done':'open'}"><div><b>${a.date} ${esc(a.summary)}</b><div class="mini">${a.id} / ${esc(a.service||'')} / ${esc(a.phase)} / 修理費 ${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</div></div><button class="btn soft" onclick="accidentDetail('${a.id}','${no}',${page},'${filter}')">開く</button></div>`).join(''):'<div class="mini">該当する事故履歴はありません。</div>')+
  (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAccidents('${no}',${page-1},'${filter}')">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAccidents('${no}',${page+1},'${filter}')">次へ →</button></div>`:'')
 }
-function employeeTraining(no,page=1){
+function employeeTraining(no,page=1,focusKey=''){
  if(!guardEmployeeView(no,'安全指導'))return;
  let e=emp(no),rows=TR.filter(x=>x.employee_no===no).sort((a,b)=>String(a.due).localeCompare(String(b.due))),per=10,pages=Math.max(1,Math.ceil(rows.length/per));
+ let focusIndex=focusKey?rows.findIndex(t=>String(t.id||t.course)===String(focusKey)):-1;
+ if(focusIndex>=0)page=Math.floor(focusIndex/per)+1;
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の安全指導`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openTrainingRecordForm('${no}')">＋ 安全指導を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">安全指導・適性診断 ${rows.length}件</div><div class="mini">未完了 ${rows.filter(x=>x.status!=='完了').length}件</div></div></div>`+
- (shown.length?shown.map(t=>{let idx=TR.indexOf(t);return `<div class="row"><div><b>${esc(t.course)}</b><div class="mini">期限 ${t.due}</div></div><div>${badge(t.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openTrainingRecordForm('${no}',${idx})">編集</button>`:''} ${canEditEmployee(no)&&t.status!=='完了'?`<button class="btn soft" onclick="completeTraining(${idx})">完了にする</button>`:''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>')+
- (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeTraining('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeTraining('${no}',${page+1})">次へ →</button></div>`:'')
+ (shown.length?shown.map(t=>{let idx=TR.indexOf(t),focused=focusKey&&String(t.id||t.course)===String(focusKey);return `<div class="row ${focused?'record-focus-row':''}"><div><b>${esc(t.course)}</b>${focused?'<span class="badge warn" style="margin-left:6px">期限対象</span>':''}<div class="mini">期限 ${t.due}</div></div><div>${badge(t.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openTrainingRecordForm('${no}',${idx})">編集</button>`:''} ${canEditEmployee(no)&&t.status!=='完了'?`<button class="btn soft" onclick="completeTraining(${idx})">完了にする</button>`:''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>')+
+ (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeTraining('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeTraining('${no}',${page+1})">次へ →</button></div>`:'');
+ showDetailModal();
+ if(focusIndex>=0)requestAnimationFrame(()=>dbody.querySelector('.record-focus-row')?.scrollIntoView({block:'center'}))
 }
-function employeeQualification(no,page=1){
+function employeeQualification(no,page=1,focusKey=''){
  if(!guardEmployeeView(no,'資格'))return;
  let e=emp(no),rows=QUAL.filter(x=>x.employee_no===no).sort((a,b)=>String(a.expiry).localeCompare(String(b.expiry))),per=10,pages=Math.max(1,Math.ceil(rows.length/per));
+ let focusIndex=focusKey?rows.findIndex(q=>String(q.id||q.number||q.name)===String(focusKey)):-1;
+ if(focusIndex>=0)page=Math.floor(focusIndex/per)+1;
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の資格`;
  let expired=rows.filter(q=>q.expiry&&days(q.expiry)<0).length,soon=rows.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length,missingEvidence=rows.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openQualificationRecordForm('${no}')">＋ 資格を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">資格 ${rows.length}件</div><div class="mini">期限の近い順に表示</div></div><div class="simple-status-line"><span class="simple-status-chip ${expired?'danger':''}">期限超過 ${expired}</span><span class="simple-status-chip ${soon?'warn':''}">30日以内 ${soon}</span><span class="simple-status-chip ${missingEvidence?'warn':''}">証憑未紐付け ${missingEvidence}</span></div></div>`+
- (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q);return `<div class="row"><div><b>${esc(q.name)}</b><div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(q)}">${esc(qualificationEvidenceLabel(q))}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>${q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)?`<button class="btn warn" onclick="openDocumentForm('${no}',-1,'${q.id}')">証憑を登録</button>`:''}`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
- (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeQualification('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeQualification('${no}',${page+1})">次へ →</button></div>`:'')
+ (shown.length?shown.map(q=>{let idx=QUAL.indexOf(q),focused=focusKey&&String(q.id||q.number||q.name)===String(focusKey);return `<div class="row ${focused?'record-focus-row':''}"><div><b>${esc(q.name)}</b>${focused?'<span class="badge warn" style="margin-left:6px">期限対象</span>':''}<div class="mini">証番号 ${esc(q.number||'-')} / 期限 ${esc(q.expiry||'未設定')}</div><div class="credential-link ${qualificationEvidenceClass(q)}">${esc(qualificationEvidenceLabel(q))}</div></div><div>${badge(q.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openQualificationRecordForm('${no}',${idx})">編集</button>${q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)?`<button class="btn warn" onclick="openDocumentForm('${no}',-1,'${q.id}')">証憑を登録</button>`:''}`:''}</div></div>`}).join(''):'<div class="mini">資格情報はありません。</div>')+
+ (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeQualification('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeQualification('${no}',${page+1})">次へ →</button></div>`:'');
+ showDetailModal();
+ if(focusIndex>=0)requestAnimationFrame(()=>dbody.querySelector('.record-focus-row')?.scrollIntoView({block:'center'}))
 }
-function employeeAssets(no,page=1){
+function employeeAssets(no,page=1,focusKey=''){
  if(!guardEmployeeView(no,'貸与品'))return;
  let e=emp(no),rows=AS.filter(x=>x.employee_no===no),per=10,pages=Math.max(1,Math.ceil(rows.length/per));
+ let focusIndex=focusKey?rows.findIndex(a=>String(a.id||a.asset_no)===String(focusKey)):-1;
+ if(focusIndex>=0)page=Math.floor(focusIndex/per)+1;
  page=Math.min(Math.max(1,page),pages);let start=(page-1)*per,shown=rows.slice(start,start+per);
  dttl.textContent=`${e.name} の貸与品`;
  dbody.innerHTML=`<div class="backbar"><button class="btn soft" onclick="employeeDetail('${no}')">← 社員詳細へ戻る</button>${canEditEmployee(no)?`<button class="btn primary" onclick="openAssetRecordForm('${no}')">＋ 貸与品を追加</button>`:''}</div><div class="list-summary"><div><div class="related-title">貸与品 ${rows.length}件</div><div class="mini">未返却 ${rows.filter(x=>x.status==='未返却').length}件</div></div></div>`+
- (shown.length?shown.map(a=>{let idx=AS.indexOf(a);return `<div class="row"><div><b>${esc(a.item)}</b><div class="mini">管理番号 ${esc(a.asset_no||'-')} / 返却予定 ${a.return_due||'-'}</div></div><div>${badge(a.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openAssetRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">貸与品はありません。</div>')+
- (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAssets('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAssets('${no}',${page+1})">次へ →</button></div>`:'')
+ (shown.length?shown.map(a=>{let idx=AS.indexOf(a),focused=focusKey&&String(a.id||a.asset_no)===String(focusKey);return `<div class="row ${focused?'record-focus-row':''}"><div><b>${esc(a.item)}</b>${focused?'<span class="badge warn" style="margin-left:6px">期限対象</span>':''}<div class="mini">管理番号 ${esc(a.asset_no||'-')} / 返却予定 ${a.return_due||'-'}</div></div><div>${badge(a.status)} ${canEditEmployee(no)?`<button class="btn soft" onclick="openAssetRecordForm('${no}',${idx})">編集</button>`:''}</div></div>`}).join(''):'<div class="mini">貸与品はありません。</div>')+
+ (pages>1?`<div class="acc-pager"><button class="btn" ${page<=1?'disabled':''} onclick="employeeAssets('${no}',${page-1})">← 前へ</button><span class="pill">${start+1}〜${Math.min(start+per,rows.length)}件 / 全${rows.length}件</span><button class="btn" ${page>=pages?'disabled':''} onclick="employeeAssets('${no}',${page+1})">次へ →</button></div>`:'');
+ showDetailModal();
+ if(focusIndex>=0)requestAnimationFrame(()=>dbody.querySelector('.record-focus-row')?.scrollIntoView({block:'center'}))
 }
 function analysisDateInRange(date,from,to){
  if(!date)return !from&&!to;
