@@ -97,3 +97,52 @@ test('optional verification is labeled clearly without mutating stored status',(
   assert.ok(employeeDocs.includes('documentOperationalStatusLabel(d)'));
   assert.ok(center.includes('documentOperationalStatusLabel(d)'));
 });
+
+
+test('replacement chain keeps versions linked and permission-filtered',()=>{
+  const chain=block('function documentReplacementChain','function documentReplacementChainHtml');
+  const htmlBlock=block('function documentReplacementChainHtml','function documentAuditTimelineHtml');
+  assert.ok(chain.includes('replacedFromDocumentId'));
+  assert.ok(chain.includes('replacedByDocumentId'));
+  assert.ok(htmlBlock.includes('canViewDocumentRecord(x)'));
+  assert.ok(htmlBlock.includes('旧版は削除せず履歴として保持します'));
+});
+
+test('document audit timeline is scoped to the exact document id',()=>{
+  const audit=block('function documentAuditTimelineHtml','function documentPreview');
+  assert.ok(audit.includes("String(x.entity_type||'')==='document'"));
+  assert.ok(audit.includes("String(x.entity_id||'')===String(d.id)"));
+  assert.ok(audit.includes('閲覧・確認・差替え・無効化'));
+});
+
+test('retention review never deletes and requires a full admin note',()=>{
+  const review=block('function openRetentionReviewForm','function deleteDocument');
+  assert.ok(review.includes("if(!isFullCompanyAdmin())"));
+  assert.ok(review.includes("if(!note)return alert('確認メモを入力してください')"));
+  assert.ok(review.includes("この操作では削除・無効化を行いません"));
+  assert.ok(review.includes("days(next)<=0"));
+  assert.ok(review.includes("audit('書類保管期限確認'"));
+  assert.equal(review.includes('DOCS.splice'),false);
+  assert.equal(review.includes('localStorage.removeItem'),false);
+});
+
+test('retention due uses a dedicated review action rather than delete',()=>{
+  const primary=block('function originalDocumentPrimaryActionHtml','function originalDocumentPriorityHtml');
+  const actions=block('function originalDocumentActionsHtml','function originalDocumentPriorityReason');
+  assert.ok(primary.includes("reason==='保管期限到来'&&isFullCompanyAdmin()"));
+  assert.ok(primary.includes("openRetentionReviewForm"));
+  assert.ok(actions.includes("openRetentionReviewForm"));
+});
+
+test('strict invalidation requires a second confirmation and preserves originals',()=>{
+  const invalidate=block('function deleteDocument','let ORIGINAL_DOCUMENT_PAGE=');
+  assert.ok(invalidate.includes("documentSecurityClass(d)==='厳格'"));
+  assert.ok(invalidate.includes('本当に無効化しますか？'));
+  assert.ok(invalidate.includes('紙原本や電子原本ファイル自体は廃棄・削除しません'));
+  assert.ok(invalidate.includes("原本廃棄なし"));
+});
+
+test('original verification action is shown only when verification is required',()=>{
+  const actions=block('function originalDocumentActionsHtml','function originalDocumentPriorityReason');
+  assert.ok(actions.includes("documentVerificationRequired(d)&&d.status!=='原本確認済み'"));
+});
