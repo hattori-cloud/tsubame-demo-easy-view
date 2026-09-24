@@ -101,3 +101,15 @@ test('recovery-required key is not evaluated before its declaration',()=>{
   assert.equal(prefix.includes('CORE_RECOVERY_REQUIRED_KEY'),false,'recovery key referenced before initialization');
   assert.ok(source.includes("const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE','v197CORE_RECOVERY_REQUIRED']"));
 });
+
+
+test('complaint edit comparison covers guidance and all editable response fields',()=>{
+  const block=between('let complaintBefore=rec?','if(rec&&!complaintLines.length)');
+  for(const field of [
+    'responseTime','responder','customerName','occurrenceDate','occurrenceTime',
+    'guidanceContent','instructor','guidanceDate','guidanceTime','ownerId'
+  ]){
+    assert.ok(block.includes(field),field+' missing from complaint change detection')
+  }
+  assert.ok(block.includes("guidanceContent:'指導内容'"));
+});
