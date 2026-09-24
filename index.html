@@ -2350,11 +2350,44 @@ Object.entries(DEFAULT_DOCUMENT_RULES).forEach(([k,v])=>{DOCUMENT_RULES[k]={...v
 let RECENT=safeStorageRead('v29RECENT',[]);
 let RECENT_DETAILS=safeStorageRead('v128RECENTDETAILS',[]);
 let AUDIT_FLUSH_TIMER=null;
+function auditFingerprint(row){
+ return [
+  row?.time_iso||row?.time||'',
+  row?.actor_id||row?.actor_name||'',
+  row?.action||'',
+  row?.entity_type||'',
+  row?.entity_id||'',
+  row?.employee_no||'',
+  row?.detail||''
+ ].map(x=>String(x)).join('|')
+}
+function mergeAuditRows(...groups){
+ let out=[],seen=new Set();
+ groups.flat().forEach(row=>{
+  if(!row||typeof row!=='object')return;
+  let key=auditFingerprint(row);
+  if(seen.has(key))return;
+  seen.add(key);out.push(row)
+ });
+ out.sort((a,b)=>String(b?.time_iso||b?.time||'').localeCompare(String(a?.time_iso||a?.time||'')));
+ return out.slice(0,AUDIT_RETENTION_LIMIT)
+}
+function mergeStoredAuditIntoMemory(){
+ try{
+  let raw=localStorage.getItem('v29AUDIT');
+  if(raw===null)return;
+  let stored=JSON.parse(raw);
+  if(Array.isArray(stored))AUDIT=mergeAuditRows(AUDIT,stored)
+ }catch(_){}
+}
 function persistAuditStandalone(){
  AUDIT_FLUSH_TIMER=null;
  let oldRaw=null;
  try{
   oldRaw=localStorage.getItem('v29AUDIT');
+  let stored=oldRaw===null?[]:JSON.parse(oldRaw);
+  if(!Array.isArray(stored))stored=[];
+  AUDIT=mergeAuditRows(AUDIT,stored);
   let nextRaw=JSON.stringify(AUDIT);
   localStorage.setItem('v29AUDIT',nextRaw);
   if(localStorage.getItem('v29AUDIT')!==nextRaw)throw new Error('監査ログの書込み後確認に失敗しました')
@@ -3421,6 +3454,7 @@ function verifyCoreSave(items){
 let CORE_SAVE_SUCCESS_SEQ=0;
 function save(){
  if(AUDIT_FLUSH_TIMER!==null){clearTimeout(AUDIT_FLUSH_TIMER);AUDIT_FLUSH_TIMER=null}
+ mergeStoredAuditIntoMemory();
  if(!coreSaveRevisionIsCurrent()){
   if(CORE_RECOVERY_REQUIRED){
    showRecoveryRequiredBanner();
@@ -9732,7 +9766,7 @@ window.addEventListener('storage',e=>{
   try{
    let next=JSON.parse(e.newValue||'[]');
    if(!Array.isArray(next))return;
-   if(e.key==='v29AUDIT'){AUDIT=next.slice(0,AUDIT_RETENTION_LIMIT);renderAudit()}
+   if(e.key==='v29AUDIT'){AUDIT=mergeAuditRows(AUDIT,next);renderAudit()}
    if(e.key==='v30FAVORITES'){FAVORITES=next;renderFavorites()}
   }catch(_){}
   return
