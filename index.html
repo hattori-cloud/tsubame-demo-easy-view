@@ -9726,8 +9726,9 @@ fsave.addEventListener('click',e=>{
   }
  },120)
 },true);
+const CORE_CONCURRENCY_IGNORE_KEYS=new Set(['v29AUDIT','v30FAVORITES']);
 window.addEventListener('storage',e=>{
- let tracked=e.key===CORE_REVISION_KEY||coreSaveItems().some(([key])=>key===e.key);
+ let tracked=e.key===CORE_REVISION_KEY||(coreSaveItems().some(([key])=>key===e.key)&&!CORE_CONCURRENCY_IGNORE_KEYS.has(e.key));
  if(tracked){
   if(e.key===CORE_REVISION_KEY&&String(e.newValue||'')===String(CORE_KNOWN_REVISION||''))return;
   CORE_EXTERNAL_CHANGE=true;
