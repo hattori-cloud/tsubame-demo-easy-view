@@ -59,7 +59,7 @@ test('backend readiness reports booleans without secret values',()=>{
     process.env.TSUBAME_AUTH_AUDIENCE='secret-audience-value';
     process.env.TSUBAME_AUTH_JWKS_URL='https://issuer.example.invalid/jwks';
     process.env.DATABASE_URL='postgres://secret-user:secret-password@example.invalid/db';
-    process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value';
+    process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value-32chars-plus';
     process.env.BLOB_READ_WRITE_TOKEN='secret-storage-token';
     const readiness=runtime.backendReadiness();
     assert.equal(readiness.auth_env_present,true);
@@ -71,7 +71,7 @@ test('backend readiness reports booleans without secret values',()=>{
     assert.equal(serialized.includes('secret-password'),false);
     assert.equal(serialized.includes('secret-storage-token'),false);
     assert.equal(serialized.includes('secret-audience-value'),false);
-    assert.equal(serialized.includes('secret-session-signing-value'),false)
+    assert.equal(serialized.includes('secret-session-signing-value-32chars-plus'),false)
   }finally{restoreEnv(saved)}
 });
 
