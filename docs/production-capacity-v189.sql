@@ -10,21 +10,14 @@
 begin;
 
 -- Retired employees remain in the employee master. They are not hard-deleted.
--- V200 base schema already owns the retired_on index; this addendum does not recreate it.
-alter table employees
-  add column if not exists retired_on date;
+-- V200 base schema already defines employees.retired_on and its index.
 
 create index if not exists employees_lifecycle_office_dept_idx
   on employees (lifecycle_status, office, department, employee_no);
 
--- A near-miss report must preserve the organization context at the time of
--- submission so later transfers do not rewrite historical monthly results.
-alter table near_misses
-  add column if not exists reported_on date,
-  add column if not exists summary text,
-  add column if not exists employee_no_at_report text,
-  add column if not exists office_at_report text,
-  add column if not exists department_at_report text;
+-- A near-miss report preserves organization context at submission time so later
+-- transfers do not rewrite historical monthly results.
+-- V200 base schema already defines reported_on, summary and the reporting snapshots.
 
 -- Backfill candidates for staging/migration only. Production migration must
 -- validate these values before making them NOT NULL.
