@@ -35,9 +35,12 @@ test('priority primary action is contextual and permission aware',()=>{
 });
 
 test('center exposes filters for paper-location and retention exceptions',()=>{
-  const b=block('function openOriginalDocumentCenter','function renderOriginalDocumentRows');
-  assert.ok(b.includes('保管場所未設定'));
-  assert.ok(b.includes('保管期限到来'));
-  assert.ok(b.includes("state==='paper_missing'"));
-  assert.ok(b.includes("state==='retention'"))
+  const center=block('function openOriginalDocumentCenter','function renderOriginalDocumentRows');
+  const rows=block('function renderOriginalDocumentRows','function employeeProcedures');
+  assert.ok(center.includes('保管場所未設定'));
+  assert.ok(center.includes('保管期限到来'));
+  assert.ok(center.includes('value="paper_missing"'));
+  assert.ok(center.includes('value="retention"'));
+  assert.ok(rows.includes("state==='paper_missing'"));
+  assert.ok(rows.includes("state==='retention'"))
 });
