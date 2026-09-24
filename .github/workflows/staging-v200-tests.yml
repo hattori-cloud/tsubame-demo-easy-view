@@ -12,6 +12,21 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: tsubame_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d tsubame_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/tsubame_ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,3 +41,6 @@ jobs:
 
       - name: Run regression tests
         run: npm test
+
+      - name: Apply and verify production PostgreSQL schema
+        run: node scripts/verify-production-db-v200.js
