@@ -1212,6 +1212,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 
 <section class="page" id="work"><div class="page-title"><div><h2>期限・勤務管理</h2><p>管理者が「期限 → 勤務時間 → 健診・指導」の順で確認できる画面です。</p></div><div class="toolbar"><button class="btn primary" onclick="openDeadlineCenter('all')">期限を確認</button><button class="btn soft" onclick="openCredentialCenter()">資格・書類を確認</button><button class="btn soft" onclick="openAnalysisWorkScreen('document')">書類・原本管理</button><button class="btn soft" onclick="exportDeadlinesCsv()">期限CSV</button></div></div>
+<div id="workAnalysisScopeNotice"></div>
 <div class="work-manager-flow" aria-label="期限勤務の確認手順">
  <div class="work-manager-step"><span>1</span><div><b>まず期限</b><small>超過 → 本日 → 30日以内</small></div></div>
  <div class="work-manager-step"><span>2</span><div><b>次に勤務時間</b><small>残業時間と集計更新を確認</small></div></div>
@@ -2589,7 +2590,7 @@ function collectDeadlines(){
  }
  scopedAssets().filter(a=>a.status==='未返却'&&a.return_due).forEach(a=>push({type:'貸与品',label:a.item,due:a.return_due,no:a.employee_no,key:a.id||a.asset_no,notifyKey:'task',action:'返却状況を確認',source:'貸与品'}));
  DOCS.filter(d=>d.expiry&&canViewDocumentRecord(d)&&!d.archived&&!d.replacedByDocumentId&&d.status!=='差替え済み'&&d.status!=='無効').forEach(d=>push({type:'書類',label:d.name,due:d.expiry,no:d.employee_no,key:d.id,notifyKey:'task',action:'期限・差替え要否を確認',source:'書類管理'}));
- return rows.sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||a.n-b.n||String(a.type).localeCompare(String(b.type),'ja'))
+ return rows.filter(x=>analysisOperationScopeMatchNo(x.no)).sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||a.n-b.n||String(a.type).localeCompare(String(b.type),'ja'))
 }
 function deadlineClass(d){let b=deadlineBucket(d);return b==='over'?'over':b==='today'||b==='7'?'soon':''}
 function renderDeadlineKpis(targetId){
@@ -2687,7 +2688,7 @@ function openDeadlineCenter(filter='all'){
  let all=collectDeadlines(),counts={over:0,today:0,'7':0,'30':0,'60':0};all.forEach(x=>{if(counts[x.bucket]!==undefined)counts[x.bucket]++});
  let within30=counts.today+counts['7']+counts['30'];
  dttl.textContent='期限・更新の確認';
- dbody.innerHTML=`<div class="deadline-center-intro">
+ dbody.innerHTML=analysisOperationScopeBannerHtml()+`<div class="deadline-center-intro">
   <div><b>期限が近いものから順番に処理します</b><div class="mini">まず赤い「期限超過」、次に「本日」、その後「30日以内」を確認してください。各行には、期限・やること・担当を先に表示します。</div></div>
   <div class="deadline-center-steps"><span>① 期限を見る</span><span>② やることを確認</span><span>③ 更新する</span></div>
  </div>
@@ -3643,6 +3644,7 @@ function syncOfficeDeptControls(branchId,deptId,preserveCurrent=false){
  if(note)note.textContent=branch.value==='馬木'?'馬木はバス課のみ選択できます。':'事業所と部署は別管理です。部署は固定されません。'
 }
 function go(id){
+ if(ANALYSIS_OPERATION_SCOPE?.mode==='work'&&id!=='work')ANALYSIS_OPERATION_SCOPE=null;
  if(PREVIEW_ROLE==='一般社員'&&!['home','my','emp','comms'].includes(id))id='home';
  if(PREVIEW_ROLE!=='一般社員'&&id==='my')id='home';
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
@@ -3656,6 +3658,35 @@ document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p)
 
 let ANALYSIS_CENTER_TAB='company';
 let ANALYSIS_CENTER_FILTERS={period:'fy',from:'',to:'',workplace:'',dept:'',employment:''};
+let ANALYSIS_OPERATION_SCOPE=null;
+function setAnalysisOperationScopeFromCenter(mode='modal'){
+ let rows=analysisCenterFilteredEmployees(scopedEmployees());
+ ANALYSIS_OPERATION_SCOPE={
+  mode,
+  employeeNos:rows.map(e=>String(e.no)),
+  workplace:ANALYSIS_CENTER_FILTERS.workplace||'',
+  dept:ANALYSIS_CENTER_FILTERS.dept||'',
+  employment:ANALYSIS_CENTER_FILTERS.employment||''
+ };
+ return ANALYSIS_OPERATION_SCOPE
+}
+function analysisOperationScopeMatchNo(no){
+ if(!ANALYSIS_OPERATION_SCOPE)return true;
+ return ANALYSIS_OPERATION_SCOPE.employeeNos.includes(String(no||''))
+}
+function analysisOperationScopeLabel(){
+ if(!ANALYSIS_OPERATION_SCOPE)return '';
+ return [ANALYSIS_OPERATION_SCOPE.workplace||'全事業所',ANALYSIS_OPERATION_SCOPE.dept||'全部署',ANALYSIS_OPERATION_SCOPE.employment||'全雇用区分'].join(' / ')
+}
+function analysisOperationScopeBannerHtml(){
+ if(!ANALYSIS_OPERATION_SCOPE)return '';
+ return '<div class="scope-note" style="margin-bottom:10px"><b>分析条件から絞込み中：</b> '+esc(analysisOperationScopeLabel())+'<div class="mini">分析期間は引き継がず、この画面では現在の期限・確認状態を表示します。</div></div>'
+}
+function clearAnalysisOperationScope(){
+ ANALYSIS_OPERATION_SCOPE=null;
+ let el=document.getElementById('workAnalysisScopeNotice');if(el)el.innerHTML='';
+ if(document.getElementById('work')?.classList.contains('active'))renderWork()
+}
 function analysisCenterDateText(d){return d instanceof Date&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):''}
 function analysisCenterRange(today=new Date(TODAY+'T23:59:59')){
  let period=ANALYSIS_CENTER_FILTERS.period||'fy',to=new Date(today),from;
@@ -3734,11 +3765,13 @@ function openSafetyAnalysisFromCenter(type='all'){
 }
 function openAnalysisWorkScreen(kind){
  if(kind==='safety'){openSafetyAnalysisFromCenter();return}
- if(kind==='credential'){openCredentialCenter();return}
- if(kind==='document'){openOriginalDocumentCenter();return}
- if(kind==='work'){go('work');return}
+ if(kind==='credential'){setAnalysisOperationScopeFromCenter('modal');openCredentialCenter();return}
+ if(kind==='document'){setAnalysisOperationScopeFromCenter('modal');openOriginalDocumentCenter();return}
+ if(kind==='deadline'){setAnalysisOperationScopeFromCenter('modal');openDeadlineCenter('all');return}
+ if(kind==='work'){setAnalysisOperationScopeFromCenter('work');go('work');return}
  if(kind==='asset'){go('training');renderTraining();trainingTab('asset');return}
  if(kind==='employee'||kind==='retired'){
+  ANALYSIS_OPERATION_SCOPE=null;
   go('emp');
   let set=(id,value)=>{let el=document.getElementById(id);if(!el)return;if([...el.options||[]].some(o=>String(o.value)===String(value)))el.value=value||''};
   let ebEl=document.getElementById('eb'),edEl=document.getElementById('ed'),emEl=document.getElementById('eemployment'),esEl=document.getElementById('es');
@@ -4060,7 +4093,7 @@ function renderAnalysisCenter(){
   analysisSignal('勤務時間','45時間以上 '+overtime45.length+'名 / 60時間以上 '+overtime60.length+'名',overtime60.length?'danger':overtime45.length?'warn':'')+
   analysisSignal('勤務集計','更新確認が必要 '+workNeedsReview.length+'名',workNeedsReview.length?'warn':'')+
   analysisSignal('休職・退職予定','休職 '+leave.length+'名 / 退職予定 '+planned.length+'名。手続・貸与品・権限・未完了案件を引継ぎ確認します。',(leave.length+planned.length)?'warn':'')+
-  '<div class="row"><div><b>期限・勤務の実務画面</b><div class="mini">超過 → 本日 → 30日以内 → 勤務時間の順で処理</div></div><button class="btn primary" onclick="go(\'work\')">開く</button></div>';
+  '<div class="row"><div><b>期限・勤務の実務画面</b><div class="mini">分析条件を引き継ぎ、期限と勤務を確認します。</div></div><div class="toolbar"><button class="btn primary" onclick="openAnalysisWorkScreen(\'deadline\')">期限一覧</button><button class="btn soft" onclick="openAnalysisWorkScreen(\'work\')">勤務画面</button></div></div>';
 
  let deptNames=[...new Set(active.map(e=>e.dept||'未設定'))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
  let deptRows=analysisGeneralRowsByBand(active,activeQual,scopeTraining,e=>e.dept||'未設定',deptNames);
@@ -4074,7 +4107,7 @@ function renderAnalysisCenter(){
   analysisSignal('紙原本の保管場所','保管場所未設定 '+paperMissingDocs.length+'件',paperMissingDocs.length?'warn':'')+
   analysisSignal('書類期限','期限超過 '+expiredDocs.length+'件',expiredDocs.length?'danger':'')+
   analysisSignal('保管期限','到来 '+retentionDocs.length+'件。自動削除せず全社管理者が確認します。',retentionDocs.length?'warn':'')+
-  '<div class="row"><div><b>原本管理センター</b><div class="mini">未確認・差替え・紙原本・保管期限を確認</div></div><button class="btn primary" onclick="openOriginalDocumentCenter()">開く</button></div>';
+  '<div class="row"><div><b>原本管理センター</b><div class="mini">未確認・差替え・紙原本・保管期限を確認</div></div><button class="btn primary" onclick="openAnalysisWorkScreen(\'document\')">開く</button></div>';
 
  let transitionEmployees=employees.filter(e=>['休職','退職予定','退職'].includes(e.status));
  let transitionAssetCount=openAssets.filter(a=>transitionEmployees.some(e=>String(e.no)===String(a.employee_no))).length;
@@ -4237,7 +4270,7 @@ function workAttentionScore(e){
  return score
 }
 function workAttentionRows(){
- let rows=scopedEmployees().filter(e=>e.status!=='退職');
+ let rows=scopedEmployees().filter(e=>e.status!=='退職'&&analysisOperationScopeMatchNo(e.no));
  rows.forEach(refreshWorkSummaryStatus);
  return rows.filter(e=>Number(e.overtime||0)>=45||workUpdateStatus(e)==='更新確認')
   .sort((a,b)=>Number(b.overtime||0)-Number(a.overtime||0)||(workPostedAge(b)??-1)-(workPostedAge(a)??-1)||String(a.no).localeCompare(String(b.no)))
@@ -4250,7 +4283,10 @@ function openWorkAttentionCenter(){
  showDetailModal()
 }
 function renderWork(){
- let rows=scopedEmployees().filter(e=>e.status!=='退職');
+ let rows=scopedEmployees().filter(e=>e.status!=='退職'&&analysisOperationScopeMatchNo(e.no));
+ let scopeNotice=document.getElementById('workAnalysisScopeNotice');
+ if(scopeNotice)scopeNotice.innerHTML=ANALYSIS_OPERATION_SCOPE?'<div class="scope-note" style="margin-bottom:12px"><div class="list-summary"><div><b>分析条件から絞込み中：'+esc(analysisOperationScopeLabel())+'</b><div class="mini">分析期間は勤務画面へは適用せず、現在の期限・勤務状態を確認します。</div></div><button class="btn soft" onclick="clearAnalysisOperationScope()">絞込み解除</button></div></div>':'';
+
  rows.forEach(refreshWorkSummaryStatus);
  let deadlines=collectDeadlines(),dOver=deadlines.filter(x=>x.bucket==='over').length,dToday=deadlines.filter(x=>x.bucket==='today').length,d30=deadlines.filter(x=>x.bucket==='7'||x.bucket==='30').length;
  let c45=rows.filter(e=>Number(e.overtime)>=45).length,c55=rows.filter(e=>Number(e.overtime)>=55).length,c60=rows.filter(e=>Number(e.overtime)>=60).length,stale=rows.filter(e=>workUpdateStatus(e)==='更新確認').length;
@@ -4277,7 +4313,7 @@ function renderWork(){
  let healthRows=rows.filter(e=>e.health).sort((a,b)=>deadlinePriority(a.health)-deadlinePriority(b.health)||days(a.health)-days(b.health)).slice(0,8);
  let nightCount=rows.filter(e=>e.workPattern==='夜勤').length;
  healthSchedule.innerHTML=`<div class="scope-note" style="margin-bottom:8px">期限登録 ${rows.filter(e=>e.health).length}名 / 夜勤 ${nightCount}名。健診結果の内容は扱いません。</div>`+(healthRows.length?healthRows.map(e=>{let n=days(e.health),reason=n<0?'健康診断期限を'+Math.abs(n)+'日超過':n===0?'健康診断期限が本日':n<=30?'健康診断期限まで'+n+'日':'次回期限を確認';let action=n<0?'受診予定と乗務可否を最優先で確認':n<=30?'受診予定を確認':'定期確認';return `<div class="row"><div><div class="employee-name-row">${employeeNameLinkHtml(e.no,e.name,'work-employee-link')}<span class="mini">社員番号 ${esc(e.no)}</span></div><div class="mini">${esc(e.workPattern||'通常勤務')} / 期限 ${e.health} / ${deadlineBucketLabel(e.health)}</div><div class="work-action-guide"><div><span>なぜ確認？</span><b>${esc(reason)}</b></div><div><span>次にすること</span>${esc(action)}</div></div></div><button class="btn ${n<0?'danger':n<=30?'primary':'soft'}" onclick="employeeHealthWork('${e.no}')">勤務・健診</button></div>`}).join(''):'<div class="mini">健康診断期限が登録された社員はいません。</div>');
- let training=scopedTraining().slice().sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||days(a.due)-days(b.due)).slice(0,8);
+ let training=scopedTraining().filter(t=>analysisOperationScopeMatchNo(t.employee_no)).slice().sort((a,b)=>deadlinePriority(a.due)-deadlinePriority(b.due)||days(a.due)-days(b.due)).slice(0,8);
  safetyTraining.innerHTML=training.length?training.map(t=>{let e=emp(t.employee_no),info=trainingActionInfo(t);return `<div class="row"><div><div class="training-employee-line">${e?employeeNameLinkHtml(e.no,e.name,'work-employee-link'):'<b>'+esc(t.employee_no)+'</b>'}<span>${esc(t.course)}</span></div><div class="mini">期限 ${t.due||'未設定'} ${t.due?' / '+deadlineBucketLabel(t.due):''}</div>${trainingActionHtml(info)}</div><div class="toolbar">${badge(t.status)}${e?'<button class="btn '+(info.tone==='danger'?'danger':info.tone==='warn'?'primary':'soft')+'" onclick="employeeTraining(\''+e.no+'\')">指導記録</button>':''}</div></div>`}).join(''):'<div class="mini">安全指導・適性診断の記録はありません。</div>'
 }
 function attendanceSelected(){
@@ -4848,13 +4884,13 @@ function credentialDocumentActionsHtml(d){
  return '<div class="credential-row-actions">'+view+edit+'</div>'
 }
 function openCredentialCenter(){
- let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived);
+ let quals=QUAL.filter(q=>inCurrentEmployeeScope(q.employee_no)&&analysisOperationScopeMatchNo(q.employee_no)),docs=DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived&&analysisOperationScopeMatchNo(d.employee_no));
  let needMissing=quals.filter(q=>q.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(q)).length;
  let expired=quals.filter(q=>q.expiry&&days(q.expiry)<0).length+docs.filter(d=>d.expiry&&days(d.expiry)<0).length;
  let soon=quals.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30).length+docs.filter(d=>d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30).length;
  let pending=docs.filter(d=>documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
  dttl.textContent='資格・書類の確認';
- dbody.innerHTML=`<div class="credential-guide"><div><b>資格と書類は「期限 → 証明 → 確認状態」の順で見ます。</b><span>期限超過を最優先にし、その後30日以内・証明書類不足・書類確認待ちを処理します。</span></div></div>
+ dbody.innerHTML=analysisOperationScopeBannerHtml()+`<div class="credential-guide"><div><b>資格と書類は「期限 → 証明 → 確認状態」の順で見ます。</b><span>期限超過を最優先にし、その後30日以内・証明書類不足・書類確認待ちを処理します。</span></div></div>
  <div class="credential-flow">
   <div class="credential-flow-step"><span>1</span><div><b>期限を確認</b><small>超過・30日以内</small></div></div>
   <div class="credential-flow-step"><span>2</span><div><b>証明書類を確認</b><small>必要書類の未登録を確認</small></div></div>
@@ -4883,7 +4919,7 @@ function renderCredentialCenterRows(){
  let current=document.getElementById('credentialCurrentState');if(current)current.textContent=credentialStateLabel(state);
  document.querySelectorAll('[data-credential-state]').forEach(btn=>btn.classList.toggle('active',btn.dataset.credentialState===state));
  let accept=(r)=>state==='all'||(state==='attention'&&r.attention)||(state==='expired'&&r.expired)||(state==='soon'&&r.soon)||(state==='evidence'&&r.evidence)||(state==='pending'&&r.pending);
- if(kind!=='document')QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)).forEach(x=>{
+ if(kind!=='document')QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&analysisOperationScopeMatchNo(x.employee_no)).forEach(x=>{
   let e=emp(x.employee_no),expired=!!x.expiry&&days(x.expiry)<0,soon=!!x.expiry&&days(x.expiry)>=0&&days(x.expiry)<=30,evidence=x.evidenceRequirement==='必要'&&!qualificationEvidenceDocument(x);
   let r={attention:expired||soon||evidence||x.status==='要確認'||x.status==='期限切れ',expired,soon,evidence,pending:false};
   let text=[e?.name,x.employee_no,x.name,x.number,x.expiry,qualificationEvidenceLabel(x)].join(' ').toLowerCase();
@@ -4892,7 +4928,7 @@ function renderCredentialCenterRows(){
    rows.push({priority:expired?0:evidence?1:soon?2:r.attention?3:4,sort:x.expiry||'9999-12-31',html:'<div class="credential-action-row '+(expired?'quality-bad':r.attention?'quality-warn':'')+'"><div class="credential-action-main"><div class="credential-row-head"><span class="credential-kind">資格</span>'+person+'<b>'+esc(x.name)+'</b><span class="badge '+tone+'">'+(expired?'期限超過':evidence?'証明未登録':soon?'30日以内':r.attention?'要確認':'正常')+'</span></div><div class="credential-row-primary"><div><span>期限</span><b>'+esc(x.expiry||'未設定')+(x.expiry?'（'+esc(deadlineBucketLabel(x.expiry))+'）':'')+'</b></div><div class="credential-next-action"><span>次にやること</span><b>'+esc(credentialNextAction('qualification',x))+'</b></div><div><span>証明書類</span><b>'+esc(qualificationEvidenceLabel(x))+'</b></div></div><div class="credential-support-line"><span>確認理由：'+esc(credentialAttentionReason('qualification',x))+'</span><span>証番号：'+esc(x.number||'未設定')+'</span></div></div>'+credentialQualificationActionsHtml(x)+'</div>'})
   }
  });
- if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived).forEach(d=>{
+ if(kind!=='qualification')DOCS.filter(d=>canViewDocumentRecord(d)&&!d.archived&&analysisOperationScopeMatchNo(d.employee_no)).forEach(d=>{
   let e=emp(d.employee_no),expired=!!d.expiry&&days(d.expiry)<0,pending=d.status!=='原本確認済み',soon=!!d.expiry&&days(d.expiry)>=0&&days(d.expiry)<=30;
   let r={attention:expired||pending||soon,expired,soon,evidence:false,pending};
   let text=[e?.name,d.employee_no,d.name,d.category,d.status,d.expiry].join(' ').toLowerCase();
@@ -6165,7 +6201,7 @@ function originalDocumentPriorityHtml(docs){
 function openOriginalDocumentCenter(employeeNo=''){
  if(PREVIEW_ROLE!=='管理者')return alert('書類・原本管理センターは管理者のみ利用できます');
  ORIGINAL_DOCUMENT_FILTER_NO=String(employeeNo||'');ORIGINAL_DOCUMENT_PAGE=1;
- let docs=DOCS.filter(d=>canViewDocumentRecord(d)),active=docs.filter(d=>!d.archived);
+ let docs=DOCS.filter(d=>canViewDocumentRecord(d)&&analysisOperationScopeMatchNo(d.employee_no)),active=docs.filter(d=>!d.archived);
  let pending=active.filter(d=>documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み').length;
  let replace=active.filter(d=>d.status==='差替え待ち').length;
  let expiring=active.filter(d=>d.expiry&&days(d.expiry)<=30).length;
@@ -6173,7 +6209,7 @@ function openOriginalDocumentCenter(employeeNo=''){
  dttl.textContent='書類・原本管理';
  let paperMissing=active.filter(d=>['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim()).length;
  let retentionDue=active.filter(d=>d.retentionUntil&&days(d.retentionUntil)<0).length;
- dbody.innerHTML='<div class="backbar"><button class="btn soft" onclick="openDocumentRuleTable()">原本ルール表</button></div><div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
+ dbody.innerHTML=analysisOperationScopeBannerHtml()+'<div class="backbar"><button class="btn soft" onclick="openDocumentRuleTable()">原本ルール表</button></div><div class="detail-alert warn"><b>原本ファイル本体はこのデモに保存しません。</b><div class="mini">本番ではMFA付き認証＋サーバー権限確認後、非公開ストレージから短時間URLで取得します。閲覧・確認・差替え・無効化は監査ログへ記録します。</div></div>'+
  '<div class="credential-kpis">'+
   '<button class="credential-kpi '+(pending?'warn':'')+'" onclick="setOriginalDocumentState(\'pending\')"><small>まず確認</small><b>'+pending+'</b><span>未確認</span></button>'+
   '<button class="credential-kpi '+(replace?'warn':'')+'" onclick="setOriginalDocumentState(\'replace\')"><small>次に対応</small><b>'+replace+'</b><span>差替え待ち</span></button>'+
@@ -6190,7 +6226,7 @@ function openOriginalDocumentCenter(employeeNo=''){
 function setOriginalDocumentState(state){let el=document.getElementById('originalDocumentState');if(!el)return;el.value=state;ORIGINAL_DOCUMENT_PAGE=1;renderOriginalDocumentRows()}
 function renderOriginalDocumentRows(){
  let q=(document.getElementById('originalDocumentQ')?.value||'').trim().toLowerCase(),state=document.getElementById('originalDocumentState')?.value||'all';
- let rows=DOCS.filter(d=>canViewDocumentRecord(d)).filter(d=>!ORIGINAL_DOCUMENT_FILTER_NO||String(d.employee_no)===ORIGINAL_DOCUMENT_FILTER_NO).filter(d=>{
+ let rows=DOCS.filter(d=>canViewDocumentRecord(d)&&analysisOperationScopeMatchNo(d.employee_no)).filter(d=>!ORIGINAL_DOCUMENT_FILTER_NO||String(d.employee_no)===ORIGINAL_DOCUMENT_FILTER_NO).filter(d=>{
   let e=emp(d.employee_no),text=[d.id,d.employee_no,e?.name,d.name,d.category,d.status,d.originalHandling,documentSecurityClass(d)].join(' ').toLowerCase();
   if(q&&!text.includes(q))return false;
   if(state==='all')return !d.archived;
@@ -9496,6 +9532,7 @@ function restoreDetailOrigin(){
 function closeDetail(){
  if(restoreDetailState())return;
  detail.classList.remove('show');
+ if(ANALYSIS_OPERATION_SCOPE?.mode==='modal')ANALYSIS_OPERATION_SCOPE=null;
  restoreDetailOrigin()
 }
 function detailBackButtonHtml(){
