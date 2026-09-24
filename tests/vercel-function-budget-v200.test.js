@@ -38,3 +38,22 @@ test('router restores dynamic route parameters',()=>{
   assert.ok(router.includes("query[key]=decodeURIComponent"));
   assert.ok(router.includes("delete query.__path"));
 });
+
+
+test('v1 route shapes have no dynamic-name collisions',()=>{
+  const files=walk(path.join(root,'api','v1'));
+  const seen=new Map(),collisions=[];
+  for(const abs of files){
+    let rel=path.relative(path.join(root,'api','v1'),abs).split(path.sep).join('/').replace(/\.js$/,'').replace(/\/index$/,'');
+    const shape=rel.split('/').map(x=>/^\[[^\]]+\]$/.test(x)?'[:]':x).join('/');
+    if(seen.has(shape))collisions.push([shape,seen.get(shape),rel]);
+    else seen.set(shape,rel);
+  }
+  assert.deepEqual(collisions,[]);
+});
+
+test('single router preserves incoming query filters while removing only internal path marker',()=>{
+  assert.ok(router.includes("const query={...(req.query||{})}"));
+  assert.ok(router.includes("delete query.__path"));
+  assert.ok(router.includes("req.query=query"));
+});
