@@ -53,3 +53,27 @@ test('document storage lifecycle and purge approval are fail-closed',()=>{
   assert.match(sql,/approved_by_user_id <> requested_by_user_id/);
   assert.match(sql,/state in \('requested','approved','rejected','executed','failed','cancelled'\)/);
 });
+
+
+test('every simple production index references an existing table column',()=>{
+  const tableColumns=new Map();
+  for(const match of sql.matchAll(/create\s+table\s+([a-z0-9_]+)\s*\(([\s\S]*?)\n\);/gi)){
+    const columns=new Set();
+    for(const line of match[2].split('\n')){
+      const column=/^\s*([a-z][a-z0-9_]*)\s+/i.exec(line);
+      if(column&&!/^(check|unique|primary|foreign|constraint)$/i.test(column[1]))columns.add(column[1]);
+    }
+    tableColumns.set(match[1],columns);
+  }
+  const invalid=[];
+  for(const match of sql.matchAll(/create\s+(?:unique\s+)?index\s+([a-z0-9_]+)\s+on\s+([a-z0-9_]+)\s*\(([^)]*)\)/gi)){
+    const [,indexName,tableName,inside]=match;
+    const columns=inside.split(',').map(x=>x.trim().split(/\s+/)[0].replace(/["']/g,'')).filter(Boolean);
+    for(const column of columns){
+      if(/^[a-z][a-z0-9_]*$/i.test(column)&&tableColumns.has(tableName)&&!tableColumns.get(tableName).has(column)){
+        invalid.push(indexName+' -> '+tableName+'.'+column);
+      }
+    }
+  }
+  assert.deepEqual(invalid,[])
+});
