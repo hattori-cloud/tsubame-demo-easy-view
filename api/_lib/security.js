@@ -17,8 +17,9 @@ function requestId(req){
 function errorBody(code,message,id){
   return {error:{code,message,request_id:id}};
 }
+const {authEnvPresent}=require('./runtime-config');
 function productionAuthConfigured(){
-  return Boolean(process.env.TSUBAME_AUTH_ISSUER && process.env.TSUBAME_AUTH_AUDIENCE && process.env.TSUBAME_AUTH_JWKS_URL);
+  return authEnvPresent();
 }
 function rejectUntilAuthConfigured(req,res){
   const id=requestId(req);
