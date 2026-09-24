@@ -3062,6 +3062,26 @@ function backupReferenceChecks(data){
    if(no&&!employeeNos.has(no))errors.push(label+' '+(x?.id||('#'+(i+1)))+' の社員番号 '+no+' が社員台帳に存在しません')
   })
  });
+ let vehicles=Array.isArray(data?.v23V)?data.v23V:[];
+ vehicles.forEach((v,i)=>(Array.isArray(v?.additionalEmployeeNos)?v.additionalEmployeeNos:[]).forEach(no=>{
+  let n=String(no||'').trim();
+  if(n&&!employeeNos.has(n))errors.push('車両 '+(v?.id||('#'+(i+1)))+' の追加利用乗務員 '+n+' が社員台帳に存在しません')
+ }));
+ let qualifications=Array.isArray(data?.v28QUAL)?data.v28QUAL:[],documents=Array.isArray(data?.v30DOCS)?data.v30DOCS:[];
+ let qualificationIds=new Set(qualifications.map(q=>String(q?.id||'').trim()).filter(Boolean));
+ let documentIds=new Set(documents.map(d=>String(d?.id||'').trim()).filter(Boolean));
+ qualifications.forEach((q,i)=>{
+  let documentId=String(q?.document_id||'').trim();
+  if(documentId&&!documentIds.has(documentId))errors.push('資格 '+(q?.id||('#'+(i+1)))+' の関連書類 '+documentId+' が書類台帳に存在しません')
+ });
+ documents.forEach((d,i)=>{
+  let qualificationId=String(d?.qualification_id||'').trim();
+  if(qualificationId&&!qualificationIds.has(qualificationId))errors.push('書類 '+(d?.id||('#'+(i+1)))+' の関連資格 '+qualificationId+' が資格台帳に存在しません');
+  ['replacedFromDocumentId','replacedByDocumentId'].forEach(key=>{
+   let linked=String(d?.[key]||'').trim();
+   if(linked&&!documentIds.has(linked))errors.push('書類 '+(d?.id||('#'+(i+1)))+' の差替え参照 '+linked+' が書類台帳に存在しません')
+  })
+ });
  return {errors,warnings}
 }
 function backupIdChecks(data){
