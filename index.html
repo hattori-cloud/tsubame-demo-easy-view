@@ -7059,8 +7059,8 @@ function safetyAnalysisGroupTriples(rows,kind){
  let out={};
  let keyOf=rec=>{
   if(kind==='vehicle'){let v=String(rec.vehicle||'').trim();return /^\d{3}$/.test(v)?v+'号車':''}
-  let e=safetyAnalysisRecordEmployee(rec);
-  return kind==='dept'?(e?.dept||'未設定'):(e?.workplace||e?.branch||'未設定')
+  let scope=safetyAnalysisRecordSnapshot(rec);
+  return kind==='dept'?(scope.dept||'未設定'):(scope.workplace||'未設定')
  };
  let add=(rec,type)=>{let key=keyOf(rec);if(!key)return;let x=out[key]||(out[key]={acc:0,comp:0,near:0});x[type]++};
  rows.accidents.forEach(x=>add(x,'acc'));rows.complaints.forEach(x=>add(x,'comp'));rows.near.forEach(x=>add(x,'near'));
@@ -7202,7 +7202,7 @@ function safetyAnalysisData(){
 }
 function populateSafetyAnalysisFilters(){
  let records=[...scopedAccidents(),...scopedComplaints(),...scopedNearMisses()];
- let employees=scopedEmployees().slice();
+ let employees=scopedEmployees().slice(),recordScopes=records.map(rec=>({rec,scope:safetyAnalysisRecordSnapshot(rec)}));
  let setOptions=(id,values,label,current)=>{
   let el=document.getElementById(id);if(!el)return;
   let vals=[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
@@ -7211,24 +7211,30 @@ function populateSafetyAnalysisFilters(){
  };
  let wEl=document.getElementById('analysisWorkplace'),dEl=document.getElementById('analysisDept'),emEl=document.getElementById('analysisEmployment'),eEl=document.getElementById('analysisEmployee'),vEl=document.getElementById('analysisVehicle');
  let currentW=wEl?.value||'',currentD=dEl?.value||'',currentEm=emEl?.value||'',currentE=eEl?.value||'',currentV=vEl?.value||'';
- setOptions('analysisWorkplace',employees.map(e=>e.workplace||e.branch||''),'全事業所',currentW);
+ setOptions('analysisWorkplace',[...employees.map(e=>e.workplace||e.branch||''),...recordScopes.map(x=>x.scope.workplace)],'全事業所',currentW);
  currentW=wEl?.value||'';
  let deptEmployees=currentW?employees.filter(e=>String(e.workplace||e.branch||'')===currentW):employees;
- setOptions('analysisDept',deptEmployees.map(e=>e.dept||''),'全部署',currentD);
+ let deptSnapshots=recordScopes.filter(x=>!currentW||x.scope.workplace===currentW).map(x=>x.scope.dept);
+ setOptions('analysisDept',[...deptEmployees.map(e=>e.dept||''),...deptSnapshots],'全部署',currentD);
  currentD=dEl?.value||'';
  let employmentEmployees=deptEmployees.filter(e=>!currentD||String(e.dept||'')===currentD);
- setOptions('analysisEmployment',employmentEmployees.map(e=>e.employment||''),'全雇用区分',currentEm);
+ let employmentSnapshots=recordScopes.filter(x=>(!currentW||x.scope.workplace===currentW)&&(!currentD||x.scope.dept===currentD)).map(x=>x.scope.employment);
+ setOptions('analysisEmployment',[...employmentEmployees.map(e=>e.employment||''),...employmentSnapshots],'全雇用区分',currentEm);
  currentEm=emEl?.value||'';
- let filteredEmployees=employmentEmployees.filter(e=>!currentEm||String(e.employment||'')===currentEm).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
+ let historicalNos=new Set(recordScopes.filter(x=>(!currentW||x.scope.workplace===currentW)&&(!currentD||x.scope.dept===currentD)&&(!currentEm||x.scope.employment===currentEm)).map(x=>String(x.rec.employee_no||'')));
+ let filteredEmployees=employees.filter(e=>{
+  let currentMatch=(!currentW||String(e.workplace||e.branch||'')===currentW)&&(!currentD||String(e.dept||'')===currentD)&&(!currentEm||String(e.employment||'')===currentEm);
+  return currentMatch||historicalNos.has(String(e.no))
+ }).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
  if(eEl){
   eEl.innerHTML='<option value="">全社員</option>'+filteredEmployees.map(e=>'<option value="'+esc(e.no)+'">'+esc(e.no)+' '+esc(e.name)+'</option>').join('');
   if(filteredEmployees.some(e=>String(e.no)===currentE))eEl.value=currentE;
   currentE=eEl.value||''
  }
- let vehicleValues=records.filter(r=>{
-  let scope=safetyAnalysisRecordSnapshot(r);
+ let vehicleValues=recordScopes.filter(x=>{
+  let r=x.rec,scope=x.scope;
   return (!currentW||scope.workplace===currentW)&&(!currentD||scope.dept===currentD)&&(!currentEm||scope.employment===currentEm)&&(!currentE||String(r.employee_no)===currentE)
- }).map(r=>String(r.vehicle||'').trim()).filter(v=>/^\d{3}$/.test(v));
+ }).map(x=>String(x.rec.vehicle||'').trim()).filter(v=>/^\d{3}$/.test(v));
  setOptions('analysisVehicle',vehicleValues,'全号車',currentV);
 }
 function clearSafetyAnalysis(){
