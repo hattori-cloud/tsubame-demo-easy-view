@@ -9446,7 +9446,34 @@ function openComplaintForm(idx=-1,defaultNo=''){
   let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:e.dept,vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
   if(data.status==='完了'&&data.rank==='未判定')return alert('完了にする前に、クレームランク A・B・C のいずれかを選択してください');
   let complaintWarnings=[];if(data.status!=='完了'){if(!data.owner)complaintWarnings.push('担当者が未設定です');if(!data.nextAction)complaintWarnings.push('次回対応内容が未設定です');if(!data.followupDue)complaintWarnings.push('フォロー期限が未設定です')}if(data.rank==='未判定')complaintWarnings.push('クレームランクが未判定です');
-  let complaintLines=rec?recordChangeLines({responseDate:rec.responseDate||rec.date,employee_no:rec.employee_no,vehicle:rec.vehicle,summary:rec.summary,rank:rec.rank,owner:rec.owner,nextAction:rec.nextAction,followupDue:rec.followupDue,status:rec.status},data,{responseDate:'対応日',employee_no:'対象社員',vehicle:'号車',summary:'申告内容',rank:'クレームランク',owner:'担当者',nextAction:'次回対応',followupDue:'フォロー期限',status:'状態'}):['対応日：'+data.responseDate,'対象社員：'+e.no+' '+e.name,'申告内容：'+data.summary,'ランク：'+complaintRankLabel(data.rank),'担当者：'+data.owner,'状態：'+data.status];
+  let complaintBefore=rec?{
+   responseDate:rec.responseDate||rec.date||'',
+   responseTime:rec.responseTime||'',
+   responder:rec.responder||'',
+   employee_no:rec.employee_no||'',
+   vehicle:rec.vehicle||'未設定',
+   customerName:rec.customerName||'匿名',
+   occurrenceDate:rec.occurrenceDate||'',
+   occurrenceTime:rec.occurrenceTime||'',
+   summary:rec.summary||'',
+   guidanceContent:rec.guidanceContent||'',
+   rank:rec.rank||'未判定',
+   instructor:rec.instructor||'',
+   guidanceDate:rec.guidanceDate||'',
+   guidanceTime:rec.guidanceTime||'',
+   ownerId:rec.ownerId||'',
+   owner:rec.owner||'',
+   nextAction:rec.nextAction||'',
+   followupDue:rec.followupDue||'',
+   status:rec.status||''
+  }:null;
+  let complaintLabels={
+   responseDate:'対応日',responseTime:'対応時間',responder:'対応者',employee_no:'対象社員',vehicle:'号車',
+   customerName:'お客様名（仮名・匿名）',occurrenceDate:'発生日',occurrenceTime:'発生時間',summary:'申告内容',
+   guidanceContent:'指導内容',rank:'クレームランク',instructor:'指導者',guidanceDate:'指導日',guidanceTime:'指導時間',
+   ownerId:'担当者ID',owner:'担当者',nextAction:'次回対応',followupDue:'フォロー期限',status:'状態'
+  };
+  let complaintLines=rec?recordChangeLines(complaintBefore,data,complaintLabels):['対応日：'+data.responseDate,'対象社員：'+e.no+' '+e.name,'申告内容：'+data.summary,'ランク：'+complaintRankLabel(data.rank),'担当者：'+data.owner,'状態：'+data.status];
   if(rec&&!complaintLines.length){closeForm();return}
   if(!confirmFormSave(rec?'苦情・お客様対応の変更確認':'苦情・お客様対応の登録確認',complaintLines,complaintWarnings))return;
   let rid,action;if(rec){rid=rec.id;Object.assign(rec,data);touchRecord(rec,'complaint',false);action='苦情対応更新';if(prevStatus!=='完了'&&rec.status==='完了'){rec.completedDate=TODAY;rec.finalReviewerName=reviewer.name}else if(prevStatus==='完了'&&rec.status!=='完了'){rec.completedDate='';rec.finalReviewerName=''}}else{rid=nextRecordId('C',C);data.id=rid;touchRecord(data,'complaint',true);if(data.status==='完了'){data.completedDate=TODAY;data.finalReviewerName=reviewer.name}else{data.completedDate='';data.finalReviewerName=''}C.push(data);action='苦情対応登録'}
