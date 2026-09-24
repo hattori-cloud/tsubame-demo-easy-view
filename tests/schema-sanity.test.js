@@ -139,3 +139,12 @@ test('communications persist notice reads and confirmation responses by immutabl
   assert.match(sql,/employee_id uuid not null references employees\(id\)/i);
   assert.match(sql,/unique \(confirmation_id, user_id\)/i);
 });
+
+
+test('production PL/pgSQL functions use valid dollar quoting',()=>{
+  const schema=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
+  assert.ok(schema.includes('create or replace function reject_append_only_mutation()'));
+  assert.ok(schema.includes('as $$\\nbegin'));
+  assert.ok(schema.includes('\\nend;\\n$$;'));
+  assert.equal(/\\bas \\$\\r?\\n/.test(schema),false);
+});
