@@ -58,3 +58,32 @@ test('employee number collisions include historical employee numbers',()=>{
   const edit=block('function openEmployeeEdit','function openEmployeeForm');
   assert.ok(edit.includes('現在番号または旧社員番号として既に使用されています'));
 });
+
+
+test('employee number changes preserve self-service, favorites and communications references',()=>{
+  const helpers=block('function employeeNumberOwner','function badge');
+  assert.ok(helpers.includes('HANDOFFS'));
+  assert.ok(helpers.includes('FAVORITES=[...new Set'));
+  assert.ok(helpers.includes('n.readBy=[...new Set'));
+  assert.ok(helpers.includes('c.responses[to]=c.responses[from]'));
+
+  const userLink=block('function userLinkedEmployeeNo','function userLinkedEmployee');
+  assert.ok(userLink.includes("employeeByAnyId(u.employee_id||u.employee_no||'')"));
+  const selfNo=block('function currentSelfNo','function renderMyPage');
+  assert.ok(selfNo.includes('userLinkedEmployeeNo(u)'));
+});
+
+test('old employee numbers are searchable while stable ids stay out of normal employee detail',()=>{
+  assert.ok(html.includes('function employeeLookupTerms(employee)'));
+  assert.ok(html.includes('function employeeRecordLookupTerms(record)'));
+  assert.ok(html.includes('function employeeOldNumberMatch(employee,query)'));
+  const employeeList=block('function renderEmp()','function employeePage');
+  assert.ok(employeeList.includes('旧番号'));
+  assert.ok(employeeList.includes('employeeLookupTerms(e)'));
+  const global=block('function searchAll()','function openEmployeeEdit');
+  assert.ok(global.includes('employeeRecordLookupTerms(a)'));
+  assert.ok(global.includes('旧番号'));
+  const detailStart=html.indexOf('<div class="employee-profile-no">社員番号 ${e.no}</div>');
+  assert.ok(detailStart>=0);
+  assert.ok(html.includes('旧社員番号 ${e.oldNos.map(esc).join(\'、\')}（旧番号でも検索できます）'));
+});
