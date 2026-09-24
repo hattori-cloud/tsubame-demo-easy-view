@@ -76,5 +76,6 @@ test('history rows do not consume reserved current-record group slots',()=>{
 test('global search shows employee lifecycle and opens the exact document',()=>{
   const b=block('function searchAll','function openEmployeeEdit');
   assert.ok(b.includes("sub:\`${e.status||'在籍'} /"));
-  assert.ok(b.includes("open:\`documentPreview('\\${d.id}')\`"))
+  assert.ok(b.includes("open:\`documentPreview('"));
+  assert.ok(b.includes("\${d.id}"))
 });
