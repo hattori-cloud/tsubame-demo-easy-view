@@ -6828,6 +6828,17 @@ function accidentAttentionInfo(a){
  return {tone:'',reason:'未完了の事故対応',action:'次回対応と期限に沿って進捗を確認'}
 }
 
+function accidentListPriority(a){
+ if(a.phase==='完了')return 99;
+ let state=accidentDeadlineState(a);
+ if(state==='over')return 0;
+ if(state==='today')return 1;
+ if(accidentNeedsAttention(a))return 2;
+ if(state==='soon')return 3;
+ if(state==='normal')return 4;
+ return 5
+}
+
 function renderAcc(){
  renderAccMonthDashboard();
  const q=((typeof accq!=='undefined'&&accq.value)||'').trim().toLowerCase(),date=(document.getElementById('accDate')?.value||''),all=scopedAccidents().filter(a=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(a)).slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -6837,8 +6848,7 @@ function renderAcc(){
    let pass=ACC_FILTER==='all'||(ACC_FILTER==='open'&&a.phase!=='完了')||(ACC_FILTER==='over'&&state==='over')||(ACC_FILTER==='today'&&state==='today')||(ACC_FILTER==='attention'&&accidentNeedsAttention(a))||(ACC_FILTER==='done'&&a.phase==='完了');
    return pass&&(!ACC_MONTH||accidentMonthKey(a)===ACC_MONTH)&&(!date||a.date===date)&&(!q||[a.id,a.date,a.time,a.employee_no,a.driver,a.address,a.summary,a.vehicle,a.service,a.operationState,a.district,a.accidentType,a.faultRate,a.opponentRepair,a.opponentRepairCost,a.companyRepair,a.companyRepairCost,a.responseHistory||'',a.owner||'',a.nextAction||''].join(' ').toLowerCase().includes(q))
  }).sort((a,b)=>{
-   const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};
-   let ra=rank[accidentDeadlineState(a)]??9,rb=rank[accidentDeadlineState(b)]??9;
+   let ra=accidentListPriority(a),rb=accidentListPriority(b);
    return ra!==rb?ra-rb:String(b.date).localeCompare(String(a.date))
  });
  const per=10,pages=Math.max(1,Math.ceil(rows.length/per));ACC_PAGE=Math.min(Math.max(1,ACC_PAGE),pages);
@@ -7270,6 +7280,14 @@ function nearAttentionInfo(n){
 
 let NEAR_QUOTA_FILTER='unmet',NEAR_QUOTA_PAGE=1;
 const NEAR_QUOTA_PER_PAGE=50;
+function nearListPriority(n){
+ let needs=nearNeedsAnalysis(n),high=n?.riskLevel==='高い';
+ if(high&&needs)return 0;
+ if(high)return 1;
+ if(needs)return 2;
+ return 3
+}
+
 function nearQuotaMonth(){
  let el=document.getElementById('nearQuotaMonth'),fallback=TODAY.slice(0,7);
  if(el&&!el.value)el.value=fallback;
@@ -7409,6 +7427,9 @@ function renderNear(){
   let text=[n.id,n.date,n.time,n.vehicle,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
   let quick=NEAR_FILTER==='all'||(NEAR_FILTER==='high'&&n.riskLevel==='高い')||(NEAR_FILTER==='today'&&n.date===TODAY)||(NEAR_FILTER==='attention'&&nearNeedsAnalysis(n));
   return quick&&(!NEAR_MONTH||nearQuotaReportMonth(n)===NEAR_MONTH)&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
+ }).sort((a,b)=>{
+  let ra=nearListPriority(a),rb=nearListPriority(b);
+  return ra!==rb?ra-rb:String(b.date||'').localeCompare(String(a.date||''))
  });
  const nearPages=Math.max(1,Math.ceil(rows.length/NEAR_PER_PAGE));NEAR_PAGE=Math.min(Math.max(1,NEAR_PAGE),nearPages);const nearStart=(NEAR_PAGE-1)*NEAR_PER_PAGE,nearShown=rows.slice(nearStart,nearStart+NEAR_PER_PAGE);
  [['nearAllBtn','all'],['nearHighBtn','high'],['nearTodayBtn','today'],['nearAttentionBtn','attention']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',NEAR_FILTER===k)});
@@ -7493,6 +7514,18 @@ function complaintAttentionInfo(c){
  return {tone:'',reason:'未完了の苦情対応',action:'次回対応と期限に沿って進捗を確認'}
 }
 
+function complaintListPriority(c){
+ if(c.status==='完了')return 99;
+ let state=complaintState(c);
+ if(state==='over')return 0;
+ if(state==='today')return 1;
+ if(c.rank==='A')return 2;
+ if(complaintNeedsAttention(c))return 3;
+ if(state==='soon')return 4;
+ if(state==='normal')return 5;
+ return 6
+}
+
 function renderComplaints(){
  let q=((document.getElementById('complaintq')?.value)||'').trim().toLowerCase(),date=document.getElementById('complaintDate')?.value||'',all=scopedComplaints().filter(c=>!MY_TASKS_ONLY||recordAssignedToCurrentManager(c)).slice();
  let counts={open:all.filter(c=>c.status!=='完了').length,over:all.filter(c=>complaintState(c)==='over').length,today:all.filter(c=>complaintState(c)==='today').length,attention:all.filter(complaintNeedsAttention).length,done:all.filter(c=>c.status==='完了').length};
@@ -7500,7 +7533,7 @@ function renderComplaints(){
   let s=complaintState(c),pass=COMPLAINT_FILTER==='all'||(COMPLAINT_FILTER==='open'&&c.status!=='完了')||(COMPLAINT_FILTER==='over'&&s==='over')||(COMPLAINT_FILTER==='today'&&s==='today')||(COMPLAINT_FILTER==='attention'&&complaintNeedsAttention(c))||(COMPLAINT_FILTER==='done'&&c.status==='完了');
   let dateMatch=!date||c.responseDate===date||c.date===date||c.occurrenceDate===date||c.guidanceDate===date;
   return pass&&dateMatch&&(!q||[c.id,c.employee_no,c.responseDate,c.occurrenceDate,c.guidanceDate,c.driverName,c.vehicle,c.summary,c.owner,c.nextAction,c.customerName,c.rank,c.responder,c.instructor].join(' ').toLowerCase().includes(q))
- }).sort((a,b)=>{const rank={over:0,today:1,soon:2,normal:3,none:4,done:5};let ra=rank[complaintState(a)]??9,rb=rank[complaintState(b)]??9;return ra!==rb?ra-rb:String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date))});
+ }).sort((a,b)=>{let ra=complaintListPriority(a),rb=complaintListPriority(b);return ra!==rb?ra-rb:String(b.responseDate||b.date).localeCompare(String(a.responseDate||a.date))});
  const complaintPages=Math.max(1,Math.ceil(rows.length/COMPLAINT_PER_PAGE));COMPLAINT_PAGE=Math.min(Math.max(1,COMPLAINT_PAGE),complaintPages);const complaintStart=(COMPLAINT_PAGE-1)*COMPLAINT_PER_PAGE,complaintShown=rows.slice(complaintStart,complaintStart+COMPLAINT_PER_PAGE);
  [['complaintAllBtn','all'],['complaintOpenBtn','open'],['complaintOverBtn','over'],['complaintTodayBtn','today'],['complaintAttentionBtn','attention'],['complaintDoneBtn','done']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',COMPLAINT_FILTER===k)});
  let summary=document.getElementById('complaintSummary');if(summary)summary.innerHTML=`<div class="safety-list-kpis"><button class="safety-list-kpi ${COMPLAINT_FILTER==='open'?'active':''}" onclick="COMPLAINT_FILTER='open';renderComplaints()"><small>未完了</small><b>${counts.open}</b></button><button class="safety-list-kpi danger ${COMPLAINT_FILTER==='over'?'active':''}" onclick="COMPLAINT_FILTER='over';renderComplaints()"><small>期限超過</small><b>${counts.over}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='today'?'active':''}" onclick="COMPLAINT_FILTER='today';renderComplaints()"><small>本日期限</small><b>${counts.today}</b></button><button class="safety-list-kpi warn ${COMPLAINT_FILTER==='attention'?'active':''}" onclick="COMPLAINT_FILTER='attention';renderComplaints()"><small>要確認</small><b>${counts.attention}</b></button></div><div class="list-summary"><div><b>表示 ${rows.length}件</b><div class="mini">要確認は担当・期限・次回対応・ランクの不足を含みます</div></div></div>`;
