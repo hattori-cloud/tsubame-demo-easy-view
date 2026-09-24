@@ -22,7 +22,7 @@
 ### 基準スキーマ適用後
 
 - transaction完了
-- 22テーブル
+- 28テーブル
 - index作成成功
 - foreign key作成成功
 - documents.content_sha256 CHECK作成成功
