@@ -1477,7 +1477,15 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="card"><h3>入退職・在籍の傾向</h3><div id="analysisHrSignals" class="list"></div></div>
   <div class="card"><h3>所属別の在籍状況</h3><div id="analysisHrDepartments"></div></div>
  </div>
- <div class="spec-note" style="margin-top:12px">退職日は、在籍状態変更履歴に記録された日付を使用します。履歴がない退職者は退職月・早期離職率へ推測で含めません。本番では退職日を独立項目として保存します。</div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>年齢分布</h3><div class="mini">現在在籍している社員を年齢帯で集計します。</div><div id="analysisHrAge" style="margin-top:10px"></div></div>
+  <div class="card"><h3>勤続年数（社歴）分布</h3><div class="mini">入社日から現在までの在籍期間を集計します。</div><div id="analysisHrTenure" style="margin-top:10px"></div></div>
+ </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>雇用区分</h3><div id="analysisHrEmployment"></div></div>
+  <div class="card"><h3>退職時の勤続年数</h3><div class="mini">退職日が確認できる退職者だけを集計します。</div><div id="analysisHrExitTenure" style="margin-top:10px"></div></div>
+ </div>
+ <div class="spec-note" style="margin-top:12px">退職日は社員台帳の独立項目を優先し、過去データは在籍状態変更履歴の日付を補助的に使用します。日付が確認できない退職者は推測で期間集計へ含めません。</div>
 </div>
 
 <div class="tabpane" id="analysis-general">
@@ -2207,6 +2215,34 @@ function openGoldReviewForm(no){
  };
  form.classList.add('show')
 }
+
+function ensureRetiredDemoSamples(){
+ const samples=[
+  {no:'7901',name:'西村 悠斗',furigana:'ニシムラユウト',gender:'男',birthDate:'2002-08-15',hire:'2026-04-10',retiredDate:'2026-06-25',employment:'正社員',position:'乗務員',dept:'タクシー課',branch:'本社',license:'普通自動車第二種免許'},
+  {no:'7902',name:'藤井 美月',furigana:'フジイミヅキ',gender:'女',birthDate:'1995-03-20',hire:'2025-11-01',retiredDate:'2026-04-30',employment:'正社員',position:'乗務員',dept:'タクシー課',branch:'府中',license:'普通自動車第二種免許'},
+  {no:'7903',name:'石田 拓海',furigana:'イシダタクミ',gender:'男',birthDate:'1981-01-12',hire:'2025-05-15',retiredDate:'2026-03-31',employment:'正社員',position:'乗務員',dept:'タクシー課',branch:'本社',license:'普通自動車第二種免許'},
+  {no:'7904',name:'小川 直樹',furigana:'オガワナオキ',gender:'男',birthDate:'1968-06-08',hire:'2014-09-01',retiredDate:'2026-08-20',employment:'正社員',position:'主任',dept:'タクシー課',branch:'本社',license:'普通自動車第二種免許'},
+  {no:'7905',name:'松本 和夫',furigana:'マツモトカズオ',gender:'男',birthDate:'1959-02-17',hire:'2010-04-01',retiredDate:'2026-03-31',employment:'正社員',position:'乗務員',dept:'タクシー課',branch:'府中',license:'普通自動車第二種免許'},
+  {no:'7906',name:'村上 由佳',furigana:'ムラカミユカ',gender:'女',birthDate:'1987-09-26',hire:'2024-02-01',retiredDate:'2025-12-15',employment:'正社員',position:'一般',dept:'総務課',branch:'本社',license:'普通自動車第一種免許'},
+  {no:'7907',name:'岡本 健介',furigana:'オカモトケンスケ',gender:'男',birthDate:'1974-04-03',hire:'2018-07-01',retiredDate:'2026-07-31',employment:'正社員',position:'乗務員',dept:'バス課',branch:'馬木',license:'大型自動車第二種免許'},
+  {no:'7908',name:'高橋 彩香',furigana:'タカハシアヤカ',gender:'女',birthDate:'1992-11-09',hire:'2026-01-05',retiredDate:'2026-09-10',employment:'正社員',position:'一般',dept:'人事広報',branch:'本社',license:'普通自動車第一種免許'},
+  {no:'7909',name:'森田 修',furigana:'モリタオサム',gender:'男',birthDate:'1977-05-19',hire:'2016-10-01',retiredDate:'2025-10-31',employment:'正社員',position:'整備士',dept:'整備課',branch:'府中',license:'二級自動車整備士'},
+  {no:'7910',name:'長谷川 誠',furigana:'ハセガワマコト',gender:'男',birthDate:'1963-12-01',hire:'2021-04-01',retiredDate:'2026-05-31',employment:'定時制',position:'乗務員',dept:'タクシー課',branch:'本社',license:'普通自動車第二種免許'},
+  {no:'7911',name:'山本 梨花',furigana:'ヤマモトリカ',gender:'女',birthDate:'1998-07-14',hire:'2026-04-01',retiredDate:'2026-07-05',employment:'正社員',position:'一般',dept:'経理課',branch:'本社',license:'普通自動車第一種免許'},
+  {no:'7912',name:'田中 大地',furigana:'タナカダイチ',gender:'男',birthDate:'1990-10-28',hire:'2025-10-15',retiredDate:'2026-08-31',employment:'正社員',position:'運行管理補助',dept:'運行管理課',branch:'府中',license:'運行管理者資格者証（旅客）'}
+ ];
+ let changed=false;
+ samples.forEach(s=>{
+  if(E.some(e=>String(e.no)===s.no))return;
+  let driver=['タクシー課','バス課'].includes(s.dept);
+  let rec={...s,workplace:s.branch,age:analysisAgeYears(s),status:'退職',eligibility:'対象外',safetyState:'正常',health:'',aptitude:driver?'一般診断済':'-',aptitudeNext:'',licenseExpiry:'',overtime:0,annualConfirmed:'2026-04-01',demoSample:true,
+   transitionHistory:[{date:s.retiredDate,time:s.retiredDate+'T09:00:00.000Z',kind:'在籍状態変更',from:[s.branch,s.dept,'在籍'].join(' / '),to:[s.branch,s.dept,'退職'].join(' / '),note:'分析確認用の架空退職者サンプル',checks:['車両','事故・苦情','貸与品・書類・安全指導','権限・担当範囲'],actor_id:'demo-seed',actor_name:'デモデータ'}]
+  };
+  touchRecord(rec,'employee',true);E.push(rec);changed=true
+ });
+ if(changed){safeStorageWrite('v45E',E);safeStorageWrite('v23E',E)}
+}
+
 function ensureHandoffFields(){
  E.forEach((e,i)=>{
    if(!e.system_id)e.system_id=systemEmployeeId(e.no);
@@ -3617,16 +3653,35 @@ function analysisScopedSafety(){
 function analysisRetirementEvents(employees){
  let rows=[];
  employees.forEach(e=>{
+  let direct=analysisDateValue(e.retiredDate);
+  if(direct){rows.push({employee:e,date:direct,dateText:String(e.retiredDate),branch:e.branch,dept:e.dept,employment:e.employment,hire:analysisDateValue(e.hire),source:'退職日'});return}
   let hs=Array.isArray(e.transitionHistory)?e.transitionHistory:[];
-  hs.forEach(h=>{
-   if(h.kind!=='在籍状態変更')return;
-   let to=String(h.to||'').split('/').map(x=>x.trim());
-   if(!to.includes('退職'))return;
-   let d=analysisDateValue(h.date);
-   if(d)rows.push({employee:e,date:d,dateText:String(h.date),branch:e.branch,dept:e.dept,employment:e.employment,hire:analysisDateValue(e.hire)})
-  })
+  let h=hs.find(x=>x.kind==='在籍状態変更'&&String(x.to||'').split('/').map(v=>v.trim()).includes('退職'));
+  let d=analysisDateValue(h&&h.date);
+  if(d)rows.push({employee:e,date:d,dateText:String(h.date),branch:e.branch,dept:e.dept,employment:e.employment,hire:analysisDateValue(e.hire),source:'履歴'})
  });
  return rows
+}
+function analysisAgeYears(e,atDate=new Date(TODAY+'T00:00:00')){
+ let b=analysisDateValue(e&&e.birthDate);
+ if(!b){let n=Number(e&&e.age);return Number.isFinite(n)?n:null}
+ let y=atDate.getFullYear()-b.getFullYear();
+ let beforeBirthday=(atDate.getMonth()<b.getMonth())||(atDate.getMonth()===b.getMonth()&&atDate.getDate()<b.getDate());
+ return y-(beforeBirthday?1:0)
+}
+function analysisTenureYears(e,endDate=new Date(TODAY+'T00:00:00')){
+ let h=analysisDateValue(e&&e.hire);if(!h||!endDate||endDate<h)return null;
+ return (endDate-h)/31557600000
+}
+function analysisOrderedListHtml(entries){
+ let rows=(entries||[]).filter(x=>Array.isArray(x)&&x.length>=2),max=Math.max(1,...rows.map(x=>Number(x[1])||0));
+ return rows.map(([k,v])=>'<div class="analysis-bar-row"><div class="analysis-bar-label">'+esc(k)+'</div><div class="analysis-bar-track"><span style="width:'+Math.max(v?4:0,Math.round((Number(v)||0)/max*100))+'%"></span></div><b>'+Number(v||0)+'</b></div>').join('')
+}
+function analysisAgeBand(age){
+ if(age===null)return '不明';if(age<30)return '29歳以下';if(age<40)return '30代';if(age<50)return '40代';if(age<60)return '50代';if(age<70)return '60代';return '70歳以上'
+}
+function analysisTenureBand(years){
+ if(years===null)return '不明';if(years<1)return '1年未満';if(years<3)return '1～3年未満';if(years<5)return '3～5年未満';if(years<10)return '5～10年未満';if(years<20)return '10～20年未満';return '20年以上'
 }
 function analysisCountListHtml(map,limit=10){
  let rows=Object.entries(map||{}).sort((a,b)=>b[1]-a[1]).slice(0,limit),max=Math.max(1,...rows.map(x=>x[1]));
@@ -3642,6 +3697,8 @@ function renderAnalysisCenter(){
  let hiresFy=employees.filter(e=>analysisInRange(e.hire,fyStart,today));
  let hire1y=employees.filter(e=>analysisInRange(e.hire,yearAgo,today));
  let retireEvents=analysisRetirementEvents(employees),retireFy=retireEvents.filter(x=>x.date>=fyStart&&x.date<=today);
+ let early3=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=92&&x.date>=x.hire);
+ let early6=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=183&&x.date>=x.hire);
  let earlyRetire=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=365&&x.date>=x.hire);
  let openAcc=safety.accidents.filter(x=>x.phase!=='完了'),openComp=safety.complaints.filter(x=>x.status!=='完了'),highNear=safety.near.filter(x=>x.riskLevel==='高い');
  let overdueHealth=active.filter(e=>e.health&&days(e.health)<0),soonHealth=active.filter(e=>e.health&&days(e.health)>=0&&days(e.health)<=30);
@@ -3687,10 +3744,21 @@ function renderAnalysisCenter(){
   kpi('休職',leave.length+'名','現在')+kpi('退職予定',planned.length+'名','現在');
  let deptCount={};active.forEach(e=>{let k=(e.branch||'未設定')+' / '+(e.dept||'未設定');deptCount[k]=(deptCount[k]||0)+1});
  let hd=document.getElementById('analysisHrDepartments');if(hd)hd.innerHTML=analysisCountListHtml(deptCount,14);
+ let ageMap={'29歳以下':0,'30代':0,'40代':0,'50代':0,'60代':0,'70歳以上':0,'不明':0};
+ active.forEach(e=>ageMap[analysisAgeBand(analysisAgeYears(e,today))]++);
+ let ageEl=document.getElementById('analysisHrAge');if(ageEl)ageEl.innerHTML=analysisOrderedListHtml(Object.entries(ageMap));
+ let tenureMap={'1年未満':0,'1～3年未満':0,'3～5年未満':0,'5～10年未満':0,'10～20年未満':0,'20年以上':0,'不明':0};
+ active.forEach(e=>tenureMap[analysisTenureBand(analysisTenureYears(e,today))]++);
+ let tenureEl=document.getElementById('analysisHrTenure');if(tenureEl)tenureEl.innerHTML=analysisOrderedListHtml(Object.entries(tenureMap));
+ let employmentMap={};active.forEach(e=>{let k=e.employment||'未設定';employmentMap[k]=(employmentMap[k]||0)+1});
+ let empEl=document.getElementById('analysisHrEmployment');if(empEl)empEl.innerHTML=analysisCountListHtml(employmentMap,10);
+ let exitTenureMap={'3か月以内':0,'3～6か月':0,'6～12か月':0,'1～3年':0,'3～5年':0,'5～10年':0,'10年以上':0,'不明':0};
+ retireEvents.forEach(x=>{let y=x.hire?analysisTenureYears(x.employee,x.date):null,k='不明';if(y!==null){if(y<=0.252)k='3か月以内';else if(y<=0.501)k='3～6か月';else if(y<1)k='6～12か月';else if(y<3)k='1～3年';else if(y<5)k='3～5年';else if(y<10)k='5～10年';else k='10年以上'}exitTenureMap[k]++});
+ let exitEl=document.getElementById('analysisHrExitTenure');if(exitEl)exitEl.innerHTML=analysisOrderedListHtml(Object.entries(exitTenureMap));
  let hs=document.getElementById('analysisHrSignals');if(hs)hs.innerHTML=
   analysisSignal('今年度の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
   analysisSignal('入社1年以内','現在の対象 '+hire1y.filter(e=>e.status!=='退職').length+'名。安全教育・資格・健診の初期フォローと横断できます。')+
-  analysisSignal('早期離職の把握','履歴で退職日を確認できる範囲の入社1年以内退職 '+earlyRetire.length+'名。退職理由は未構造化のため、現時点では理由別集計をしません。');
+  analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。');
 
  let gk=document.getElementById('analysisGeneralKpis');if(gk)gk.innerHTML=
   kpi('健診期限超過',overdueHealth.length+'名','在籍者')+kpi('健診30日以内',soonHealth.length+'名','在籍者')+
@@ -8140,7 +8208,7 @@ function renderMailHistory(){
  let scopeText=canCreateEmployee()?'全社の送信テスト履歴を表示':`担当範囲「${adminScopeLabel()}」に関係する送信テスト履歴のみ表示`;
  mailHistory.innerHTML=`<div class="scope-note" style="margin-bottom:9px">${esc(scopeText)}。判定できない過去履歴は担当管理者には表示しません。</div>`+(rows.length?rows.map(x=>`<div class="row"><div><b>${esc(x.kind)} ${esc(x.target)}</b><div class="mini">${esc(x.time)} / ${esc(x.to)}</div></div><span class="badge warn">${esc(x.status)}</span></div>`).join(''):'<div class="mini">この範囲で表示できる送信テスト履歴はありません。</div>')
 }
-function renderRetired(){let q=(retireQ.value||'').toLowerCase(),arr=scopedEmployees().filter(e=>e.status==='退職'&&(!q||[e.no,systemEmployeeId(e.no),e.name].join(' ').toLowerCase().includes(q)));retiredList.innerHTML=arr.length?arr.map(e=>`<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${e.branch} / ${e.dept}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="mini">該当する退職者はいません。</div>'}
+function renderRetired(){let q=(retireQ.value||'').toLowerCase(),arr=scopedEmployees().filter(e=>e.status==='退職'&&(!q||[e.no,systemEmployeeId(e.no),e.name,e.retiredDate].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(b.retiredDate||'').localeCompare(String(a.retiredDate||'')));retiredList.innerHTML=arr.length?arr.map(e=>`<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${e.branch} / ${e.dept} / 退職日 ${esc(e.retiredDate||'未登録')}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="mini">該当する退職者はいません。</div>'}
 function globalSearchGroup(label){
  if(label==='社員')return 'employee';
  if(['事故','苦情','ヒヤリ','安全指導'].includes(label))return 'safety';
@@ -9256,6 +9324,7 @@ function runBootMigrations(){
   ['ヒヤリ項目移行',ensureNearMissWorkflowFields],
   ['苦情項目移行',ensureComplaintFields],
   ['資格項目移行',ensureQualifications],
+  ['架空退職者サンプル補完',ensureRetiredDemoSamples],
   ['引継ぎ項目移行',ensureHandoffFields],
   ['乗務員認定項目移行',ensureDriverCertificationFields],
   ['共通ID補完',ensureCoreRecordIds],
