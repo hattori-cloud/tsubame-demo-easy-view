@@ -49,7 +49,41 @@ async function withTransaction(work){
     throw err
   }finally{client.release()}
 }
+async function probeDatabaseReadiness(){
+  const empty={connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false};
+  if(!databaseEnvPresent())return empty;
+  try{
+    const r=await query(`
+      select
+        to_regclass('public.employees') is not null as employees_ready,
+        to_regclass('public.users') is not null as users_ready,
+        to_regclass('public.audit_logs') is not null as audit_logs_ready,
+        to_regclass('public.record_histories') is not null as record_histories_ready,
+        to_regclass('public.documents') is not null as documents_ready,
+        to_regclass('public.document_purge_requests') is not null as purge_ready,
+        to_regclass('public.near_miss_monthly_targets') is not null as capacity_targets_ready,
+        to_regclass('public.near_miss_monthly_compliance') is not null as capacity_view_ready,
+        exists(
+          select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
+           where c.relname='audit_logs' and t.tgname='audit_logs_append_only_guard'
+             and not t.tgisinternal and t.tgenabled<>'D'
+        ) as audit_guard_ready,
+        exists(
+          select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid
+           where c.relname='record_histories' and t.tgname='record_histories_append_only_guard'
+             and not t.tgisinternal and t.tgenabled<>'D'
+        ) as history_guard_ready
+    `);
+    const x=r.rows[0]||{};
+    return {
+      connected:true,
+      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready),
+      audit_append_only_ready:Boolean(x.audit_guard_ready&&x.history_guard_ready),
+      capacity_ready:Boolean(x.capacity_targets_ready&&x.capacity_view_ready)
+    }
+  }catch(_){return empty}
+}
 async function closePool(){
   if(pool){const p=pool;pool=null;await p.end()}
 }
-module.exports={databaseConfigured:databaseEnvPresent,getPool,query,withTransaction,closePool};
+module.exports={databaseConfigured:databaseEnvPresent,getPool,query,withTransaction,probeDatabaseReadiness,closePool};
