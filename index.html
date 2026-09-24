@@ -1333,12 +1333,13 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="tabpane" id="safe-analysis">
  <div class="safety-search-card">
   <div class="safety-search-title">安全分析</div>
-  <div class="mini">事故・苦情・ヒヤリを、期間・社員・事業所・部署・号車で絞り込みます。表示できる担当範囲内だけを集計します。</div>
+  <div class="mini">事故・苦情・ヒヤリを、期間・社員・事業所・部署・雇用区分・号車で絞り込みます。表示できる担当範囲内だけを集計します。</div>
   <div class="analysis-filters" style="margin-top:10px">
    <div><label>開始日</label><input id="analysisFrom" type="date" onchange="renderSafetyAnalysis()"></div>
    <div><label>終了日</label><input id="analysisTo" type="date" onchange="renderSafetyAnalysis()"></div>
    <div><label>事業所</label><select id="analysisWorkplace" onchange="renderSafetyAnalysis()"><option value="">全事業所</option></select></div>
    <div><label>部署</label><select id="analysisDept" onchange="renderSafetyAnalysis()"><option value="">全部署</option></select></div>
+   <div><label>雇用区分</label><select id="analysisEmployment" onchange="renderSafetyAnalysis()"><option value="">全雇用区分</option></select></div>
    <div><label>社員</label><select id="analysisEmployee" onchange="renderSafetyAnalysis()"><option value="">全社員</option></select></div>
    <div><label>号車</label><select id="analysisVehicle" onchange="renderSafetyAnalysis()"><option value="">全号車</option></select></div>
    <div><label>対象</label><select id="analysisType" onchange="renderSafetyAnalysis()"><option value="all">事故＋苦情＋ヒヤリ</option><option value="accident">事故のみ</option><option value="complaint">苦情のみ</option><option value="near">ヒヤリのみ</option></select></div>
@@ -1469,7 +1470,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
    <button class="home-action-tile" onclick="analysisCenterTab('safety')"><b>安全分析</b><span>事故・ヒヤリ・苦情・教育</span></button>
    <button class="home-action-tile" onclick="analysisCenterTab('hr')"><b>人事分析</b><span>入社・退職・在籍・定着</span></button>
    <button class="home-action-tile" onclick="analysisCenterTab('general')"><b>総務分析</b><span>期限・健診・資格・勤務</span></button>
-   <button class="home-action-tile" onclick="go('safe');safeTab('analysis')"><b>詳細安全分析</b><span>既存の安全分析へ</span></button>
+   <button class="home-action-tile" onclick="openSafetyAnalysisFromCenter()"><b>詳細安全分析</b><span>既存の安全分析へ</span></button>
   </div>
  </div>
 </div>
@@ -1479,7 +1480,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div class="grid2" style="margin-top:12px">
   <div class="card"><h3>安全の見方</h3><div id="analysisSafetySignals" class="list"></div></div>
   <div class="card"><h3>次に確認すること</h3><div class="list">
-   <div class="row"><div><b>ヒヤリの重点リスク</b><div class="mini">頻出パターン・再発・教育テーマを確認</div></div><button class="btn primary" onclick="go('safe');safeTab('analysis')">開く</button></div>
+   <div class="row"><div><b>ヒヤリの重点リスク</b><div class="mini">頻出パターン・再発・教育テーマを確認</div></div><button class="btn primary" onclick="openSafetyAnalysisFromCenter()">開く</button></div>
    <div class="row"><div><b>未完了の事故・苦情</b><div class="mini">対応漏れや期限超過を確認</div></div><button class="btn soft" onclick="go('safe')">開く</button></div>
   </div></div>
  </div>
@@ -3719,6 +3720,17 @@ function analysisCenterFilteredEmployees(baseEmployees){
   (!ANALYSIS_CENTER_FILTERS.dept||e.dept===ANALYSIS_CENTER_FILTERS.dept)&&
   (!ANALYSIS_CENTER_FILTERS.employment||e.employment===ANALYSIS_CENTER_FILTERS.employment)
  )
+}
+function openSafetyAnalysisFromCenter(type='all'){
+ let r=analysisCenterRange(new Date(TODAY+'T23:59:59'));
+ go('safe');safeTab('analysis');populateSafetyAnalysisFilters();
+ let set=(id,value)=>{let el=document.getElementById(id);if(!el)return false;if([...el.options||[]].some(o=>String(o.value)===String(value))||['analysisFrom','analysisTo'].includes(id)){el.value=value||'';return true}return false};
+ set('analysisFrom',analysisCenterDateText(r.from));set('analysisTo',analysisCenterDateText(r.to));
+ set('analysisWorkplace',ANALYSIS_CENTER_FILTERS.workplace||'');populateSafetyAnalysisFilters();
+ set('analysisDept',ANALYSIS_CENTER_FILTERS.dept||'');populateSafetyAnalysisFilters();
+ set('analysisEmployment',ANALYSIS_CENTER_FILTERS.employment||'');populateSafetyAnalysisFilters();
+ let t=document.getElementById('analysisType');if(t)t.value=type||'all';
+ renderSafetyAnalysis()
 }
 function analysisCenterTab(id){
  ANALYSIS_CENTER_TAB=id||'company';
@@ -6822,10 +6834,10 @@ function safetyAnalysisComparisonPeriod(from,to){
  return {curFrom,curTo,prevFrom:analysisShiftYear(curFrom,-1),prevTo:analysisShiftYear(curTo,-1),implicit:!from&&!to}
 }
 function safetyAnalysisRawForPeriod(from,to,scope={}){
- let {workplace='',dept='',no='',vehicle='',type='all'}=scope;
- let accidents=scopedAccidents().filter(a=>analysisDateInRange(a.date,from,to)&&safetyAnalysisRecordMatches(a,workplace,dept,no,vehicle));
- let complaints=scopedComplaints().filter(x=>analysisDateInRange(x.occurrenceDate||x.responseDate||x.date,from,to)&&safetyAnalysisRecordMatches(x,workplace,dept,no,vehicle));
- let near=scopedNearMisses().filter(n=>analysisDateInRange(n.date,from,to)&&safetyAnalysisRecordMatches(n,workplace,dept,no,vehicle));
+ let {workplace='',dept='',employment='',no='',vehicle='',type='all'}=scope;
+ let accidents=scopedAccidents().filter(a=>analysisDateInRange(a.date,from,to)&&safetyAnalysisRecordMatches(a,workplace,dept,employment,no,vehicle));
+ let complaints=scopedComplaints().filter(x=>analysisDateInRange(x.occurrenceDate||x.responseDate||x.date,from,to)&&safetyAnalysisRecordMatches(x,workplace,dept,employment,no,vehicle));
+ let near=scopedNearMisses().filter(n=>analysisDateInRange(n.date,from,to)&&safetyAnalysisRecordMatches(n,workplace,dept,employment,no,vehicle));
  if(type==='accident'){complaints=[];near=[]}
  else if(type==='complaint'){accidents=[];near=[]}
  else if(type==='near'){accidents=[];complaints=[]}
@@ -6878,7 +6890,7 @@ function safetyAnalysisCompareMapHtml(curMap,prevMap,limit=8){
  return '<div class="analysis-compare-list">'+rows.map(x=>'<div class="analysis-compare-row"><b title="'+esc(x.key)+'">'+esc(x.key)+'</b><span>今 '+x.cur+'</span><span class="prev-label">前年 '+x.prev+'</span><span class="'+(x.diff>0?'up':x.diff<0?'down':'')+'">'+(x.diff>0?'+':'')+x.diff+'</span></div>').join('')+'</div>'
 }
 function safetyAnalysisDrilldownScope(kind,key){
- let d=safetyAnalysisData(),scope={from:d.from,to:d.to,type:d.type,workplace:d.workplace,dept:d.dept,no:d.no,vehicle:d.vehicle};
+ let d=safetyAnalysisData(),scope={from:d.from,to:d.to,type:d.type,workplace:d.workplace,dept:d.dept,employment:d.employment,no:d.no,vehicle:d.vehicle};
  if(kind==='dept')scope.dept=key;
  if(kind==='vehicle')scope.vehicle=String(key||'').replace(/号車$/,'');
  return scope
@@ -6969,11 +6981,12 @@ function renderSafetyComparisons(scope){
 function safetyAnalysisRecordEmployee(rec){
  return emp(String(rec?.employee_no||''))||null
 }
-function safetyAnalysisRecordMatches(rec,workplace,dept,employeeNo,vehicle){
+function safetyAnalysisRecordMatches(rec,workplace,dept,employment,employeeNo,vehicle){
  let e=safetyAnalysisRecordEmployee(rec);
  if(employeeNo&&String(rec?.employee_no)!==String(employeeNo))return false;
  if(workplace&&String(e?.workplace||e?.branch||'')!==String(workplace))return false;
  if(dept&&String(e?.dept||'')!==String(dept))return false;
+ if(employment&&String(e?.employment||'')!==String(employment))return false;
  if(vehicle&&String(rec?.vehicle||'').trim()!==String(vehicle))return false;
  return true
 }
@@ -6981,14 +6994,14 @@ function safetyAnalysisData(){
  let from=document.getElementById('analysisFrom')?.value||'',to=document.getElementById('analysisTo')?.value||'',
  no=document.getElementById('analysisEmployee')?.value||'',type=document.getElementById('analysisType')?.value||'all',
  workplace=document.getElementById('analysisWorkplace')?.value||'',dept=document.getElementById('analysisDept')?.value||'',
- vehicle=document.getElementById('analysisVehicle')?.value||'';
- let accidents=scopedAccidents().filter(a=>analysisDateInRange(a.date,from,to)&&safetyAnalysisRecordMatches(a,workplace,dept,no,vehicle));
- let complaints=scopedComplaints().filter(x=>analysisDateInRange(x.occurrenceDate||x.responseDate||x.date,from,to)&&safetyAnalysisRecordMatches(x,workplace,dept,no,vehicle));
- let near=scopedNearMisses().filter(n=>analysisDateInRange(n.date,from,to)&&safetyAnalysisRecordMatches(n,workplace,dept,no,vehicle));
+ employment=document.getElementById('analysisEmployment')?.value||'',vehicle=document.getElementById('analysisVehicle')?.value||'';
+ let accidents=scopedAccidents().filter(a=>analysisDateInRange(a.date,from,to)&&safetyAnalysisRecordMatches(a,workplace,dept,employment,no,vehicle));
+ let complaints=scopedComplaints().filter(x=>analysisDateInRange(x.occurrenceDate||x.responseDate||x.date,from,to)&&safetyAnalysisRecordMatches(x,workplace,dept,employment,no,vehicle));
+ let near=scopedNearMisses().filter(n=>analysisDateInRange(n.date,from,to)&&safetyAnalysisRecordMatches(n,workplace,dept,employment,no,vehicle));
  if(type==='accident'){complaints=[];near=[]}
  else if(type==='complaint'){accidents=[];near=[]}
  else if(type==='near'){accidents=[];complaints=[]}
- return {from,to,no,type,workplace,dept,vehicle,accidents,complaints,near}
+ return {from,to,no,type,workplace,dept,employment,vehicle,accidents,complaints,near}
 }
 function populateSafetyAnalysisFilters(){
  let records=[...scopedAccidents(),...scopedComplaints(),...scopedNearMisses()];
@@ -6999,14 +7012,17 @@ function populateSafetyAnalysisFilters(){
   el.innerHTML='<option value="">'+label+'</option>'+vals.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   if(vals.includes(current))el.value=current
  };
- let wEl=document.getElementById('analysisWorkplace'),dEl=document.getElementById('analysisDept'),eEl=document.getElementById('analysisEmployee'),vEl=document.getElementById('analysisVehicle');
- let currentW=wEl?.value||'',currentD=dEl?.value||'',currentE=eEl?.value||'',currentV=vEl?.value||'';
+ let wEl=document.getElementById('analysisWorkplace'),dEl=document.getElementById('analysisDept'),emEl=document.getElementById('analysisEmployment'),eEl=document.getElementById('analysisEmployee'),vEl=document.getElementById('analysisVehicle');
+ let currentW=wEl?.value||'',currentD=dEl?.value||'',currentEm=emEl?.value||'',currentE=eEl?.value||'',currentV=vEl?.value||'';
  setOptions('analysisWorkplace',employees.map(e=>e.workplace||e.branch||''),'全事業所',currentW);
  currentW=wEl?.value||'';
  let deptEmployees=currentW?employees.filter(e=>String(e.workplace||e.branch||'')===currentW):employees;
  setOptions('analysisDept',deptEmployees.map(e=>e.dept||''),'全部署',currentD);
  currentD=dEl?.value||'';
- let filteredEmployees=deptEmployees.filter(e=>!currentD||String(e.dept||'')===currentD).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
+ let employmentEmployees=deptEmployees.filter(e=>!currentD||String(e.dept||'')===currentD);
+ setOptions('analysisEmployment',employmentEmployees.map(e=>e.employment||''),'全雇用区分',currentEm);
+ currentEm=emEl?.value||'';
+ let filteredEmployees=employmentEmployees.filter(e=>!currentEm||String(e.employment||'')===currentEm).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ja'));
  if(eEl){
   eEl.innerHTML='<option value="">全社員</option>'+filteredEmployees.map(e=>'<option value="'+esc(e.no)+'">'+esc(e.no)+' '+esc(e.name)+'</option>').join('');
   if(filteredEmployees.some(e=>String(e.no)===currentE))eEl.value=currentE;
@@ -7014,13 +7030,13 @@ function populateSafetyAnalysisFilters(){
  }
  let vehicleValues=records.filter(r=>{
   let e=safetyAnalysisRecordEmployee(r);
-  return (!currentW||String(e?.workplace||e?.branch||'')===currentW)&&(!currentD||String(e?.dept||'')===currentD)&&(!currentE||String(r.employee_no)===currentE)
+  return (!currentW||String(e?.workplace||e?.branch||'')===currentW)&&(!currentD||String(e?.dept||'')===currentD)&&(!currentEm||String(e?.employment||'')===currentEm)&&(!currentE||String(r.employee_no)===currentE)
  }).map(r=>String(r.vehicle||'').trim()).filter(v=>/^\d{3}$/.test(v));
  setOptions('analysisVehicle',vehicleValues,'全号車',currentV);
 }
 function clearSafetyAnalysis(){
  ['analysisFrom','analysisTo'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=''});
- ['analysisWorkplace','analysisDept','analysisEmployee','analysisVehicle'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=''});
+ ['analysisWorkplace','analysisDept','analysisEmployment','analysisEmployee','analysisVehicle'].forEach(id=>{let el=document.getElementById(id);if(el)el.value=''});
  let t=document.getElementById('analysisType');if(t)t.value='all';renderSafetyAnalysis()
 }
 
@@ -7133,8 +7149,8 @@ function renderNearAnalysisDashboard(near){
 function renderSafetyAnalysis(){
  let root=document.getElementById('safe-analysis');if(!root)return;
  populateSafetyAnalysisFilters();
- let {from,to,no,type,workplace,dept,vehicle,accidents,complaints,near}=safetyAnalysisData();
- renderSafetyComparisons({from,to,no,type,workplace,dept,vehicle});
+ let {from,to,no,type,workplace,dept,employment,vehicle,accidents,complaints,near}=safetyAnalysisData();
+ renderSafetyComparisons({from,to,no,type,workplace,dept,employment,vehicle});
  renderNearAnalysisDashboard(near);
  let total=accidents.length+complaints.length+near.length,high=near.filter(n=>n.riskLevel==='高い').length;
  let openAcc=accidents.filter(a=>a.phase!=='完了').length,openComp=complaints.filter(x=>x.status!=='完了').length;
@@ -7187,7 +7203,7 @@ function renderSafetyAnalysis(){
  let note=document.getElementById('analysisDataNote');
  if(note){
   let period=(from||to)?((from||'指定なし')+' ～ '+(to||'指定なし')):'全期間';
-  let scope=[workplace&&'事業所 '+workplace,dept&&'部署 '+dept,no&&'社員 '+(emp(no)?.name||no),vehicle&&vehicle+'号車'].filter(Boolean);
+  let scope=[workplace&&'事業所 '+workplace,dept&&'部署 '+dept,employment&&'雇用 '+employment,no&&'社員 '+(emp(no)?.name||no),vehicle&&vehicle+'号車'].filter(Boolean);
   let typeLabel={all:'事故＋苦情＋ヒヤリ',accident:'事故のみ',complaint:'苦情のみ',near:'ヒヤリのみ'}[type]||type;
   note.innerHTML='<b>集計条件：</b> '+esc(period)+' / '+esc(typeLabel)+(scope.length?' / '+scope.map(esc).join(' / '):' / 表示権限範囲全体')+
    '<div class="analysis-scope-summary"><span>安全記録 '+total+'件</span><span>対象社員 '+people+'名</span><span>未完了 '+(openAcc+openComp)+'件</span><span>高危険ヒヤリ '+high+'件</span></div>'+
