@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,26);
+  assert.equal(tables.length,28);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -127,4 +127,15 @@ test('MFA enrollment challenge separates verify and enroll purposes and never st
   assert.match(sql,/pending_secret_iv text/i);
   assert.match(sql,/pending_secret_tag text/i);
   assert.doesNotMatch(sql,/pending_secret_plain/i);
+});
+
+
+test('communications persist notice reads and confirmation responses by immutable identities',()=>{
+  assert.match(sql,/create table notice_reads/i);
+  assert.match(sql,/notice_id uuid not null references notices\(id\) on delete cascade/i);
+  assert.match(sql,/user_id uuid not null references users\(id\) on delete cascade/i);
+  assert.match(sql,/unique \(notice_id, user_id\)/i);
+  assert.match(sql,/create table confirmation_responses/i);
+  assert.match(sql,/employee_id uuid not null references employees\(id\)/i);
+  assert.match(sql,/unique \(confirmation_id, user_id\)/i);
 });

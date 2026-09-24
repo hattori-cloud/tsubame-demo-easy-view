@@ -425,6 +425,24 @@ create table confirmations (
   version integer not null default 1 check (version >= 1)
 );
 
+create table notice_reads (
+  id uuid primary key default gen_random_uuid(),
+  notice_id uuid not null references notices(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  read_at timestamptz not null default now(),
+  unique (notice_id, user_id)
+);
+
+create table confirmation_responses (
+  id uuid primary key default gen_random_uuid(),
+  confirmation_id uuid not null references confirmations(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  response text not null,
+  responded_at timestamptz not null default now(),
+  unique (confirmation_id, user_id)
+);
+
 create table handoffs (
   id uuid primary key default gen_random_uuid(),
   case_type text not null,
@@ -551,6 +569,9 @@ create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on,
 
 create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
 create index notices_state_published_idx on notices (state, published_at desc);
+create index notice_reads_user_idx on notice_reads (user_id, read_at desc);
+create index confirmation_responses_confirmation_idx on confirmation_responses (confirmation_id, responded_at desc);
+create index confirmation_responses_employee_idx on confirmation_responses (employee_id, responded_at desc);
 create index confirmations_state_due_idx on confirmations (state, due);
 create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at desc);
 create index handoffs_case_idx on handoffs (case_type, case_id);
