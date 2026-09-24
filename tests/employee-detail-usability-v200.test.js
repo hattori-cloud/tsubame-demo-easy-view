@@ -80,3 +80,10 @@ test('mobile employee cards expose lifecycle and daily attention',()=>{
   assert.ok(list.includes('<label class="mini">今日の確認</label>'));
   assert.ok(list.includes('employeeListAttentionHtml(e)'));
 });
+
+test('retired employees sort below operational staff',()=>{
+  const sort=block('function employeeSafetySort','function setEmployeeQuickFilter');
+  assert.ok(sort.includes("a.status==='退職'"));
+  assert.ok(sort.includes("b.status==='退職'"));
+  assert.ok(sort.includes("if(aRetired!==bRetired)return aRetired?1:-1"));
+});
