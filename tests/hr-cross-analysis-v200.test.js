@@ -5,6 +5,9 @@ const html=fs.readFileSync('index.html','utf8');
 for(const id of ['analysisHrAgeDept','analysisHrTenureDept','analysisHrAgeSafety','analysisHrTenureSafety']){
   assert(html.includes('id="'+id+'"'),id+' UI missing');
 }
+assert(html.includes('id="analysisHrFiscalTrend"'),'fiscal trend UI missing');
+assert(html.includes('function analysisFiscalYearNumber'),'fiscal year helper missing');
+assert(html.includes('直近5年度の入社・退職・純増減'),'fiscal trend explanation missing');
 assert(html.includes('function analysisSafetyRecordDate'),'safety record date helper missing');
 assert(html.includes('function analysisMatrixHtml'),'cross matrix helper missing');
 assert(html.includes('function analysisDeptBandRows'),'department band helper missing');
