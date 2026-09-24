@@ -5,9 +5,36 @@
 対象リポジトリ: **hattori-cloud/tsubame-demo-easy-view**  
 対象ブランチ: **main**  
 本番URL: **https://tsubame-demo-easy-view.vercel.app**  
-v200アプリ本体コミット: **e36a91fca68964fd0aeb5c46089822f529af0ae0**  
-v200原本管理安全テストコミット: **6a2dadf820a6baddeb4d047c1f8e01119af21d7c**  
-v200原本ルール・差替え履歴・保管期限確認・書類監査履歴・厳格書類二重確認・production schema を main に反映済み
+v200アプリ本体コミット: **2d773c6038781ab4fc29731ebe77e186bf89057c**  
+v200原本ストレージ安全テストコミット: **1538504d3ab7b076a5a8eac9bf7204de25732905**  
+v200本番スキーマ重複修正コミット: **7bee76a45672829ee879e5bf65e497829924b48d**  
+v200原本ルール・差替え履歴・保管期限確認・書類監査履歴・厳格書類二重確認・fail-closed原本ストレージ設計・二者承認物理削除・production schema を main に反映済み
+
+---
+
+## 0-D. v200 原本ファイル本番保存セキュリティ
+
+原本ファイルの本番保存は、保存先だけを先に接続しない **fail-closed** 方針です。
+
+- 共有デモは引き続きメタデータのみ。実PDF・画像・スキャン原本を保存しない
+- 本番では個人認証＋会社利用許可台帳＋サーバー側権限を毎回確認
+- 厳格書類は全社管理者＋MFA必須
+- 新規ファイルは private 隔離領域へ保存し、検査完了前は閲覧不可
+- MIME/容量確認、SHA-256、マルウェア検査 clean 後だけ正式有効化
+- storage key に社員名・社員番号・元ファイル名を含めない
+- 原本閲覧・取得は毎回API認可し、短時間アクセス権だけ発行
+- upload/finalize/view/download/verify/replace/archive/retention/purge をサーバー監査
+- DBと原本ファイルを別障害領域へバックアップし、stagingで復元・SHA-256照合まで実施
+- 保存期限到来で自動削除しない
+- 物理削除は `document_purge_requests` を使い、申請者と別の全社管理者による二者承認を必須
+- API契約は `docs/api-contract.md`
+- 詳細な安全要件・合格条件は `docs/production-document-storage-v200.md`
+- 本番DBは `documents` の storage_state / content_type / size_bytes / SHA-256 / malware状態 / upload actor と、`document_purge_requests` を持つ
+- 2026-09-24の静的監査で JavaScript構文、原本安全要件、API契約、DB重複を再確認し **35/35 合格**
+- 監査中に production-schema.sql の正規 commit 後ろへ残っていた古い重複断片を検出し、22テーブル・重複0へ修正
+
+重要: `DOCUMENT_STORAGE_CONFIG.connected=false` のままです。  
+実社員の原本ファイル投入は、本番認証・サーバー権限・DB・監査・バックアップ復元・原本ストレージの実接続と受入試験が完了するまで禁止です。
 
 ---
 
