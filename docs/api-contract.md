@@ -161,6 +161,8 @@ Scoped administrator.
 
 The server validates the target employee is in scope.
 
+At creation time the server also freezes the employee's current `office`, `department` and `employment_type` into `office_at_record`, `department_at_record` and `employment_at_record`. These historical analysis fields are server-derived, not trusted from browser payloads, and normal PATCH operations must not rewrite them after a later transfer.
+
 ### PATCH /api/v1/accidents/{id}
 
 Requires version match.
@@ -202,6 +204,8 @@ Supports employee, three-digit car number, date range, risk level, cause side an
 
 Near misses remain analysis/safety-learning records and do not require a manager-owned response workflow. The optional `car_no` field uses the same three-digit company car number as accident, complaint and vehicle records.
 
+At creation time the server freezes employee number, office, department and employment type into the report snapshot. Historical analysis uses these snapshot values first so later transfers do not rewrite a closed month's organization results. Snapshot fields are server-derived and immutable through normal PATCH.
+
 ## 6. Complaints
 
 ### GET /api/v1/complaints
@@ -212,6 +216,8 @@ Near misses remain analysis/safety-learning records and do not require a manager
 ### POST /api/v1/complaints/{id}/archive
 
 Open complaints should validate owner, next action and follow-up due date.
+
+At creation time the server freezes the target employee's office, department and employment type into historical analysis snapshot fields. Normal complaint edits preserve that original snapshot; a later employee transfer must not move the historical complaint into the new department.
 
 Completion writes completion date and reviewer on the server.
 
