@@ -71,7 +71,9 @@ test('historical target state rolls back later transfer/retirement details',()=>
 test('past-month near-miss registration carries quota month context',()=>{
   assert.ok(source.includes("function openNearForm(idx=-1,defaultNo='',quotaMonth='')"));
   assert.ok(source.includes('選択月の不足件数には入りません'));
-  assert.ok(source.includes("openNearForm(-1,'+safeNo+'"))
+  const quotaBlock=between('function renderNearQuotaCenterRows',"let NEAR_MONTH=''");
+  assert.ok(quotaBlock.includes('openNearForm(-1'));
+  assert.ok(quotaBlock.includes('String(month).replaceAll'))
 });
 
 test('mobile monthly priority list is capped and category-balanced',()=>{
