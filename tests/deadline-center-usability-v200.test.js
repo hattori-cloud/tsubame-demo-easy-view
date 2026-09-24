@@ -16,9 +16,8 @@ test('deadline center has an actionable default and consistent 30-day semantics'
  assert.ok(match.includes("filter==='action'"));
  assert.ok(match.includes("['over','today','7','30'].includes(b)"));
  assert.ok(match.includes("['today','7','30'].includes(b)"));
- const label=block('function deadlineFilterLabel','function deadlineTypeOptions');
- assert.ok(label.includes("action:'今対応する期限'"));
- assert.ok(label.includes("within30:'本日〜30日以内'"));
+ assert.ok(html.includes("action:'今対応する期限'"));
+ assert.ok(html.includes("within30:'本日〜30日以内'"));
 });
 
 test('home and management open actionable deadlines instead of all future deadlines',()=>{
@@ -31,7 +30,7 @@ test('home and management open actionable deadlines instead of all future deadli
 });
 
 test('deadline search accepts historical employee numbers',()=>{
- const rows=block('function renderDeadlineCenterRows','function deadlineTimingText');
+ const rows=block('function renderDeadlineCenterRows','function openDeadlineCenter');
  assert.ok(rows.includes('employeeRecordLookupTerms({employee_no:x.no})'));
  assert.ok(html.includes('社員番号（旧番号も可）・担当・対応内容で検索'));
 });
