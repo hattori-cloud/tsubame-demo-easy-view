@@ -3442,6 +3442,11 @@ function save(){
   return false
  }
 }
+function coreMutationReady(){
+ if(coreSaveRevisionIsCurrent())return true;
+ save();
+ return false
+}
 let ADMIN_OFFICE_SCOPE=localStorage.getItem('v45ADMIN_OFFICE')||'';
 let ADMIN_DEPT_SCOPE=localStorage.getItem('v45ADMIN_DEPT')||'';
 function currentAdminAssignedScopes(){
@@ -4451,7 +4456,7 @@ function noticeDetail(id){
 function markNoticeRead(id){
  if(PREVIEW_ROLE!=='一般社員')return;
  let n=NOTICES.find(x=>x.id===id),no=currentSelfNo();if(!n||!commsVisibleToSelf(n))return;
- if(!n.readBy.includes(no)){n.readBy.push(no);audit('掲示既読',id,{employee_no:no,entity_type:'notice',entity_id:id});if(!save())return}
+ if(!n.readBy.includes(no)){if(!coreMutationReady())return;n.readBy.push(no);audit('掲示既読',id,{employee_no:no,entity_type:'notice',entity_id:id});if(!save())return}
  renderComms();noticeDetail(id)
 }
 function confirmationDetail(id){
@@ -4466,6 +4471,7 @@ function confirmationDetail(id){
 function answerConfirmation(id){
  if(PREVIEW_ROLE!=='一般社員')return;
  let c=CONFIRMATIONS.find(x=>x.id===id),no=currentSelfNo();if(!c||!commsVisibleToSelf(c))return;
+ if(!coreMutationReady())return;
  c.responses[no]={date:TODAY,answer:'確認済み'};audit('一斉確認回答',id,{employee_no:no,entity_type:'confirmation',entity_id:id});if(!save())return;renderComms();confirmationDetail(id)
 }
 function openApplicationForm(){
@@ -4494,6 +4500,7 @@ function applicationDetail(id){
 function updateApplicationStatus(id,status){
  if(PREVIEW_ROLE!=='管理者')return;
  let a=APPLICATIONS.find(x=>x.id===id);if(!a||!canAccess('application','edit',a.employee_no))return;
+ if(!coreMutationReady())return;
  let actor=currentActorIdentity();a.status=status;a.updatedDate=TODAY;a.reviewedBy=actor.name;touchRecord(a,'application',false);audit('申請状態更新',id+' '+status,{employee_no:a.employee_no,entity_type:'application',entity_id:id});if(!save())return;renderComms();applicationDetail(id)
 }
 function renderCompanySpec(){
@@ -5050,6 +5057,7 @@ function confirmHandoffNotice(id){
  let h=HANDOFFS.find(x=>x.id===id),actor=currentActorIdentity();
  if(!h||h.status!=='未確認'||String(h.toManagerId)!==String(actor.id))return alert('確認できる引継ぎ通知ではありません');
  let rec=handoffCurrentRecord(h);if(!rec||String(rec.ownerId||'')!==String(actor.id))return alert('この案件はすでに別担当へ変更されています');
+ if(!coreMutationReady())return;
  h.status='確認済み';h.confirmedAt=new Date().toISOString();h.confirmedById=actor.id;h.confirmedByName=actor.name;
  audit('引継ぎ確認',h.kind+' '+h.caseId+' / '+h.fromOwner+'→'+h.toOwner,{employee_no:h.employee_no,entity_type:workloadEntityType(h.kind),entity_id:h.caseId});
  if(!save())return;renderAll();closeDetail()
@@ -6075,6 +6083,7 @@ function verifyOriginalDocument(id){
  let message='原本と登録情報を照合し「原本確認済み」にします。\n\n'+d.id+' / '+d.name+'\n原本区分：'+(d.originalHandling||'未設定');
  if(documentSecurityClass(d)==='厳格')message+='\n\n【厳格書類】閲覧範囲と対象社員をもう一度確認してください。';
  if(!confirm(message+'\n\n確認済みにしますか？'))return;
+ if(!coreMutationReady())return;
  let actor=currentActorIdentity();d.status='原本確認済み';d.verifiedDate=TODAY;d.verifiedById=actor.id;d.verifiedByName=actor.name;touchRecord(d,'document',false);
  audit('書類原本確認',d.id+' '+d.name+' / '+documentSecurityClass(d),{employee_no:d.employee_no,entity_type:'document',entity_id:d.id});
  if(!save())return;openOriginalDocumentCenter(d.employee_no)
@@ -6106,6 +6115,7 @@ function deleteDocument(id){
  if(d.archived)return alert('この書類はすでに無効化されています');
  if(!confirm('この操作は「削除」ではありません。\n\n書類を履歴に残したまま「無効」にし、通常業務で使わない状態にします。\n紙原本や電子原本ファイル自体は廃棄・削除しません。\n\n'+d.id+' / '+d.name+'\n\n無効化へ進みますか？'))return;
  if(documentSecurityClass(d)==='厳格'&&!confirm('【厳格書類】\n対象社員・書類ID・差替え状況をもう一度確認してください。\n\n本当に無効化しますか？'))return;
+ if(!coreMutationReady())return;
  let actor=currentActorIdentity(),no=d.employee_no;
  d.archived=true;d.archivedAt=new Date().toISOString();d.archivedById=actor.id;d.archivedByName=actor.name;
  if(d.status!=='差替え済み')d.status='無効';
@@ -7931,6 +7941,7 @@ function caseTimelineHtml(kind,rec){
 function appendCaseNote(kind,id,inputId){
  let rec=caseRecordByKind(kind,id);if(!rec||!guardEmployeeEdit(rec.employee_no,kind+'記録'))return;
  let el=document.getElementById(inputId),text=(el?.value||'').trim();if(!text)return alert('対応内容を入力してください');
+ if(!coreMutationReady())return;
  let actor=currentActorIdentity();if(!Array.isArray(rec.caseNotes))rec.caseNotes=[];
  rec.caseNotes.unshift({time:new Date().toISOString(),date:TODAY,text,actor_id:actor.id,actor_name:actor.name});
  rec.caseNotes=rec.caseNotes.slice(0,100);
@@ -8518,7 +8529,7 @@ function renderTraining(){
   return '<tr><td>'+(e?employeeNameLinkHtml(e.no,e.name):esc(a.employee_no))+'</td><td><b>'+esc(a.item)+'</b></td><td>'+esc(a.asset_no||'-')+'</td><td>'+trainingActionHtml(info)+'</td><td>'+badge(a.status)+'</td><td><div class="toolbar"><button class="btn soft" onclick="employeeAssets(\''+safeNo+'\')">記録を見る</button>'+(canEditEmployee(a.employee_no)?'<button class="btn '+(info.tone==='danger'?'primary':'soft')+'" onclick="openAssetRecordForm(\''+safeNo+'\','+idx+')">更新</button>':'')+'</div></td></tr>'
  }).join('')||'<tr><td colspan="6"><div class="mini">貸与品の対象はありません。</div></td></tr>'
 }
-function completeTraining(i){let t=TR[i];if(!t||!guardEmployeeEdit(t.employee_no,'安全指導'))return;t.status='完了';audit('安全指導更新',`${t.employee_no} ${t.course} を完了に変更`,{employee_no:t.employee_no,entity_type:'training'});if(!save())return;renderAll();if(detail.classList.contains('show'))employeeTraining(t.employee_no)}
+function completeTraining(i){let t=TR[i];if(!t||!guardEmployeeEdit(t.employee_no,'安全指導'))return;if(!coreMutationReady())return;t.status='完了';audit('安全指導更新',`${t.employee_no} ${t.course} を完了に変更`,{employee_no:t.employee_no,entity_type:'training'});if(!save())return;renderAll();if(detail.classList.contains('show'))employeeTraining(t.employee_no)}
 function renderDept(){
  let scope=scopedEmployees(),scopeNos=new Set(scope.map(e=>e.no)),deadlines=collectDeadlines();
  deptDash.innerHTML=depts.map(d=>{
@@ -8529,7 +8540,7 @@ function renderDept(){
   return `<div class="dept-card"><div class="mini">${d}</div><b>${es.length}名</b><div class="mini">期限要確認 ${due}件 / 安全指導未完了 ${training}件 / 申請待ち ${apps}件</div></div>`
  }).join('')
 }
-function setNotifySetting(key,checked){if(!isFullCompanyAdmin()){alert('通知ルールの変更は全社管理者のみ操作できます');renderNotify();return}NS[key]=checked;audit('通知ルール変更',key+'='+checked);if(!save())return}
+function setNotifySetting(key,checked){if(!isFullCompanyAdmin()){alert('通知ルールの変更は全社管理者のみ操作できます');renderNotify();return}if(!coreMutationReady()){renderNotify();return}NS[key]=checked;audit('通知ルール変更',key+'='+checked);if(!save())return}
 function renderNotify(){
  let opts=[['license','資格期限'],['health','健康診断期限'],['training','安全指導期限'],['vehicle','車検・点検期限'],['accident','事故フォロー期限'],['task','手続・タスク期限']];
  notifySettings.innerHTML=opts.map(x=>`<div class="setting"><div><b>${x[1]}</b><div class="mini">対象者へ自動メール通知</div></div><label><input class="toggle" type="checkbox" ${NS[x[0]]?'checked':''} onchange="setNotifySetting('${x[0]}',this.checked)"> 有効</label></div>`).join('');
