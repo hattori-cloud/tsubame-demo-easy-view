@@ -36,3 +36,42 @@ test('capacity addendum keeps monthly near-miss target snapshot and compliance v
   assert.match(capacity,/requirement_state = 'exempt'/i);
   assert.match(capacity,/n\.reported_on >= t\.month_start/i);
 });
+
+
+test('capacity indexes reference columns available after base plus additive migrations',()=>{
+  function tableColumnsFromCreate(sql){
+    const map=new Map();
+    for(const match of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)\s*\(([\s\S]*?)\n\);/gi)){
+      const columns=new Set();
+      for(const line of match[2].split('\n')){
+        const column=/^\s*([a-z][a-z0-9_]*)\s+/i.exec(line);
+        if(column&&!/^(check|unique|primary|foreign|constraint)$/i.test(column[1]))columns.add(column[1]);
+      }
+      map.set(match[1],columns);
+    }
+    return map
+  }
+
+  const tables=tableColumnsFromCreate(base);
+  for(const match of capacity.matchAll(/alter\s+table\s+([a-z0-9_]+)\s+([\s\S]*?);/gi)){
+    const table=match[1];
+    assert.ok(tables.has(table),'capacity ALTER target missing from base: '+table);
+    for(const addColumn of match[2].matchAll(/add\s+column\s+if\s+not\s+exists\s+([a-z0-9_]+)/gi)){
+      tables.get(table).add(addColumn[1]);
+    }
+  }
+  for(const [table,columns] of tableColumnsFromCreate(capacity))tables.set(table,columns);
+
+  const invalid=[];
+  for(const match of capacity.matchAll(/create\s+(?:unique\s+)?index\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)\s+on\s+([a-z0-9_]+)\s*\(([^)]*)\)/gi)){
+    const [,indexName,tableName,inside]=match;
+    if(!tables.has(tableName)){invalid.push(indexName+' -> missing table '+tableName);continue}
+    const columns=inside.split(',').map(x=>x.trim().split(/\s+/)[0].replace(/["']/g,'')).filter(Boolean);
+    for(const column of columns){
+      if(/^[a-z][a-z0-9_]*$/i.test(column)&&!tables.get(tableName).has(column)){
+        invalid.push(indexName+' -> '+tableName+'.'+column);
+      }
+    }
+  }
+  assert.deepEqual(invalid,[]);
+});
