@@ -54,7 +54,7 @@ async function createEmployee({user,body,requestId}){
       returning *
     `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||null,body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
     const employee=r.rows[0];
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員登録','employee',$2,$2,'success',$3,$4)`,[user.id,employee.id,requestId,no+' '+name],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員登録','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[user.id,employee.id,requestId,no+' '+name],client);
     return employee
   })
 }
@@ -76,8 +76,8 @@ async function updateEmployee({user,employeeId,body,expectedVersion,requestId}){
     if(!changed.length)return before;
     const values=[employeeId],sets=changed.map(([k,v])=>{values.push(v);return `${k}=$${values.length}`});
     const after=(await query(`update employees set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,values,client)).rows[0];
-    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1,$1,$2,'profile_update',$3::jsonb,$4::jsonb,'通常編集')`,[employeeId,user.id,JSON.stringify(Object.fromEntries(changed.map(([k])=>[k,before[k]]))),JSON.stringify(Object.fromEntries(changed))],client);
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員情報更新','employee',$2,$2,'success',$3,$4)`,[user.id,employeeId,requestId,changed.map(([k])=>k).join(',')],client);
+    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'profile_update',$3::jsonb,$4::jsonb,'通常編集')`,[employeeId,user.id,JSON.stringify(Object.fromEntries(changed.map(([k])=>[k,before[k]]))),JSON.stringify(Object.fromEntries(changed))],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員情報更新','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[user.id,employeeId,requestId,changed.map(([k])=>k).join(',')],client);
     return after
   })
 }
@@ -95,8 +95,8 @@ async function changeEmployeeNumber({employeeId,newEmployeeNo,reason,actorUserId
     if(current.rows[0]||history.rows[0])throw problem(409,'EMPLOYEE_NO_ALREADY_USED','その社員番号は現在番号または他社員の旧番号として使用済みです');
     await query(`insert into employee_number_history(employee_id,old_employee_no,new_employee_no,reason,changed_by_user_id) values($1,$2,$3,$4,$5)`,[employeeId,employee.employee_no,next,reason,actorUserId],client);
     const updated=(await query(`update employees set employee_no=$2,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next],client)).rows[0];
-    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1,$1,$2,'employee_number_change',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({employee_no:employee.employee_no}),JSON.stringify({employee_no:next}),reason],client);
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員番号変更','employee',$2,$2,'success',$3,$4)`,[actorUserId,employeeId,requestId,employee.employee_no+' → '+next],client);
+    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'employee_number_change',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({employee_no:employee.employee_no}),JSON.stringify({employee_no:next}),reason],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員番号変更','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[actorUserId,employeeId,requestId,employee.employee_no+' → '+next],client);
     return updated
   })
 }
@@ -114,7 +114,7 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     if(!next.office||!next.department)throw problem(422,'INVALID_ASSIGNMENT','事業所・部署を確認してください');
     if(next.lifecycle_status==='retired'&&!next.retired_on)next.retired_on=new Date().toISOString().slice(0,10);
     const updated=(await query(`update employees set office=$2,department=$3,lifecycle_status=$4,retired_on=$5,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next.office,next.department,next.lifecycle_status,next.retired_on],client)).rows[0];
-    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1,$1,$2,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
+    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
     if(next.lifecycle_status==='retired'){
       const accounts=await query('select id,state from users where employee_id=$1 order by id',[employeeId],client);
       for(const u of accounts.rows){
@@ -126,7 +126,7 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
         await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'退職連動利用者停止','user',$2,$3,'success',$4,$5)`,[actorUserId,u.id,employeeId,requestId,(changed.rows[0]?'active → suspended':'suspended維持')+' / sessions '+revoked.rows.length+'件失効 / 保留中認証を無効化'],client)
       }
     }
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'社員状態変更','employee',$2,$2,'success',$3,$4)`,[actorUserId,employeeId,requestId,before.lifecycle_status+' → '+next.lifecycle_status],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員状態変更','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[actorUserId,employeeId,requestId,before.lifecycle_status+' → '+next.lifecycle_status],client);
     return updated
   })
 }
