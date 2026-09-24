@@ -1199,9 +1199,9 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div class="simple-note" id="employeeDemoNote">検証環境の社員データを表示しています。社員名または「詳細」を押すと社員詳細を開き、閉じると元の一覧位置へ戻ります。</div>
 <div class="card simple-filter-card">
  <div class="simple-filter-title"><div><h3>社員を検索</h3><div class="mini">普段は検索とクイック絞り込みだけで使えます。</div></div></div>
- <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職・号車・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';es.value='在籍';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
+ <div class="home-search-row"><input id="eq" placeholder="社員番号・氏名・部署・役職・号車・認定" oninput="EMP_PAGE=1;renderEmp()"><button class="btn primary" onclick="renderEmp()">検索</button><button class="btn soft" onclick="eq.value='';eb.value='';ed.value='';eemployment.value='';es.value='在籍';erisk.value='';ecert.value='';EMP_PAGE=1;renderEmp()">クリア</button></div>
  <div class="simple-quick-actions"><button class="btn primary" onclick="setEmployeeQuickFilter('daily')">今日確認</button><button class="btn soft" onclick="setEmployeeQuickFilter('active')">在籍</button><button class="btn soft" onclick="setEmployeeQuickFilter('retired')">退職者</button><button class="btn warn" onclick="setEmployeeQuickFilter('attention')">期限・安全要確認</button><button class="btn danger" onclick="setEmployeeQuickFilter('blocked')">乗務不可</button><button class="btn" onclick="setEmployeeQuickFilter('cert-gold')">ゴールド</button><button class="btn" onclick="setEmployeeQuickFilter('cert-english')">英語</button><button class="btn" onclick="setEmployeeQuickFilter('cert-tourism')">観光</button><button class="btn" onclick="setEmployeeQuickFilter('all')">全員</button></div>
- <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・在籍状態・期限状態・認定）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option selected>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="daily">今日確認あり</option><option value="attention">期限・安全要確認</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><select id="ecert" onchange="EMP_PAGE=1;renderEmp()"><option value="">全認定</option><option value="gold">ゴールド認定</option><option value="english">英語ドライバー</option><option value="tourism">観光ドライバー</option></select></div></div></details>
+ <details class="detail-fold" style="margin-top:9px"><summary>詳細条件（事業所・部署・雇用区分・在籍状態・期限状態・認定）</summary><div class="detail-fold-body"><div class="filters"><select id="eb" onchange="EMP_PAGE=1;renderEmp()"><option value="">全事業所</option><option>本社</option><option>府中</option><option>馬木</option></select><select id="ed" onchange="EMP_PAGE=1;renderEmp()"><option value="">全部署</option><option>タクシー課</option><option>バス課</option><option>運行管理課</option><option>総務課</option><option>経理課</option><option>整備課</option><option>人事広報</option><option>自家用運行管理</option></select><select id="eemployment" onchange="EMP_PAGE=1;renderEmp()"><option value="">全雇用区分</option></select><select id="es" onchange="EMP_PAGE=1;renderEmp()"><option value="">全状態</option><option selected>在籍</option><option>休職</option><option>退職予定</option><option>退職</option></select><select id="erisk" onchange="EMP_PAGE=1;renderEmp()"><option value="">全安全状態</option><option value="daily">今日確認あり</option><option value="attention">期限・安全要確認</option><option value="expired">期限切れ</option><option value="soon">30日以内</option><option value="blocked">乗務不可</option></select><select id="ecert" onchange="EMP_PAGE=1;renderEmp()"><option value="">全認定</option><option value="gold">ゴールド認定</option><option value="english">英語ドライバー</option><option value="tourism">観光ドライバー</option></select></div></div></details>
 </div>
 <div id="empListSummary" class="emp-list-summary"></div>
 <div id="empTodaySummary" class="card" style="margin:12px 0"></div>
@@ -3738,8 +3738,21 @@ function openAnalysisWorkScreen(kind){
  if(kind==='document'){openOriginalDocumentCenter();return}
  if(kind==='work'){go('work');return}
  if(kind==='asset'){go('training');renderTraining();trainingTab('asset');return}
- if(kind==='employee'){go('emp');return}
- if(kind==='retired'){go('manage');requestAnimationFrame(()=>document.getElementById('retiredList')?.scrollIntoView({block:'center'}));return}
+ if(kind==='employee'||kind==='retired'){
+  go('emp');
+  let set=(id,value)=>{let el=document.getElementById(id);if(!el)return;if([...el.options||[]].some(o=>String(o.value)===String(value)))el.value=value||''};
+  let ebEl=document.getElementById('eb'),edEl=document.getElementById('ed'),emEl=document.getElementById('eemployment'),esEl=document.getElementById('es');
+  if(ebEl)ebEl.value=ANALYSIS_CENTER_FILTERS.workplace||'';
+  if(edEl)edEl.value=ANALYSIS_CENTER_FILTERS.dept||'';
+  syncEmployeeEmploymentFilter();
+  if(emEl)set('eemployment',ANALYSIS_CENTER_FILTERS.employment||'');
+  if(esEl)esEl.value=kind==='retired'?'退職':'';
+  let eqEl=document.getElementById('eq'),riskEl=document.getElementById('erisk'),certEl=document.getElementById('ecert');
+  if(eqEl)eqEl.value='';if(riskEl)riskEl.value='';if(certEl)certEl.value='';
+  EMP_PAGE=1;renderEmp();
+  requestAnimationFrame(()=>document.getElementById('empListSummary')?.scrollIntoView({block:'center'}));
+  return
+ }
 }
 function analysisCenterTab(id){
  ANALYSIS_CENTER_TAB=id||'company';
@@ -5651,10 +5664,17 @@ function employeeListOperationHtml(e){
  let extra=vi.extra?'<span class="mini">ほか '+vi.extra+'台</span>':'';
  return '<div class="emp-operation-cell"><div class="emp-vehicle-line">'+vehicle+extra+'</div><div class="emp-cert-line">'+(certs||'<span class="mini">認定なし</span>')+'</div></div>'
 }
+function syncEmployeeEmploymentFilter(){
+ let el=document.getElementById('eemployment');if(!el)return;
+ let current=el.value||'',values=[...new Set(scopedEmployees().map(e=>e.employment).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
+ el.innerHTML='<option value="">全雇用区分</option>'+values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+ if(values.includes(current))el.value=current
+}
 function renderEmp(){
  renderEmployeeDataNotice();
- let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',risk=document.getElementById('erisk')?.value||'',certFilter=document.getElementById('ecert')?.value||'',
-     baseRows=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))),
+ syncEmployeeEmploymentFilter();
+ let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',employmentFilter=document.getElementById('eemployment')?.value||'',risk=document.getElementById('erisk')?.value||'',certFilter=document.getElementById('ecert')?.value||'',
+     baseRows=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!employmentFilter||e.employment===employmentFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))),
      filtered=baseRows.sort(risk==='daily'?employeeDailyAttentionCompare:employeeSafetySort),
      pages=Math.max(1,Math.ceil(filtered.length/EMP_PER_PAGE));
  EMP_PAGE=Math.min(Math.max(1,EMP_PAGE),pages);
