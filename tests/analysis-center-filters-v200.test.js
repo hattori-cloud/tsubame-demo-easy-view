@@ -15,7 +15,7 @@ assert(html.includes("analysisSafetyByBandHtml(active,safety,today,e=>analysisAg
 assert(html.includes("analysisSafetyByBandHtml(active,safety,today,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns,range)"),'tenure safety cross analysis does not use range');
 assert(html.includes("kpi(range.label+'入社'"),'hire KPI is not range-aware');
 assert(html.includes("kpi(range.label+'退職'"),'retirement KPI is not range-aware');
-assert(html.includes('対象社員 '+employees.length+'名'),'scope employee count missing');
+assert(html.includes("対象社員 '+employees.length+'名"),'scope employee count missing');
 assert(html.includes('<th>期間内入社</th><th>期間内退職</th>'),'company department table period headers missing');
 
 console.log('analysis-center-filters-v200: OK');
