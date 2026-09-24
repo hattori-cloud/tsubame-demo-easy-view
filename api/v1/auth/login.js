@@ -61,10 +61,14 @@ module.exports=async function handler(req,res){
     session=await withTransaction(async client=>{
       await clearLoginFailures(account.id,client);
       const created=await createSession({userId:account.id,mfaVerified:false,tokenHash:tokenHash(rawSession),ttlSeconds:28800,...meta},client);
+      if(!created){const e=new Error('account is no longer eligible for a session');e.code='SESSION_NOT_ALLOWED';throw e}
       await writeAuthAudit({action:'login_success',userId:account.id,result:'success',requestId:id,summary:'session issued'},client);
       return created
     })
-  }catch(_){return res.status(503).json(errorBody('SESSION_CREATE_FAILED','ログインセッションを開始できません',id))}
+  }catch(err){
+    if(err?.code==='SESSION_NOT_ALLOWED')return res.status(401).json(genericAuthError(id));
+    return res.status(503).json(errorBody('SESSION_CREATE_FAILED','ログインセッションを開始できません',id))
+  }
   res.setHeader('Set-Cookie',secureCookie(rawSession,28800));
   return res.status(200).json({authenticated:true,mfa_required:false,session_expires_at:session.expires_at,user:{id:account.id,display_name:account.display_name,role_level:account.role_level}})
 };
