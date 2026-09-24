@@ -124,3 +124,23 @@ test('form save guard blocks stale or recovery-required state before form mutati
   assert.ok(block.includes('e.stopImmediatePropagation()'));
   assert.ok(block.includes('save();'));
 });
+
+
+test('failed or rejected core saves restore the last good in-memory state',()=>{
+  const saveBlock=between('let CORE_LAST_GOOD_MEMORY=null;','function coreMutationReady()');
+  assert.ok(saveBlock.includes('function captureCoreMemorySnapshot()'));
+  assert.ok(saveBlock.includes('function restoreCoreMemorySnapshot(snapshot)'));
+  assert.ok(saveBlock.includes('function rememberCoreMemoryAsGood()'));
+  assert.ok(saveBlock.includes('function restoreLastGoodCoreMemory()'));
+  assert.ok(saveBlock.includes('if(!coreSaveRevisionIsCurrent()){\n  restoreLastGoodCoreMemory();'));
+  assert.ok(saveBlock.includes('let memoryRollbackFailed=restoreLastGoodCoreMemory();'));
+  assert.ok(saveBlock.includes('rememberCoreMemoryAsGood();\n  return true'));
+  assert.ok(source.includes('runBootMigrations();\nrememberCoreMemoryAsGood();'));
+});
+
+test('memory rollback mutates core arrays in place instead of replacing shared references',()=>{
+  const block=between('function restoreCoreMemorySnapshot(snapshot){','function rememberCoreMemoryAsGood()');
+  assert.ok(block.includes('target.splice(0,target.length,...value)'));
+  assert.ok(block.includes('Object.keys(target).forEach(k=>delete target[k])'));
+  assert.ok(block.includes('Object.assign(target,value)'));
+});
