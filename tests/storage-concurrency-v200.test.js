@@ -5,13 +5,18 @@ const path=require('node:path');
 
 const source=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
 
-test('audit-only and favorites storage writes do not trigger stale business-data lock',()=>{
-  assert.match(source,/const CORE_CONCURRENCY_IGNORE_KEYS=new Set\(\['v29AUDIT','v30FAVORITES'\]\)/);
+test('audit-only and favorites storage writes sync locally without triggering stale business-data lock',()=>{
+  assert.match(source,/const CORE_CONCURRENCY_SYNC_KEYS=new Set\(\['v29AUDIT','v30FAVORITES'\]\)/);
   const start=source.indexOf("window.addEventListener('storage',e=>{");
   const end=source.indexOf("window.addEventListener('beforeunload'",start);
   assert.ok(start>=0&&end>start);
   const block=source.slice(start,end);
-  assert.ok(block.includes('!CORE_CONCURRENCY_IGNORE_KEYS.has(e.key)'));
+  assert.ok(block.includes('CORE_CONCURRENCY_SYNC_KEYS.has(e.key)'));
+  assert.ok(block.includes("if(e.key==='v29AUDIT'){AUDIT=next.slice(0,AUDIT_RETENTION_LIMIT);renderAudit()}"));
+  assert.ok(block.includes("if(e.key==='v30FAVORITES'){FAVORITES=next;renderFavorites()}"));
+  const syncEnd=block.indexOf('let tracked=');
+  assert.ok(syncEnd>0);
+  assert.ok(block.slice(0,syncEnd).includes('return'));
 });
 
 test('business data and revision changes remain concurrency-tracked',()=>{
