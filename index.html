@@ -7819,7 +7819,7 @@ function searchAll(){
  let results=[];
  scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).forEach(e=>{
   let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・'),cars=employeeAssignedVehicles(e.no).map(v=>v.plate).filter(Boolean);
-  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`employeeDetail('${e.no}')`})
+  results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.status||'在籍'} / ${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`employeeDetail('${e.no}')`})
  });
  let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,x.status,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  quals.forEach(x=>{
@@ -7831,7 +7831,7 @@ function searchAll(){
  let docs=DOCS.filter(d=>canViewDocumentRecord(d)&&[d.id,d.name,d.category,d.status,d.expiry,emp(d.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  docs.forEach(d=>{
   let history=!!d.archived||!!d.replacedByDocumentId||['差替え済み','無効'].includes(d.status||'');
-  results.push({label:'書類',history,title:`${emp(d.employee_no)?.name||d.employee_no} / ${d.name}`,sub:`${history?'履歴 / ':''}${d.category} / ${documentOperationalStatusLabel(d)}`,open:`go('emp');setTimeout(()=>employeeDocuments('${d.employee_no}'),40)`})
+  results.push({label:'書類',history,title:`${emp(d.employee_no)?.name||d.employee_no} / ${d.name}`,sub:`${history?'履歴 / ':''}${d.category} / ${documentOperationalStatusLabel(d)}`,open:`documentPreview('${d.id}')`})
  });
   let apps=scopedApplications().filter(a=>[a.id,a.type,a.status,a.date,a.detail,emp(a.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  apps.forEach(a=>results.push({label:'申請',title:`${a.id} / ${a.type}`,sub:`${emp(a.employee_no)?.name||a.employee_no} / ${a.status}`,open:`go('comms');setTimeout(()=>applicationDetail('${a.id}'),40)`}));
