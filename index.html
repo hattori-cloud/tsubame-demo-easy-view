@@ -2081,7 +2081,7 @@ function coreRecordCollections(){
 function ensureStableEmployeeReferences(){
  let changed=false;
  E.forEach(e=>{
-  if(!e.system_id){e.system_id=systemEmployeeId(e.no);changed=true}
+  if(!e.system_id){e.system_id=(e.system_id||systemEmployeeId(e.no));changed=true}
  });
  let link=(list)=>{
   (list||[]).forEach(x=>{
@@ -2280,7 +2280,7 @@ function ensureRetiredDemoSamples(){
 
 function ensureHandoffFields(){
  E.forEach((e,i)=>{
-   if(!e.system_id)e.system_id=systemEmployeeId(e.no);
+   if(!e.system_id)e.system_id=(e.system_id||systemEmployeeId(e.no));
    if(!e.employment)e.employment='正社員';
    if(!e.workplace)e.workplace=e.branch;
    if(!e.oldNos)e.oldNos=i===0?['0901']:[];
@@ -2554,11 +2554,40 @@ function normalizeQualificationStatus(expiry,current){
 }
 
 function systemEmployeeId(no){return 'EMP-'+String(no).replace(/^EMP-/,'')}
+function nextStableEmployeeId(){
+ let used=new Set(E.map(e=>String(e.system_id||'')).filter(Boolean)),n=1,id='';
+ do{id='EMP-I'+String(n++).padStart(6,'0')}while(used.has(id));
+ return id
+}
 function displayEmployeeNo(id){return String(id||'').replace(/^EMP-/,'')}
 function normalizeEmployeeLookup(v){return displayEmployeeNo(String(v||'').trim())}
 function employeeByAnyId(v){
  let raw=String(v||'').trim(),no=normalizeEmployeeLookup(raw);
  return E.find(e=>String(e.system_id||'')===raw||String(e.no)===no||(Array.isArray(e.oldNos)&&e.oldNos.map(String).includes(no)))
+}
+function employeeNumberOwner(no,excludeSystemId=''){
+ let value=String(no||'').trim();
+ return E.find(e=>String(e.system_id||'')!==String(excludeSystemId||'')&&(String(e.no)===value||(Array.isArray(e.oldNos)&&e.oldNos.map(String).includes(value))))||null
+}
+function migrateEmployeeNumberReferences(employee,oldNo,newNo){
+ let stableId=String(employee?.system_id||''),from=String(oldNo||''),to=String(newNo||'');
+ let lists=[A,V,N,C,TR,AS,QUAL,GUIDANCE,DOCS,APPLICATIONS];
+ lists.forEach(list=>(list||[]).forEach(rec=>{
+  let same=stableId&&String(rec?.employee_id||'')===stableId;
+  if(same||String(rec?.employee_no||'')===from){
+   rec.employee_no=to;
+   if(stableId)rec.employee_id=stableId
+  }
+ }));
+ V.forEach(v=>{
+  if(!Array.isArray(v.additionalEmployeeNos))return;
+  v.additionalEmployeeNos=[...new Set(v.additionalEmployeeNos.map(x=>String(x)===from?to:String(x)))]
+ });
+ if(Object.prototype.hasOwnProperty.call(PROCEDURES,from)){
+  PROCEDURES[to]={...(PROCEDURES[from]||{}),...(PROCEDURES[to]||{})};
+  delete PROCEDURES[from]
+ }
+ return true
 }
 
 
@@ -2576,7 +2605,7 @@ function exportEmployeesCsv(){let rows=scopedEmployees();downloadCsv('社員一�
 function exportAccidentsCsv(){
  let rows=scopedAccidents().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
  let header=['事故番号','発生日','曜日','発生時間','社員番号','システム連携ID','乗務員','区分','車両','運行時の状態','発生地区','事故形態・種類','過失率（自社側%）','相手修理','相手修理代','自社修理','自社修理代','修理費合計','住所','概要','進捗','担当者','次回対応','期限','対応履歴','完了日','最終確認者','確認者ID','確認者権限範囲'];
- let data=rows.map(a=>[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,systemEmployeeId(a.employee_no),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||'']);
+ let data=rows.map(a=>[a.id,a.date,accidentWeekday(a.date),a.time||'',a.employee_no,(a.employee_id||employeeByAnyId(a.employee_no)?.system_id||''),a.driver,a.service,a.vehicle,a.operationState||'',a.district||'',a.accidentType||'',a.faultRate??'',a.opponentRepair||'',a.opponentRepairCost||'',a.companyRepair||'',a.companyRepairCost||'',accidentTotalRepairCost(a),a.address,a.summary,a.phase,a.owner||'',a.nextAction||'',a.due,a.responseHistory||'',a.completedDate||'',a.finalReviewerName||'',a.finalReviewerId||'',a.finalReviewerScope||'']);
  downloadCsv('事故一覧_本番反映版_v112.csv',[header,...data]);
  audit('CSV出力',`事故一覧 / 範囲 ${PREVIEW_ROLE==='管理者'?adminScopeLabel():roleBadge.textContent} / ${rows.length}件`)
 }
@@ -5817,7 +5846,7 @@ function renderEmp(){
  renderEmployeeDataNotice();
  syncEmployeeEmploymentFilter();
  let q=(eq.value||'').toLowerCase(),deptFilter=document.getElementById('ed')?.value||'',employmentFilter=document.getElementById('eemployment')?.value||'',risk=document.getElementById('erisk')?.value||'',certFilter=document.getElementById('ecert')?.value||'',
-     baseRows=scopedEmployees().filter(e=>(!q||[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.dept,e.position,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!employmentFilter||e.employment===employmentFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))),
+     baseRows=scopedEmployees().filter(e=>(!q||[e.no,(e.system_id||systemEmployeeId(e.no)),e.name,e.furigana,e.dept,e.position,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.label)].join(' ').toLowerCase().includes(q))&&(!eb.value||e.branch===eb.value)&&(!deptFilter||e.dept===deptFilter)&&(!employmentFilter||e.employment===employmentFilter)&&(!es.value||e.status===es.value)&&employeeRiskMatch(e,risk)&&(!certFilter||driverCertActive(e,certFilter))),
      filtered=baseRows.sort(risk==='daily'?employeeDailyAttentionCompare:employeeSafetySort),
      pages=Math.max(1,Math.ceil(filtered.length/EMP_PER_PAGE));
  EMP_PAGE=Math.min(Math.max(1,EMP_PAGE),pages);
@@ -6748,7 +6777,7 @@ function employeeDetail(no){
  dttl.textContent='社員詳細｜'+e.name;
  dbody.innerHTML=`${employeeDetailRouteHtml(e,sourceLabel)}<div class="detail-actions">${canEditEmployee(no)?`<button class="btn primary" onclick="openEmployeeEdit('${no}')">社員情報を編集</button>`:''}${PREVIEW_ROLE!=='一般社員'?`<button class="star-btn ${isFavorite(no)?'on':''}" onclick="toggleFavorite('${no}')">${isFavorite(no)?'★ 注目社員':'☆ 注目社員に追加'}</button>`:''}</div>
  <div class="employee-profile-hero">
-   <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${systemEmployeeId(e.no)}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)} ${driverCertBadgesHtml(e)}</div></div>
+   <div class="employee-profile-main"><div class="employee-profile-name">${esc(e.name)} <span class="mini">（仮名）</span></div><div class="employee-profile-no">社員番号 ${e.no}${PREVIEW_ROLE!=='一般社員'?` / システム連携ID ${(e.system_id||systemEmployeeId(e.no))}`:''}</div><div class="employee-profile-tags"><span class="emp-chip">${esc(e.workplace||e.branch)}</span><span class="emp-chip">${esc(e.dept)}</span><span class="emp-chip">${esc(e.position||'一般')}</span>${badge(e.status)} ${driverCertBadgesHtml(e)}</div></div>
    <div class="employee-safety-panel ${safetyClass}"><small>${safetyTitle}</small><strong>乗務可否 ${esc(elig)}</strong><div>${badge(e.safetyState||'正常')}</div><div class="mini">最優先期限：${esc(nearestText)}</div></div>
  </div>
  ${employeeTaxiDriverSnapshotHtml(no)}
@@ -8230,7 +8259,7 @@ function buildNearQuotaTargetSnapshot(month){
   if(hire&&hire>monthStart)return null;
   let candidate={...e,...state};
   if(!taxiNearQuotaTarget(candidate))return null;
-  return {employee_no:String(e.no),name:e.name||String(e.no),branch:state.branch,dept:state.dept,status:state.status,position:state.position,eligibility:state.eligibility,target_count:2,created_at:new Date().toISOString()}
+  return {employee_id:e.system_id||systemEmployeeId(e.no),employee_no:String(e.no),name:e.name||String(e.no),branch:state.branch,dept:state.dept,status:state.status,position:state.position,eligibility:state.eligibility,target_count:2,created_at:new Date().toISOString()}
  }).filter(Boolean);
  NEAR_QUOTA_TARGETS[month]={month,created_at:new Date().toISOString(),members:rows};
  safeStorageWrite('v197NEAR_QUOTA_TARGETS',NEAR_QUOTA_TARGETS);
@@ -8239,6 +8268,13 @@ function buildNearQuotaTargetSnapshot(month){
 function nearQuotaTargetSnapshot(month){
  let snap=NEAR_QUOTA_TARGETS?.[month];
  if(!snap||!Array.isArray(snap.members))snap=buildNearQuotaTargetSnapshot(month);
+ let changed=false;
+ snap.members.forEach(t=>{
+  if(t.employee_id)return;
+  let e=employeeByAnyId(t.employee_no);
+  if(e?.system_id){t.employee_id=e.system_id;changed=true}
+ });
+ if(changed)safeStorageWrite('v197NEAR_QUOTA_TARGETS',NEAR_QUOTA_TARGETS);
  return snap
 }
 function nearQuotaSnapshotInScope(t){
@@ -8250,19 +8286,19 @@ function nearQuotaSnapshotInScope(t){
  return true
 }
 function nearQuotaRows(month=nearQuotaMonth()){
- let snap=nearQuotaTargetSnapshot(month),targets=snap.members.filter(nearQuotaSnapshotInScope),driverNos=new Set(targets.map(e=>String(e.employee_no))),counts=new Map(),last=new Map();
+ let snap=nearQuotaTargetSnapshot(month),targets=snap.members.filter(nearQuotaSnapshotInScope),targetKeys=new Set(targets.map(t=>String(t.employee_id||t.employee_no))),counts=new Map(),last=new Map();
  N.forEach(n=>{
-  let no=String(n.employee_no||'');
-  if(!driverNos.has(no)||nearQuotaReportMonth(n)!==month)return;
+  let key=String(n.employee_id||n.employee_no||'');
+  if(!targetKeys.has(key)||nearQuotaReportMonth(n)!==month)return;
   let snapshotDept=n.departmentAtReport||'';
   if(snapshotDept&&snapshotDept!=='タクシー課')return;
-  counts.set(no,(counts.get(no)||0)+1);
-  let d=String(n.reportDate||n.date||'');if(!last.get(no)||d>last.get(no))last.set(no,d)
+  counts.set(key,(counts.get(key)||0)+1);
+  let d=String(n.reportDate||n.date||'');if(!last.get(key)||d>last.get(key))last.set(key,d)
  });
  return targets.map(t=>{
-  let no=String(t.employee_no),count=counts.get(no)||0,state=count>=Number(t.target_count||2)?'met':count===0?'zero':'short',current=emp(no),vehicle=current?employeeAssignedVehicles(no)[0]?.plate||'':'';
-  let employee={no,name:t.name,branch:t.branch,dept:t.dept,status:t.status,position:t.position,eligibility:t.eligibility};
-  return {employee,currentEmployee:current,count,state,target:Number(t.target_count||2),remaining:Math.max(0,Number(t.target_count||2)-count),last:last.get(no)||'',vehicle,snapshot:true}
+  let key=String(t.employee_id||t.employee_no),historicalNo=String(t.employee_no),count=counts.get(key)||0,state=count>=Number(t.target_count||2)?'met':count===0?'zero':'short',current=employeeByAnyId(t.employee_id||historicalNo),vehicle=current?employeeAssignedVehicles(current.no)[0]?.plate||'':'';
+  let employee={no:historicalNo,name:t.name,branch:t.branch,dept:t.dept,status:t.status,position:t.position,eligibility:t.eligibility};
+  return {employee,currentEmployee:current,count,state,target:Number(t.target_count||2),remaining:Math.max(0,Number(t.target_count||2)-count),last:last.get(key)||'',vehicle,snapshot:true}
  }).sort((a,b)=>{
   let rank={zero:0,short:1,met:2};return rank[a.state]-rank[b.state]||a.count-b.count||String(a.employee.no).localeCompare(String(b.employee.no),'ja',{numeric:true})
  })
@@ -8722,7 +8758,7 @@ function renderMailHistory(){
  let scopeText=canCreateEmployee()?'全社の送信テスト履歴を表示':`担当範囲「${adminScopeLabel()}」に関係する送信テスト履歴のみ表示`;
  mailHistory.innerHTML=`<div class="scope-note" style="margin-bottom:9px">${esc(scopeText)}。判定できない過去履歴は担当管理者には表示しません。</div>`+(rows.length?rows.map(x=>`<div class="row"><div><b>${esc(x.kind)} ${esc(x.target)}</b><div class="mini">${esc(x.time)} / ${esc(x.to)}</div></div><span class="badge warn">${esc(x.status)}</span></div>`).join(''):'<div class="mini">この範囲で表示できる送信テスト履歴はありません。</div>')
 }
-function renderRetired(){let q=(retireQ.value||'').toLowerCase(),arr=scopedEmployees().filter(e=>e.status==='退職'&&(!q||[e.no,systemEmployeeId(e.no),e.name,e.retiredDate].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(b.retiredDate||'').localeCompare(String(a.retiredDate||'')));retiredList.innerHTML=arr.length?arr.map(e=>`<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${e.branch} / ${e.dept} / 退職日 ${esc(e.retiredDate||'未登録')}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="mini">該当する退職者はいません。</div>'}
+function renderRetired(){let q=(retireQ.value||'').toLowerCase(),arr=scopedEmployees().filter(e=>e.status==='退職'&&(!q||[e.no,(e.system_id||systemEmployeeId(e.no)),e.name,e.retiredDate].join(' ').toLowerCase().includes(q))).sort((a,b)=>String(b.retiredDate||'').localeCompare(String(a.retiredDate||'')));retiredList.innerHTML=arr.length?arr.map(e=>`<div class="row"><div><b>${e.no} ${esc(e.name)}</b><div class="mini">${e.branch} / ${e.dept} / 退職日 ${esc(e.retiredDate||'未登録')}</div></div><button class="btn soft" onclick="employeeDetail('${e.no}')">開く</button></div>`).join(''):'<div class="mini">該当する退職者はいません。</div>'}
 function globalSearchGroup(label){
  if(label==='社員')return 'employee';
  if(['事故','苦情','ヒヤリ','安全指導'].includes(label))return 'safety';
@@ -8786,7 +8822,7 @@ function searchAll(){
  let q=(gq.value||'').trim().toLowerCase(),type=document.getElementById('gtype')?.value||'all';
  if(!q){gres.innerHTML='<div class="mini">検索語を入力すると候補を表示します。</div>';return}
  let results=[];
- scopedEmployees().filter(e=>[e.no,systemEmployeeId(e.no),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).forEach(e=>{
+ scopedEmployees().filter(e=>[e.no,(e.system_id||systemEmployeeId(e.no)),e.name,e.furigana,e.branch,e.dept,e.position,e.license,...employeeAssignedVehicles(e.no).map(v=>v.plate),...DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).flatMap(def=>[def.label,def.short])].join(' ').toLowerCase().includes(q)).forEach(e=>{
   let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・'),cars=employeeAssignedVehicles(e.no).map(v=>v.plate).filter(Boolean);
   results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.status||'在籍'} / ${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`employeeDetail('${e.no}')`})
  });
@@ -8824,7 +8860,7 @@ function openEmployeeEdit(no){
  fttl.textContent='社員情報を編集';setFormSaveLabel('変更を保存する');
  fbody.innerHTML=`<div class="formnote">社員台帳を「基本・所属・勤務・安全・資格・書類」の6区分で管理します。</div><div class="form-save-guide">「必須」項目を入力し、保存時に変更内容を一覧確認してから確定します。</div><div class="formgrid">
   <div class="employee-form-section"><h4>基本</h4><p>本人と在籍を識別する情報</p></div>
-  <div class="field"><label>社員番号</label><input value="${e.no}" disabled></div>
+  <div class="field"><label>社員番号</label><input id="feno" value="${esc(e.no)}" ${full?'':'disabled'}>${full?'<div class="mini">変更時も裏側の固定社員IDは変わりません。旧番号は履歴として保持します。</div>':'<div class="mini">社員番号変更は全社管理者のみ操作できます。</div>'}</div>
   <div class="field"><label>氏名（仮名）<span class="req">必須</span></label><input id="fen" value="${esc(e.name)}"></div>
   <div class="field"><label>ふりがな</label><input id="fefuri" value="${esc(e.furigana||'')}"></div>
   <div class="field"><label>入社日<span class="req">必須</span></label><input id="fehire" type="date" value="${esc(String(e.hire||'').replaceAll('/','-'))}"></div>
@@ -8868,6 +8904,11 @@ function openEmployeeEdit(no){
   if(!canEditEmployee(no)){alert('担当範囲が変わったため保存できません');closeForm();return}
   let liveCanAssignment=canChangeEmployeeAssignment(),liveCanLifecycle=canChangeEmployeeLifecycle(),liveCanSafety=canManageSafetyDecision(no);
   if(!requireInputs([{id:'fen',label:'氏名',value:fen.value},{id:'fehire',label:'入社日',value:fehire.value}]))return;
+  let requestedNo=full?String(feno.value||'').trim():String(e.no);
+  if(!requestedNo)return alert('社員番号を入力してください');
+  if(/\s/.test(requestedNo))return alert('社員番号に空白は使用できません');
+  let numberOwner=employeeNumberOwner(requestedNo,e.system_id);
+  if(numberOwner)return alert('その社員番号は現在番号または旧社員番号として既に使用されています。別の番号を入力してください');
   let requestedEligibility=liveCanSafety?feelig.value:e.eligibility,requestedSafetyState=liveCanSafety?fess.value:e.safetyState;
   let restoringToAllowed=liveCanSafety&&String(e.eligibility||'')!=='可'&&requestedEligibility==='可';
   let safetyReason=(document.getElementById('fesafetyreason')?.value||'').trim();
@@ -8896,9 +8937,9 @@ function openEmployeeEdit(no){
    let incompleteTraining=TR.filter(t=>String(t.employee_no)===String(no)&&t.status!=='完了');
    if(incompleteTraining.length)return alert('未完了の安全指導があるため乗務可には戻せません。\n\n・'+incompleteTraining.map(t=>t.course||'安全指導').join('\n・'));
   }
-  let before={name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
+  let before={no:String(e.no),name:e.name,furigana:e.furigana,hire:e.hire,branch:e.branch,dept:e.dept,position:e.position,taxiSection:e.taxiSection,team:e.team,employment:e.employment,status:e.status,workPattern:e.workPattern,license:e.license,licenseExpiry:e.licenseExpiry,health:e.health,aptitude:e.aptitude,aptitudeNext:e.aptitudeNext,safetyState:e.safetyState,eligibility:e.eligibility};
   let after={
-   name:fen.value.trim(),furigana:fefuri.value.trim(),hire:fehire.value,branch:nextBranch,dept:nextDept,position:fep.value.trim()||'一般',
+   no:requestedNo,name:fen.value.trim(),furigana:fefuri.value.trim(),hire:fehire.value,branch:nextBranch,dept:nextDept,position:fep.value.trim()||'一般',
    taxiSection:nextDept==='タクシー課'?fets.value:'',team:feteam.value.trim(),employment:fee.value,status:liveCanLifecycle?fes.value:e.status,
    workPattern:few.value,health:feh.value,aptitude:feapt.value.trim()||(nextIsDriver?'未設定':'対象外'),aptitudeNext:fea.value,
    safetyState:liveCanSafety?requestedSafetyState:e.safetyState,eligibility:liveCanSafety?requestedEligibility:e.eligibility,
@@ -8910,7 +8951,7 @@ function openEmployeeEdit(no){
   let transitionChecks=[['車両',!!document.getElementById('fetransvehicle')?.checked],['事故・苦情',!!document.getElementById('fetranscase')?.checked],['貸与品・書類・安全指導',!!document.getElementById('fetransasset')?.checked],['権限・担当範囲',!!document.getElementById('fetransaccess')?.checked]];
   if(transitionNeeded){let miss=transitionChecks.filter(x=>!x[1]).map(x=>x[0]);if(miss.length)return alert('異動・休職・退職の変更前に、次の引継ぎ確認が必要です。\n\n・'+miss.join('\n・'));if(!transitionNote)return alert('異動・休職・退職の引継ぎメモを入力してください')}
   if(after.status!=='在籍')after.eligibility='対象外';
-  let labels={name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
+  let labels={no:'社員番号',name:'氏名',furigana:'ふりがな',hire:'入社日',branch:'事業所',dept:'部署',position:'役職',taxiSection:'タクシー課区分',team:'班',employment:'雇用区分',status:'在籍状態',workPattern:'勤務形態',license:'免許・資格',licenseExpiry:'免許期限',health:'健康診断期限',aptitude:'適性診断',aptitudeNext:'適性診断次回',safetyState:'安全管理状態',eligibility:'乗務可否'};
   let changeLines=recordChangeLines(before,after,labels);
   if(!changeLines.length){closeForm();return}
   let warnings=[];
@@ -8923,7 +8964,15 @@ function openEmployeeEdit(no){
    if(!after.aptitudeNext)warnings.push('乗務社員ですが適性診断の次回期限が未設定です')
   }
   if(!confirmFormSave('社員情報の変更確認',changeLines,warnings))return;
+  let oldEmployeeNo=String(e.no),numberChanged=oldEmployeeNo!==String(after.no);
+  if(numberChanged){
+   if(!e.system_id)e.system_id=systemEmployeeId(oldEmployeeNo);
+   if(!Array.isArray(e.oldNos))e.oldNos=[];
+   if(!e.oldNos.map(String).includes(oldEmployeeNo))e.oldNos.push(oldEmployeeNo);
+   migrateEmployeeNumberReferences(e,oldEmployeeNo,after.no)
+  }
   Object.assign(e,after,{workplace:nextBranch});
+  if(numberChanged)audit('社員番号変更',oldEmployeeNo+' → '+e.no+' / '+e.name,{employee_no:e.no,entity_type:'employee',entity_id:e.system_id||e.no});
   if(transitionNeeded){let actor=currentActorIdentity(),rel=employeeTransitionRelated(no);if(!Array.isArray(e.transitionHistory))e.transitionHistory=[];let kind=before.status!==after.status?'在籍状態変更':'所属異動';e.transitionHistory.unshift({date:TODAY,time:new Date().toISOString(),kind,from:[before.branch,before.dept,before.status].join(' / '),to:[after.branch,after.dept,after.status].join(' / '),from_position:before.position||'',to_position:after.position||'',from_eligibility:before.eligibility||'',to_eligibility:after.eligibility||'',note:transitionNote,checks:transitionChecks.map(x=>x[0]),open_accidents:rel.openAcc.length,open_complaints:rel.openComplaint.length,primary_vehicles:rel.primaryVehicles.length,shared_vehicles:rel.sharedVehicles.length,assets:rel.assets.length,training:rel.training.length,actor_id:actor.id,actor_name:actor.name});e.transitionHistory=e.transitionHistory.slice(0,30);audit('異動・休職・退職 引継ぎ確認',e.no+' '+e.name+' / '+kind+' / '+transitionNote,{employee_no:e.no,entity_type:'employee',entity_id:e.no})}
   if(e.driverLedger)e.driverLedger.eligibility=e.eligibility;
   if(restoringToAllowed&&e.eligibility==='可'){
@@ -8936,8 +8985,13 @@ function openEmployeeEdit(no){
   }
   let changed=changeLines.map(x=>x.split('：')[0]);
   touchRecord(e,'employee',false);
-  audit('社員情報更新',`${e.no} ${e.name} / ${changed.join('・')}`,{employee_no:e.no,entity_type:'employee',entity_id:e.no});
-  if(!save())return;closeForm();renderAll();employeeDetail(no)
+  audit('社員情報更新',`${e.no} ${e.name} / ${changed.join('・')}`,{employee_no:e.no,entity_type:'employee',entity_id:e.system_id||e.no});
+  if(!save())return;
+  if(numberChanged){
+   RECENT=RECENT.map(x=>String(x)===oldEmployeeNo?String(e.no):String(x));
+   safeStorageWrite('v29RECENT',RECENT)
+  }
+  closeForm();renderAll();employeeDetail(e.no)
  };
  form.classList.add('show')
 }
@@ -9136,7 +9190,7 @@ function openEmployeeForm(){
   let no=nextEmployeeNumber(),driver=['タクシー課','バス課'].includes(fd.value);
   let expired=driver&&flicenseexp.value&&days(flicenseexp.value)<0;
   let rec={
-    no,name:fn.value.trim(),furigana:ffuri.value.trim(),hire:fhire.value,
+    no,system_id:nextStableEmployeeId(),oldNos:[],name:fn.value.trim(),furigana:ffuri.value.trim(),hire:fhire.value,
     branch:fbranch.value,workplace:fbranch.value,dept:fd.value,position:fpos.value.trim()||'一般',
     taxiSection:fd.value==='タクシー課'?fts.value:'',team:fteam.value.trim(),
     employment:femp.value,workPattern:fwork.value,status:'在籍',
