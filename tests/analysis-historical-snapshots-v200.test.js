@@ -56,3 +56,12 @@ test('production API contract makes historical snapshot fields server-derived an
   assert.ok(contract.includes('Snapshot fields are server-derived and immutable through normal PATCH'));
   assert.ok(contract.includes('later employee transfer must not move the historical complaint'));
 });
+
+
+test('safety analysis reports data completeness for interpretation quality',()=>{
+  assert.ok(html.includes('分析項目充足率'));
+  assert.ok(html.includes('accidentAnalysisReady'));
+  assert.ok(html.includes('complaintAnalysisReady'));
+  assert.ok(html.includes('nearAnalysisReady'));
+  assert.ok(html.includes("near.filter(n=>!nearNeedsAnalysis(n)).length"));
+});
