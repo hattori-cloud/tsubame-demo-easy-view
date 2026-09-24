@@ -3128,7 +3128,7 @@ async function prepareSystemRestore(input){
   setSystemBackupStatus('<b>復元前チェックOK</b><br>出力日時 '+esc(String(payload.exportedAt||'不明').replace('T',' ').slice(0,19))+' / アプリ '+esc(payload.schema||'不明')+' / 共通データ '+esc(payload.coreSchema||'旧形式')+'<br>社員 '+c.employees+'名 / 事故 '+c.accidents+'件 / 苦情 '+c.complaints+'件 / ヒヤリ '+c.near+'件 / 車両 '+c.vehicles+'件'+warn,check.warnings.length?'warn':'')
  }catch(err){setSystemBackupStatus('<b>JSONを読み込めません。</b><br>'+esc(String(err?.message||err)),'danger')}
 }
-const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE',CORE_RECOVERY_REQUIRED_KEY];
+const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE','v197CORE_RECOVERY_REQUIRED'];
 function captureSystemStorageSnapshot(){
  let keys=[...new Set([...SYSTEM_BACKUP_KEYS,...SYSTEM_RESTORE_EXTRA_KEYS])],snapshot={};
  keys.forEach(k=>{snapshot[k]=localStorage.getItem(k)});
