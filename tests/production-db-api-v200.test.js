@@ -38,3 +38,10 @@ test('retirement atomically suspends linked accounts and revokes sessions',()=>{
   assert.ok(employeeStore.includes("update auth_sessions set revoked_at=now()"));
   assert.ok(transition.includes('retirement_login_revocation'));
 });
+
+
+test('employee audit SQL explicitly separates immutable UUID from text entity id',()=>{
+  assert.ok(employeeStore.includes("$1::uuid::text,$1::uuid"));
+  assert.ok(employeeStore.includes("$2::uuid::text,$2::uuid"));
+  assert.equal(/entity_id,employee_id[^\n]+values\([^\n]*\$([0-9]+),\$\1(?:[,)]|')/.test(employeeStore),false);
+});
