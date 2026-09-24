@@ -75,3 +75,16 @@ test('capacity indexes reference columns available after base plus additive migr
   }
   assert.deepEqual(invalid,[]);
 });
+
+
+test('capacity addendum does not redeclare columns owned by the canonical v200 schema',()=>{
+  const forbidden=[
+    'alter table employees\n  add column if not exists retired_on',
+    'add column if not exists reported_on',
+    'add column if not exists summary',
+    'add column if not exists employee_no_at_report',
+    'add column if not exists office_at_report',
+    'add column if not exists department_at_report'
+  ];
+  forbidden.forEach(text=>assert.equal(capacity.includes(text),false,text+' must remain owned by production-schema.sql'));
+});
