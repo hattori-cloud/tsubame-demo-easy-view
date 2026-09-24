@@ -4022,11 +4022,19 @@ function setAnalysisCenterDepartmentFilter(dept){
  renderAnalysisCenter();
  requestAnimationFrame(()=>document.getElementById('analysisCenterScopeSummary')?.scrollIntoView({block:'center'}))
 }
+function analysisPercent(part,total,digits=1){
+ if(!Number(total))return '—';
+ return (Number(part||0)/Number(total)*100).toFixed(digits)+'%'
+}
+function analysisPer100(count,people){
+ if(!Number(people))return '—';
+ return (Number(count||0)/Number(people)*100).toFixed(1)
+}
 function analysisCompanyDeptTable(rows){
  if(!rows.length)return '<div class="mini">集計対象がありません。</div>';
- return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>期間内入社</th><th>期間内退職</th><th>安全記録</th><th>総務期限超過</th><th>操作</th></tr></thead><tbody>'+
-  rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.active+'名</td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td>'+x.safety+'件</td><td>'+x.general+'件</td><td><button class="btn soft" onclick="setAnalysisCenterDepartmentFilter(\''+String(x.label).replaceAll("'","")+'\')">この部署で見る</button></td></tr>').join('')+
-  '</tbody></table></div><div class="mini" style="margin-top:7px">「総務期限超過」は健診・資格・適性診断・安全指導・貸与品返却・書類期限を合算した件数です。単位の異なる項目を人事評価には使いません。</div>'
+ return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>期間内入社</th><th>期間内退職</th><th>安全記録</th><th>100人在籍あたり参考比</th><th>総務期限超過</th><th>操作</th></tr></thead><tbody>'+
+  rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.active+'名</td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td>'+x.safety+'件</td><td>'+analysisPer100(x.safety,x.active)+'</td><td>'+x.general+'件</td><td><button class="btn soft" onclick="setAnalysisCenterDepartmentFilter(\''+String(x.label).replaceAll("'","")+'\')">この部署で見る</button></td></tr>').join('')+
+  '</tbody></table></div><div class="mini" style="margin-top:7px">100人在籍あたりは「安全記録件数÷現在在籍人数×100」の参考比で、走行距離・乗務回数で補正した発生率ではありません。「総務期限超過」は健診・資格・適性診断・安全指導・貸与品返却・書類期限を合算した件数です。単位の異なる項目を人事評価には使いません。</div>'
 }
 function renderAnalysisCenter(){
  let root=document.getElementById('analysis');if(!root||PREVIEW_ROLE==='一般社員')return;
@@ -4110,7 +4118,7 @@ function renderAnalysisCenter(){
  active.forEach(e=>companyDeptRow(e.dept||'未設定').active++);
  hiresFy.forEach(e=>companyDeptRow(e.dept||'未設定').hires++);
  retireFy.forEach(x=>companyDeptRow(x.dept||x.employee?.dept||'未設定').exits++);
- last12Safety.forEach(r=>{let e=emp(String(r.employee_no));companyDeptRow(e?.dept||'未設定').safety++});
+ last12Safety.forEach(r=>{let scope=safetyAnalysisRecordSnapshot(r);companyDeptRow(scope.dept||'未設定').safety++});
  overdueHealth.forEach(e=>companyDeptRow(e.dept||'未設定').general++);
  overdueQual.forEach(q=>{let e=emp(String(q.employee_no));companyDeptRow(e?.dept||'未設定').general++});
  overdueAptitude.forEach(e=>companyDeptRow(e.dept||'未設定').general++);
@@ -7155,14 +7163,27 @@ function renderSafetyComparisons(scope){
  let vs=document.getElementById('analysisVehicleSignals');if(vs)vs.innerHTML=safetyAnalysisSignalsHtml(cur,prev,'vehicle')
 }
 function safetyAnalysisRecordEmployee(rec){
- return emp(String(rec?.employee_no||''))||null
+ return emp(String(rec?.employee_no||rec?.employeeNoAtReport||''))||null
+}
+function safetyAnalysisRecordSnapshot(rec){
+ let e=safetyAnalysisRecordEmployee(rec);
+ let workplace=String(rec?.officeAtRecord||rec?.officeAtReport||rec?.branchAtRecord||'').trim();
+ let dept=String(rec?.departmentAtRecord||rec?.departmentAtReport||rec?.deptAtRecord||rec?.dept||'').trim();
+ let employment=String(rec?.employmentAtRecord||rec?.employmentAtReport||'').trim();
+ let hasSnapshot=!!(workplace||dept||employment);
+ return {
+  workplace:workplace||String(e?.workplace||e?.branch||''),
+  dept:dept||String(e?.dept||''),
+  employment:employment||String(e?.employment||''),
+  source:hasSnapshot?'snapshot':'current'
+ }
 }
 function safetyAnalysisRecordMatches(rec,workplace,dept,employment,employeeNo,vehicle){
- let e=safetyAnalysisRecordEmployee(rec);
+ let scope=safetyAnalysisRecordSnapshot(rec);
  if(employeeNo&&String(rec?.employee_no)!==String(employeeNo))return false;
- if(workplace&&String(e?.workplace||e?.branch||'')!==String(workplace))return false;
- if(dept&&String(e?.dept||'')!==String(dept))return false;
- if(employment&&String(e?.employment||'')!==String(employment))return false;
+ if(workplace&&scope.workplace!==String(workplace))return false;
+ if(dept&&scope.dept!==String(dept))return false;
+ if(employment&&scope.employment!==String(employment))return false;
  if(vehicle&&String(rec?.vehicle||'').trim()!==String(vehicle))return false;
  return true
 }
@@ -7205,8 +7226,8 @@ function populateSafetyAnalysisFilters(){
   currentE=eEl.value||''
  }
  let vehicleValues=records.filter(r=>{
-  let e=safetyAnalysisRecordEmployee(r);
-  return (!currentW||String(e?.workplace||e?.branch||'')===currentW)&&(!currentD||String(e?.dept||'')===currentD)&&(!currentEm||String(e?.employment||'')===currentEm)&&(!currentE||String(r.employee_no)===currentE)
+  let scope=safetyAnalysisRecordSnapshot(r);
+  return (!currentW||scope.workplace===currentW)&&(!currentD||scope.dept===currentD)&&(!currentEm||scope.employment===currentEm)&&(!currentE||String(r.employee_no)===currentE)
  }).map(r=>String(r.vehicle||'').trim()).filter(v=>/^\d{3}$/.test(v));
  setOptions('analysisVehicle',vehicleValues,'全号車',currentV);
 }
@@ -7332,6 +7353,8 @@ function renderSafetyAnalysis(){
  let openAcc=accidents.filter(a=>a.phase!=='完了').length,openComp=complaints.filter(x=>x.status!=='完了').length;
  let people=new Set([...accidents.map(x=>String(x.employee_no)),...complaints.map(x=>String(x.employee_no)),...near.map(x=>String(x.employee_no))]).size;
  let repairTotal=accidents.reduce((sum,a)=>sum+accidentTotalRepairCost(a),0);
+ let snapshotCount=[...accidents,...complaints,...near].filter(r=>safetyAnalysisRecordSnapshot(r).source==='snapshot').length;
+ let averageRepair=accidents.length?Math.round(repairTotal/accidents.length):0;
  let kpi=document.getElementById('analysisKpis');if(kpi)kpi.innerHTML=
   '<div class="analysis-kpi"><small>事故</small><b>'+accidents.length+'</b><div class="mini">該当条件</div></div>'+
   '<div class="analysis-kpi"><small>苦情</small><b>'+complaints.length+'</b><div class="mini">お客様対応記録</div></div>'+
@@ -7339,6 +7362,10 @@ function renderSafetyAnalysis(){
   '<div class="analysis-kpi"><small>未完了案件</small><b>'+(openAcc+openComp)+'</b><div class="mini">事故 '+openAcc+' / 苦情 '+openComp+'</div></div>'+
   '<div class="analysis-kpi"><small>危険度「高い」</small><b>'+high+'</b><div class="mini">ヒヤリ内</div></div>'+
   '<div class="analysis-kpi"><small>修理費合計</small><b>'+repairTotal.toLocaleString('ja-JP')+'円</b><div class="mini">事故の相手＋自社</div></div>'+
+  '<div class="analysis-kpi"><small>事故1件平均修理費</small><b>'+averageRepair.toLocaleString('ja-JP')+'円</b><div class="mini">合計÷事故件数</div></div>'+
+  '<div class="analysis-kpi"><small>高危険比率</small><b>'+analysisPercent(high,near.length)+'</b><div class="mini">高危険ヒヤリ÷ヒヤリ</div></div>'+
+  '<div class="analysis-kpi"><small>未完了比率</small><b>'+analysisPercent(openAcc+openComp,accidents.length+complaints.length)+'</b><div class="mini">事故・苦情内</div></div>'+
+  '<div class="analysis-kpi"><small>所属スナップショット</small><b>'+analysisPercent(snapshotCount,total)+'</b><div class="mini">記録時所属を保持</div></div>'+
   '<div class="analysis-kpi"><small>対象社員</small><b>'+people+'</b><div class="mini">安全記録に登場</div></div>';
  let months={};
  let monthAdd=(date,key)=>{let k=String(date||'').slice(0,7)||'日付未設定';months[k]=months[k]||{acc:0,comp:0,near:0};months[k][key]++};
@@ -7350,8 +7377,8 @@ function renderSafetyAnalysis(){
  let allRows=[...accidents.map(x=>({rec:x,kind:'事故'})),...complaints.map(x=>({rec:x,kind:'苦情'})),...near.map(x=>({rec:x,kind:'ヒヤリ'}))];
  let countByEmployee={},countByWorkplace={},countByDept={},countByVehicle={};
  allRows.forEach(({rec})=>{
-  let e=safetyAnalysisRecordEmployee(rec),empLabel=e?(e.name+'（'+e.no+'）'):String(rec.employee_no||'未設定'),
-      wp=e?(e.workplace||e.branch||'未設定'):'未設定',dp=e?(e.dept||'未設定'):'未設定',vh=String(rec.vehicle||'').trim();
+  let e=safetyAnalysisRecordEmployee(rec),scope=safetyAnalysisRecordSnapshot(rec),empLabel=e?(e.name+'（'+e.no+'）'):String(rec.employee_no||'未設定'),
+      wp=scope.workplace||'未設定',dp=scope.dept||'未設定',vh=String(rec.vehicle||'').trim();
   countByEmployee[empLabel]=(countByEmployee[empLabel]||0)+1;
   countByWorkplace[wp]=(countByWorkplace[wp]||0)+1;
   countByDept[dp]=(countByDept[dp]||0)+1;
@@ -7383,7 +7410,7 @@ function renderSafetyAnalysis(){
   let typeLabel={all:'事故＋苦情＋ヒヤリ',accident:'事故のみ',complaint:'苦情のみ',near:'ヒヤリのみ'}[type]||type;
   note.innerHTML='<b>集計条件：</b> '+esc(period)+' / '+esc(typeLabel)+(scope.length?' / '+scope.map(esc).join(' / '):' / 表示権限範囲全体')+
    '<div class="analysis-scope-summary"><span>安全記録 '+total+'件</span><span>対象社員 '+people+'名</span><span>未完了 '+(openAcc+openComp)+'件</span><span>高危険ヒヤリ '+high+'件</span></div>'+
-   '<span class="mini">事業所・部署は社員台帳の現在所属で集計します。号車別は3桁号車が登録された記録のみ。前年同期・月次増減も含め、件数は稼働距離・乗務回数・在籍人数で補正していないため、発生率や社員・部署の評価にはそのまま使わず、個別記録確認の入口として利用してください。</span>'
+   '<span class="mini">事業所・部署・雇用区分は記録時スナップショットを優先し、旧データで未保存の場合だけ社員台帳の現在所属を代用します（現在所属代用 '+Math.max(0,total-snapshotCount)+'件）。号車別は3桁号車が登録された記録のみ。件数は走行距離・乗務回数で補正していないため、真の発生率や社員・部署の評価にはそのまま使わず、個別記録確認の入口として利用してください。</span>'
  }
 }
 
@@ -9284,6 +9311,7 @@ function openAccidentForm(defaultNo=''){
   let aid='A-2026-'+String(A.length+1).padStart(3,'0');
   let arec={
    id:aid,date:fad.value,time:fatime.value,employee_no:e.no,driver:e.name,service:e.dept==='バス課'?'バス':'タクシー',
+   officeAtRecord:e.branch||e.workplace||'',departmentAtRecord:e.dept||'',employmentAtRecord:e.employment||'',
    vehicle:normalizeVehicleNumberInput(fav.value)||'未設定',operationState:faoperation.value.trim()||'未設定',district:fadistrict.value.trim()||'未設定',
    accidentType:fatype.value.trim()||'未設定',faultRate:fault,
    opponentRepair:faoprepair.value,opponentRepairCost:opCost,companyRepair:faownrepair.value,companyRepairCost:ownCost,
@@ -9475,7 +9503,7 @@ function openNearForm(idx=-1,defaultNo='',quotaMonth=''){
   if(!fnd.value||!fns.value.trim())return alert('ヒヤリ発生日と内容を入力してください');
   if(!validateVehicleNumberValue(fnvehicle.value))return;
   let data={reportDate:fnreport.value||TODAY,date:fnd.value,time:fntime.value,vehicle:normalizeVehicleNumberInput(fnvehicle.value)||'未設定',employee_no:e.no,driver:e.name,
-   employeeNoAtReport:rec?.employeeNoAtReport||e.no,officeAtReport:rec?.officeAtReport||e.branch,departmentAtReport:rec?.departmentAtReport||e.dept,
+   employeeNoAtReport:rec?.employeeNoAtReport||e.no,officeAtReport:rec?.officeAtReport||e.branch,departmentAtReport:rec?.departmentAtReport||e.dept,employmentAtReport:rec?.employmentAtReport||e.employment||'',
    locationTags:nearChecked('nearLocation'),situationTags:nearChecked('nearSituation'),roadTags:nearChecked('nearRoad'),targetTags:nearChecked('nearTarget'),
    causeSide:fnside.value,internalFactors:nearChecked('nearInternal'),riskLevel:fnrisk.value,
    summary:fns.value.trim(),education:fneducation.value.trim(),prevention:fnprevention.value.trim(),action:'記録済み'},rid;
@@ -9542,7 +9570,7 @@ function openComplaintForm(idx=-1,defaultNo=''){
   let e=emp(fce.value);if(!e||!guardEmployeeEdit(e.no,'苦情／お客様対応'))return;if(!requireInputs([{id:'fcdate',label:'対応日',value:fcdate.value},{id:'fce',label:'乗務員',value:fce.value},{id:'fcs',label:'申告内容',value:fcs.value}]))return;
   if(!validateVehicleNumberValue(fcvehicle.value))return;
   let ownerSel=resolveManagerSelection(fcowner.value);if(!ownerSel.id)return alert('担当者を選択してください');
-  let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:e.dept,vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
+  let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:rec?.dept||e.dept,officeAtRecord:rec?.officeAtRecord||e.branch||e.workplace||'',departmentAtRecord:rec?.departmentAtRecord||rec?.dept||e.dept||'',employmentAtRecord:rec?.employmentAtRecord||e.employment||'',vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
   if(data.status==='完了'&&data.rank==='未判定')return alert('完了にする前に、クレームランク A・B・C のいずれかを選択してください');
   let complaintWarnings=[];if(data.status!=='完了'){if(!data.owner)complaintWarnings.push('担当者が未設定です');if(!data.nextAction)complaintWarnings.push('次回対応内容が未設定です');if(!data.followupDue)complaintWarnings.push('フォロー期限が未設定です')}if(data.rank==='未判定')complaintWarnings.push('クレームランクが未判定です');
   let complaintBefore=rec?{
