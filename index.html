@@ -1485,6 +1485,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="card"><h3>雇用区分</h3><div id="analysisHrEmployment"></div></div>
   <div class="card"><h3>退職時の勤続年数</h3><div class="mini">退職日が確認できる退職者だけを集計します。</div><div id="analysisHrExitTenure" style="margin-top:10px"></div></div>
  </div>
+ <div class="card" style="margin-top:12px"><h3>年度別 入退職推移</h3><div class="mini">4月～翌3月を1年度として、直近5年度の入社・退職・純増減を確認します。</div><div id="analysisHrFiscalTrend" style="margin-top:10px"></div></div>
  <div class="grid2" style="margin-top:12px">
   <div class="card"><h3>年代 × 部署</h3><div class="mini">現在在籍者の年代構成を部署別に比較します。</div><div id="analysisHrAgeDept" style="margin-top:10px"></div></div>
   <div class="card"><h3>社歴 × 部署</h3><div class="mini">現在在籍者の勤続年数構成を部署別に比較します。</div><div id="analysisHrTenureDept" style="margin-top:10px"></div></div>
@@ -3647,6 +3648,10 @@ function analysisFiscalYearStart(date=new Date(TODAY+'T00:00:00')){
  let y=date.getFullYear(),m=date.getMonth()+1;
  return new Date((m>=4?y:y-1)+'-04-01T00:00:00')
 }
+function analysisFiscalYearNumber(date){
+ let d=date instanceof Date?date:analysisDateValue(date);if(!d)return null;
+ return d.getMonth()+1>=4?d.getFullYear():d.getFullYear()-1
+}
 function analysisInRange(date,from,to){
  let d=analysisDateValue(date);return !!d&&d>=from&&d<=to
 }
@@ -3799,6 +3804,13 @@ function renderAnalysisCenter(){
  let exitTenureMap={'3か月以内':0,'3～6か月':0,'6～12か月':0,'1～3年':0,'3～5年':0,'5～10年':0,'10年以上':0,'不明':0};
  retireEvents.forEach(x=>{let y=x.hire?analysisTenureYears(x.employee,x.date):null,k='不明';if(y!==null){if(y<=0.252)k='3か月以内';else if(y<=0.501)k='3～6か月';else if(y<1)k='6～12か月';else if(y<3)k='1～3年';else if(y<5)k='3～5年';else if(y<10)k='5～10年';else k='10年以上'}exitTenureMap[k]++});
  let exitEl=document.getElementById('analysisHrExitTenure');if(exitEl)exitEl.innerHTML=analysisOrderedListHtml(Object.entries(exitTenureMap));
+ let fyNow=analysisFiscalYearNumber(today),fyRows=[];
+ for(let y=fyNow-4;y<=fyNow;y++){
+  let hires=employees.filter(e=>analysisFiscalYearNumber(e.hire)===y).length;
+  let exits=retireEvents.filter(x=>analysisFiscalYearNumber(x.date)===y).length;
+  fyRows.push({year:y,hires,exits,net:hires-exits})
+ }
+ let fyEl=document.getElementById('analysisHrFiscalTrend');if(fyEl)fyEl.innerHTML='<div class="tablewrap"><table><thead><tr><th>年度</th><th>入社</th><th>退職</th><th>純増減</th></tr></thead><tbody>'+fyRows.map(x=>'<tr><td><b>'+x.year+'年度</b></td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td><b>'+(x.net>=0?'+':'')+x.net+'名</b></td></tr>').join('')+'</tbody></table></div><div class="mini" style="margin-top:7px">退職は退職日を確認できるデータのみ集計します。</div>';
  let ageColumns=['29歳以下','30代','40代','50代','60代','70歳以上'];
  let ageDept=document.getElementById('analysisHrAgeDept');if(ageDept)ageDept.innerHTML=analysisMatrixHtml(analysisDeptBandRows(active,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns),ageColumns,'部署');
  let tenureColumns=['1年未満','1～3年未満','3～5年未満','5～10年未満','10～20年未満','20年以上'];
