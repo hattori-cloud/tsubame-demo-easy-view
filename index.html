@@ -426,6 +426,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .search-result-card:hover,.search-result-card:focus-visible{border-color:#82b6ca;background:#f6fbfd;box-shadow:0 3px 11px rgba(22,56,76,.07);outline:none}
 .search-result-main{display:grid;gap:3px;min-width:0}.search-result-title{color:#173f57}.search-result-sub{font-size:.7rem;font-weight:800;color:#607783;line-height:1.4}
 .search-result-open{flex:0 0 auto;color:#075b88;font-size:.72rem;font-weight:950}
+.search-result-card.search-result-history{background:#f8fafb;border-style:dashed;opacity:.82}.search-result-card.search-result-history:hover{opacity:1}
 @media(max-width:560px){.search-result-card{align-items:flex-start}.search-result-open{padding-top:3px}}
 
 /* v125 employee-name navigation */
@@ -7770,7 +7771,7 @@ function globalSearchSectionLabel(group){
 }
 function globalSearchScore(result,q){
  let needle=String(q||'').trim().toLowerCase(),title=String(result?.title||'').toLowerCase(),sub=String(result?.sub||'').toLowerCase();
- if(!needle)return 0;
+ if(!needle)return result?.history?-30:0;
  let score=0;
  if(title===needle)score+=100;
  if(title.startsWith(needle))score+=55;
@@ -7779,17 +7780,29 @@ function globalSearchScore(result,q){
  if(result?.label==='社員'&&/^\d+$/.test(needle)&&title.startsWith(needle+' '))score+=80;
  if(result?.label==='車両'&&/^\d{3}$/.test(needle)&&title.startsWith(needle+'号車'))score+=95;
  if(['事故','苦情','ヒヤリ'].includes(result?.label)&&title.toLowerCase()===needle)score+=90;
+ if(result?.history)score-=35;
  return score
 }
+function globalSearchVisibleResults(results,type,limit=18){
+ if(type!=='all')return results.slice(0,limit);
+ let order=['employee','safety','vehicle','qualification','application','comms','other'],picked=[],used=new Set();
+ order.forEach(group=>{
+  results.filter(r=>globalSearchGroup(r.label)===group&&!r.history).slice(0,3).forEach(r=>{
+   if(picked.length<limit&&!used.has(r)){picked.push(r);used.add(r)}
+  })
+ });
+ results.forEach(r=>{if(picked.length<limit&&!used.has(r)){picked.push(r);used.add(r)}});
+ return picked
+}
 function renderGlobalSearchResults(results,type,total,q){
- let visible=results.slice(0,18),order=['employee','safety','vehicle','qualification','application','comms','other'];
+ let visible=globalSearchVisibleResults(results,type,18),order=['employee','safety','vehicle','qualification','application','comms','other'];
  let summary='<div class="search-result-summary"><div><b>'+esc(globalSearchTypeLabel(type))+'の検索結果</b><div class="mini">'+total+'件'+(total>18?'（先頭18件を表示）':'')+' / 結果を押すと詳細を開きます</div></div>'+(type!=='all'?'<button class="btn soft" onclick="document.getElementById(\'gtype\').value=\'all\';searchAll()">すべてに戻す</button>':'')+'</div>';
  if(!visible.length)return summary+'<div class="mini">該当する情報はありません。</div>';
  let sections=order.map(group=>{
   let items=visible.filter(r=>globalSearchGroup(r.label)===group);
   if(!items.length)return '';
   return '<section class="search-result-group"><div class="search-result-group-head"><b>'+esc(globalSearchSectionLabel(group))+'</b><span>'+items.length+'件</span></div>'+
-   items.map(r=>'<button type="button" class="search-result-card" onclick="'+r.open+'"><span class="search-result-main"><span><span class="search-kind-pill">'+esc(r.label)+'</span><b class="search-result-title">'+esc(r.title)+'</b></span><span class="search-result-sub">'+esc(r.sub)+'</span></span><span class="search-result-open">詳細 ›</span></button>').join('')+
+   items.map(r=>'<button type="button" class="search-result-card'+(r.history?' search-result-history':'')+'" onclick="'+r.open+'"><span class="search-result-main"><span><span class="search-kind-pill">'+esc(r.label)+'</span>'+(r.history?'<span class="badge">履歴</span>':'')+'<b class="search-result-title">'+esc(r.title)+'</b></span><span class="search-result-sub">'+esc(r.sub)+'</span></span><span class="search-result-open">詳細 ›</span></button>').join('')+
   '</section>'
  }).join('');
  return summary+sections
@@ -7808,12 +7821,18 @@ function searchAll(){
   let certs=DRIVER_CERT_DEFS.filter(def=>driverCertActive(e,def.key)).map(def=>def.short).join('・'),cars=employeeAssignedVehicles(e.no).map(v=>v.plate).filter(Boolean);
   results.push({label:'社員',title:`${e.no} ${e.name}`,sub:`${e.branch} / ${e.dept} / ${e.position||'一般'}${cars.length?' / 号車 '+cars.join('・'):''}${certs?' / 認定 '+certs:''}`,open:`employeeDetail('${e.no}')`})
  });
- let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
- quals.forEach(x=>results.push({label:'資格',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.name}`,sub:`${x.number||'番号未登録'} / 期限 ${x.expiry||'未設定'}`,open:`go('emp');setTimeout(()=>employeeQualification('${x.employee_no}'),40)`}));
+ let quals=QUAL.filter(x=>inCurrentEmployeeScope(x.employee_no)&&[x.name,x.number,x.expiry,x.status,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
+ quals.forEach(x=>{
+  let history=['無効','失効'].includes(x.status||'');
+  results.push({label:'資格',history,title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.name}`,sub:`${history?'履歴 / ':''}${x.number||'番号未登録'} / 期限 ${x.expiry||'未設定'}`,open:`go('emp');setTimeout(()=>employeeQualification('${x.employee_no}'),40)`})
+ });
  let training=scopedTraining().filter(x=>[x.course,x.due,x.status,emp(x.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  training.forEach(x=>results.push({label:'安全指導',title:`${emp(x.employee_no)?.name||x.employee_no} / ${x.course}`,sub:`${x.status} / 期限 ${x.due||'未設定'}`,open:`go('emp');setTimeout(()=>employeeTraining('${x.employee_no}'),40)`}));
  let docs=DOCS.filter(d=>canViewDocumentRecord(d)&&[d.id,d.name,d.category,d.status,d.expiry,emp(d.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
- docs.forEach(d=>results.push({label:'書類',title:`${emp(d.employee_no)?.name||d.employee_no} / ${d.name}`,sub:`${d.category} / ${d.status||'確認待ち'}`,open:`go('emp');setTimeout(()=>employeeDocuments('${d.employee_no}'),40)`}));
+ docs.forEach(d=>{
+  let history=!!d.archived||!!d.replacedByDocumentId||['差替え済み','無効'].includes(d.status||'');
+  results.push({label:'書類',history,title:`${emp(d.employee_no)?.name||d.employee_no} / ${d.name}`,sub:`${history?'履歴 / ':''}${d.category} / ${documentOperationalStatusLabel(d)}`,open:`go('emp');setTimeout(()=>employeeDocuments('${d.employee_no}'),40)`})
+ });
   let apps=scopedApplications().filter(a=>[a.id,a.type,a.status,a.date,a.detail,emp(a.employee_no)?.name||''].join(' ').toLowerCase().includes(q));
  apps.forEach(a=>results.push({label:'申請',title:`${a.id} / ${a.type}`,sub:`${emp(a.employee_no)?.name||a.employee_no} / ${a.status}`,open:`go('comms');setTimeout(()=>applicationDetail('${a.id}'),40)`}));
  visibleNotices().filter(n=>[n.id,n.title,n.body,n.date].join(' ').toLowerCase().includes(q)).forEach(n=>results.push({label:'掲示',title:n.title,sub:`${n.date} / ${commsTargetLabel(n)}`,open:`go('comms');setTimeout(()=>noticeDetail('${n.id}'),40)`}));
