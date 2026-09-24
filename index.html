@@ -3872,10 +3872,18 @@ function analysisGeneralStatusTable(rows,label='区分'){
  rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.people+'名</td><td>'+x.health+'名</td><td>'+x.qual+'件</td><td>'+x.aptitude+'名</td><td>'+x.training+'件</td><td>'+x.overtime+'名</td></tr>').join('')+
  '</tbody></table></div>'
 }
+function setAnalysisCenterDepartmentFilter(dept){
+ let value=String(dept||'');
+ ANALYSIS_CENTER_FILTERS.dept=value;
+ let el=document.getElementById('analysisCenterDept');
+ if(el&&[...el.options].some(o=>o.value===value))el.value=value;
+ renderAnalysisCenter();
+ requestAnimationFrame(()=>document.getElementById('analysisCenterScopeSummary')?.scrollIntoView({block:'center'}))
+}
 function analysisCompanyDeptTable(rows){
  if(!rows.length)return '<div class="mini">集計対象がありません。</div>';
- return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>期間内入社</th><th>期間内退職</th><th>安全記録</th><th>総務期限超過</th></tr></thead><tbody>'+
-  rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.active+'名</td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td>'+x.safety+'件</td><td>'+x.general+'件</td></tr>').join('')+
+ return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>期間内入社</th><th>期間内退職</th><th>安全記録</th><th>総務期限超過</th><th>操作</th></tr></thead><tbody>'+
+  rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.active+'名</td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td>'+x.safety+'件</td><td>'+x.general+'件</td><td><button class="btn soft" onclick="setAnalysisCenterDepartmentFilter(\''+String(x.label).replaceAll("'","")+'\')">この部署で見る</button></td></tr>').join('')+
   '</tbody></table></div><div class="mini" style="margin-top:7px">「総務期限超過」は健診・資格・適性診断・安全指導・貸与品返却・書類期限を合算した件数です。単位の異なる項目を人事評価には使いません。</div>'
 }
 function renderAnalysisCenter(){
