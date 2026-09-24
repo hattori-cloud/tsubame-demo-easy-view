@@ -4991,6 +4991,9 @@ function employeeRiskRank(e){
  return 3
 }
 function employeeSafetySort(a,b){
+ let aRetired=a.status==='退職',bRetired=b.status==='退職';
+ if(aRetired!==bRetired)return aRetired?1:-1;
+ if(aRetired&&bRetired)return String(a.no).localeCompare(String(b.no),'ja',{numeric:true});
  let ra=employeeRiskRank(a),rb=employeeRiskRank(b);
  if(ra!==rb)return ra-rb;
  let da=employeeNearestDeadline(a),db=employeeNearestDeadline(b);
