@@ -98,12 +98,12 @@ function dateValue(v){
 }
 function monthValue(v,lastPosted=''){
   const s=String(v??'').trim();
+  if(!s)return isValidIsoDate(lastPosted)?lastPosted.slice(0,7):'';
   if(/^\d{4}[-/]\d{1,2}$/.test(s)){
     const [y,m]=s.replace('/','-').split('-').map(Number);
     if(m>=1&&m<=12)return String(y).padStart(4,'0')+'-'+String(m).padStart(2,'0')
-    return s
   }
-  return isValidIsoDate(lastPosted)?lastPosted.slice(0,7):s
+  return s
 }
 function rowValues(sheet,rowNumber,maxColumns=MAX_SCAN_COLUMNS){
   const row=sheet.getRow(rowNumber),values=[];
