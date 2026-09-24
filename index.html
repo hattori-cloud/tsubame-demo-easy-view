@@ -1437,6 +1437,18 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 
 <section class="page" id="analysis"><div class="page-title"><div><h2>分析センター</h2><p>安全・人事・総務の情報を、会社全体の改善につながる形で確認します。</p></div><div class="toolbar"><button class="btn soft" onclick="renderAnalysisCenter()">再集計</button></div></div>
 <div class="simple-note">個人の順位付け・退職予測・危険人物判定は行いません。件数・変化・再発・未確認・教育テーマなど、会社側が改善できる傾向を確認します。</div>
+<div class="card analysis-center-filter-card" style="margin:12px 0">
+ <div class="list-summary"><div><h3 style="margin:0">共通の分析条件</h3><div class="mini">ここで選んだ条件を、会社全体・安全・人事・総務へ共通適用します。</div></div><button class="btn soft" onclick="clearAnalysisCenterFilters()">条件をクリア</button></div>
+ <div class="analysis-filters" style="margin-top:10px">
+  <div><label>期間</label><select id="analysisCenterPeriod" onchange="analysisCenterPeriodChanged()"><option value="fy">今年度</option><option value="12m">直近12か月</option><option value="6m">直近6か月</option><option value="custom">期間指定</option></select></div>
+  <div><label>開始日</label><input id="analysisCenterFrom" type="date" onchange="analysisCenterCustomDateChanged()"></div>
+  <div><label>終了日</label><input id="analysisCenterTo" type="date" onchange="analysisCenterCustomDateChanged()"></div>
+  <div><label>事業所</label><select id="analysisCenterWorkplace" onchange="analysisCenterOrgChanged()"><option value="">全事業所</option></select></div>
+  <div><label>部署</label><select id="analysisCenterDept" onchange="renderAnalysisCenter()"><option value="">全部署</option></select></div>
+  <div><label>雇用区分</label><select id="analysisCenterEmployment" onchange="renderAnalysisCenter()"><option value="">全雇用区分</option></select></div>
+ </div>
+ <div id="analysisCenterScopeSummary" class="analysis-scope-note" style="margin-top:8px"></div>
+</div>
 <div class="tabs analysis-center-tabs">
  <button class="active" data-a="company" onclick="analysisCenterTab('company')">会社全体</button>
  <button data-a="safety" onclick="analysisCenterTab('safety')">安全</button>
@@ -3642,6 +3654,72 @@ function go(id){
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>go(b.dataset.p));
 
 let ANALYSIS_CENTER_TAB='company';
+let ANALYSIS_CENTER_FILTERS={period:'fy',from:'',to:'',workplace:'',dept:'',employment:''};
+function analysisCenterDateText(d){return d instanceof Date&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):''}
+function analysisCenterRange(today=new Date(TODAY+'T23:59:59')){
+ let period=ANALYSIS_CENTER_FILTERS.period||'fy',to=new Date(today),from;
+ if(period==='12m'){from=new Date(to);from.setFullYear(from.getFullYear()-1);from.setDate(from.getDate()+1)}
+ else if(period==='6m'){from=new Date(to);from.setMonth(from.getMonth()-6);from.setDate(from.getDate()+1)}
+ else if(period==='custom'){
+  from=analysisDateValue(ANALYSIS_CENTER_FILTERS.from)||analysisFiscalYearStart(to);
+  let customTo=analysisDateValue(ANALYSIS_CENTER_FILTERS.to);if(customTo){customTo.setHours(23,59,59,999);to=customTo}
+ }else from=analysisFiscalYearStart(to);
+ return {from,to,label:period==='12m'?'直近12か月':period==='6m'?'直近6か月':period==='custom'?'期間指定':'今年度'}
+}
+function analysisCenterPeriodChanged(){
+ let el=document.getElementById('analysisCenterPeriod');ANALYSIS_CENTER_FILTERS.period=el?.value||'fy';
+ let r=analysisCenterRange(),from=document.getElementById('analysisCenterFrom'),to=document.getElementById('analysisCenterTo');
+ if(from)from.value=analysisCenterDateText(r.from);if(to)to.value=analysisCenterDateText(r.to);
+ renderAnalysisCenter()
+}
+function analysisCenterCustomDateChanged(){
+ ANALYSIS_CENTER_FILTERS.period='custom';
+ let p=document.getElementById('analysisCenterPeriod');if(p)p.value='custom';
+ ANALYSIS_CENTER_FILTERS.from=document.getElementById('analysisCenterFrom')?.value||'';
+ ANALYSIS_CENTER_FILTERS.to=document.getElementById('analysisCenterTo')?.value||'';
+ renderAnalysisCenter()
+}
+function analysisCenterOrgChanged(){
+ ANALYSIS_CENTER_FILTERS.workplace=document.getElementById('analysisCenterWorkplace')?.value||'';
+ let dept=document.getElementById('analysisCenterDept');if(dept&&ANALYSIS_CENTER_FILTERS.workplace){
+  let allowed=new Set(scopedEmployees().filter(e=>(e.branch||e.workplace)===ANALYSIS_CENTER_FILTERS.workplace).map(e=>e.dept||'未設定'));
+  if(dept.value&&!allowed.has(dept.value)){dept.value='';ANALYSIS_CENTER_FILTERS.dept=''}
+ }
+ renderAnalysisCenter()
+}
+function clearAnalysisCenterFilters(){
+ ANALYSIS_CENTER_FILTERS={period:'fy',from:'',to:'',workplace:'',dept:'',employment:''};
+ ['analysisCenterWorkplace','analysisCenterDept','analysisCenterEmployment'].forEach(id=>{let e=document.getElementById(id);if(e)e.value=''});
+ let p=document.getElementById('analysisCenterPeriod');if(p)p.value='fy';
+ let r=analysisCenterRange(),from=document.getElementById('analysisCenterFrom'),to=document.getElementById('analysisCenterTo');
+ if(from)from.value=analysisCenterDateText(r.from);if(to)to.value=analysisCenterDateText(r.to);
+ renderAnalysisCenter()
+}
+function syncAnalysisCenterFilters(baseEmployees){
+ let workplace=document.getElementById('analysisCenterWorkplace'),dept=document.getElementById('analysisCenterDept'),employment=document.getElementById('analysisCenterEmployment'),period=document.getElementById('analysisCenterPeriod');
+ if(period)period.value=ANALYSIS_CENTER_FILTERS.period||'fy';
+ const sync=(el,values,emptyLabel,current)=>{
+  if(!el)return;let opts=['<option value="">'+emptyLabel+'</option>',...values.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>')].join('');
+  if(el.innerHTML!==opts)el.innerHTML=opts;el.value=current||''
+ };
+ let workplaces=[...new Set(baseEmployees.map(e=>e.branch||e.workplace).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
+ sync(workplace,workplaces,'全事業所',ANALYSIS_CENTER_FILTERS.workplace);
+ let deptEmployees=ANALYSIS_CENTER_FILTERS.workplace?baseEmployees.filter(e=>(e.branch||e.workplace)===ANALYSIS_CENTER_FILTERS.workplace):baseEmployees;
+ let depts=[...new Set(deptEmployees.map(e=>e.dept).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
+ sync(dept,depts,'全部署',ANALYSIS_CENTER_FILTERS.dept);
+ let employments=[...new Set(baseEmployees.map(e=>e.employment).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
+ sync(employment,employments,'全雇用区分',ANALYSIS_CENTER_FILTERS.employment);
+ let r=analysisCenterRange(),from=document.getElementById('analysisCenterFrom'),to=document.getElementById('analysisCenterTo');
+ if(ANALYSIS_CENTER_FILTERS.period!=='custom'){ANALYSIS_CENTER_FILTERS.from=analysisCenterDateText(r.from);ANALYSIS_CENTER_FILTERS.to=analysisCenterDateText(r.to)}
+ if(from)from.value=ANALYSIS_CENTER_FILTERS.from||analysisCenterDateText(r.from);if(to)to.value=ANALYSIS_CENTER_FILTERS.to||analysisCenterDateText(r.to)
+}
+function analysisCenterFilteredEmployees(baseEmployees){
+ return baseEmployees.filter(e=>
+  (!ANALYSIS_CENTER_FILTERS.workplace||(e.branch||e.workplace)===ANALYSIS_CENTER_FILTERS.workplace)&&
+  (!ANALYSIS_CENTER_FILTERS.dept||e.dept===ANALYSIS_CENTER_FILTERS.dept)&&
+  (!ANALYSIS_CENTER_FILTERS.employment||e.employment===ANALYSIS_CENTER_FILTERS.employment)
+ )
+}
 function analysisCenterTab(id){
  ANALYSIS_CENTER_TAB=id||'company';
  document.querySelectorAll('#analysis .tabpane').forEach(x=>x.classList.remove('active'));
@@ -3666,12 +3744,13 @@ function analysisFiscalYearNumber(date){
 function analysisInRange(date,from,to){
  let d=analysisDateValue(date);return !!d&&d>=from&&d<=to
 }
-function analysisScopedSafety(){
- let ok=(type,no)=>canAccess(type,'view',String(no||''));
+function analysisScopedSafety(employeeNos=null,range=null){
+ let ok=(type,no)=>canAccess(type,'view',String(no||''))&&(!employeeNos||employeeNos.has(String(no||'')));
+ const inRange=(kind,row)=>{if(!range)return true;let d=analysisSafetyRecordDate(kind,row);return !!d&&d>=range.from&&d<=range.to};
  return {
-  accidents:A.filter(x=>ok('accident',x.employee_no)),
-  complaints:C.filter(x=>ok('complaint',x.employee_no)),
-  near:N.filter(x=>ok('near_miss',x.employee_no))
+  accidents:A.filter(x=>ok('accident',x.employee_no)&&inRange('accident',x)),
+  complaints:C.filter(x=>ok('complaint',x.employee_no)&&inRange('complaint',x)),
+  near:N.filter(x=>ok('near_miss',x.employee_no)&&inRange('near',x))
  }
 }
 function analysisRetirementEvents(employees){
@@ -3726,13 +3805,13 @@ function analysisDeptBandRows(active,bandFn,columns){
  });
  return Object.values(map).sort((a,b)=>b.total-a.total||String(a.label).localeCompare(String(b.label),'ja')).slice(0,12)
 }
-function analysisSafetyByBandHtml(active,safety,today,bandFn,columns){
- let start=new Date(today);start.setFullYear(start.getFullYear()-1);
+function analysisSafetyByBandHtml(active,safety,today,bandFn,columns,range=null){
+ let start=range?.from||new Date(today);if(!range)start.setFullYear(start.getFullYear()-1);let end=range?.to||today;
  let activeByNo=new Map(active.map(e=>[String(e.no),e]));
  let stats={};columns.forEach(k=>stats[k]={people:0,accident:0,near:0,complaint:0,high:0});
  active.forEach(e=>{let k=bandFn(e);if(!stats[k])stats[k]={people:0,accident:0,near:0,complaint:0,high:0};stats[k].people++});
  const add=(kind,r)=>{
-  let d=analysisSafetyRecordDate(kind,r),e=activeByNo.get(String(r.employee_no||''));if(!d||d<start||d>today||!e)return;
+  let d=analysisSafetyRecordDate(kind,r),e=activeByNo.get(String(r.employee_no||''));if(!d||d<start||d>end||!e)return;
   let k=bandFn(e);if(!stats[k])stats[k]={people:0,accident:0,near:0,complaint:0,high:0};
   if(kind==='accident')stats[k].accident++;
   else if(kind==='near'){stats[k].near++;if(r.riskLevel==='高い')stats[k].high++}
@@ -3774,17 +3853,21 @@ function analysisGeneralStatusTable(rows,label='区分'){
 }
 function analysisCompanyDeptTable(rows){
  if(!rows.length)return '<div class="mini">集計対象がありません。</div>';
- return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>今年度入社</th><th>今年度退職</th><th>安全記録</th><th>総務期限超過</th></tr></thead><tbody>'+
+ return '<div class="tablewrap"><table><thead><tr><th>部署</th><th>在籍</th><th>期間内入社</th><th>期間内退職</th><th>安全記録</th><th>総務期限超過</th></tr></thead><tbody>'+
   rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.active+'名</td><td>'+x.hires+'名</td><td>'+x.exits+'名</td><td>'+x.safety+'件</td><td>'+x.general+'件</td></tr>').join('')+
   '</tbody></table></div><div class="mini" style="margin-top:7px">「総務期限超過」は健診・資格・適性診断・安全指導・貸与品返却・書類期限を合算した件数です。単位の異なる項目を人事評価には使いません。</div>'
 }
 function renderAnalysisCenter(){
  let root=document.getElementById('analysis');if(!root||PREVIEW_ROLE==='一般社員')return;
- let employees=scopedEmployees(),active=employees.filter(e=>e.status==='在籍'),leave=employees.filter(e=>e.status==='休職'),planned=employees.filter(e=>e.status==='退職予定'),retired=employees.filter(e=>e.status==='退職');
- let safety=analysisScopedSafety(),today=new Date(TODAY+'T23:59:59'),fyStart=analysisFiscalYearStart(today),yearAgo=new Date(today);yearAgo.setFullYear(yearAgo.getFullYear()-1);
- let hiresFy=employees.filter(e=>analysisInRange(e.hire,fyStart,today));
+ let baseEmployees=scopedEmployees();syncAnalysisCenterFilters(baseEmployees);
+ ANALYSIS_CENTER_FILTERS.workplace=document.getElementById('analysisCenterWorkplace')?.value||ANALYSIS_CENTER_FILTERS.workplace||'';
+ ANALYSIS_CENTER_FILTERS.dept=document.getElementById('analysisCenterDept')?.value||ANALYSIS_CENTER_FILTERS.dept||'';
+ ANALYSIS_CENTER_FILTERS.employment=document.getElementById('analysisCenterEmployment')?.value||ANALYSIS_CENTER_FILTERS.employment||'';
+ let employees=analysisCenterFilteredEmployees(baseEmployees),active=employees.filter(e=>e.status==='在籍'),leave=employees.filter(e=>e.status==='休職'),planned=employees.filter(e=>e.status==='退職予定'),retired=employees.filter(e=>e.status==='退職');
+ let today=new Date(TODAY+'T23:59:59'),range=analysisCenterRange(today),scopeNosFilter=new Set(employees.map(e=>String(e.no))),safety=analysisScopedSafety(scopeNosFilter,range),fyStart=analysisFiscalYearStart(today),yearAgo=new Date(today);yearAgo.setFullYear(yearAgo.getFullYear()-1);
+ let hiresFy=employees.filter(e=>analysisInRange(e.hire,range.from,range.to));
  let hire1y=employees.filter(e=>analysisInRange(e.hire,yearAgo,today));
- let retireEvents=analysisRetirementEvents(employees),retireFy=retireEvents.filter(x=>x.date>=fyStart&&x.date<=today);
+ let retireEvents=analysisRetirementEvents(employees),retireFy=retireEvents.filter(x=>x.date>=range.from&&x.date<=range.to);
  let early3=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=92&&x.date>=x.hire);
  let early6=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=183&&x.date>=x.hire);
  let earlyRetire=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=365&&x.date>=x.hire);
@@ -3803,12 +3886,8 @@ function renderAnalysisCenter(){
  let expiredDocs=liveDocs.filter(d=>d.expiry&&days(d.expiry)<0),retentionDocs=liveDocs.filter(d=>d.retentionUntil&&days(d.retentionUntil)<0);
  let overtime45=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=45),overtime60=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=60);
  let workNeedsReview=active.filter(e=>typeof workUpdateStatus==='function'&&workUpdateStatus(e)==='更新確認');
- let last12Start=new Date(today);last12Start.setFullYear(last12Start.getFullYear()-1);
- let last12Safety=[
-  ...safety.accidents.filter(r=>{let d=analysisSafetyRecordDate('accident',r);return d&&d>=last12Start&&d<=today}),
-  ...safety.complaints.filter(r=>{let d=analysisSafetyRecordDate('complaint',r);return d&&d>=last12Start&&d<=today}),
-  ...safety.near.filter(r=>{let d=analysisSafetyRecordDate('near',r);return d&&d>=last12Start&&d<=today})
- ];
+ let last12Start=range.from;
+ let last12Safety=[...safety.accidents,...safety.complaints,...safety.near];
  let safetyNeedNos=new Set([
   ...openAcc.map(x=>String(x.employee_no)),
   ...openComp.map(x=>String(x.employee_no)),
@@ -3833,18 +3912,19 @@ function renderAnalysisCenter(){
  let overtimeSafety=overtime45.filter(e=>employeeSafetyNos.has(String(e.no))).length;
  let kpi=(small,big,sub)=>'<div class="analysis-kpi"><small>'+esc(small)+'</small><b>'+esc(String(big))+'</b><div class="mini">'+esc(sub)+'</div></div>';
 
+ let scopeSummary=document.getElementById('analysisCenterScopeSummary');if(scopeSummary)scopeSummary.innerHTML='<b>集計範囲：</b> '+esc(analysisCenterDateText(range.from))+' ～ '+esc(analysisCenterDateText(range.to))+' / '+esc(ANALYSIS_CENTER_FILTERS.workplace||'全事業所')+' / '+esc(ANALYSIS_CENTER_FILTERS.dept||'全部署')+' / '+esc(ANALYSIS_CENTER_FILTERS.employment||'全雇用区分')+' / 対象社員 '+employees.length+'名';
  let companyGeneralOver=overdueHealth.length+overdueQual.length+overdueAptitude.length+overdueTraining.length+overdueAssets.length+expiredDocs.length;
  let company=document.getElementById('analysisCompanyKpis');if(company)company.innerHTML=
   kpi('在籍',active.length+'名','休職 '+leave.length+' / 退職予定 '+planned.length)+
-  kpi('今年度入社',hiresFy.length+'名','4月1日から現在')+
-  kpi('今年度退職',retireFy.length+'名','退職日確認分')+
-  kpi('年度純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名','入社－退職（確認済み日付のみ）')+
-  kpi('安全記録',last12Safety.length+'件','直近12か月')+
+  kpi(range.label+'入社',hiresFy.length+'名',analysisCenterDateText(range.from)+'～'+analysisCenterDateText(range.to))+
+  kpi(range.label+'退職',retireFy.length+'名','退職日確認分')+
+  kpi(range.label+'純増減',(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名','入社－退職（確認済み日付のみ）')+
+  kpi('安全記録',last12Safety.length+'件',range.label)+
   kpi('総務期限超過',companyGeneralOver+'件','健診・資格・適性・指導・貸与品・書類')+
   kpi('複数領域確認',overlap2.length+'名','安全・勤務・総務の2領域以上')+
   kpi('3領域確認',overlap3.length+'名','安全・勤務・総務すべて');
  let cs=document.getElementById('analysisCompanySignals');if(cs)cs.innerHTML=
-  analysisSignal('今年度の人員変化','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
+  analysisSignal(range.label+'の人員変化','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
   analysisSignal('安全対応','未完了事故 '+openAcc.length+'件 / 未完了苦情 '+openComp.length+'件 / 高危険ヒヤリ '+highNear.length+'件',(openAcc.length+openComp.length+highNear.length)?'warn':'')+
   analysisSignal('総務期限','健診期限超過 '+overdueHealth.length+'名 / 資格期限超過 '+overdueQual.length+'件',(overdueHealth.length+overdueQual.length)?'danger':'')+
   analysisSignal('勤務確認','残業45時間以上 '+overtime45.length+'名（うち60時間以上 '+overtime60.length+'名）',overtime60.length?'danger':overtime45.length?'warn':'');
@@ -3910,14 +3990,14 @@ function renderAnalysisCenter(){
  let ageDept=document.getElementById('analysisHrAgeDept');if(ageDept)ageDept.innerHTML=analysisMatrixHtml(analysisDeptBandRows(active,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns),ageColumns,'部署');
  let tenureColumns=['1年未満','1～3年未満','3～5年未満','5～10年未満','10～20年未満','20年以上'];
  let tenureDept=document.getElementById('analysisHrTenureDept');if(tenureDept)tenureDept.innerHTML=analysisMatrixHtml(analysisDeptBandRows(active,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns),tenureColumns,'部署');
- let ageSafety=document.getElementById('analysisHrAgeSafety');if(ageSafety)ageSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns);
- let tenureSafety=document.getElementById('analysisHrTenureSafety');if(tenureSafety)tenureSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns);
+ let ageSafety=document.getElementById('analysisHrAgeSafety');if(ageSafety)ageSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisAgeBand(analysisAgeYears(e,today)),ageColumns,range);
+ let tenureSafety=document.getElementById('analysisHrTenureSafety');if(tenureSafety)tenureSafety.innerHTML=analysisSafetyByBandHtml(active,safety,today,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureColumns,range);
  let newHireNos=new Set(active.filter(e=>{let y=analysisTenureYears(e,today);return y!==null&&y<1}).map(e=>String(e.no)));
- let newHireAcc=safety.accidents.filter(r=>newHireNos.has(String(r.employee_no))&&analysisSafetyRecordDate('accident',r)>=last12Start).length;
- let newHireNear=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&analysisSafetyRecordDate('near',r)>=last12Start).length;
- let newHireHigh=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&r.riskLevel==='高い'&&analysisSafetyRecordDate('near',r)>=last12Start).length;
+ let newHireAcc=safety.accidents.filter(r=>newHireNos.has(String(r.employee_no))).length;
+ let newHireNear=safety.near.filter(r=>newHireNos.has(String(r.employee_no))).length;
+ let newHireHigh=safety.near.filter(r=>newHireNos.has(String(r.employee_no))&&r.riskLevel==='高い').length;
  let hs=document.getElementById('analysisHrSignals');if(hs)hs.innerHTML=
-  analysisSignal('今年度の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
+  analysisSignal(range.label+'の入退職','入社 '+hiresFy.length+'名 / 退職 '+retireFy.length+'名 / 純増減 '+(hiresFy.length-retireFy.length>=0?'+':'')+(hiresFy.length-retireFy.length)+'名')+
   analysisSignal('入社1年未満 × 安全','現在在籍 '+newHireNos.size+'名 / 直近12か月の事故 '+newHireAcc+'件 / ヒヤリ '+newHireNear+'件 / 高危険 '+newHireHigh+'件。新人教育の内容確認に使います。',newHireHigh?'warn':'')+
   analysisSignal('入社1年以内','現在の対象 '+hire1y.filter(e=>e.status!=='退職').length+'名。安全教育・資格・健診の初期フォローと横断できます。')+
   analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。');
