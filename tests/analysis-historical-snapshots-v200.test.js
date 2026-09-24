@@ -48,6 +48,16 @@ test('new safety records freeze organization context while edits do not backfill
   assert.ok(!complaintForm.includes("employmentAtRecord:rec?.employmentAtRecord||e.employment||''"));
 });
 
+test('existing near-miss and complaint records lock the target employee after registration',()=>{
+  const nearForm=block('function openNearForm','function complaintRankLabel');
+  assert.ok(nearForm.includes("<select id=\"fne\" onchange=\"fillNearEmployeeDefaults()\" ${rec?'disabled':''}>"));
+  assert.ok(nearForm.includes('登録後の対象社員は変更できません'));
+
+  const complaintForm=block('function openComplaintForm','function showPreview');
+  assert.ok(complaintForm.includes("<select id=\"fce\" onchange=\"fillComplaintEmployeeDefaults()\" ${rec?'disabled':''}>"));
+  assert.ok(complaintForm.includes('登録後の対象乗務員は変更できません'));
+});
+
 test('analysis exposes safety quality ratios without calling headcount ratio a true incidence rate',()=>{
   assert.ok(html.includes('事故1件平均修理費'));
   assert.ok(html.includes('高危険比率'));
