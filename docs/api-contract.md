@@ -221,32 +221,155 @@ Completion writes completion date and reviewer on the server.
 
 Returns qualifications plus document metadata visible to the user.
 
+The response must never expose a raw object-storage key, permanent public URL, signed URL, malware engine detail or storage credential.
+
 ### POST /api/v1/qualifications
 ### PATCH /api/v1/qualifications/{id}
 
+### POST /api/v1/documents/upload-ticket
+
+Creates a **short-lived upload authorization only**. It does not create an active document record.
+
+Server checks before issuing a ticket:
+
+- authenticated individual user,
+- active company user row,
+- target employee authorization,
+- document category policy,
+- full-administrator role for strict categories,
+- MFA-confirmed session for strict categories,
+- configured file-size and allowed-content-type policy.
+
+The ticket is bound to the authenticated user, employee, document category, expected content type/size and a random private quarantine storage key.
+
+The storage key must not contain employee name, employee number or original file name.
+
+The authorization expires quickly (target 60 seconds unless approved configuration changes it).
+
+### POST /api/v1/documents/finalize
+
+Finalizes a quarantined upload after server verification.
+
+Required server checks:
+
+- ticket/object ownership and expiry,
+- actual object exists in private quarantine storage,
+- actual object size/type is acceptable,
+- SHA-256 is recorded,
+- malware scan state is `clean`,
+- target employee/category authorization is still valid,
+- strict category still satisfies full-administrator + MFA.
+
+If any check fails, the API must not create an active document row.
+
+On success, the transaction writes:
+
+- `documents` metadata,
+- storage key/version,
+- content type and byte size,
+- SHA-256,
+- upload actor/time,
+- malware scan state,
+- lifecycle state,
+- audit log.
+
 ### POST /api/v1/documents
 
-Creates document metadata after storage upload authorization.
+Metadata-only creation is allowed only for document types that intentionally have no electronic original. When a file exists, the production path is `upload-ticket` → private quarantine → scan/hash → `finalize`.
 
 ### PATCH /api/v1/documents/{id}
 
 Updates metadata/status only.
 
+Requires `If-Match`. Metadata changes cannot directly change server-controlled storage key, hash or malware state.
+
 ### POST /api/v1/documents/{id}/replace
 
-Creates a new document record and links the old record through `replaced_by_document_id`.
+Starts a new document/version workflow and links the previous record through `replaced_by_document_id` / `replaced_from_document_id`.
+
+Replacement files must pass the same quarantine, integrity and malware checks as new files.
 
 The old evidence is not hard-deleted.
 
-### POST /api/v1/documents/upload-ticket
-
-Returns a short-lived upload authorization only after server-side employee/document permission checks.
-
-Files remain private by default.
-
 ### GET /api/v1/documents/{id}/download-ticket
 
-Returns a short-lived download authorization only after permission checks.
+Returns short-lived private-file access only after server-side authorization.
+
+Before issuing access the server checks:
+
+- authenticated and active user,
+- target employee scope,
+- document access level,
+- strict-document MFA requirement,
+- document lifecycle state,
+- malware status is `clean`,
+- storage object is active and not quarantined/blocked.
+
+Every allow/deny decision is audited. Raw object keys and permanent URLs are not returned.
+
+The browser must not persist the temporary access URL.
+
+### POST /api/v1/documents/{id}/retention-review
+
+Full administrator only.
+
+Records a retention review note and, when an approved company rule allows it, a new retention date.
+
+Retention expiry never auto-deletes a file.
+
+### POST /api/v1/documents/{id}/purge-requests
+
+Creates a physical-purge request after retention/business-rule checks.
+
+This operation **does not delete the object**.
+
+Required:
+
+- full administrator,
+- explicit reason,
+- eligible document lifecycle/retention state,
+- current resource version (`If-Match`).
+
+### POST /api/v1/document-purge-requests/{requestId}/approve
+
+A different authorized full administrator approves or rejects the purge request.
+
+Requester and approver must be different users.
+
+Approval writes an audit event. Physical purge may run only after approval.
+
+### POST /api/v1/document-purge-requests/{requestId}/execute
+
+Server/internal privileged operation only.
+
+Execution must:
+
+- re-check the approved request and document version/state,
+- delete the private object,
+- preserve metadata/tombstone/history,
+- record provider deletion result,
+- record immutable audit result.
+
+There is no normal browser-facing hard-delete endpoint for original files.
+
+### Original file security invariants
+
+- private object storage only,
+- random opaque storage keys,
+- no employee identity/original filename in object keys,
+- quarantine before activation,
+- SHA-256 integrity metadata,
+- malware `clean` required before normal access,
+- server authorization on every upload/download,
+- full-admin + MFA for strict documents,
+- short-lived access authorization,
+- view/download audit logging,
+- replacement retains old versions,
+- retention expiry triggers review, never automatic deletion,
+- physical purge requires two different full administrators,
+- backups must be restored and hash-verified in staging.
+
+Full acceptance criteria live in `docs/production-document-storage-v200.md`.
 
 ## 8. Vehicles
 
