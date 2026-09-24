@@ -29,3 +29,24 @@ test('renumbered employee sessions stay bound to immutable identity',()=>{
   assert.match(contract,/existing authenticated sessions remain tied to immutable user\/employee IDs/);
   assert.match(contract,/must never become attached to another employee/);
 });
+
+
+test('session issuance rechecks active account and employee lifecycle at commit time',()=>{
+  const authStore=fs.readFileSync(path.join(__dirname,'..','api','_lib','auth-store.js'),'utf8');
+  const login=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','login.js'),'utf8');
+  const verify=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','verify.js'),'utf8');
+  const enroll=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','enroll','complete.js'),'utf8');
+  assert.ok(authStore.includes("u.state='active'"));
+  assert.ok(authStore.includes("e.lifecycle_status<>'retired'"));
+  assert.ok(authStore.includes('return r.rows[0]||null'));
+  for(const source of [login,verify,enroll])assert.ok(source.includes('SESSION_NOT_ALLOWED'));
+});
+
+test('retirement invalidates pending credentials and records account suspension audit',()=>{
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','employee-store.js'),'utf8');
+  assert.ok(store.includes('update mfa_challenges set verified_at=now()'));
+  assert.ok(store.includes('update password_reset_tokens set used_at=now()'));
+  assert.ok(store.includes("'retirement_auto_suspend'"));
+  assert.ok(store.includes("'退職連動利用者停止'"));
+  assert.ok(store.includes("revoke_reason='employee_retired'"));
+});
