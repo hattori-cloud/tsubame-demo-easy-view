@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,21);
+  assert.equal(tables.length,22);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -41,3 +41,12 @@ test('document policy rules enforce strict security',()=>{
   assert.match(sql,/retention_years is null or retention_years between 1 and 99/)
 });
 
+test('document storage lifecycle and purge approval are fail-closed',()=>{
+  assert.match(sql,/storage_state text not null default 'not_uploaded'/);
+  assert.match(sql,/storage_state in \('not_uploaded','quarantine','active','blocked','restore_only','purged'\)/);
+  assert.match(sql,/uploaded_by_user_id uuid references users\(id\)/);
+  assert.match(sql,/content_sha256 char\(64\)/);
+  assert.match(sql,/create table document_purge_requests/i);
+  assert.match(sql,/approved_by_user_id <> requested_by_user_id/);
+  assert.match(sql,/state in \('requested','approved','rejected','executed','failed','cancelled'\)/);
+});
