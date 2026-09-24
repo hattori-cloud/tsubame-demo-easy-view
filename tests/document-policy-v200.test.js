@@ -68,3 +68,32 @@ test('verification requirement is snapshotted per document',()=>{
   assert.ok(form.includes('verificationRequired:d?.verificationRequired!==undefined'));
 });
 
+
+test('optional verification never becomes a required pending state',()=>{
+  const state=block('function originalDocumentState','function originalDocumentStateLabel');
+  const next=block('function originalDocumentNextAction','function originalDocumentActionsHtml');
+  const score=block('function originalDocumentPriorityScore','function originalDocumentPriorityRows');
+  assert.ok(state.includes("documentVerificationRequired(d)&&d.status!=='原本確認済み'"));
+  assert.ok(next.includes("documentVerificationRequired(d)&&d.status!=='原本確認済み'"));
+  assert.ok(score.includes("documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み'"));
+});
+
+test('paper-location and retention attention are operational states',()=>{
+  const state=block('function originalDocumentState','function originalDocumentStateLabel');
+  const label=block('function originalDocumentStateLabel','function originalDocumentNextAction');
+  const rows=block('function renderOriginalDocumentRows','function employeeProcedures');
+  assert.ok(state.includes("return 'paper_missing'"));
+  assert.ok(state.includes("return 'retention'"));
+  assert.ok(label.includes("ok:'対応不要'"));
+  assert.ok(rows.includes('paper_missing:3'));
+  assert.ok(rows.includes('retention:4'));
+});
+
+test('optional verification is labeled clearly without mutating stored status',()=>{
+  const label=block('function documentOperationalStatusLabel','function originalDocumentNextAction');
+  const employeeDocs=block('function employeeDocuments','function documentPreview');
+  const center=block('function renderOriginalDocumentRows','function employeeProcedures');
+  assert.ok(label.includes("return '原本確認 任意'"));
+  assert.ok(employeeDocs.includes('documentOperationalStatusLabel(d)'));
+  assert.ok(center.includes('documentOperationalStatusLabel(d)'));
+});
