@@ -1223,7 +1223,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <section class="page" id="safe"><div class="page-title"><div><h2>運行・安全</h2><p>事故・ヒヤリ・苦情を検索・登録・分析します。</p></div><div class="toolbar"><button class="btn primary" onclick="openAccidentForm()">＋ 事故</button><button class="btn soft" onclick="openNearForm()">＋ ヒヤリ</button><button class="btn soft" onclick="openComplaintForm()">＋ 苦情</button><button class="btn" onclick="openSafetyExportMenu()">CSV</button></div></div>
 <div class="simple-safety-bar"><div class="mini">未完了・期限超過・危険度の高い報告を優先して確認します。</div><div class="toolbar"><button class="btn" id="safeMyTaskBtn" onclick="toggleMyTasksOnly()">自分担当</button><button class="btn soft" onclick="clearAllSafetySearch()">検索解除</button></div></div>
 <div id="safetyOverview" class="safety-overview" aria-label="運行・安全サマリー"></div>
-<div id="safetyPriorityQueue" class="safety-priority-queue" aria-label="今日の安全優先対応"></div>
+<div id="safetyPriorityQueue" class="safety-priority-queue" aria-label="今日の安全優先確認"></div>
 <div id="safetyMonthlySummary" class="safety-monthly-shell" aria-label="月次安全管理サマリー"></div>
 <div class="tabs"><button class="active" data-s="acc" onclick="safeTab('acc')">事故</button><button data-s="near" onclick="safeTab('near')">ヒヤリハット</button><button data-s="analysis" onclick="safeTab('analysis')">安全分析</button><button data-s="complaint" onclick="safeTab('complaint')">苦情／お客様対応</button></div>
 <div class="tabpane active" id="safe-acc">
@@ -1243,7 +1243,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn" id="accOverBtn" onclick="ACC_FILTER='over';ACC_PAGE=1;renderAcc()">期限超過</button>
   <button class="btn" id="accTodayBtn" onclick="ACC_FILTER='today';ACC_PAGE=1;renderAcc()">本日期限</button>
   <button class="btn" id="accAttentionBtn" onclick="ACC_FILTER='attention';ACC_PAGE=1;renderAcc()">要確認</button>
-  <button class="btn" id="accDoneBtn" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()">完了</button>
+  <button class="btn" id="accDoneBtn" onclick="ACC_FILTER='done';ACC_PAGE=1;renderAcc()">完了（履歴）</button>
  </div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件・まとめ方</summary><div class="detail-fold-body">
   <div class="safety-search-sub"><span class="group-label">発生日</span><input id="accDate" type="date" aria-label="事故発生日で検索" onchange="ACC_PAGE=1;renderAcc()"></div>
@@ -1256,7 +1256,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  <div id="accSummary"></div>
 </div>
 <div id="accGroupView" class="acc-group-grid" style="display:none"></div>
-<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div><div id="accMobileList" class="safety-mobile-list"></div></div>
+<div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>今やること</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div><div id="accMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-near">
 <div class="near-quota-card">
@@ -1285,7 +1285,7 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
  </div></details>
  <div id="nearSummary"></div>
 </div>
-<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>号車</th><th>内容・分類</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div><div id="nearPager"></div><div id="nearMobileList" class="safety-mobile-list"></div></div>
+<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>社員</th><th>号車</th><th>分析確認</th><th>危険度</th><th>操作</th></tr></thead><tbody id="nearbody"></tbody></table></div></div><div id="nearPager"></div><div id="nearMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-complaint">
 <div class="spec-note">現在のクレーム表の運用をシステム化しています。受付・発生日時・乗務員・号車・お客様申告・指導内容・担当者・次回対応・期限・完了まで1件で管理します。お客様名は仮名・匿名のみ使用してください。</div>
@@ -1301,12 +1301,12 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <button class="btn" id="complaintOverBtn" onclick="COMPLAINT_FILTER='over';COMPLAINT_PAGE=1;renderComplaints()">期限超過</button>
   <button class="btn" id="complaintTodayBtn" onclick="COMPLAINT_FILTER='today';COMPLAINT_PAGE=1;renderComplaints()">本日期限</button>
   <button class="btn" id="complaintAttentionBtn" onclick="COMPLAINT_FILTER='attention';COMPLAINT_PAGE=1;renderComplaints()">要確認</button>
-  <button class="btn" id="complaintDoneBtn" onclick="COMPLAINT_FILTER='done';COMPLAINT_PAGE=1;renderComplaints()">完了</button>
+  <button class="btn" id="complaintDoneBtn" onclick="COMPLAINT_FILTER='done';COMPLAINT_PAGE=1;renderComplaints()">完了（履歴）</button>
  </div>
  <details class="detail-fold" style="margin-top:8px"><summary>詳細条件</summary><div class="detail-fold-body"><div class="safety-search-sub"><span class="group-label">受付・発生日</span><input id="complaintDate" type="date" aria-label="クレーム日付で検索" onchange="COMPLAINT_PAGE=1;renderComplaints()"></div></div></details>
  <div id="complaintSummary"></div>
 </div>
-<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>受付</th><th>番号</th><th>対象</th><th>ランク</th><th>次回対応・期限</th><th>状態</th><th>操作</th></tr></thead><tbody id="complaintbody"></tbody></table></div></div><div id="complaintPager"></div><div id="complaintMobileList" class="safety-mobile-list"></div></div>
+<div class="table-card safety-desktop-table"><div class="tablewrap"><table><thead><tr><th>受付</th><th>番号</th><th>対象</th><th>ランク</th><th>今やること</th><th>状態</th><th>操作</th></tr></thead><tbody id="complaintbody"></tbody></table></div></div><div id="complaintPager"></div><div id="complaintMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-analysis">
  <div class="safety-search-card">
@@ -6591,9 +6591,9 @@ function renderSafetyPriorityQueue(){
  el.style.display='';
  let all=safetyPriorityItems(),shown=all.slice(0,8),over=all.filter(x=>x.priority===1).length,today=all.filter(x=>x.priority===2).length,high=all.filter(x=>x.priority===3).length;
  if(!all.length){
-  el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先対応</h3><div class="mini">期限超過・本日期限・高危険・入力不足を横断確認</div></div></div><div class="safety-priority-empty">現在、最優先で確認する安全案件はありません。</div></div>';return
+  el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先確認</h3><div class="mini">期限超過・本日期限・高危険・入力不足を横断確認</div></div></div><div class="safety-priority-empty">現在、最優先で確認する安全案件はありません。</div></div>';return
  }
- el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先対応</h3><div class="mini">期限超過 → 本日期限 → 高危険ヒヤリ → 入力不足の順に表示</div></div><div class="mini">全 '+all.length+'件 / 期限超過 '+over+' / 本日 '+today+' / 高危険 '+high+'</div></div><div class="safety-priority-list">'+
+ el.innerHTML='<div class="safety-priority-shell"><div class="safety-priority-head"><div><h3>今日の安全優先確認</h3><div class="mini">期限超過 → 本日期限 → 高危険ヒヤリ → 入力不足の順。事故・苦情は対応、ヒヤリは分析確認</div></div><div class="mini">全 '+all.length+'件 / 期限超過 '+over+' / 本日 '+today+' / 高危険 '+high+'</div></div><div class="safety-priority-list">'+
   shown.map(x=>'<div class="safety-priority-item '+x.tone+'"><div class="safety-priority-kind">'+esc(x.kind)+'<div class="mini">'+esc(x.date||'日付未設定')+' / '+esc(x.id||'')+'</div></div><div class="safety-priority-main"><b>'+esc(x.title||'')+'</b><span>'+esc(x.sub||'')+'</span></div><div class="toolbar"><button class="btn soft safety-priority-open" onclick="openEmployeeSafetyTrend(\''+String(x.employeeNo||'').replaceAll("'","")+'\')">社員傾向</button><button class="btn '+(x.tone==='danger'?'danger':'soft')+' safety-priority-open" onclick="'+x.open+'">詳細</button></div></div>').join('')+
   (all.length>shown.length?'<div class="mini" style="margin-top:8px">優先度の高い8件を表示 / 全'+all.length+'件。各一覧の「要確認」から残りを確認できます。</div>':'')+
  '</div></div>'
@@ -7437,12 +7437,12 @@ function renderNear(){
  nearbody.innerHTML=nearShown.map(n=>{
   let idx=N.indexOf(n),tags=[...(n.situationTags||[]),...(n.targetTags||[])].slice(0,4),needs=nearNeedsAnalysis(n);
   let info=nearAttentionInfo(n);
-  return `<tr class="${needs?'complaint-row-today':''}"><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${employeeNameLinkHtml(n.employee_no,n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div>${safetyActionGuideHtml(info)}</td><td>${badge(n.riskLevel||'未設定')}</td><td><div class="toolbar"><button class="btn ${info.tone==='warn'?'primary':'soft'}" onclick="nearDetail('${n.id}')">${needs||n.riskLevel==='高い'?'対応する':'見る'}</button>${canEditEmployee(n.employee_no)?`<button class="btn soft" onclick="openNearForm(${idx})">修正する</button>`:''}</div></td></tr>`;
+  return `<tr class="${needs?'complaint-row-today':''}"><td>${esc(n.date)}<div class="mini">${esc(n.time||'')}</div></td><td><button class="link" onclick="nearDetail('${n.id}')"><b>${esc(n.id)}</b></button></td><td>${employeeNameLinkHtml(n.employee_no,n.driver)}<div class="mini">社員番号 ${esc(n.employee_no)}</div></td><td>${n.vehicle&&n.vehicle!=='未設定'?vehicleNumberLinkHtml(n.vehicle):'<span class="mini">未設定</span>'}</td><td><button class="link" onclick="nearDetail('${n.id}')">${esc(n.summary)} ›</button><div class="near-tag-list">${tags.map(x=>'<span class="near-tag">'+esc(x)+'</span>').join('')}</div>${safetyActionGuideHtml(info)}</td><td>${badge(n.riskLevel||'未設定')}</td><td><div class="toolbar"><button class="btn ${info.tone==='warn'?'primary':'soft'}" onclick="nearDetail('${n.id}')">${needs||n.riskLevel==='高い'?'分析を確認':'見る'}</button>${canEditEmployee(n.employee_no)?`<button class="btn soft" onclick="openNearForm(${idx})">修正する</button>`:''}</div></td></tr>`;
  }).join('');
  let nearMobile=document.getElementById('nearMobileList');
  if(nearMobile)nearMobile.innerHTML=nearShown.length?nearShown.map(n=>{
   let idx=N.indexOf(n),needs=nearNeedsAnalysis(n),tone=n.riskLevel==='高い'||needs?'warn':'',safeId=String(n.id).replaceAll("'","");
-  return '<article class="safety-mobile-card '+tone+'" onclick="nearDetail(\''+safeId+'\')"><div class="safety-mobile-card-top"><div><div class="safety-mobile-card-title">'+esc(n.driver||n.employee_no||'対象未設定')+'</div><div class="safety-mobile-card-id">'+esc(n.id)+' / '+esc(n.date||'日付未設定')+'</div></div>'+badge(n.riskLevel||'未設定')+'</div><div class="safety-mobile-meta"><div><label>号車</label><b>'+esc(n.vehicle&&n.vehicle!=='未設定'?n.vehicle+'号車':'未設定')+'</b></div><div><label>原因側</label><b>'+esc(n.causeSide||'未設定')+'</b></div></div><div class="safety-mobile-summary">'+esc(n.summary||'内容未登録')+'</div>'+safetyActionGuideHtml(nearAttentionInfo(n))+'<div class="safety-mobile-actions"><button class="btn primary" onclick="event.stopPropagation();nearDetail(\''+safeId+'\')">'+(needs||n.riskLevel==='高い'?'対応する':'見る')+'</button>'+(canEditEmployee(n.employee_no)?'<button class="btn soft" onclick="event.stopPropagation();openNearForm('+idx+')">修正する</button>':'')+'</div></article>'
+  return '<article class="safety-mobile-card '+tone+'" onclick="nearDetail(\''+safeId+'\')"><div class="safety-mobile-card-top"><div><div class="safety-mobile-card-title">'+esc(n.driver||n.employee_no||'対象未設定')+'</div><div class="safety-mobile-card-id">'+esc(n.id)+' / '+esc(n.date||'日付未設定')+'</div></div>'+badge(n.riskLevel||'未設定')+'</div><div class="safety-mobile-meta"><div><label>号車</label><b>'+esc(n.vehicle&&n.vehicle!=='未設定'?n.vehicle+'号車':'未設定')+'</b></div><div><label>原因側</label><b>'+esc(n.causeSide||'未設定')+'</b></div></div><div class="safety-mobile-summary">'+esc(n.summary||'内容未登録')+'</div>'+safetyActionGuideHtml(nearAttentionInfo(n))+'<div class="safety-mobile-actions"><button class="btn primary" onclick="event.stopPropagation();nearDetail(\''+safeId+'\')">'+(needs||n.riskLevel==='高い'?'分析を確認':'見る')+'</button>'+(canEditEmployee(n.employee_no)?'<button class="btn soft" onclick="event.stopPropagation();openNearForm('+idx+')">修正する</button>':'')+'</div></article>'
  }).join(''):'<div class="emp-mobile-empty">条件に該当するヒヤリ報告はありません。</div>';
  let nearPager=document.getElementById('nearPager');if(nearPager)nearPager.innerHTML=rows.length>NEAR_PER_PAGE?`<div class="year-list-pager"><button class="btn" ${NEAR_PAGE<=1?'disabled':''} onclick="NEAR_PAGE--;renderNear()">← 前へ</button><span class="emp-page-info">${nearStart+1}〜${Math.min(nearStart+NEAR_PER_PAGE,rows.length)}件 / 全${rows.length}件（${NEAR_PAGE}/${nearPages}ページ）</span><button class="btn" ${NEAR_PAGE>=nearPages?'disabled':''} onclick="NEAR_PAGE++;renderNear()">次へ →</button></div>`:''
 }
