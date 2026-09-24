@@ -402,6 +402,26 @@ create table audit_logs (
   summary text
 );
 
+-- Audit/history records are append-only at the database layer.
+-- Application roles must still be granted INSERT/SELECT only in production.
+create or replace function reject_append_only_mutation()
+returns trigger
+language plpgsql
+as $
+begin
+  raise exception 'append-only table % does not allow %', TG_TABLE_NAME, TG_OP
+    using errcode = '55000';
+end;
+$;
+
+create trigger audit_logs_append_only_guard
+before update or delete on audit_logs
+for each row execute function reject_append_only_mutation();
+
+create trigger record_histories_append_only_guard
+before update or delete on record_histories
+for each row execute function reject_append_only_mutation();
+
 create index employees_scope_idx on employees (office, department, lifecycle_status, employee_no);
 create index employees_name_idx on employees (name);
 create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
