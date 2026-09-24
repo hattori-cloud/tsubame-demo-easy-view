@@ -108,7 +108,11 @@ create table documents (
   uploaded_at timestamptz,
   uploaded_by_user_id uuid references users(id),
   activated_at timestamptz,
-  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}
+  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}$'),
+  malware_scan_status text not null default 'not_scanned'
+    check (malware_scan_status in ('not_scanned','pending','clean','blocked','error')),
+  malware_scanned_at timestamptz,
+  verified_by_user_id uuid references users(id),
   replaced_from_document_id uuid references documents(id),
   replaced_by_document_id uuid references documents(id),
   archived_at timestamptz,
