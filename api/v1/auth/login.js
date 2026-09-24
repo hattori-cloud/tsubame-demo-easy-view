@@ -48,11 +48,11 @@ module.exports=async function handler(req,res){
     try{
       await withTransaction(async client=>{
         await clearLoginFailures(account.id,client);
-        await createMfaChallenge({userId:account.id,challengeHash:tokenHash(rawChallenge),ttlSeconds:300},client);
+        await createMfaChallenge({userId:account.id,challengeHash:tokenHash(rawChallenge),purpose:account.mfa_enrolled_at?'verify':'enroll',ttlSeconds:300},client);
         await writeAuthAudit({action:'mfa_challenge_created',userId:account.id,result:'success',requestId:id,summary:'primary credentials accepted'},client)
       })
     }catch(_){return res.status(503).json(errorBody('MFA_CHALLENGE_FAILED','追加認証を開始できません',id))}
-    return res.status(202).json({mfa_required:true,challenge_token:rawChallenge,expires_in:300})
+    return res.status(202).json({mfa_required:true,mfa_enrollment_required:!account.mfa_enrolled_at,challenge_token:rawChallenge,expires_in:300})
   }
 
   const rawSession=newRawToken();

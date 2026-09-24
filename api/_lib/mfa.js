@@ -45,10 +45,12 @@ function verifyTotp(secret,code,now=Date.now()){
   const step=Math.floor(now/30000);
   return [-1,0,1].some(delta=>{const expected=totpCode(secret,step+delta);return crypto.timingSafeEqual(Buffer.from(expected),Buffer.from(normalized))})
 }
+function totpEnrollmentUri(loginId,secret){
+  const label=encodeURIComponent('つばめ交通:'+String(loginId));
+  return `otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent('つばめ交通')}&algorithm=SHA1&digits=6&period=30`
+}
 function generateTotpEnrollment(loginId){
   const secret=base32Encode(crypto.randomBytes(20));
-  const label=encodeURIComponent('つばめ交通:'+String(loginId));
-  const uri=`otpauth://totp/${label}?secret=${secret}&issuer=${encodeURIComponent('つばめ交通')}&algorithm=SHA1&digits=6&period=30`;
-  return {secret,uri,...encryptSecret(secret)}
+  return {secret,uri:totpEnrollmentUri(loginId,secret),...encryptSecret(secret)}
 }
-module.exports={encryptSecret,decryptSecret,verifyTotp,generateTotpEnrollment,base32Encode,base32Decode,totpCode};
+module.exports={encryptSecret,decryptSecret,verifyTotp,generateTotpEnrollment,totpEnrollmentUri,base32Encode,base32Decode,totpCode};

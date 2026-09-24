@@ -13,7 +13,7 @@ module.exports=async function handler(req,res){
   if(!challengeToken||!/^\d{6}$/.test(code))return res.status(401).json(errorBody('MFA_FAILED','追加認証を確認できません',id));
   let challenge;
   try{challenge=await getMfaChallenge(tokenHash(challengeToken))}catch(_){return res.status(503).json(errorBody('MFA_STORE_UNAVAILABLE','追加認証保存先を利用できません',id))}
-  if(!challenge||Number(challenge.failed_attempts)>=5)return res.status(401).json(errorBody('MFA_FAILED','追加認証を確認できません',id));
+  if(!challenge||challenge.purpose!=='verify'||Number(challenge.failed_attempts)>=5)return res.status(401).json(errorBody('MFA_FAILED','追加認証を確認できません',id));
   let material,ok=false;
   try{material=await findMfaMaterial(challenge.user_id);ok=verifyTotp(decryptSecret(material),code)}catch(_){ok=false}
   if(!ok){

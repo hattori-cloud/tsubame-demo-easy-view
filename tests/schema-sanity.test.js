@@ -119,3 +119,12 @@ test('production auth persistence supports revocable sessions reset tokens and M
   assert.match(sql,/challenge_hash text not null unique/i);
   assert.doesNotMatch(sql,/create table auth_sessions[\s\S]*\btoken text\b/i);
 });
+
+
+test('MFA enrollment challenge separates verify and enroll purposes and never stores pending secret plaintext',()=>{
+  assert.match(sql,/purpose text not null default 'verify' check \(purpose in \('verify','enroll'\)\)/i);
+  assert.match(sql,/pending_secret_ciphertext text/i);
+  assert.match(sql,/pending_secret_iv text/i);
+  assert.match(sql,/pending_secret_tag text/i);
+  assert.doesNotMatch(sql,/pending_secret_plain/i);
+});

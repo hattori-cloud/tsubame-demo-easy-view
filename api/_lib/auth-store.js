@@ -20,7 +20,7 @@ async function loadSessionByTokenHash(tokenHash){
 async function findCredentialAccount(loginId){
   const r=await query(`
     select u.id,u.employee_id,u.login_id,u.password_hash,u.failed_login_count,u.locked_until,
-           u.display_name,u.role_level,u.safety_authority,u.state,u.mfa_required,u.version as user_version,
+           u.display_name,u.role_level,u.safety_authority,u.state,u.mfa_required,u.mfa_enrolled_at,u.version as user_version,
            e.employee_no,e.lifecycle_status as employee_lifecycle_status
       from users u join employees e on e.id=u.employee_id
      where u.login_id=$1 limit 1
@@ -30,7 +30,7 @@ async function findCredentialAccount(loginId){
 async function findCredentialAccountById(userId,client=null){
   const r=await query(`
     select u.id,u.employee_id,u.login_id,u.password_hash,u.failed_login_count,u.locked_until,
-           u.display_name,u.role_level,u.safety_authority,u.state,u.mfa_required,u.version as user_version,
+           u.display_name,u.role_level,u.safety_authority,u.state,u.mfa_required,u.mfa_enrolled_at,u.version as user_version,
            e.employee_no,e.lifecycle_status as employee_lifecycle_status
       from users u join employees e on e.id=u.employee_id
      where u.id=$1 limit 1
@@ -56,12 +56,12 @@ async function createSession({userId,mfaVerified=false,tokenHash,ttlSeconds=2880
   `,[userId,tokenHash,Boolean(mfaVerified),String(ttlSeconds),userAgentHash,ipPrefixHash],client);
   return r.rows[0]
 }
-async function createMfaChallenge({userId,challengeHash,ttlSeconds=300},client=null){
+async function createMfaChallenge({userId,challengeHash,purpose='verify',ttlSeconds=300},client=null){
   const r=await query(`
-    insert into mfa_challenges(user_id,challenge_hash,expires_at)
-    values($1,$2,now()+($3::text||' seconds')::interval)
-    returning id,user_id,created_at,expires_at
-  `,[userId,challengeHash,String(ttlSeconds)],client);
+    insert into mfa_challenges(user_id,challenge_hash,purpose,expires_at)
+    values($1,$2,$3,now()+($4::text||' seconds')::interval)
+    returning id,user_id,purpose,created_at,expires_at
+  `,[userId,challengeHash,purpose,String(ttlSeconds)],client);
   return r.rows[0]
 }
 async function findMfaMaterial(userId,client=null){
@@ -71,6 +71,13 @@ async function findMfaMaterial(userId,client=null){
 async function getMfaChallenge(challengeHash,client=null){
   const r=await query(`select * from mfa_challenges where challenge_hash=$1 and verified_at is null and expires_at>now() limit 1`,[challengeHash],client);
   return r.rows[0]||null
+}
+async function setMfaPendingSecret(challengeId,{ciphertext,iv,tag},client=null){
+  const r=await query(`update mfa_challenges set pending_secret_ciphertext=$2,pending_secret_iv=$3,pending_secret_tag=$4 where id=$1 and verified_at is null returning *`,[challengeId,ciphertext,iv,tag],client);
+  return r.rows[0]||null
+}
+async function enrollUserMfa(userId,{ciphertext,iv,tag},client=null){
+  return query(`update users set mfa_secret_ciphertext=$2,mfa_secret_iv=$3,mfa_secret_tag=$4,mfa_enrolled_at=now(),updated_at=now(),version=version+1 where id=$1`,[userId,ciphertext,iv,tag],client)
 }
 async function markMfaVerified(challengeId,client=null){
   return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null`,[challengeId],client)
@@ -90,4 +97,4 @@ async function writeAuthAudit({actorUserId=null,action,userId=null,result='succe
     [actorUserId,action,String(entityId),result,requestId,summary],client)
 }
 function hashMetadata(value){return value?crypto.createHash('sha256').update(String(value)).digest('hex'):null}
-module.exports={loadSessionByTokenHash,findCredentialAccount,findCredentialAccountById,findMfaMaterial,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,getMfaChallenge,markMfaVerified,recordMfaFailure,revokeSession,revokeAllUserSessions,writeAuthAudit,hashMetadata};
+module.exports={loadSessionByTokenHash,findCredentialAccount,findCredentialAccountById,findMfaMaterial,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,getMfaChallenge,setMfaPendingSecret,enrollUserMfa,markMfaVerified,recordMfaFailure,revokeSession,revokeAllUserSessions,writeAuthAudit,hashMetadata};

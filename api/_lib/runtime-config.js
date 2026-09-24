@@ -7,8 +7,11 @@ function isProductionRuntime(){
 function isNonProductionRuntime(){
   return !isProductionRuntime()
 }
+function mfaEnvPresent(){
+  try{return Buffer.from(String(process.env.TSUBAME_MFA_ENCRYPTION_KEY||''),'base64').length===32}catch(_){return false}
+}
 function authEnvPresent(){
-  return Boolean(databaseEnvPresent() && String(process.env.TSUBAME_SESSION_SECRET||'').length>=32)
+  return Boolean(databaseEnvPresent() && String(process.env.TSUBAME_SESSION_SECRET||'').length>=32 && mfaEnvPresent())
 }
 function legacyOidcEnvPresent(){
   return Boolean(process.env.TSUBAME_AUTH_ISSUER || process.env.TSUBAME_AUTH_AUDIENCE || process.env.TSUBAME_AUTH_JWKS_URL)
@@ -26,10 +29,11 @@ function stagingFixturesAllowed(){
   return stagingFixturesRequested() && isNonProductionRuntime()
 }
 function backendReadiness(){
-  const auth=authEnvPresent(),db=databaseEnvPresent(),storage=documentStorageEnvPresent(),fixtures=stagingFixturesAllowed();
+  const auth=authEnvPresent(),mfa=mfaEnvPresent(),db=databaseEnvPresent(),storage=documentStorageEnvPresent(),fixtures=stagingFixturesAllowed();
   return {
     environment:runtimeEnvironment(),
     auth_env_present:auth,
+    mfa_env_present:mfa,
     database_env_present:db,
     document_storage_env_present:storage,
     fictional_fixtures_enabled:fixtures,
@@ -42,6 +46,6 @@ function backendReadiness(){
 }
 module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
-  authEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageEnvPresent,
+  authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageEnvPresent,
   stagingFixturesRequested,stagingFixturesAllowed,backendReadiness
 };

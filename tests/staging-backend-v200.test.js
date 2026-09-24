@@ -15,6 +15,7 @@ function envSnapshot(){
     TSUBAME_AUTH_AUDIENCE:process.env.TSUBAME_AUTH_AUDIENCE,
     TSUBAME_AUTH_JWKS_URL:process.env.TSUBAME_AUTH_JWKS_URL,
     TSUBAME_SESSION_SECRET:process.env.TSUBAME_SESSION_SECRET,
+    TSUBAME_MFA_ENCRYPTION_KEY:process.env.TSUBAME_MFA_ENCRYPTION_KEY,
     DATABASE_URL:process.env.DATABASE_URL,
     TSUBAME_DATABASE_URL:process.env.TSUBAME_DATABASE_URL,
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
@@ -60,9 +61,11 @@ test('backend readiness reports booleans without secret values',()=>{
     process.env.TSUBAME_AUTH_JWKS_URL='https://issuer.example.invalid/jwks';
     process.env.DATABASE_URL='postgres://secret-user:secret-password@example.invalid/db';
     process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value-32chars-plus';
+    process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,7).toString('base64');
     process.env.BLOB_READ_WRITE_TOKEN='secret-storage-token';
     const readiness=runtime.backendReadiness();
     assert.equal(readiness.auth_env_present,true);
+    assert.equal(readiness.mfa_env_present,true);
     assert.equal(readiness.database_env_present,true);
     assert.equal(readiness.document_storage_env_present,true);
     assert.equal(readiness.fictional_fixtures_enabled,true);
@@ -102,6 +105,7 @@ test('legacy OIDC variables alone do not mark credential-session auth as ready',
     delete process.env.DATABASE_URL;
     delete process.env.TSUBAME_DATABASE_URL;
     delete process.env.TSUBAME_SESSION_SECRET;
+    delete process.env.TSUBAME_MFA_ENCRYPTION_KEY;
     process.env.TSUBAME_AUTH_ISSUER='https://issuer.example.invalid';
     process.env.TSUBAME_AUTH_AUDIENCE='aud';
     process.env.TSUBAME_AUTH_JWKS_URL='https://issuer.example.invalid/jwks';

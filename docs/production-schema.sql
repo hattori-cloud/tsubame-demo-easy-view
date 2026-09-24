@@ -101,11 +101,16 @@ create table mfa_challenges (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   challenge_hash text not null unique,
+  purpose text not null default 'verify' check (purpose in ('verify','enroll')),
+  pending_secret_ciphertext text,
+  pending_secret_iv text,
+  pending_secret_tag text,
   created_at timestamptz not null default now(),
   expires_at timestamptz not null,
   verified_at timestamptz,
   failed_attempts integer not null default 0 check (failed_attempts >= 0),
-  check (expires_at > created_at)
+  check (expires_at > created_at),
+  check (pending_secret_ciphertext is null or (pending_secret_iv is not null and pending_secret_tag is not null))
 );
 
 create table employee_number_history (
