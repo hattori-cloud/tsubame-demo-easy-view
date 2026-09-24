@@ -24,14 +24,28 @@ test('safety analysis prefers historical organization snapshots over current emp
   assert.ok(b.includes('scope.employment'));
 });
 
-test('new safety records freeze organization context and complaint edits preserve it',()=>{
+test('new safety records freeze organization context while edits do not backfill missing historical snapshots',()=>{
   assert.ok(html.includes("officeAtRecord:e.branch||e.workplace||''"));
   assert.ok(html.includes("departmentAtRecord:e.dept||''"));
   assert.ok(html.includes("employmentAtRecord:e.employment||''"));
-  assert.ok(html.includes("employmentAtReport:rec?.employmentAtReport||e.employment||''"));
-  assert.ok(html.includes("officeAtRecord:rec?.officeAtRecord||e.branch||e.workplace||''"));
-  assert.ok(html.includes("departmentAtRecord:rec?.departmentAtRecord||rec?.dept||e.dept||''"));
-  assert.ok(html.includes("dept:rec?.dept||e.dept"));
+
+  const nearForm=block('function openNearForm','function complaintRankLabel');
+  for(const token of [
+    "employeeNoAtReport:rec?(rec.employeeNoAtReport||''):e.no",
+    "officeAtReport:rec?(rec.officeAtReport||''):(e.branch||e.workplace||'')",
+    "departmentAtReport:rec?(rec.departmentAtReport||''):(e.dept||'')",
+    "employmentAtReport:rec?(rec.employmentAtReport||''):(e.employment||'')"
+  ])assert.ok(nearForm.includes(token),token);
+  assert.ok(!nearForm.includes("employmentAtReport:rec?.employmentAtReport||e.employment||''"));
+
+  const complaintForm=block('function openComplaintForm','function showPreview');
+  for(const token of [
+    "dept:rec?(rec.dept||''):e.dept",
+    "officeAtRecord:rec?(rec.officeAtRecord||''):(e.branch||e.workplace||'')",
+    "departmentAtRecord:rec?(rec.departmentAtRecord||''):(e.dept||'')",
+    "employmentAtRecord:rec?(rec.employmentAtRecord||''):(e.employment||'')"
+  ])assert.ok(complaintForm.includes(token),token);
+  assert.ok(!complaintForm.includes("employmentAtRecord:rec?.employmentAtRecord||e.employment||''"));
 });
 
 test('analysis exposes safety quality ratios without calling headcount ratio a true incidence rate',()=>{
