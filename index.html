@@ -1503,6 +1503,15 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div class="card"><h3>期限・健診・資格</h3><div id="analysisGeneralSignals" class="list"></div></div>
   <div class="card"><h3>勤務・手続</h3><div id="analysisGeneralWork" class="list"></div></div>
  </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>部署別 総務確認状況</h3><div class="mini">健診・適性・残業は人数、資格・指導は件数で表示します。</div><div id="analysisGeneralDept" style="margin-top:10px"></div></div>
+  <div class="card"><h3>社歴別 総務確認状況</h3><div class="mini">特定の社歴層を評価せず、手続・教育・期限管理の偏りを確認します。</div><div id="analysisGeneralTenure" style="margin-top:10px"></div></div>
+ </div>
+ <div class="grid2" style="margin-top:12px">
+  <div class="card"><h3>原本・書類管理</h3><div id="analysisGeneralDocuments" class="list"></div></div>
+  <div class="card"><h3>貸与品・退職手続</h3><div id="analysisGeneralAssets" class="list"></div></div>
+ </div>
+ <div class="card" style="margin-top:12px"><h3>入力・管理データの確認</h3><div class="mini">「未設定」を自動補完せず、元データの確認が必要な項目だけ表示します。</div><div id="analysisGeneralQuality" class="list" style="margin-top:10px"></div></div>
 </div>
 </section>
 
@@ -3624,7 +3633,7 @@ function go(id){
  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
  let target=document.getElementById(id);if(!target)return;target.classList.add('active');
  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('active',x.dataset.p===id));
- if(id==='home')renderHome();if(id==='my')renderMyPage();if(id==='emp'){renderEmployeeStatusSummary();renderEmp();renderEmployeeTodaySummary()}if(id==='work')renderWork();if(id==='safe'){renderSafetyOverview();renderSafetyMonthlySummary();if(SAFE_ACTIVE_TAB==='acc')renderAcc();else if(SAFE_ACTIVE_TAB==='near')renderNear();else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()}if(id==='analysis')renderAnalysisCenter();if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
+ if(id==='home')renderHome();if(id==='my')renderMyPage();if(id==='emp'){renderEmployeeStatusSummary();renderEmp();renderEmployeeTodaySummary()}if(id==='work')renderWork();if(id==='safe'){renderSafetyOverview();renderSafetyMonthlySummary();if(SAFE_ACTIVE_TAB==='acc')renderAcc();else if(SAFE_ACTIVE_TAB==='near')renderNear();else if(SAFE_ACTIVE_TAB==='complaint')renderComplaints();else if(SAFE_ACTIVE_TAB==='analysis')renderSafetyAnalysis()}if(id==='analysis')renderAnalysisCenter();if(id==='training')renderTraining();if(id==='vehicles')renderVehicles();if(id==='comms'){renderComms();commsTab(COMMS_ACTIVE_TAB)}
  if(id==='manage'){renderAdminDailyCenter();renderAdminOverview();renderManagerWorkload();renderDept();renderRetired();renderNotify();renderQuality();renderAudit();renderDeadlineKpis('deadlineManage');renderCompanySpec()}
  window.scrollTo(0,0)
 }
@@ -3739,6 +3748,28 @@ function analysisCountListHtml(map,limit=10){
 function analysisSignal(title,detail,tone=''){
  return '<div class="row '+(tone==='danger'?'quality-bad':tone==='warn'?'quality-warn':'')+'"><div><b>'+esc(title)+'</b><div class="mini">'+esc(detail)+'</div></div>'+(tone?'<span class="badge '+tone+'">'+(tone==='danger'?'要対応':'確認')+'</span>':'')+'</div>'
 }
+function analysisIsDriver(e){return ['タクシー課','バス課'].includes(String(e?.dept||''))}
+function analysisAssetReturned(a){return ['返却済','返却済み'].includes(String(a?.status||''))}
+function analysisGeneralRowsByBand(active,qualRows,trainingRows,bandFn,bandOrder){
+ let map={};bandOrder.forEach(k=>map[k]={label:k,people:0,health:0,qual:0,aptitude:0,training:0,overtime:0});
+ let byNo=new Map(active.map(e=>[String(e.no),e]));
+ active.forEach(e=>{
+  let k=bandFn(e);if(!map[k])map[k]={label:k,people:0,health:0,qual:0,aptitude:0,training:0,overtime:0};
+  map[k].people++;
+  if(e.health&&days(e.health)<0)map[k].health++;
+  if(analysisIsDriver(e)&&e.aptitudeNext&&days(e.aptitudeNext)<0)map[k].aptitude++;
+  if(Number(e.overtime||e.workSummary?.overtime||0)>=45)map[k].overtime++
+ });
+ qualRows.forEach(q=>{let e=byNo.get(String(q.employee_no));if(!e||!q.expiry||days(q.expiry)>=0)return;let k=bandFn(e);if(map[k])map[k].qual++});
+ trainingRows.forEach(t=>{let e=byNo.get(String(t.employee_no));if(!e||t.status==='完了'||!t.due||days(t.due)>=0)return;let k=bandFn(e);if(map[k])map[k].training++});
+ return bandOrder.map(k=>map[k]).filter(Boolean)
+}
+function analysisGeneralStatusTable(rows,label='区分'){
+ if(!rows.length)return '<div class="mini">集計対象がありません。</div>';
+ return '<div class="tablewrap"><table><thead><tr><th>'+esc(label)+'</th><th>在籍</th><th>健診超過</th><th>資格超過</th><th>適性超過</th><th>指導超過</th><th>残業45h+</th></tr></thead><tbody>'+
+ rows.map(x=>'<tr><td><b>'+esc(x.label)+'</b></td><td>'+x.people+'名</td><td>'+x.health+'名</td><td>'+x.qual+'件</td><td>'+x.aptitude+'名</td><td>'+x.training+'件</td><td>'+x.overtime+'名</td></tr>').join('')+
+ '</tbody></table></div>'
+}
 function renderAnalysisCenter(){
  let root=document.getElementById('analysis');if(!root||PREVIEW_ROLE==='一般社員')return;
  let employees=scopedEmployees(),active=employees.filter(e=>e.status==='在籍'),leave=employees.filter(e=>e.status==='休職'),planned=employees.filter(e=>e.status==='退職予定'),retired=employees.filter(e=>e.status==='退職');
@@ -3750,10 +3781,20 @@ function renderAnalysisCenter(){
  let early6=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=183&&x.date>=x.hire);
  let earlyRetire=retireEvents.filter(x=>x.hire&&((x.date-x.hire)/86400000)<=365&&x.date>=x.hire);
  let openAcc=safety.accidents.filter(x=>x.phase!=='完了'),openComp=safety.complaints.filter(x=>x.status!=='完了'),highNear=safety.near.filter(x=>x.riskLevel==='高い');
+ let scopeNos=new Set(employees.map(e=>String(e.no))),activeNos=new Set(active.map(e=>String(e.no)));
  let overdueHealth=active.filter(e=>e.health&&days(e.health)<0),soonHealth=active.filter(e=>e.health&&days(e.health)>=0&&days(e.health)<=30);
- let overdueQual=QUAL.filter(q=>q.expiry&&days(q.expiry)<0&&inGrantedEmployeeScope(q.employee_no));
- let openTraining=TR.filter(t=>t.status!=='完了'&&inGrantedEmployeeScope(t.employee_no));
+ let scopeQual=QUAL.filter(q=>scopeNos.has(String(q.employee_no))),activeQual=scopeQual.filter(q=>activeNos.has(String(q.employee_no)));
+ let overdueQual=activeQual.filter(q=>q.expiry&&days(q.expiry)<0),soonQual=activeQual.filter(q=>q.expiry&&days(q.expiry)>=0&&days(q.expiry)<=30);
+ let scopeTraining=TR.filter(t=>scopeNos.has(String(t.employee_no))),openTraining=scopeTraining.filter(t=>t.status!=='完了');
+ let overdueTraining=openTraining.filter(t=>t.due&&days(t.due)<0),soonTraining=openTraining.filter(t=>t.due&&days(t.due)>=0&&days(t.due)<=30);
+ let driverActive=active.filter(analysisIsDriver),overdueAptitude=driverActive.filter(e=>e.aptitudeNext&&days(e.aptitudeNext)<0),soonAptitude=driverActive.filter(e=>e.aptitudeNext&&days(e.aptitudeNext)>=0&&days(e.aptitudeNext)<=30);
+ let scopeAssets=AS.filter(a=>scopeNos.has(String(a.employee_no))),openAssets=scopeAssets.filter(a=>!analysisAssetReturned(a)),overdueAssets=openAssets.filter(a=>a.return_due&&days(a.return_due)<0);
+ let visibleDocs=DOCS.filter(d=>scopeNos.has(String(d.employee_no))&&canViewDocumentRecord(d)),liveDocs=visibleDocs.filter(d=>!d.archived);
+ let pendingDocs=liveDocs.filter(d=>documentVerificationRequired(d)&&d.status!=='原本確認済み'&&d.status!=='差替え済み');
+ let paperMissingDocs=liveDocs.filter(d=>['会社保管・紙原本','紙＋電子'].includes(d.originalHandling||'')&&!String(d.paperLocation||'').trim());
+ let expiredDocs=liveDocs.filter(d=>d.expiry&&days(d.expiry)<0),retentionDocs=liveDocs.filter(d=>d.retentionUntil&&days(d.retentionUntil)<0);
  let overtime45=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=45),overtime60=active.filter(e=>Number(e.overtime||e.workSummary?.overtime||0)>=60);
+ let workNeedsReview=active.filter(e=>typeof workUpdateStatus==='function'&&workUpdateStatus(e)==='更新確認');
  let newNos=new Set(hire1y.map(e=>String(e.no)));
  let newSafety=safety.accidents.filter(x=>newNos.has(String(x.employee_no))).length+safety.near.filter(x=>newNos.has(String(x.employee_no))).length;
  let newHighNear=safety.near.filter(x=>newNos.has(String(x.employee_no))&&x.riskLevel==='高い').length;
@@ -3829,18 +3870,55 @@ function renderAnalysisCenter(){
   analysisSignal('早期離職','退職日確認分：3か月以内 '+early3.length+'名 / 6か月以内 '+early6.length+'名 / 1年以内 '+earlyRetire.length+'名。母数と期間を併記して判断します。');
 
  let gk=document.getElementById('analysisGeneralKpis');if(gk)gk.innerHTML=
-  kpi('健診期限超過',overdueHealth.length+'名','在籍者')+kpi('健診30日以内',soonHealth.length+'名','在籍者')+
-  kpi('資格期限超過',overdueQual.length+'件','担当範囲')+kpi('安全指導未完了',openTraining.length+'件','担当範囲')+
+  kpi('健診期限超過',overdueHealth.length+'名','在籍者')+kpi('資格期限超過',overdueQual.length+'件','在籍者の資格')+
+  kpi('適性診断超過',overdueAptitude.length+'名','タクシー・バス在籍者')+kpi('安全指導超過',overdueTraining.length+'件','未完了かつ期限超過')+
+  kpi('原本未確認',pendingDocs.length+'件','閲覧権限内')+kpi('貸与品返却超過',overdueAssets.length+'件','返却未完了')+
   kpi('残業45h以上',overtime45.length+'名','在籍者')+kpi('残業60h以上',overtime60.length+'名','在籍者');
  let gs=document.getElementById('analysisGeneralSignals');if(gs)gs.innerHTML=
   analysisSignal('健康診断','期限超過 '+overdueHealth.length+'名 / 30日以内 '+soonHealth.length+'名',overdueHealth.length?'danger':soonHealth.length?'warn':'')+
-  analysisSignal('資格管理','期限超過 '+overdueQual.length+'件',overdueQual.length?'danger':'')+
-  analysisSignal('安全指導','未完了 '+openTraining.length+'件',openTraining.length?'warn':'');
+  analysisSignal('資格管理','期限超過 '+overdueQual.length+'件 / 30日以内 '+soonQual.length+'件',overdueQual.length?'danger':soonQual.length?'warn':'')+
+  analysisSignal('適性診断','期限超過 '+overdueAptitude.length+'名 / 30日以内 '+soonAptitude.length+'名',overdueAptitude.length?'danger':soonAptitude.length?'warn':'')+
+  analysisSignal('安全指導・適性診断フォロー','期限超過 '+overdueTraining.length+'件 / 30日以内 '+soonTraining.length+'件 / 未完了 '+openTraining.length+'件',overdueTraining.length?'danger':openTraining.length?'warn':'');
  let gw=document.getElementById('analysisGeneralWork');if(gw)gw.innerHTML=
   analysisSignal('勤務時間','45時間以上 '+overtime45.length+'名 / 60時間以上 '+overtime60.length+'名',overtime60.length?'danger':overtime45.length?'warn':'')+
+  analysisSignal('勤務集計','更新確認が必要 '+workNeedsReview.length+'名',workNeedsReview.length?'warn':'')+
   analysisSignal('休職・退職予定','休職 '+leave.length+'名 / 退職予定 '+planned.length+'名。手続・貸与品・権限・未完了案件を引継ぎ確認します。',(leave.length+planned.length)?'warn':'')+
-  '<div class="row"><div><b>期限・勤務の実務画面</b><div class="mini">超過 → 本日 → 30日以内 → 勤務時間の順で処理</div></div><button class="btn primary" onclick="go(\'work\')">開く</button></div>'
-}
+  '<div class="row"><div><b>期限・勤務の実務画面</b><div class="mini">超過 → 本日 → 30日以内 → 勤務時間の順で処理</div></div><button class="btn primary" onclick="go(\'work\')">開く</button></div>';
+
+ let deptNames=[...new Set(active.map(e=>e.dept||'未設定'))].sort((a,b)=>String(a).localeCompare(String(b),'ja'));
+ let deptRows=analysisGeneralRowsByBand(active,activeQual,scopeTraining,e=>e.dept||'未設定',deptNames);
+ let gd=document.getElementById('analysisGeneralDept');if(gd)gd.innerHTML=analysisGeneralStatusTable(deptRows,'部署');
+ let tenureOrder=['1年未満','1～3年未満','3～5年未満','5～10年未満','10～20年未満','20年以上'];
+ let tenureRows2=analysisGeneralRowsByBand(active,activeQual,scopeTraining,e=>analysisTenureBand(analysisTenureYears(e,today)),tenureOrder);
+ let gt=document.getElementById('analysisGeneralTenure');if(gt)gt.innerHTML=analysisGeneralStatusTable(tenureRows2,'社歴');
+
+ let docEl=document.getElementById('analysisGeneralDocuments');if(docEl)docEl.innerHTML=
+  analysisSignal('原本確認','必須書類の未確認 '+pendingDocs.length+'件',pendingDocs.length?'warn':'')+
+  analysisSignal('紙原本の保管場所','保管場所未設定 '+paperMissingDocs.length+'件',paperMissingDocs.length?'warn':'')+
+  analysisSignal('書類期限','期限超過 '+expiredDocs.length+'件',expiredDocs.length?'danger':'')+
+  analysisSignal('保管期限','到来 '+retentionDocs.length+'件。自動削除せず全社管理者が確認します。',retentionDocs.length?'warn':'')+
+  '<div class="row"><div><b>原本管理センター</b><div class="mini">未確認・差替え・紙原本・保管期限を確認</div></div><button class="btn primary" onclick="openOriginalDocumentCenter()">開く</button></div>';
+
+ let transitionEmployees=employees.filter(e=>['休職','退職予定','退職'].includes(e.status));
+ let transitionAssetCount=openAssets.filter(a=>transitionEmployees.some(e=>String(e.no)===String(a.employee_no))).length;
+ let transitionTrainingCount=openTraining.filter(t=>transitionEmployees.some(e=>String(e.no)===String(t.employee_no))).length;
+ let procedureOpen=0;
+ transitionEmployees.forEach(e=>{let items=procedureTemplate(e.status);procedureOpen+=items.filter(item=>!PROCEDURES[procKey(e.no,item)]).length});
+ let ga=document.getElementById('analysisGeneralAssets');if(ga)ga.innerHTML=
+  analysisSignal('貸与品','貸与中・未返却 '+openAssets.length+'件 / 返却予定超過 '+overdueAssets.length+'件',overdueAssets.length?'danger':openAssets.length?'warn':'')+
+  analysisSignal('休職・退職者の貸与品','対象者に残る貸与品 '+transitionAssetCount+'件',transitionAssetCount?'warn':'')+
+  analysisSignal('休職・退職者の安全指導','未完了 '+transitionTrainingCount+'件',transitionTrainingCount?'warn':'')+
+  analysisSignal('休職・退職手続チェック','未完了チェック '+procedureOpen+'項目',procedureOpen?'warn':'')+
+  '<div class="row"><div><b>教育・貸与品の実務画面</b><div class="mini">安全指導と返却状況を確認</div></div><button class="btn primary" onclick="go(\'training\');renderTraining();trainingTab(\'asset\')">開く</button></div>';
+
+ let missingHire=active.filter(e=>!analysisDateValue(e.hire)),missingDriverLicense=driverActive.filter(e=>!e.licenseExpiry),missingDriverHealth=driverActive.filter(e=>!e.health),missingDriverAptitude=driverActive.filter(e=>!e.aptitudeNext);
+ let gq=document.getElementById('analysisGeneralQuality');if(gq)gq.innerHTML=
+  analysisSignal('入社日','未設定・日付不明 '+missingHire.length+'名。社歴分析には推測で含めません。',missingHire.length?'warn':'')+
+  analysisSignal('乗務社員の免許期限','未設定 '+missingDriverLicense.length+'名',missingDriverLicense.length?'danger':'')+
+  analysisSignal('乗務社員の健康診断期限','未設定 '+missingDriverHealth.length+'名',missingDriverHealth.length?'danger':'')+
+  analysisSignal('乗務社員の適性診断次回','未設定 '+missingDriverAptitude.length+'名',missingDriverAptitude.length?'danger':'')+
+  analysisSignal('原本管理','原本ファイル本体は共有デモに保存しません。現在は管理メタデータのみを分析しています。');
+
 
 let SAFE_ACTIVE_TAB='acc';
 function safeTab(id){
