@@ -81,7 +81,7 @@ test('every simple production index references an existing table column',()=>{
 
 test('audit and record history tables are append-only at database layer',()=>{
   assert.match(sql,/create or replace function reject_append_only_mutation\(\)/i);
-  assert.match(sql,/raise exception 'append-only table % does not allow %'/i);
+  assert.match(sql,/raise exception ''append-only table % does not allow %''/i);
   assert.match(sql,/create trigger audit_logs_append_only_guard[\s\S]*before update or delete on audit_logs/i);
   assert.match(sql,/create trigger record_histories_append_only_guard[\s\S]*before update or delete on record_histories/i);
   assert.match(sql,/create trigger employee_number_history_append_only_guard[\s\S]*before update or delete on employee_number_history/i);
@@ -144,8 +144,8 @@ test('communications persist notice reads and confirmation responses by immutabl
 test('production PL/pgSQL append-only function uses a valid stable body literal',()=>{
   const schema=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
   assert.ok(schema.includes('create or replace function reject_append_only_mutation()'));
-  assert.ok(schema.includes("language plpgsql\\nas 'begin"));
+  assert.ok(schema.includes("language plpgsql\nas 'begin"));
   assert.ok(schema.includes("using errcode = ''55000'';"));
   assert.ok(schema.includes("end;';"));
-  assert.equal(/\\bas \\$\\r?\\n/.test(schema),false);
+  assert.equal(/\bas \$\r?\n/.test(schema),false);
 });
