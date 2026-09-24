@@ -57,3 +57,18 @@ test('single router preserves incoming query filters while removing only interna
   assert.ok(router.includes("delete query.__path"));
   assert.ok(router.includes("req.query=query"));
 });
+
+
+test('Vercel static admin UI is protected against framing and unsafe MIME sniffing',()=>{
+  const rules=vercel.headers||[];
+  const all=rules.find(x=>x.source==='/(.*)');
+  assert.ok(all,'global security header rule is required');
+  const headers=Object.fromEntries((all.headers||[]).map(x=>[String(x.key).toLowerCase(),String(x.value)]));
+  assert.equal(headers['x-content-type-options'],'nosniff');
+  assert.equal(headers['x-frame-options'],'DENY');
+  assert.equal(headers['referrer-policy'],'no-referrer');
+  assert.ok(headers['content-security-policy'].includes("frame-ancestors 'none'"));
+  assert.ok(headers['content-security-policy'].includes("object-src 'none'"));
+  assert.ok(headers['permissions-policy'].includes('camera=()'));
+  assert.ok(headers['permissions-policy'].includes('microphone=()'));
+});
