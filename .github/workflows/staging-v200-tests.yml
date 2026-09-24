@@ -44,3 +44,16 @@ jobs:
 
       - name: Apply and verify production PostgreSQL schema
         run: node scripts/verify-production-db-v200.js
+
+      - name: Backup and restore PostgreSQL
+        run: |
+          mkdir -p "$PWD/.ci-backup"
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD/.ci-backup:/backup" postgres:16 \
+            pg_dump -h 127.0.0.1 -U postgres -d tsubame_ci -Fc --no-owner --no-privileges -f /backup/tsubame.dump
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16 \
+            psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "DROP DATABASE IF EXISTS tsubame_restore WITH (FORCE);" \
+            -c "CREATE DATABASE tsubame_restore;"
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD/.ci-backup:/backup" postgres:16 \
+            pg_restore -h 127.0.0.1 -U postgres -d tsubame_restore --no-owner --no-privileges --exit-on-error /backup/tsubame.dump
+          TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/tsubame_restore node scripts/verify-restored-db-v200.js
