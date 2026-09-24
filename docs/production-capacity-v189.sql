@@ -10,15 +10,12 @@
 begin;
 
 -- Retired employees remain in the employee master. They are not hard-deleted.
+-- V200 base schema already owns the retired_on index; this addendum does not recreate it.
 alter table employees
   add column if not exists retired_on date;
 
 create index if not exists employees_lifecycle_office_dept_idx
   on employees (lifecycle_status, office, department, employee_no);
-
-create index if not exists employees_retired_on_idx
-  on employees (retired_on desc)
-  where lifecycle_status = 'retired';
 
 -- A near-miss report must preserve the organization context at the time of
 -- submission so later transfers do not rewrite historical monthly results.
