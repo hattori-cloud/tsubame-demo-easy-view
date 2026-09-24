@@ -123,6 +123,37 @@ Requires `If-Match`.
 
 Important changes such as office, department, lifecycle status and driver eligibility create a history row.
 
+`employee_no` is not changed through this general PATCH. Employee-number changes use the dedicated operation below so that historical numbers cannot be lost or silently reassigned.
+
+### POST /api/v1/employees/{id}/employee-number
+
+Full administrator only. Requires the current record version.
+
+Request example:
+
+```json
+{
+  "new_employee_no": "5678",
+  "reason": "社内番号体系変更",
+  "version": 4
+}
+```
+
+The server performs the change in one database transaction:
+
+1. lock the employee row and verify the submitted version,
+2. normalize and validate the new employee number,
+3. reject a number currently used by another employee,
+4. reject a number recorded as another employee's historical number,
+5. insert an append-only `employee_number_history` row with old/new number, reason, actor and timestamp,
+6. update only `employees.employee_no` and increment the employee version,
+7. write the audit log,
+8. commit all changes together or roll everything back.
+
+All business relations continue to use immutable `employee_id` UUIDs, so accident, complaint, qualification, document, vehicle and user links do not need foreign-key rewrites.
+
+Historical snapshots such as `near_misses.employee_no_at_report` remain unchanged. Search by an old employee number resolves through `employee_number_history` to the same employee.
+
 ### POST /api/v1/employees/{id}/transition
 
 Used for transfer, leave, retirement-planned and retired transitions.
@@ -486,6 +517,7 @@ Operations that change a business record and its audit/history data must commit 
 Examples:
 
 - employee transition + transition history + audit
+- employee-number change + employee_number_history + audit
 - accident complete + history + audit
 - vehicle assignment change + assignment rows + history + audit
 - document replacement + new document + old-document link + audit

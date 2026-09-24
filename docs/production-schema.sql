@@ -60,6 +60,17 @@ create table user_scopes (
   unique (user_id, office, department)
 );
 
+create table employee_number_history (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  old_employee_no text not null,
+  new_employee_no text not null,
+  reason text not null,
+  changed_by_user_id uuid references users(id),
+  changed_at timestamptz not null default now(),
+  check (old_employee_no <> new_employee_no)
+);
+
 create table qualifications (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
@@ -429,10 +440,17 @@ create trigger record_histories_append_only_guard
 before update or delete on record_histories
 for each row execute function reject_append_only_mutation();
 
+create trigger employee_number_history_append_only_guard
+before update or delete on employee_number_history
+for each row execute function reject_append_only_mutation();
+
 create index employees_scope_idx on employees (office, department, lifecycle_status, employee_no);
 create index employees_name_idx on employees (name);
 create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
 create index employees_retired_on_idx on employees (retired_on desc) where lifecycle_status = 'retired';
+
+create index employee_number_history_old_idx on employee_number_history (old_employee_no, changed_at desc);
+create index employee_number_history_employee_idx on employee_number_history (employee_id, changed_at desc);
 
 create index users_employee_idx on users (employee_id);
 create index users_state_role_idx on users (state, role_level);

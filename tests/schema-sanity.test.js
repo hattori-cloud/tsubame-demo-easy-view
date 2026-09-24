@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,22);
+  assert.equal(tables.length,23);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -84,4 +84,16 @@ test('audit and record history tables are append-only at database layer',()=>{
   assert.match(sql,/raise exception 'append-only table % does not allow %'/i);
   assert.match(sql,/create trigger audit_logs_append_only_guard[\s\S]*before update or delete on audit_logs/i);
   assert.match(sql,/create trigger record_histories_append_only_guard[\s\S]*before update or delete on record_histories/i);
+  assert.match(sql,/create trigger employee_number_history_append_only_guard[\s\S]*before update or delete on employee_number_history/i);
+});
+
+test('employee number history supports safe renumbering without rewriting employee foreign keys',()=>{
+  assert.match(sql,/create table employee_number_history/i);
+  assert.match(sql,/employee_id uuid not null references employees\(id\)/i);
+  assert.match(sql,/old_employee_no text not null/i);
+  assert.match(sql,/new_employee_no text not null/i);
+  assert.match(sql,/reason text not null/i);
+  assert.match(sql,/changed_by_user_id uuid references users\(id\)/i);
+  assert.match(sql,/check \(old_employee_no <> new_employee_no\)/i);
+  assert.match(sql,/create index employee_number_history_old_idx on employee_number_history \(old_employee_no, changed_at desc\)/i);
 });
