@@ -6,7 +6,8 @@ assert(html.includes('id="analysisEmployment"'),'detailed safety employment filt
 assert(html.includes("function openSafetyAnalysisFromCenter(type='all')"),'analysis center to safety transfer helper missing');
 assert(html.includes("set('analysisEmployment',ANALYSIS_CENTER_FILTERS.employment||'')"),'employment transfer missing');
 assert(html.includes("function safetyAnalysisRecordMatches(rec,workplace,dept,employment,employeeNo,vehicle)"),'safety matcher employment parameter missing');
-assert(html.includes("if(employment&&String(e?.employment||'')!==String(employment))return false"),'employment match condition missing');
+assert(html.includes("if(employment&&scope.employment!==String(employment))return false"),'employment snapshot match condition missing');
+assert(html.includes('function safetyAnalysisRecordSnapshot(rec)'),'historical safety snapshot resolver missing');
 assert(html.includes("employment=document.getElementById('analysisEmployment')?.value||''"),'safety data employment read missing');
 assert(html.includes("renderSafetyComparisons({from,to,no,type,workplace,dept,employment,vehicle})"),'comparison scope employment missing');
 assert(html.includes("scope={from:d.from,to:d.to,type:d.type,workplace:d.workplace,dept:d.dept,employment:d.employment,no:d.no,vehicle:d.vehicle}"),'drilldown scope employment missing');
