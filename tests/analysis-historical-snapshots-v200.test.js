@@ -65,3 +65,15 @@ test('safety analysis reports data completeness for interpretation quality',()=>
   assert.ok(html.includes('nearAnalysisReady'));
   assert.ok(html.includes("near.filter(n=>!nearNeedsAnalysis(n)).length"));
 });
+
+
+test('comparison signals and filter options also use historical organization snapshots',()=>{
+  const groups=block('function safetyAnalysisGroupTriples','function safetyAnalysisCompareMapHtml');
+  assert.ok(groups.includes('safetyAnalysisRecordSnapshot(rec)'));
+  assert.ok(groups.includes("scope.dept||'未設定'"));
+  const filters=block('function populateSafetyAnalysisFilters','function clearSafetyAnalysis');
+  assert.ok(filters.includes('recordScopes=records.map(rec=>({rec,scope:safetyAnalysisRecordSnapshot(rec)}))'));
+  assert.ok(filters.includes('deptSnapshots'));
+  assert.ok(filters.includes('employmentSnapshots'));
+  assert.ok(filters.includes('historicalNos'));
+});
