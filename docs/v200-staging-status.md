@@ -15,7 +15,7 @@ CODEX再監査対象ソース:
 - recovery-required初期化順序回帰テストあり
 - 勤務Excel [h]:mm テストあり
 - 明示不正対象月の拒否テストあり
-- production schema: 22 tables / 48 indexes / duplicate 0
+- production schema: 28 tables / 48 indexes / duplicate 0
 - document SHA-256 / malware lifecycle schema定義あり
 - V200 UI/API release consistency testあり
 - staging employees API: anonymous requestを401拒否
