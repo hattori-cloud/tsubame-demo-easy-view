@@ -235,6 +235,8 @@ create table document_upload_tickets (
   client_sha256 char(64) check (client_sha256 is null or client_sha256 ~ '^[0-9a-f]{64}$'),
   storage_key text not null unique,
   original_file_name text,
+  paper_location text,
+  retention_until date,
   actor_user_id uuid not null references users(id),
   security_class text not null,
   access_level text not null,
