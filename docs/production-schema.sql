@@ -136,13 +136,14 @@ create table qualifications (
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  version integer not null default 1 check (version >= 1)
+  version integer not null default 1 check (version >= 1),
+  unique (id, employee_id)
 );
 
 create table documents (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
-  qualification_id uuid references qualifications(id),
+  qualification_id uuid,
   category text not null,
   name text not null,
   kind text,
@@ -185,6 +186,7 @@ create table documents (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1),
+  foreign key (qualification_id, employee_id) references qualifications(id, employee_id),
   check (security_class <> 'strict' or access_level = 'full_admin'),
   check (original_handling not in ('company_paper_original','paper_and_electronic') or paper_location is not null)
 );
