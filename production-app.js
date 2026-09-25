@@ -73,6 +73,8 @@
       if(row)employeeDetail(row.dataset.employeeId)
     });
     $('dialogBody').addEventListener('click',e=>{
+      const close=e.target.closest('[data-dialog-close]');
+      if(close){$('detailDialog').close();return}
       const action=e.target.closest('[data-dialog-action]');
       if(action)handleDialogAction(action.dataset.dialogAction)
     })
@@ -272,7 +274,7 @@
   }
   function openRecordForm(title,fields,onSubmit,{actions=''}={}){
     $('dialogTitle').textContent=title;
-    $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" onclick="this.closest(\\'dialog\\').close()">キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
+    $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
     const form=$('recordForm');
     form.onsubmit=async e=>{
       e.preventDefault();clearError();
