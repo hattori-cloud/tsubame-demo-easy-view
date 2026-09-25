@@ -101,7 +101,7 @@ module.exports=async function handler(req,res){
       return res.status(503).json(errorBody('PRODUCTION_NOT_ACTIVATED','本番業務APIはまだ有効化されていません',id))
     }
     const dbReady=await probeDatabaseReadiness();
-    if(!dbReady.connected||!dbReady.core_schema_ready||!dbReady.audit_append_only_ready||!dbReady.capacity_ready||!dbReady.auth_rate_limit_ready||!dbReady.work_import_ready){
+    if(!dbReady.connected||!dbReady.core_schema_ready||!dbReady.audit_append_only_ready||!dbReady.capacity_ready||!dbReady.auth_rate_limit_ready||!dbReady.work_import_ready||!dbReady.runtime_role_ready){
       return res.status(503).json(errorBody('PRODUCTION_DATABASE_NOT_READY','本番データベースの実接続・スキーマ・監査保護を確認できません',id))
     }
   }
