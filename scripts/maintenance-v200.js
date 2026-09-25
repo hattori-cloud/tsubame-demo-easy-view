@@ -1,6 +1,10 @@
 'use strict';
 
 process.env.TSUBAME_DB_SSL=process.env.TSUBAME_DB_SSL||'disable';
+const maintenanceUrl=process.env.TSUBAME_MAINTENANCE_DATABASE_URL||'';
+if(!maintenanceUrl)throw new Error('TSUBAME_MAINTENANCE_DATABASE_URL is required');
+process.env.DATABASE_URL=maintenanceUrl;
+delete process.env.TSUBAME_DATABASE_URL;
 const {withTransaction,closePool}=require('../api/_lib/db');
 
 (async()=>{
