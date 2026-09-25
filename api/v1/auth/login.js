@@ -47,7 +47,6 @@ module.exports=async function handler(req,res){
     const rawChallenge=newRawToken();
     try{
       await withTransaction(async client=>{
-        await clearLoginFailures(account.id,client);
         await createMfaChallenge({userId:account.id,challengeHash:tokenHash(rawChallenge),purpose:account.mfa_enrolled_at?'verify':'enroll',ttlSeconds:300},client);
         await writeAuthAudit({action:'mfa_challenge_created',userId:account.id,result:'success',requestId:id,summary:'primary credentials accepted'},client)
       })
