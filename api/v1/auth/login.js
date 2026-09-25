@@ -3,6 +3,7 @@ const {applySecurityHeaders,requestId,errorBody,productionAuthConfigured}=requir
 const {newRawToken,tokenHash,secureCookie}=require('../../_lib/auth');
 const {withTransaction}=require('../../_lib/db');
 const {findCredentialAccount,findCredentialAccountById,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,writeAuthAudit,hashMetadata}=require('../../_lib/auth-store');
+const {keysForLogin,assertLoginAllowed,recordLoginFailure:recordNetworkLoginFailure}=require('../../_lib/login-rate-limit');
 
 function genericAuthError(id){return errorBody('LOGIN_FAILED','ID・社員番号・パスワードを確認してください',id)}
 function cleanText(value,max){return typeof value==='string'?value.trim().slice(0,max):''}
@@ -30,9 +31,23 @@ module.exports=async function handler(req,res){
   if(!productionAuthConfigured())return res.status(503).json(errorBody('AUTH_NOT_CONFIGURED','本番認証が未設定です',id));
 
   const authStartedAt=Date.now();
+  let rateKeys;
+  try{
+    rateKeys=keysForLogin(req,loginId);
+    await assertLoginAllowed(rateKeys)
+  }catch(err){
+    if(err?.code==='LOGIN_RATE_LIMITED'){
+      const remaining=180-(Date.now()-authStartedAt);if(remaining>0)await sleep(remaining);
+      return res.status(429).json(errorBody('LOGIN_RATE_LIMITED','ログイン試行が多すぎます。しばらくしてから再度お試しください',id))
+    }
+    return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))
+  }
   let account;
   try{account=await findCredentialAccount(loginId)}catch(_){return res.status(503).json(errorBody('AUTH_STORE_UNAVAILABLE','認証保存先を利用できません',id))}
-  if(!account)return delayedAuthFailure(res,id,authStartedAt)
+  if(!account){
+    try{await recordNetworkLoginFailure(rateKeys)}catch(_){return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))}
+    return delayedAuthFailure(res,id,authStartedAt)
+  }
 
   const locked=account.locked_until&&new Date(account.locked_until).getTime()>Date.now();
   const allowed=account.state==='active'&&account.employee_lifecycle_status!=='retired'&&!locked&&String(account.employee_no)===employeeNo;
@@ -43,8 +58,9 @@ module.exports=async function handler(req,res){
   if(!allowed||!passwordOk){
     try{
       await recordLoginFailure(account.id);
+      await recordNetworkLoginFailure(rateKeys);
       await writeAuthAudit({action:'login_failed',userId:account.id,result:'denied',requestId:id,summary:'generic credential failure'})
-    }catch(_){}
+    }catch(_){return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))}
     return delayedAuthFailure(res,id,authStartedAt)
   }
 
