@@ -63,7 +63,7 @@ Vercel:
 - productionでは `TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA=1` を明示しても、認証・DB・private原本ストレージ環境・原本実アダプターreadinessが成立しない限り、health以外の業務APIをrouter入口で503拒否
 - 現候補では原本実アダプターreadinessを意図的にfalse固定しているため、production業務APIは誤操作では有効化できない
 - 将来有効化時もrouter入口でlive DB接続、主要schema、append-only監査保護、月次ヒヤリcapacity構造を再確認
-- Vercelでは後続認証強化を含む `d8030dd...` までREADYを確認し、直近runtime errorsは0件。固定点と同一SHAのdeployment metadata一致確認は実環境ゲートとして残す
+- Vercelでは後続認証強化を含む `d8030dd...` までREADYを確認し、直近runtime errorsは0件。固定点 `96e1bbfa...` 以降のpreview未生成理由は、PR上のVercel Bot通知で `api-deployments-free-per-day`（Free枠の24時間100 deployments超過）と確認済み。コード失敗ではない。制限解除後に固定点と同一SHAのdeployment metadata一致確認を実施する
 
 ## 4. 実DB試験で既に見つけた問題
 
@@ -177,7 +177,7 @@ CI:
 - migration reconciliationと実社員データ件数/参照整合照合
 - PC / 390px / 320px browser UAT
 - VPN / 複数端末 / 複数利用者の実機UAT
-- 固定SHAとVercel deployment metadataの一致確認
+- 固定SHAとVercel deployment metadataの一致確認（現時点の未確認理由は `api-deployments-free-per-day` 制限）
 
 これらはCODEXに「既知の実環境/本番前ブロッカー」として分類してもらい、別のコード不具合と混同しないでください。
 
