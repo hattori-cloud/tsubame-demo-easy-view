@@ -70,5 +70,11 @@ test('single router blocks every production API except health until explicit act
   assert.ok(router.includes('isProductionRuntime()'));
   assert.ok(router.includes("path!=='/health'"));
   assert.ok(router.includes('!productionBusinessDataEnabled()'));
+  assert.ok(router.includes('probeDatabaseReadiness()'));
+  assert.ok(router.includes('!dbReady.connected'));
+  assert.ok(router.includes('!dbReady.core_schema_ready'));
+  assert.ok(router.includes('!dbReady.audit_append_only_ready'));
+  assert.ok(router.includes('!dbReady.capacity_ready'));
   assert.ok(router.includes("'PRODUCTION_NOT_ACTIVATED'"));
+  assert.ok(router.includes("'PRODUCTION_DATABASE_NOT_READY'"));
 });
