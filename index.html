@@ -6004,6 +6004,7 @@ function complaintManagementChecklistHtml(c){
 function reopenComplaintForEdit(idx){
  let c=C[idx];if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
  if(c.status!=='完了'){openComplaintForm(idx);return}
+ if(!coreMutationReady())return;
  let reason=prompt('再開理由を入力してください。\n例：追加確認が必要になったため','');
  if(!reason||!String(reason).trim()){alert('再開理由を入力してください。');return}
  let reviewer=currentAccidentReviewer(),clean=String(reason).trim();
