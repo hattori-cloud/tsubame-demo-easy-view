@@ -46,6 +46,9 @@ jobs:
       - name: Apply and verify production PostgreSQL schema
         run: node scripts/verify-production-db-v200.js
 
+      - name: Verify least-privilege runtime DB role
+        run: node scripts/verify-db-role-v200.js
+
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
 
