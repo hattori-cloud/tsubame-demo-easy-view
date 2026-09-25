@@ -42,6 +42,7 @@ async function expectDenied(client,sql,label){
       on conflict(key_hash) do update set failure_count=excluded.failure_count,updated_at=now()
     `);
     await client.query("delete from login_rate_limits where key_hash=repeat('a',64)");
+    await client.query('delete from work_summary_monthly where false');
     await expectDenied(client,'create table public.ci_runtime_should_fail(id integer)','runtime CREATE TABLE');
     await expectDenied(client,'delete from employees where false','runtime DELETE employees');
     await expectDenied(client,"update audit_logs set summary='forbidden' where false",'runtime UPDATE audit_logs');
@@ -59,6 +60,7 @@ async function expectDenied(client,sql,label){
       runtime_ddl_denied:true,
       runtime_employee_delete_denied:true,
       runtime_audit_mutation_denied:true,
+      runtime_work_import_rollback_delete_allowed:true,
       migrator_ddl_allowed:true,
       real_employee_data_used:false
     }))
