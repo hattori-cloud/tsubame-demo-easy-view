@@ -19,12 +19,20 @@ function legacyOidcEnvPresent(){
 function databaseEnvPresent(){
   return Boolean(process.env.DATABASE_URL||process.env.TSUBAME_DATABASE_URL)
 }
+function documentStorageProvider(){
+  return String(process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER||'').trim().toLowerCase()
+}
+function documentStorageTicketSecretPresent(){
+  return String(process.env.TSUBAME_DOCUMENT_TICKET_SECRET||'').length>=32
+}
 function documentStorageEnvPresent(){
+  if(documentStorageProvider()==='ci-memory'&&isNonProductionRuntime())return documentStorageTicketSecretPresent();
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN||process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN)
 }
 function documentStorageAdapterReady(){
-  // Fail closed until upload/quarantine/scan/finalize/download adapters are implemented and audited.
-  return false
+  // The CI adapter proves the provider-neutral contract only in non-production.
+  // Production remains fail-closed until an approved private provider adapter is implemented and audited.
+  return Boolean(documentStorageProvider()==='ci-memory'&&isNonProductionRuntime()&&documentStorageTicketSecretPresent())
 }
 function stagingFixturesRequested(){
   return process.env.TSUBAME_ENABLE_STAGING_FIXTURES==='1'
@@ -58,7 +66,7 @@ function backendReadiness(){
 }
 module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
-  authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageEnvPresent,documentStorageAdapterReady,
+  authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageProvider,documentStorageTicketSecretPresent,documentStorageEnvPresent,documentStorageAdapterReady,
   stagingFixturesRequested,stagingFixturesAllowed,
   productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };
