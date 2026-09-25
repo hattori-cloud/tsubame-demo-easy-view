@@ -386,9 +386,12 @@ create table vehicle_users (
   role text not null check (role in ('primary','additional')),
   assigned_on date not null default current_date,
   ended_on date,
-  created_at timestamptz not null default now(),
-  unique (vehicle_id, employee_id, role, assigned_on)
+  created_at timestamptz not null default now()
 );
+
+create unique index vehicle_users_active_unique
+  on vehicle_users(vehicle_id,employee_id,role)
+  where ended_on is null;
 
 create table applications (
   id uuid primary key default gen_random_uuid(),
