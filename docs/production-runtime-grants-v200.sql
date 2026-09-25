@@ -22,6 +22,7 @@ grant insert, update on
   documents,
   document_policy_rules,
   document_purge_requests,
+  document_upload_tickets,
   safety_training,
   assets,
   accidents,
