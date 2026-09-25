@@ -221,6 +221,35 @@ create table document_policy_rules (
   check (security_class <> 'strict' or verification_required = true)
 );
 
+create table document_upload_tickets (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  qualification_id uuid,
+  category text not null,
+  name text not null,
+  kind text,
+  registered_on date not null,
+  expiry date,
+  expected_content_type text not null,
+  expected_size_bytes bigint not null check (expected_size_bytes > 0),
+  client_sha256 char(64) check (client_sha256 is null or client_sha256 ~ '^[0-9a-f]{64}$'),
+  storage_key text not null unique,
+  original_file_name text,
+  actor_user_id uuid not null references users(id),
+  security_class text not null,
+  access_level text not null,
+  original_handling text not null,
+  verification_required boolean not null default false,
+  state text not null default 'issued' check (state in ('issued','finalized','expired','cancelled')),
+  expires_at timestamptz not null,
+  finalized_document_id uuid references documents(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key (qualification_id, employee_id) references qualifications(id, employee_id)
+);
+
+create index document_upload_tickets_employee_idx on document_upload_tickets (employee_id, created_at desc);
+create index document_upload_tickets_state_idx on document_upload_tickets (state, expires_at);
 create table document_purge_requests (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null references documents(id),
