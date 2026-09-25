@@ -104,8 +104,16 @@ async function enrollUserMfa(userId,{ciphertext,iv,tag},client=null){
   `,[userId,ciphertext,iv,tag],client)
 }
 async function invalidatePendingMfaChallenges(userId,{purpose=null,excludeId=null}={},client=null){
-  const params=[userId],where=['user_id=$1','verified_at is null'];
-  if(purpose){params.push(String(purpose));where.push('purpose=
+  return query(`
+    update mfa_challenges
+       set verified_at=now()
+     where user_id=$1
+       and verified_at is null
+       and ($2::text is null or purpose=$2)
+       and ($3::uuid is null or id<>$3)
+    returning id
+  `,[userId,purpose?String(purpose):null,excludeId||null],client)
+}
 async function markMfaVerified(challengeId,client=null){
   return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null and expires_at>now() and failed_attempts<5 returning id`,[challengeId],client)
 }
@@ -125,46 +133,3 @@ async function writeAuthAudit({actorUserId=null,action,userId=null,result='succe
 }
 function hashMetadata(value){return value?crypto.createHash('sha256').update(String(value)).digest('hex'):null}
 module.exports={loadSessionByTokenHash,findCredentialAccount,findCredentialAccountById,findMfaMaterial,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,getMfaChallenge,setMfaPendingSecret,enrollUserMfa,invalidatePendingMfaChallenges,markMfaVerified,recordMfaFailure,revokeSession,revokeAllUserSessions,writeAuthAudit,hashMetadata};
-+params.length)}
-  if(excludeId){params.push(excludeId);where.push('id<>
-async function markMfaVerified(challengeId,client=null){
-  return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null and expires_at>now() and failed_attempts<5 returning id`,[challengeId],client)
-}
-async function recordMfaFailure(challengeId,client=null){
-  return query(`update mfa_challenges set failed_attempts=failed_attempts+1 where id=$1`,[challengeId],client)
-}
-async function revokeSession(sessionId,reason='logout',client=null){
-  return query(`update auth_sessions set revoked_at=coalesce(revoked_at,now()),revoke_reason=coalesce(revoke_reason,$2) where id=$1`,[sessionId,reason],client)
-}
-async function revokeAllUserSessions(userId,reason,client=null){
-  return query(`update auth_sessions set revoked_at=now(),revoke_reason=$2 where user_id=$1 and revoked_at is null`,[userId,reason],client)
-}
-async function writeAuthAudit({actorUserId=null,action,userId=null,result='success',requestId=null,summary=''},client=null){
-  const entityId=userId||actorUserId||'authentication';
-  return query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,result,request_id,summary) values($1,$2,'auth',$3,$4,$5,$6)`,
-    [actorUserId,action,String(entityId),result,requestId,summary],client)
-}
-function hashMetadata(value){return value?crypto.createHash('sha256').update(String(value)).digest('hex'):null}
-module.exports={loadSessionByTokenHash,findCredentialAccount,findCredentialAccountById,findMfaMaterial,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,getMfaChallenge,setMfaPendingSecret,enrollUserMfa,markMfaVerified,recordMfaFailure,revokeSession,revokeAllUserSessions,writeAuthAudit,hashMetadata};
-+params.length)}
-  return query(`update mfa_challenges set verified_at=now() where ${where.join(' and ')} returning id`,params,client)
-}
-async function markMfaVerified(challengeId,client=null){
-  return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null and expires_at>now() and failed_attempts<5 returning id`,[challengeId],client)
-}
-async function recordMfaFailure(challengeId,client=null){
-  return query(`update mfa_challenges set failed_attempts=failed_attempts+1 where id=$1`,[challengeId],client)
-}
-async function revokeSession(sessionId,reason='logout',client=null){
-  return query(`update auth_sessions set revoked_at=coalesce(revoked_at,now()),revoke_reason=coalesce(revoke_reason,$2) where id=$1`,[sessionId,reason],client)
-}
-async function revokeAllUserSessions(userId,reason,client=null){
-  return query(`update auth_sessions set revoked_at=now(),revoke_reason=$2 where user_id=$1 and revoked_at is null`,[userId,reason],client)
-}
-async function writeAuthAudit({actorUserId=null,action,userId=null,result='success',requestId=null,summary=''},client=null){
-  const entityId=userId||actorUserId||'authentication';
-  return query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,result,request_id,summary) values($1,$2,'auth',$3,$4,$5,$6)`,
-    [actorUserId,action,String(entityId),result,requestId,summary],client)
-}
-function hashMetadata(value){return value?crypto.createHash('sha256').update(String(value)).digest('hex'):null}
-module.exports={loadSessionByTokenHash,findCredentialAccount,findCredentialAccountById,findMfaMaterial,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,getMfaChallenge,setMfaPendingSecret,enrollUserMfa,markMfaVerified,recordMfaFailure,revokeSession,revokeAllUserSessions,writeAuthAudit,hashMetadata};
