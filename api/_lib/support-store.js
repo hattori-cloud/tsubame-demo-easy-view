@@ -19,6 +19,7 @@ function tableConfig(kind){
   const cfg=map[kind];if(!cfg)throw problem(422,'INVALID_SUPPORT_KIND','対象区分を確認してください');return cfg
 }
 async function listSupport(user,kind,filters={}){
+  if(kind==='guidance')manager(user);
   const cfg=tableConfig(kind),params=[],scope=scopeSql(user,params,'e'),where=[scope];
   if(filters.employee_id){params.push(String(filters.employee_id));where.push(`r.employee_id=$${params.length}`)}
   if(filters.status&&kind!=='guidance'){params.push(String(filters.status));where.push(`r.status=$${params.length}`)}
