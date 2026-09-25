@@ -21,6 +21,7 @@ async function expectAppendOnly(client,sql,label){
   await client.connect();
   try{
     const base=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
+    const authHardening=fs.readFileSync(path.join(__dirname,'..','docs','production-auth-hardening-v200.sql'),'utf8');
     const capacity=fs.readFileSync(path.join(__dirname,'..','docs','production-capacity-v189.sql'),'utf8');
 
     await client.query(base);
@@ -48,6 +49,15 @@ async function expectAppendOnly(client,sql,label){
     await expectAppendOnly(client,"delete from audit_logs where entity_id='audit-1'",'audit_logs delete');
     await expectAppendOnly(client,"update record_histories set reason='mutated' where entity_id='history-1'",'record_histories update');
     await expectAppendOnly(client,"delete from record_histories where entity_id='history-1'",'record_histories delete');
+
+    await client.query(authHardening);
+    const authHardeningChecks=await client.query(`
+      select
+        to_regclass('public.login_rate_limits') is not null as limiter_ready,
+        (select count(*)::int from pg_tables where schemaname='public') as tables
+    `);
+    assert(authHardeningChecks.rows[0].limiter_ready,'distributed login limiter table missing');
+    assert(authHardeningChecks.rows[0].tables===29,'auth hardening table count expected 29, got '+authHardeningChecks.rows[0].tables);
 
     await client.query(capacity);
 
@@ -163,6 +173,7 @@ async function expectAppendOnly(client,sql,label){
       append_only_enforced:true,
       full_admin_continuity_guard:true,
       mfa_challenge_single_use:true,
+      distributed_login_rate_limit_ready:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
