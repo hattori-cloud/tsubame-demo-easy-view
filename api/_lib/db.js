@@ -61,6 +61,7 @@ async function probeDatabaseReadiness(){
         to_regclass('public.record_histories') is not null as record_histories_ready,
         to_regclass('public.documents') is not null as documents_ready,
         to_regclass('public.document_purge_requests') is not null as purge_ready,
+        to_regclass('public.document_upload_tickets') is not null as upload_tickets_ready,
         to_regclass('public.login_rate_limits') is not null as rate_limit_ready,
         to_regclass('public.work_import_batches') is not null as work_import_batches_ready,
         to_regclass('public.work_monthly_summaries') is not null as work_summaries_ready,
@@ -81,7 +82,7 @@ async function probeDatabaseReadiness(){
     const x=r.rows[0]||{};
     return {
       connected:true,
-      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready&&x.rate_limit_ready&&x.work_import_batches_ready&&x.work_summaries_ready&&x.work_import_changes_ready),
+      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready&&x.upload_tickets_ready&&x.rate_limit_ready&&x.work_import_batches_ready&&x.work_summaries_ready&&x.work_import_changes_ready),
       audit_append_only_ready:Boolean(x.audit_guard_ready&&x.history_guard_ready),
       capacity_ready:Boolean(x.capacity_targets_ready&&x.capacity_view_ready)
     }
