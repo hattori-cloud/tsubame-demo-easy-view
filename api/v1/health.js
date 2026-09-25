@@ -16,7 +16,8 @@ module.exports=function handler(req,res){
     status:'ok',
     data_mode:'no-business-data',
     production_auth_configured:readiness.auth_env_present,
-    business_api_enabled:false,
+    production_business_activation_requested:readiness.production_business_activation_requested,
+    business_api_enabled:readiness.production_business_data_enabled,
     feature_set:'v200-fail-closed-staging-backend',
     timestamp:new Date().toISOString()
   });
