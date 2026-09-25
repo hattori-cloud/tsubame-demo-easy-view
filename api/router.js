@@ -66,6 +66,7 @@ const ROUTES=[
   {pattern:/^\/deadlines\/?$/,keys:[],handler:require("./v1/deadlines/index.js"),source:"api/v1/deadlines/index.js"},
   {pattern:/^\/documents\/?$/,keys:[],handler:require("./v1/documents/index.js"),source:"api/v1/documents/index.js"},
   {pattern:/^\/credentials\/?$/,keys:[],handler:require("./v1/credentials/index.js"),source:"api/v1/credentials/index.js"},
+  {pattern:/^\/document-policies\/?$/,keys:[],handler:require("./v1/document-policies/index.js"),source:"api/v1/document-policies/index.js"},
   {pattern:/^\/drafts\/?$/,keys:[],handler:require("./v1/drafts/index.js"),source:"api/v1/drafts/index.js"},
   {pattern:/^\/employees\/?$/,keys:[],handler:require("./v1/employees/index.js"),source:"api/v1/employees/index.js"},
   {pattern:/^\/guidance\/?$/,keys:[],handler:require("./v1/guidance/index.js"),source:"api/v1/guidance/index.js"},
