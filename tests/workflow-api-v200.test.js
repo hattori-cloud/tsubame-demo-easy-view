@@ -47,3 +47,11 @@ test('company-wide notice and confirmation authoring requires full administrator
   assert.ok(store.includes('async function saveConfirmation'));
   assert.ok(store.includes('full(user)'));
 });
+
+
+test('handoff recipient must be an active manager authorized for the target employee',()=>{
+  assert.ok(store.includes("u.role_level in ('full','scoped')"));
+  assert.ok(store.includes("TARGET_USER_NOT_AUTHORIZED"));
+  assert.ok(store.includes("EMPLOYEE_REQUIRED_FOR_SCOPED_HANDOFF"));
+  assert.ok(store.includes("exists(select 1 from user_scopes s"));
+});
