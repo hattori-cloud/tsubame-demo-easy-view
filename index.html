@@ -6001,10 +6001,25 @@ function complaintManagementChecklistHtml(c){
  return `<details class="detail-fold" ${missing?'open':''}><summary>対応・完了チェック ${missing?'（要確認 '+missing+'件）':'（確認済み）'}</summary><div class="detail-fold-body"><div class="list-summary"><div><b>${missing?'確認が必要 '+missing+'件':'主要な対応項目は揃っています'}</b><div class="mini">担当・期限・指導内容・完了記録の抜けを確認します。</div></div><span class="badge ${missing?'warn':'ok'}">${missing?'要確認 '+missing:'OK'}</span></div>
  <div class="readiness-grid">${checks.map(x=>`<div class="ready-item ${x.ok?'ok':'warn'}"><b>${esc(x.label)}</b><div class="mini">${esc(x.note)}</div></div>`).join('')}</div></div></details>`
 }
+function reopenComplaintForEdit(idx){
+ let c=C[idx];if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
+ if(c.status!=='完了'){openComplaintForm(idx);return}
+ let reason=prompt('再開理由を入力してください。\n例：追加確認が必要になったため','');
+ if(!reason||!String(reason).trim()){alert('再開理由を入力してください。');return}
+ let reviewer=currentAccidentReviewer(),clean=String(reason).trim();
+ if(!confirm('完了済みの苦情を再開します。\n\n理由：'+clean+'\n\n再開後は「対応中」となり、編集できるようになります。'))return;
+ c.status='対応中';c.completedDate='';c.finalReviewerName='';c.reopenReason=clean;c.reopenedDate=TODAY;c.reopenedBy=reviewer.name;
+ touchRecord(c,'complaint',false);
+ audit('苦情対応再開',c.id+' '+(c.name||c.driverName||c.employee_no)+' / 理由 '+clean,{employee_no:c.employee_no,entity_type:'complaint',entity_id:c.id});
+ if(!save())return;
+ renderSafetyMutationViews();
+ complaintDetail(c.id);
+ setTimeout(()=>openComplaintForm(idx),20)
+}
 function complaintDetail(id){
  let c=C.find(x=>x.id===id);if(!c||!guardManagementRecord('complaint',c.employee_no,'苦情・お客様対応'))return;
  let idx=C.indexOf(c),state=complaintState(c);rememberRecentDetail('complaint',c.id);dttl.textContent='クレーム詳細 '+c.id;
- dbody.innerHTML=`<div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('complaint')">苦情一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${c.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(c.employee_no)?`<button class="btn primary detail-edit" onclick="openComplaintForm(${idx})">苦情対応を修正</button>`:''}</div>
+ dbody.innerHTML=`<div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('complaint')">苦情一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${c.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(c.employee_no)?(c.status==='完了'?`<button class="btn warn detail-edit" onclick="reopenComplaintForEdit(${idx})">理由を入力して再開</button>`:`<button class="btn primary detail-edit" onclick="openComplaintForm(${idx})">苦情対応を修正</button>`):''}</div>
  ${safetyRecordContextHtml('苦情',c)}
  ${caseActionPanelHtml('苦情',c)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(days(c.followupDue))}日超過しています。</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。</div>':''}
@@ -9680,6 +9695,7 @@ function fillComplaintEmployeeDefaults(){
 function openComplaintForm(idx=-1,defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('苦情／お客様対応の登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?C[idx]:null;if(rec&&(!rec.employee_no||!guardEmployeeEdit(rec.employee_no,'苦情／お客様対応')))return;
+ if(rec&&rec.status==='完了'){alert('完了済みの苦情は、詳細画面の「理由を入力して再開」から再開してから編集してください。');return}
  let candidates=scopedEmployees().filter(e=>e.status!=='退職');if(!candidates.length){alert('現在の担当範囲に登録対象社員がいません');return}
  if(rec&&!candidates.some(e=>e.no===String(rec.employee_no))){alert('現在の担当範囲ではこの苦情記録を編集できません');return}
  let reviewer=currentAccidentReviewer(),selected=rec?emp(rec.employee_no):(candidates.find(e=>e.no===String(defaultNo))||candidates[0]);
