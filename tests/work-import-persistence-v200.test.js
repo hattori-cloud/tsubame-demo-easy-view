@@ -32,6 +32,6 @@ test('work import rollback refuses to overwrite later batch changes',()=>{
 });
 
 test('work import routes include preflight commit history and rollback',()=>{
-  for(const token of ['/work-import/preflight','/work-import/commit','/work-import/history','/work-import/([^\\/]+)/rollback'])assert.ok(router.includes(token));
+  for(const token of ['api/v1/work-import/preflight.js','api/v1/work-import/commit.js','api/v1/work-import/history.js','api/v1/work-import/[id]/rollback.js'])assert.ok(router.includes(token));
   assert.ok(history.includes('listWorkImports'));
 });
