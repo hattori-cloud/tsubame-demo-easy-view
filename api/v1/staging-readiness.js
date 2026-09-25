@@ -30,6 +30,7 @@ module.exports=async function handler(req,res){
     if(!dbProbe.capacity_ready)blockers.push('月次ヒヤリ集計DB構造')
   }
   if(!readiness.document_storage_env_present)blockers.push('private原本ストレージ接続');
+  if(!readiness.document_storage_adapter_ready)blockers.push('private原本ストレージ実アダプター');
 
   return res.status(200).json({
     service:'tsubame-staging-readiness',
@@ -43,6 +44,7 @@ module.exports=async function handler(req,res){
       database_audit_guard_ready:dbProbe.audit_append_only_ready,
       database_capacity_ready:dbProbe.capacity_ready,
       database_vertical_slice_ready:databaseReady,
+      document_storage_adapter_ready:readiness.document_storage_adapter_ready,
       original_file_test_ready:Boolean(readiness.original_file_test_ready&&databaseReady)
     },
     blockers,
