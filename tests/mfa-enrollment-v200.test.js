@@ -57,3 +57,16 @@ test('MFA verify and enrollment consume the challenge before session issuance',(
     assert.ok(source.indexOf('markMfaVerified(challenge.id,client)')<source.indexOf('createSession({userId:challenge.user_id'));
   }
 });
+
+
+test('MFA enrollment start rejects ineligible accounts and does not overwrite a pending secret',()=>{
+  const start=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','enroll','start.js'),'utf8');
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','auth-store.js'),'utf8');
+  assert.ok(start.includes("account.state!=='active'"));
+  assert.ok(start.includes("account.employee_lifecycle_status==='retired'"));
+  assert.ok(start.includes('locked'));
+  assert.ok(start.includes('const saved=await setMfaPendingSecret'));
+  assert.ok(start.includes('const current=await getMfaChallenge'));
+  assert.ok(store.includes('pending_secret_ciphertext is null'));
+  assert.ok(store.includes('expires_at>now()'));
+});
