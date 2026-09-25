@@ -650,33 +650,85 @@ The first production/staging slice should intentionally stay small:
 8. Back up and restore the staging DB.
 9. Only after this passes, expand the pattern to all modules.
 
-## 16. Work summary XLSX preflight
+## 16. Work summary XLSX import
 
 ### POST /api/v1/work-import/preflight
 
-Full administrator only. This endpoint performs **preflight analysis only** and never persists the workbook or updates employee records.
-
-Request:
-
-- authenticated bearer token
-- `Content-Type: application/octet-stream`
-- `X-File-Name: <name>.xlsx`
-- maximum raw workbook size: 4 MB
+Full administrator only. The XLSX is parsed in memory and the original workbook is never stored by this API.
 
 The server:
 
-1. verifies authentication and full-administrator authorization,
-2. parses the workbook in memory,
-3. searches the first 20 rows of each worksheet for likely work-summary headers,
-4. reports detected and missing fields,
-5. normalizes preview values for employee number, target month, restraint time, remaining time, overtime and last-posted date,
-6. flags invalid numeric/date cells and overtime of 60 hours or more,
-7. returns only a bounded preview/issues result,
-8. does not write business data.
+1. validates the workbook and sensitive-column exclusions,
+2. normalizes employee number, month, work-hour values and last-posted date,
+3. computes SHA-256 of the original workbook,
+4. when the production DB is configured and the preflight is commit-ready, resolves every **current employee number** to immutable employee UUID,
+5. rejects the whole batch if any employee number is unknown,
+6. stores only a 30-minute preflight batch plus normalized rows,
+7. returns a batch id/version/expiry for confirmation.
 
-The header alias list is intentionally provisional until an approved real workbook format is confirmed. A production import must not silently guess ambiguous columns.
+Fixture/demo mode may remain `preflight-only`. Production commit requires a persisted batch.
 
-The later confirmation endpoint must re-check the same workbook hash, employee matching, differences, current record versions and administrator approval before committing any update.
+### GET /api/v1/work-import/batches/{id}
+
+Full administrator only.
+
+Returns batch metadata plus bounded normalized row status. The response never returns the original XLSX binary.
+
+The response carries an ETag derived from the batch version.
+
+### POST /api/v1/work-import/batches/{id}/commit
+
+Full administrator only and requires strong `If-Match`.
+
+Only the administrator who created the preflight batch may commit it.
+
+Commit requirements:
+
+- batch state is `preflight`,
+- batch has not expired,
+- batch version matches,
+- normalized row count still matches the batch,
+- all writes occur in one PostgreSQL transaction.
+
+For each employee/month:
+
+- existing monthly summary is row-locked,
+- before state is captured,
+- insert or update writes `source_batch_id`,
+- version increments only on update,
+- `record_histories` receives a `work_import_commit` row.
+
+The batch becomes `committed` only after all rows and audit/history writes succeed.
+
+### POST /api/v1/work-import/batches/{id}/rollback
+
+Full administrator only, requires strong `If-Match` and a non-empty rollback reason.
+
+Rollback is all-or-nothing.
+
+Before changing any monthly summary, the server verifies for every committed row that:
+
+- the current record still points to the same `source_batch_id`,
+- the current record version equals the version written by that commit.
+
+If any row changed after the import, rollback fails with `ROLLBACK_CONFLICT` and nothing is rolled back.
+
+When safe:
+
+- newly inserted summaries are removed,
+- previously existing summaries are restored from captured before-data,
+- rollback history is appended,
+- the batch becomes `rolled_back`.
+
+The system does not use rollback to erase later human edits.
+
+### Persistence model
+
+- `work_import_batches`: file hash, actor, state, expiry, commit/rollback metadata
+- `work_import_rows`: normalized employee/month rows and before/after rollback evidence
+- `work_summary_monthly`: current monthly work summary by immutable employee UUID
+
+The original XLSX file is not stored in these tables.
 
 ---
 
