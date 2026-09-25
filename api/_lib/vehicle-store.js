@@ -90,9 +90,11 @@ async function updateVehicle({user,id,body,expectedVersion,requestId}){
     const changed=Object.entries(patch).filter(([k,v])=>String(before[k]??'')!==String(v??''));if(!changed.length)return before;
     if('assignment_mode' in patch&&!['dedicated','shared','spare','loaner'].includes(String(patch.assignment_mode)))throw problem(422,'INVALID_ASSIGNMENT_MODE','車両区分を確認してください');
     const params=[id],sets=changed.map(([k,v])=>{params.push(v);return `${k}=$${params.length}`});
-    const after=(await query(`update vehicles set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,params,client)).rows[0];
+    const rawAfter=(await query(`update vehicles set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,params,client)).rows[0];
     await query(`insert into record_histories(entity_type,entity_id,actor_user_id,action,before_data,after_data,reason) values('vehicle',$1,$2,'update',$3::jsonb,$4::jsonb,'車両情報更新')`,[id,user.id,JSON.stringify(Object.fromEntries(changed.map(([k])=>[k,before[k]]))),JSON.stringify(Object.fromEntries(changed))],client);
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,result,request_id,summary) values($1,'車両更新','vehicle',$2,'success',$3,$4)`,[user.id,id,requestId,changed.map(([k])=>k).join(',')],client);
+    const after=await getVehicle(user,id,client);
+    if(Number(after.version)!==Number(rawAfter.version))throw problem(409,'VERSION_CONFLICT','車両更新後の表示データを再取得してください');
     return after
   })
 }
