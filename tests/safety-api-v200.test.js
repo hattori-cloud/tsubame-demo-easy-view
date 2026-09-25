@@ -75,3 +75,31 @@ test('accident and complaint owners must be active managers authorized for the e
   assert.ok(store.includes("exists("));
   assert.ok(store.includes('user_scopes'));
 });
+
+
+test('accident and complaint reads are manager-only at the server layer',()=>{
+  const accidentList=store.slice(store.indexOf('async function listAccidents'),store.indexOf('async function getAccident'));
+  const accidentGet=store.slice(store.indexOf('async function getAccident'),store.indexOf('async function createAccident'));
+  const complaintList=store.slice(store.indexOf('async function listComplaints'),store.indexOf('async function createComplaint'));
+  assert.ok(accidentList.includes('requireSafetyManager(user)'));
+  assert.ok(accidentGet.includes('requireSafetyManager(user)'));
+  assert.ok(complaintList.includes('requireSafetyManager(user)'));
+});
+
+test('safety mutations lock the record row before version comparison',()=>{
+  assert.ok(store.includes("forUpdate?' for update of r':''"));
+  for(const kind of ['accidents','near_misses','complaints']){
+    assert.ok(store.includes("scopedRecord(user,'"+kind+"',id,client,{forUpdate:true});assertVersion"));
+  }
+});
+
+test('normal accident and complaint updates cannot bypass complete or reopen workflow',()=>{
+  const accidentUpdate=store.slice(store.indexOf('async function updateAccident'),store.indexOf('async function completeAccident'));
+  const complaintUpdate=store.slice(store.indexOf('async function updateComplaint'),store.indexOf('async function completeComplaint'));
+  assert.ok(accidentUpdate.includes('REOPEN_REQUIRED'));
+  assert.ok(accidentUpdate.includes('USE_COMPLETION_ENDPOINT'));
+  assert.equal(accidentUpdate.includes("'phase'"),false);
+  assert.ok(complaintUpdate.includes('REOPEN_REQUIRED'));
+  assert.ok(complaintUpdate.includes('USE_COMPLETION_ENDPOINT'));
+  assert.equal(complaintUpdate.includes("'status'"),false);
+});
