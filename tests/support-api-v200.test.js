@@ -40,3 +40,8 @@ test('all support collection and detail routes authenticate through server ident
     assert.ok(route.includes('resolveCurrentUser(identity)'));
   }
 });
+
+
+test('guidance list requires manager role even for the employee themself',()=>{
+  assert.ok(store.includes("if(kind==='guidance')manager(user)"));
+});
