@@ -149,3 +149,9 @@ test('production PL/pgSQL append-only function uses a valid stable body literal'
   assert.ok(schema.includes("end;';"));
   assert.equal(/\bas \$\r?\n/.test(schema),false);
 });
+
+
+test('document qualification foreign key cannot cross employee ownership',()=>{
+  assert.match(sql,/create table qualifications[\s\S]*unique \(id, employee_id\)/i);
+  assert.match(sql,/create table documents[\s\S]*foreign key \(qualification_id, employee_id\) references qualifications\(id, employee_id\)/i);
+});
