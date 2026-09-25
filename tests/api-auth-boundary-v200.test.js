@@ -46,7 +46,7 @@ test('every v1 business route has request authentication unless explicitly token
 test('public non-business routes cannot expose employee or database records',()=>{
   const health=fs.readFileSync(path.join(root,'health.js'),'utf8');
   const readiness=fs.readFileSync(path.join(root,'staging-readiness.js'),'utf8');
-  assert.ok(health.includes('business_api_enabled:false'));
+  assert.ok(health.includes('business_api_enabled:readiness.production_business_data_enabled'));
   assert.equal(/from\s+employees|select\s+.*employees/i.test(health),false);
   assert.ok(readiness.includes('isProductionRuntime()'));
   assert.ok(readiness.includes('status(404)'));
@@ -62,4 +62,13 @@ test('token-auth routes must use opaque hashed challenge or credential verificat
   assert.ok(login.includes('verify(account.password_hash,password)'));
   for(const source of [verify,enrollStart,enrollComplete,resetComplete])assert.ok(source.includes('tokenHash('));
   for(const source of [verify,enrollComplete])assert.ok(source.includes('SESSION_NOT_ALLOWED'));
+});
+
+
+test('single router blocks every production API except health until explicit activation',()=>{
+  const router=fs.readFileSync(path.join(__dirname,'..','api','router.js'),'utf8');
+  assert.ok(router.includes('isProductionRuntime()'));
+  assert.ok(router.includes("path!=='/health'"));
+  assert.ok(router.includes('!productionBusinessDataEnabled()'));
+  assert.ok(router.includes("'PRODUCTION_NOT_ACTIVATED'"));
 });
