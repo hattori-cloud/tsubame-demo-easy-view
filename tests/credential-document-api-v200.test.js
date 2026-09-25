@@ -47,3 +47,10 @@ test('qualification and document metadata changes are versioned and audited',()=
   assert.ok(store.includes('insert into record_histories'));
   assert.ok(store.includes('version=version+1'));
 });
+
+
+test('document creation verifies linked qualification belongs to the same employee',()=>{
+  assert.ok(store.includes('QUALIFICATION_EMPLOYEE_MISMATCH'));
+  assert.ok(store.includes('id=$1 and employee_id=$2 and archived_at is null'));
+  assert.ok(store.includes('[qualificationId,employee.id]'));
+});
