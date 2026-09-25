@@ -181,3 +181,68 @@ GitHub Actions:
 
 したがって、**コード・DB/API設計は9割監査候補**ですが、実環境の本番稼働準備は別ゲートです。
 実社員情報・実PDF/画像/スキャン原本は、実認証・本番DB・private storage・実機UAT・移行照合が完了するまで投入禁止を継続します。
+
+
+## 2026-09-25 内部大監査後の最終固定点
+
+**CODEXコード監査固定点:**
+`96e1bbfa301536a50b8894b31276e0f793092901`
+
+このSHA以降は監査資料更新だけとし、CODEXはまずこの固定点でコード再現性を判定する。
+
+### 最終CI実績
+
+- Node回帰テスト: **285 / 285 pass / 0 fail**
+- PostgreSQL 16 空DB本番候補schema実適用: 成功
+- base tables: 28
+- capacity適用・復元後: 29 tables
+- append-only audit/history: UPDATE / DELETE拒否
+- full_admin_continuity_guard: **true**
+- mfa_challenge_single_use: **true**
+- structural duplicate index: 0
+- 月次ヒヤリ: zero / short / met / exempt
+- optimistic concurrency: 1成功 / 1 VERSION_CONFLICT
+- version: +1のみ
+- history: 1行のみ
+- pg_dump → 別DB pg_restore → 復元後検証: 成功
+- 実社員データ: **不使用**
+
+### 内部大監査で追加修正した事項
+
+- qualificationとdocumentの別社員誤リンクをAPI＋DB複合FKで禁止
+- 事故・苦情のownerをactive full/scoped manager＋対象社員scopeへ制限
+- handoff recipientをactive full/scoped manager＋対象社員scopeへ制限
+- scoped senderのemployee未指定handoffを禁止
+- 最後のactive full administratorの降格・停止・退職を禁止
+- full admin continuityをPostgreSQL advisory transaction lockで並列保護
+- MFA成功challengeをDB原子操作でsingle-use化
+- MFA初回登録secretの同時上書きを防止
+- 停止/退職/lock中のMFA登録開始を拒否
+- login generic failureの最低応答時間を揃えてaccount状態推測を抑制
+- production activationを原本実アダプター未完成中はhard fail-closed
+- 将来production activation時もlive DB readinessをrouter入口で再確認
+
+### 現在も本番前ブロッカー
+
+- private原本storage実アダプター実装・接続・隔離・scan・restore/SHA照合
+- shared DB/Redis相当のネットワーク単位login rate limiter
+- 実会社auth / MFA / 本番PostgreSQL / private storageの環境接続
+- migration reconciliation / 実社員データ照合
+- PC / 390px / 320px実ブラウザUAT
+- VPN / 複数端末 / 複数利用者実機UAT
+- 固定SHA `96e1bbfa...` とVercel deployment metadataの完全一致確認
+
+### Vercel確認
+
+- 単一router構成によるHobby Functions上限回避: READY実績あり
+- 後続認証強化を含む `d8030dd...` までREADYを確認
+- 直近runtime errors: 0
+- branch previewは固定SHAまでdeployment一覧の反映を確認できていないため、固定SHA READYとはまだ表現しない
+
+### 運用判断
+
+コード・DB/API設計は**9割水準の大監査候補**。
+ただし実環境は9割ではなく、上記本番前ブロッカーが残る。
+
+特に原本アダプターは未完成であり、production業務APIはそのreadinessがfalseの間は有効化できない。
+実社員情報・実PDF/画像/スキャン原本は引き続き投入禁止。
