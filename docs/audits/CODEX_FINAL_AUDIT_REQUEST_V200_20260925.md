@@ -9,7 +9,7 @@
 対象ブランチ: `staging-v200-backend`
 
 **コード監査固定コミット:**
-`c27567900713b58e29abcf2a703d27357a3a7a0a`
+`c1e5b43442ce8f92a737df64c75038961a525740`
 
 このコミットを基準にコード監査してください。
 監査中にbranch先端が進んでも、指摘の再現可否はまずこの固定点で判定してください。
@@ -38,7 +38,7 @@
 
 GitHub Actionsで以下を実施済みです。
 
-- Node: **268 tests / 268 pass / 0 fail**
+- Node: **276 tests / 276 pass / 0 fail**
 - PostgreSQL 16 空DBへ本番候補SQLを実適用
 - base 28 tables
 - capacity追加後29 tables
@@ -56,8 +56,10 @@ Vercel:
 - 70本のv1 handlerは内部モジュールとして維持
 - `api/router.js` 1本をVercel Function入口とする
 - `vercel.json` で `/api/v1/*` をrouterへ集約
-- 固定コミット `c275679...` のpreviewはREADY
+- 固定コミット `c1e5b434...` のpreviewはREADY
 - Node 22.xでbuild完了
+- productionでは `TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA=1` を明示し、かつ認証/DB readinessが成立しない限り、health以外の業務APIをrouter入口で503拒否
+- 固定点 `c1e5b434...` は直前READYのruntimeコードに対する回帰テスト整合修正のみで、runtime-equivalent previewはREADY
 
 ## 4. 実DB試験で既に見つけた問題
 
@@ -84,6 +86,8 @@ Vercel:
   - active sessionsをemployee_retiredで失効
   - pending MFA challenge無効化
   - unused password reset token無効化
+  - MFA失敗をアカウント単位でロックアウトへ反映
+  - 停止時は保留中認証情報も無効化
   - 個別監査ログ
 - session発行直前にもuser active / employee not retiredをDBで再確認
 
@@ -158,7 +162,7 @@ CIの `CI9001` 等は明示的な架空監査データです。
 - 実害
 - 原因
 - 最小修正案
-- 固定コミット `c275679...` で再現するか
+- 固定コミット `c1e5b434...` で再現するか
 - 既知の実環境未接続ブロッカーか、新規不具合か
 
 最後に、
