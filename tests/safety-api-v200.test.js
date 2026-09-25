@@ -66,3 +66,12 @@ test('main safety routes require authenticated server-resolved user',()=>{
     assert.ok(route.includes('resolveCurrentUser(identity)'));
   }
 });
+
+
+test('accident and complaint owners must be active managers authorized for the employee',()=>{
+  assert.ok(store.includes('managerAssigneeForEmployee'));
+  assert.ok(store.includes('OWNER_USER_NOT_AUTHORIZED'));
+  assert.ok(store.includes("u.role_level in ('full','scoped')"));
+  assert.ok(store.includes("exists("));
+  assert.ok(store.includes('user_scopes'));
+});
