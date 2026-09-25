@@ -152,3 +152,25 @@ test('Excel [h]:mm duration cells are converted to hours',async()=>{
   assert.ok(Math.abs(p.preview[0].overtime-10)<0.001)
 });
 
+
+
+test('Excel 1904 date system duration Date cells use the 1904 epoch',async()=>{
+  const {numberCellValue}=require('../api/v1/work-import/preflight')._test;
+  const fakeCell={value:new Date(Date.UTC(1904,0,3,12,30)),numFmt:'[h]:mm'};
+  assert.ok(Math.abs(numberCellValue(fakeCell,{date1904:true})-60.5)<0.001);
+
+  const buffer=await workbookBuffer(async wb=>{
+    wb.properties.date1904=true;
+    const ws=wb.addWorksheet('勤務');
+    ws.addRow(['社員番号','対象月','拘束時間','残時間','残業時間','最終計上日']);
+    const row=ws.addRow(['1001','2026-09',60.5/24,12/24,8/24,'2026-09-20']);
+    row.getCell(3).numFmt='[h]:mm';
+    row.getCell(4).numFmt='[h]:mm';
+    row.getCell(5).numFmt='[h]:mm'
+  });
+  const p=await parseWorkbookBuffer(buffer,'work.xlsx');
+  assert.equal(p.can_commit,true);
+  assert.ok(Math.abs(p.preview[0].restraint-60.5)<0.001);
+  assert.ok(Math.abs(p.preview[0].remaining-12)<0.001);
+  assert.ok(Math.abs(p.preview[0].overtime-8)<0.001)
+});
