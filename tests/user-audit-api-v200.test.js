@@ -57,3 +57,11 @@ test('account and audit mutations are written server-side with request ids',()=>
   assert.ok(store.includes('requestId'));
   assert.ok(store.includes('insert into record_histories'));
 });
+
+
+test('full administrator access and suspension protect against removing the last active full admin',()=>{
+  assert.ok(store.includes('lockFullAdminContinuity'));
+  assert.ok(store.includes('requireOtherActiveFullAdmin'));
+  assert.ok(store.includes("before.role_level==='full'"));
+  assert.ok(store.includes("state==='suspended'"));
+});
