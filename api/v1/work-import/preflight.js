@@ -136,7 +136,7 @@ function workbookSensitiveHeaders(workbook){
   });
   return hits
 }
-async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
+async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx',{includeRows=false}={}){
   if(!Buffer.isBuffer(buffer))buffer=Buffer.from(buffer||[]);
   if(!buffer.length)throw new AuthError(400,'EMPTY_FILE','ファイルが空です');
   if(buffer.length>MAX_FILE_BYTES)throw new AuthError(413,'FILE_TOO_LARGE','ファイルサイズは4MB以下にしてください');
@@ -221,7 +221,8 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
     can_commit:canCommit,
     preview:rows.slice(0,20),
     blocking_issues:blockingIssues.slice(0,50),
-    warnings:warnings.slice(0,50)
+    warnings:warnings.slice(0,50),
+    rows:includeRows?rows:undefined
   }
 }
 module.exports=async function handler(req,res){
