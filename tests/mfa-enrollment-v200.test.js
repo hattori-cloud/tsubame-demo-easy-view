@@ -45,3 +45,15 @@ test('MFA enrollment uses a primary-auth challenge and commits only after TOTP v
   assert.ok(complete.includes('enrollUserMfa'));
   assert.ok(complete.includes('createSession'));
 });
+
+
+test('MFA verify and enrollment consume the challenge before session issuance',()=>{
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','auth-store.js'),'utf8');
+  const verify=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','verify.js'),'utf8');
+  const complete=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','enroll','complete.js'),'utf8');
+  assert.ok(store.includes('verified_at is null and expires_at>now() and failed_attempts<5 returning id'));
+  for(const source of [verify,complete]){
+    assert.ok(source.includes('MFA_CHALLENGE_CONSUMED'));
+    assert.ok(source.indexOf('markMfaVerified(challenge.id,client)')<source.indexOf('createSession({userId:challenge.user_id'));
+  }
+});
