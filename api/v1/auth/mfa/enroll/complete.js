@@ -1,7 +1,7 @@
 const {applySecurityHeaders,requestId,errorBody,productionAuthConfigured}=require('../../../../_lib/security');
 const {tokenHash,newRawToken,secureCookie}=require('../../../../_lib/auth');
 const {withTransaction}=require('../../../../_lib/db');
-const {getMfaChallenge,findCredentialAccountById,enrollUserMfa,markMfaVerified,recordMfaFailure,recordLoginFailure,clearLoginFailures,createSession,writeAuthAudit,hashMetadata}=require('../../../../_lib/auth-store');
+const {getMfaChallenge,findCredentialAccountById,enrollUserMfa,invalidatePendingMfaChallenges,markMfaVerified,recordMfaFailure,recordLoginFailure,clearLoginFailures,createSession,writeAuthAudit,hashMetadata}=require('../../../../_lib/auth-store');
 const {decryptSecret,verifyTotp}=require('../../../../_lib/mfa');
 
 module.exports=async function handler(req,res){
@@ -33,16 +33,22 @@ module.exports=async function handler(req,res){
   const rawSession=newRawToken(),ua=hashMetadata(String(req.headers['user-agent']||'').slice(0,500)),ip=hashMetadata(String(req.headers['x-forwarded-for']||'').split(',')[0].trim());
   let session;
   try{session=await withTransaction(async client=>{
+    const lockedAccount=await findCredentialAccountById(challenge.user_id,client,{forUpdate:true});
+    const accountLocked=lockedAccount?.locked_until&&new Date(lockedAccount.locked_until).getTime()>Date.now();
+    if(!lockedAccount||lockedAccount.state!=='active'||lockedAccount.employee_lifecycle_status==='retired'||accountLocked){const e=new Error('account is no longer eligible for enrollment');e.code='SESSION_NOT_ALLOWED';throw e}
+    if(lockedAccount.mfa_enrolled_at){const e=new Error('MFA is already enrolled');e.code='MFA_ALREADY_ENROLLED';throw e}
     const consumed=await markMfaVerified(challenge.id,client);
     if(!consumed.rows[0]){const e=new Error('MFA enrollment challenge already consumed, expired or locked');e.code='MFA_CHALLENGE_CONSUMED';throw e}
+    const enrolled=await enrollUserMfa(challenge.user_id,{ciphertext:challenge.pending_secret_ciphertext,iv:challenge.pending_secret_iv,tag:challenge.pending_secret_tag},client);
+    if(!enrolled.rows[0]){const e=new Error('MFA was enrolled by another transaction');e.code='MFA_ALREADY_ENROLLED';throw e}
+    await invalidatePendingMfaChallenges(challenge.user_id,{purpose:'enroll',excludeId:challenge.id},client);
     const created=await createSession({userId:challenge.user_id,mfaVerified:true,tokenHash:tokenHash(rawSession),ttlSeconds:28800,userAgentHash:ua,ipPrefixHash:ip},client);
     if(!created){const e=new Error('account is no longer eligible for a session');e.code='SESSION_NOT_ALLOWED';throw e}
-    await enrollUserMfa(challenge.user_id,{ciphertext:challenge.pending_secret_ciphertext,iv:challenge.pending_secret_iv,tag:challenge.pending_secret_tag},client);
     await clearLoginFailures(challenge.user_id,client);
     await writeAuthAudit({action:'mfa_enrolled',userId:challenge.user_id,result:'success',requestId:id,summary:'MFA enrolled and verified'},client);
     return created
   })}catch(err){
-    if(err?.code==='SESSION_NOT_ALLOWED'||err?.code==='MFA_CHALLENGE_CONSUMED')return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を確認できません',id));
+    if(['SESSION_NOT_ALLOWED','MFA_CHALLENGE_CONSUMED','MFA_ALREADY_ENROLLED'].includes(err?.code))return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を確認できません',id));
     return res.status(503).json(errorBody('MFA_ENROLLMENT_COMMIT_FAILED','MFA登録を保存できません',id))
   }
   res.setHeader('Set-Cookie',secureCookie(rawSession,28800));
