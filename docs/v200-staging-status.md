@@ -153,3 +153,31 @@ GitHub Actions:
 
 ただし、これは「実社員データを今すぐ投入してよい」という意味ではありません。
 実認証、本番DB、private原本ストレージ、実機UAT、migration reconciliation が未完了のため、実社員情報・実PDF/画像/スキャン原本の投入は引き続き禁止です。
+
+
+## 2026-09-25 最終監査固定点更新
+
+最終コード監査固定点:
+`c1e5b43442ce8f92a737df64c75038961a525740`
+
+この固定点は、旧候補 `c275679...` 以降の認証・退職連動・本番有効化ゲート強化を含みます。
+
+追加確認済み:
+- Node回帰テスト: **276 / 276 pass / 0 fail**
+- PostgreSQL 16 本番候補schema実適用: 成功
+- multi-user optimistic concurrency: 1成功 / 1 VERSION_CONFLICT
+- pg_dump → 別DB pg_restore → 復元後検証: 成功
+- 復元後29 tables、月次ヒヤリ zero / short / met / exempt、append-only保護維持
+- Vercel単一router構成: READY
+- Vercel runtime errors（直近確認範囲）: 0
+- production業務APIは `TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA=1` の明示指定に加え、認証/DB readiness成立時だけ有効化
+- 明示有効化前はhealth以外をrouter入口で503拒否
+
+実Vercel staging readiness（2026-09-25確認）:
+- 認証設定: 未接続
+- staging DB接続設定: 未接続
+- private原本ストレージ: 未接続
+- secure-probe: AUTH_NOT_CONFIGURED で503（意図どおりfail-closed）
+
+したがって、**コード・DB/API設計は9割監査候補**ですが、実環境の本番稼働準備は別ゲートです。
+実社員情報・実PDF/画像/スキャン原本は、実認証・本番DB・private storage・実機UAT・移行照合が完了するまで投入禁止を継続します。
