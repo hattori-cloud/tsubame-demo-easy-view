@@ -98,7 +98,7 @@ async function ciPutObject({uploadToken,body,contentType}){
   if(bytes.length!==Number(auth.sizeBytes))throw problem(422,'UPLOAD_SIZE_MISMATCH','アップロードサイズが一致しません');
   if(String(contentType||'').toLowerCase()!==String(auth.contentType))throw problem(422,'UPLOAD_TYPE_MISMATCH','アップロード形式が一致しません');
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
-  const malwareStatus=bytes.subarray(0,14).toString('utf8')==='CI-MALWARE-BLOCK'?'blocked':'clean';
+  const malwareStatus=bytes.toString('utf8',0,Math.min(bytes.length,64)).startsWith('CI-MALWARE-BLOCK')?'blocked':'clean';
   const obj={
     storage_key:auth.storageKey,state:'quarantine',content_type:auth.contentType,size_bytes:bytes.length,
     sha256,malware_status:malwareStatus,malware_scanned_at:new Date().toISOString(),bytes
