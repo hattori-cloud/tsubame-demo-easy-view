@@ -40,7 +40,10 @@ async function findCredentialAccountById(userId,client=null){
 async function recordLoginFailure(userId,client=null){
   return query(`
     update users set failed_login_count=failed_login_count+1,
-      locked_until=case when failed_login_count+1>=5 then now()+interval '15 minutes' else locked_until end,
+      locked_until=case
+        when failed_login_count+1>=5 and (locked_until is null or locked_until<=now()) then now()+interval '15 minutes'
+        else locked_until
+      end,
       updated_at=now() where id=$1
     returning failed_login_count,locked_until
   `,[userId],client)
@@ -57,6 +60,7 @@ async function createSession({userId,mfaVerified=false,tokenHash,ttlSeconds=2880
      where u.id=$1
        and u.state='active'
        and e.lifecycle_status<>'retired'
+       and (u.locked_until is null or u.locked_until<=now())
     returning id,user_id,mfa_verified,issued_at,expires_at
   `,[userId,tokenHash,Boolean(mfaVerified),String(ttlSeconds),userAgentHash,ipPrefixHash],client);
   return r.rows[0]||null
