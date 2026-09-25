@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,32);
+  assert.equal(tables.length,33);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -173,4 +173,13 @@ test('work import schema supports transactional commit history and safe rollback
   assert.match(sql,/unique \(employee_id, month_start\)/i);
   assert.match(sql,/create table work_import_changes/i);
   assert.match(sql,/create trigger work_import_changes_append_only_guard[\s\S]*before update or delete on work_import_changes/i);
+});
+
+
+test('document upload tickets bind private quarantine authorization to employee and policy',()=>{
+  assert.match(sql,/create table document_upload_tickets/i);
+  assert.match(sql,/storage_key text not null unique/i);
+  assert.match(sql,/expected_content_type text not null/i);
+  assert.match(sql,/expected_size_bytes bigint not null/i);
+  assert.match(sql,/foreign key \(qualification_id, employee_id\) references qualifications\(id, employee_id\)/i);
 });
