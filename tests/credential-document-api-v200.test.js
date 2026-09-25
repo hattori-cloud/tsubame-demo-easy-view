@@ -8,6 +8,7 @@ const store=src('api','_lib','credential-store.js');
 const upload=src('api','v1','documents','upload-ticket.js');
 const download=src('api','v1','documents','[id]','download-ticket.js');
 const finalize=src('api','v1','documents','finalize.js');
+const originalStore=src('api','_lib','document-original-store.js');
 
 test('credential reads are employee-scoped and document visibility follows access class',()=>{
   assert.ok(store.includes('employeeForUser(user,employeeId)'));
@@ -41,9 +42,10 @@ test('original-file endpoints stay fail-closed across storage and malware readin
   assert.ok(finalize.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
   assert.ok(finalize.includes('DOCUMENT_MALWARE_SCANNER_NOT_READY'));
   assert.ok(finalize.includes('DOCUMENT_POLICY_CHANGED'));
-  assert.ok(finalize.includes('for update'));
-  assert.ok(finalize.includes("malware_scan_status"));
-  assert.ok(finalize.includes("'clean'"));
+  assert.ok(finalize.includes('finalizeCleanOriginal'));
+  assert.ok(originalStore.includes('for update'));
+  assert.ok(originalStore.includes("malware_scan_status"));
+  assert.ok(originalStore.includes("'clean'"));
 });
 
 test('qualification and document metadata changes are versioned and audited',()=>{
