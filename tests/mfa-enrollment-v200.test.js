@@ -31,8 +31,11 @@ test('TOTP accepts current step and neighboring clock-drift step only',()=>{
 
 test('login distinguishes MFA enrollment from normal verification',()=>{
   const login=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','login.js'),'utf8');
-  assert.ok(login.includes("purpose:account.mfa_enrolled_at?'verify':'enroll'"));
+  assert.ok(login.includes("purpose:current.mfa_enrolled_at?'verify':'enroll'"));
   assert.ok(login.includes('mfa_enrollment_required:!account.mfa_enrolled_at'));
+  assert.ok(login.includes("findCredentialAccountById(account.id,client,{forUpdate:true})"));
+  assert.ok(login.includes("String(current.password_hash)===String(account.password_hash)"));
+  assert.ok(login.includes('CREDENTIALS_CHANGED'));
 });
 
 test('MFA enrollment uses a primary-auth challenge and commits only after TOTP verification',()=>{
