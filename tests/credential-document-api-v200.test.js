@@ -33,12 +33,14 @@ test('metadata-only document creation rejects categories that require an electro
   assert.ok(store.includes('ELECTRONIC_ORIGINAL_REQUIRED'));
 });
 
-test('original-file endpoints fail closed until private storage adapter is actually ready',()=>{
-  assert.ok(upload.includes('DOCUMENT_STORAGE_NOT_CONFIGURED'));
+test('original-file endpoints stay fail-closed across storage and malware readiness stages',()=>{
   assert.ok(upload.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
+  assert.ok(upload.includes('document_upload_tickets'));
   assert.ok(download.includes('DOCUMENT_NOT_ACTIVE'));
   assert.ok(download.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
-  assert.ok(finalize.includes('DOCUMENT_FINALIZE_ADAPTER_NOT_READY'));
+  assert.ok(finalize.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
+  assert.ok(finalize.includes('DOCUMENT_MALWARE_SCANNER_NOT_READY'));
+  assert.ok(finalize.includes('DOCUMENT_SCAN_PIPELINE_NOT_READY'));
 });
 
 test('qualification and document metadata changes are versioned and audited',()=>{
