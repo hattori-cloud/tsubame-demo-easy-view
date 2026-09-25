@@ -55,6 +55,9 @@ jobs:
       - name: Verify migration reconciliation
         run: node scripts/verify-migration-reconciliation-v200.js
 
+      - name: Verify original document finalize transaction
+        run: node scripts/verify-document-original-v200.js
+
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
 
