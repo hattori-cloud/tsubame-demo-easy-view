@@ -40,7 +40,10 @@ test('original-file endpoints stay fail-closed across storage and malware readin
   assert.ok(download.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
   assert.ok(finalize.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
   assert.ok(finalize.includes('DOCUMENT_MALWARE_SCANNER_NOT_READY'));
-  assert.ok(finalize.includes('DOCUMENT_SCAN_PIPELINE_NOT_READY'));
+  assert.ok(finalize.includes('DOCUMENT_POLICY_CHANGED'));
+  assert.ok(finalize.includes('for update'));
+  assert.ok(finalize.includes("malware_scan_status"));
+  assert.ok(finalize.includes("'clean'"));
 });
 
 test('qualification and document metadata changes are versioned and audited',()=>{
