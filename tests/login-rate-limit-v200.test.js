@@ -27,8 +27,11 @@ test('login checks shared limiter before account lookup and records unknown-acco
 test('distributed limiter events are audited without raw network source',()=>{
   assert.ok(login.includes("action:'login_rate_limited'"));
   assert.ok(login.includes("action:'login_rate_limit_reached'"));
-  assert.equal(login.includes('x-forwarded-for'),false);
-  assert.equal(login.includes('x-real-ip'),false);
+  const auditCalls=[...login.matchAll(/writeAuthAudit\(\{([\s\S]*?)\}\)/g)].map(m=>m[1]).join('\n');
+  assert.equal(auditCalls.includes('x-forwarded-for'),false);
+  assert.equal(auditCalls.includes('x-real-ip'),false);
+  assert.equal(auditCalls.includes('rateKeys'),false);
+  assert.equal(auditCalls.includes('forwarded'),false);
 });
 
 test('rate limiter source derivation stays outside the audit payload',()=>{
