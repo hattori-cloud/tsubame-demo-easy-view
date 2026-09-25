@@ -24,13 +24,14 @@
 ### 基準スキーマ適用後
 
 - transaction完了
-- 29テーブル
+- 32テーブル
 - index作成成功
 - foreign key作成成功
 - documents.content_sha256 CHECK作成成功
 - malware_scan_status / malware_scanned_at列あり
 - document_purge_requests作成成功
 - login_rate_limits作成成功
+- work_import_batches / work_monthly_summaries / work_import_changes作成成功
 - audit_logs / record_histories の UPDATE・DELETE がDBトリガーで拒否される
 
 ### 容量追加SQL適用後
