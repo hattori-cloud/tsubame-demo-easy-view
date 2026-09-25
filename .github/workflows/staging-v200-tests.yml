@@ -52,6 +52,9 @@ jobs:
       - name: Verify transactional work import
         run: node scripts/verify-work-import-v200.js
 
+      - name: Verify migration reconciliation
+        run: node scripts/verify-migration-reconciliation-v200.js
+
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
 
