@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging-v200-backend
+      - staging-v200-next-production
 
 permissions:
   contents: read
