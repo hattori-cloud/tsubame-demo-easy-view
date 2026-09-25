@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:''};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -67,8 +67,14 @@
     $('searchForm').addEventListener('submit',e=>{e.preventDefault();loadView(state.view,{q:$('searchInput').value.trim()})});
     $('refreshBtn').addEventListener('click',()=>loadView(state.view,{q:$('searchInput').value.trim()}));
     $('content').addEventListener('click',e=>{
+      const action=e.target.closest('[data-action]');
+      if(action){handleAction(action.dataset.action,action.dataset.id||'');return}
       const row=e.target.closest('[data-employee-id]');
       if(row)employeeDetail(row.dataset.employeeId)
+    });
+    $('dialogBody').addEventListener('click',e=>{
+      const action=e.target.closest('[data-dialog-action]');
+      if(action)handleDialogAction(action.dataset.dialogAction)
     })
   }
 
@@ -183,13 +189,14 @@
   function metric(label,value,note){return '<div class="metric"><span>'+esc(label)+'</span><b>'+esc(value)+'</b><small>'+esc(note)+'</small></div>'}
   function check(label,note){return '<div class="check"><b>✓ '+esc(label)+'</b><span>'+esc(note)+'</span></div>'}
 
-  function listHeader(total,label){return '<div class="list-head"><b>'+esc(label)+'</b><span>'+esc(total)+'件</span></div>'}
+  function listHeader(total,label,action=''){return '<div class="list-head"><div><b>'+esc(label)+'</b><span>'+esc(total)+'件</span></div>'+action+'</div>'}
   function empty(){return '<div class="empty">該当データはありません。</div>'}
 
   async function renderEmployees(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
-    $('content').innerHTML=listHeader(data.total,'社員')+(data.items.length?'<div class="cards">'+data.items.map(e=>
+    const add=state.me?.role_level==='full'?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
+    $('content').innerHTML=listHeader(data.total,'社員',add)+(data.items.length?'<div class="cards">'+data.items.map(e=>
       '<button class="record employee" data-employee-id="'+esc(e.id)+'"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
       '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><span>'+esc(e.lifecycle_status||'—')+'</span></div></button>'
     ).join('')+'</div>':empty())
@@ -201,10 +208,12 @@
       const {data}=await api('/employees/'+encodeURIComponent(id));
       const e=data.employee;
       $('dialogTitle').textContent=e.name||'社員詳細';
+      const edit=(state.me?.role_level==='full'||state.me?.role_level==='scoped')?'<div class="dialog-actions"><button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button></div>':'';
+      state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
-        '</div>';
+        '</div>'+edit;
       $('detailDialog').showModal()
     }catch(err){showError(err,'社員詳細')}
   }
@@ -224,28 +233,235 @@
   async function renderAccidents(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/accidents?'+sp);
-    $('content').innerHTML=listHeader(data.total,'事故')+(data.items.length?'<div class="cards">'+data.items.map(x=>
+    const add='<button class="small-primary" data-action="new-accident">＋ 事故登録</button>';
+    $('content').innerHTML=listHeader(data.total,'事故',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span><button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
   async function renderComplaints(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/complaints?'+sp);
-    $('content').innerHTML=listHeader(data.total,'苦情')+(data.items.length?'<div class="cards">'+data.items.map(x=>
+    const add='<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>';
+    $('content').innerHTML=listHeader(data.total,'苦情',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span><button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
   async function renderVehicles(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/vehicles?'+sp);
-    $('content').innerHTML=listHeader(data.total,'車両')+(data.items.length?'<div class="cards">'+data.items.map(v=>
+    const add='<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>';
+    $('content').innerHTML=listHeader(data.total,'車両',add)+(data.items.length?'<div class="cards">'+data.items.map(v=>
       '<div class="record"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+'</span></div>'+
-      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span><button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
+  }
+
+
+  function formField(name,label,value='',type='text',extra=''){
+    return '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+extra+'></label>'
+  }
+  function formArea(name,label,value='',extra=''){
+    return '<label class="wide">'+esc(label)+'<textarea name="'+esc(name)+'" '+extra+'>'+esc(value??'')+'</textarea></label>'
+  }
+  function formSelect(name,label,options,value='',extra=''){
+    return '<label>'+esc(label)+'<select name="'+esc(name)+'" '+extra+'>'+options.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(v)===String(value)?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>'
+  }
+  function openRecordForm(title,fields,onSubmit,{actions=''}={}){
+    $('dialogTitle').textContent=title;
+    $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" onclick="this.closest(\\'dialog\\').close()">キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
+    const form=$('recordForm');
+    form.onsubmit=async e=>{
+      e.preventDefault();clearError();
+      const submit=form.querySelector('[type="submit"]');submit.disabled=true;
+      try{await onSubmit(new FormData(form));$('detailDialog').close();await loadView(state.view,{q:$('searchInput').value.trim()})}
+      catch(err){showError(err,'保存')}finally{submit.disabled=false}
+    };
+    $('detailDialog').showModal()
+  }
+  async function employeeChoices(){
+    const {data}=await api('/employees?page_size=100');
+    return data.items.map(e=>[e.id,e.employee_no+' '+e.name])
+  }
+  function fdText(fd,name){return String(fd.get(name)||'').trim()}
+  function nullable(v){const s=String(v||'').trim();return s||null}
+
+  async function handleAction(action,id){
+    try{
+      if(action==='new-employee')return newEmployee();
+      if(action==='new-accident')return newAccident();
+      if(action==='edit-accident')return editAccident(id);
+      if(action==='new-complaint')return newComplaint();
+      if(action==='edit-complaint')return editComplaint(id);
+      if(action==='new-vehicle')return newVehicle();
+      if(action==='edit-vehicle')return editVehicle(id)
+    }catch(err){showError(err,'操作')}
+  }
+  async function handleDialogAction(action){
+    const d=state.dialog;if(!d)return;
+    try{
+      if(action==='edit-employee')return editEmployee(d.record);
+      if(action==='complete-accident')return terminalAction('accident','complete',d.record);
+      if(action==='reopen-accident')return terminalAction('accident','reopen',d.record);
+      if(action==='complete-complaint')return terminalAction('complaint','complete',d.record);
+      if(action==='reopen-complaint')return terminalAction('complaint','reopen',d.record)
+    }catch(err){showError(err,'操作')}
+  }
+
+  async function newEmployee(){
+    if(state.me?.role_level!=='full')return;
+    const fields=
+      formField('employee_no','社員番号','','text','required maxlength="64"')+
+      formField('name','氏名','','text','required')+
+      formField('furigana','フリガナ')+
+      formField('office','事業所','','text','required')+
+      formField('department','部署','','text','required')+
+      formField('position','職位')+
+      formField('employment_type','雇用区分')+
+      formField('hired_on','入社日','','date');
+    openRecordForm('社員登録',fields,async fd=>{
+      await api('/employees',{method:'POST',body:{
+        employee_no:fdText(fd,'employee_no'),name:fdText(fd,'name'),furigana:nullable(fdText(fd,'furigana')),
+        office:fdText(fd,'office'),department:fdText(fd,'department'),position:nullable(fdText(fd,'position')),
+        employment_type:nullable(fdText(fd,'employment_type')),hired_on:nullable(fdText(fd,'hired_on'))
+      }})
+    })
+  }
+
+  function editEmployee(e){
+    const fields=
+      formField('name','氏名',e.name,'text','required')+formField('furigana','フリガナ',e.furigana)+
+      formField('position','職位',e.position)+formField('taxi_section','タクシー課区分',e.taxi_section)+
+      formField('team','班',e.team)+formField('employment_type','雇用区分',e.employment_type)+
+      formField('work_pattern','勤務区分',e.work_pattern)+formField('main_license','主免許',e.main_license)+
+      formField('license_expiry','免許期限',fmtDate(e.license_expiry)==='—'?'':fmtDate(e.license_expiry),'date')+
+      formField('health_check_due','健康診断期限',fmtDate(e.health_check_due)==='—'?'':fmtDate(e.health_check_due),'date')+
+      formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
+    openRecordForm('社員情報を編集',fields,async fd=>{
+      const body={};for(const k of ['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
+      await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
+    })
+  }
+
+  async function newAccident(){
+    const employees=await employeeChoices();
+    const fields=formSelect('employee_id','対象社員',employees,'','required')+
+      formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('car_no','号車')+formField('address','場所','','text','required')+
+      formArea('summary','事故内容','','required')+formArea('cause','原因')+formArea('prevention','再発防止')+
+      formArea('response_history','対応履歴')+formField('followup_due','フォロー期限','','date');
+    openRecordForm('事故登録',fields,async fd=>{
+      await api('/accidents',{method:'POST',body:{
+        employee_id:fdText(fd,'employee_id'),occurred_on:fdText(fd,'occurred_on'),car_no:nullable(fdText(fd,'car_no')),
+        address:fdText(fd,'address'),summary:fdText(fd,'summary'),cause:nullable(fdText(fd,'cause')),
+        prevention:nullable(fdText(fd,'prevention')),response_history:nullable(fdText(fd,'response_history')),followup_due:nullable(fdText(fd,'followup_due'))
+      }})
+    })
+  }
+
+  async function editAccident(id){
+    const {data}=await api('/accidents/'+encodeURIComponent(id));const a=data.accident;state.dialog={type:'accident',record:a};
+    const terminal=a.phase==='completed';
+    const fields=formField('occurred_on','発生日',fmtDate(a.occurred_on),'date','required')+formField('car_no','号車',a.car_no)+
+      formField('address','場所',a.address,'text','required')+formArea('summary','事故内容',a.summary,'required')+
+      formArea('cause','原因',a.cause)+formArea('prevention','再発防止',a.prevention)+formArea('response_history','対応履歴',a.response_history)+
+      formArea('next_action','次回対応',a.next_action)+formField('followup_due','フォロー期限',fmtDate(a.followup_due)==='—'?'':fmtDate(a.followup_due),'date');
+    const actions=terminal?'<button type="button" class="warning" data-dialog-action="reopen-accident">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-accident">完了</button>';
+    if(terminal){
+      $('dialogTitle').textContent='事故 '+(a.accident_no||'');
+      $('dialogBody').innerHTML='<div class="detail-grid">'+detail('対象',a.employee_id)+detail('発生日',fmtDate(a.occurred_on))+detail('状態',a.phase)+detail('号車',a.car_no)+'</div><div class="dialog-actions">'+actions+'</div>';
+      return $('detailDialog').showModal()
+    }
+    openRecordForm('事故 '+(a.accident_no||''),fields,async fd=>{
+      const body={};for(const k of ['occurred_on','car_no','address','summary','cause','prevention','response_history','next_action','followup_due'])body[k]=nullable(fdText(fd,k));
+      await api('/accidents/'+encodeURIComponent(a.id),{method:'PATCH',body,headers:{'If-Match':'"'+a.version+'"'}})
+    },{actions})
+  }
+
+  async function newComplaint(){
+    const employees=await employeeChoices();
+    const fields=formSelect('employee_id','対象社員',employees,'','required')+
+      formField('responded_on','対応日',new Date().toISOString().slice(0,10),'date','required')+
+      formArea('summary','苦情内容','','required')+
+      formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],'unrated')+
+      formArea('guidance_content','指導内容')+formArea('next_action','次回対応')+formField('followup_due','フォロー期限','','date');
+    openRecordForm('苦情登録',fields,async fd=>{
+      await api('/complaints',{method:'POST',body:{
+        employee_id:fdText(fd,'employee_id'),responded_on:fdText(fd,'responded_on'),summary:fdText(fd,'summary'),
+        rank:fdText(fd,'rank'),guidance_content:nullable(fdText(fd,'guidance_content')),
+        next_action:nullable(fdText(fd,'next_action')),followup_due:nullable(fdText(fd,'followup_due'))
+      }})
+    })
+  }
+
+  async function editComplaint(id){
+    const {data}=await api('/complaints/'+encodeURIComponent(id));const a=data.complaint;state.dialog={type:'complaint',record:a};
+    const terminal=a.status==='completed';
+    const fields=formField('responded_on','対応日',fmtDate(a.responded_on),'date','required')+
+      formArea('summary','苦情内容',a.summary,'required')+
+      formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],a.rank||'unrated')+
+      formArea('guidance_content','指導内容',a.guidance_content)+formArea('next_action','次回対応',a.next_action)+
+      formField('followup_due','フォロー期限',fmtDate(a.followup_due)==='—'?'':fmtDate(a.followup_due),'date');
+    const actions=terminal?'<button type="button" class="warning" data-dialog-action="reopen-complaint">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-complaint">完了</button>';
+    if(terminal){
+      $('dialogTitle').textContent='苦情 '+(a.complaint_no||'');
+      $('dialogBody').innerHTML='<div class="detail-grid">'+detail('対応日',fmtDate(a.responded_on))+detail('状態',a.status)+detail('ランク',a.rank)+detail('完了',fmtDate(a.completed_at))+'</div><div class="dialog-actions">'+actions+'</div>';
+      return $('detailDialog').showModal()
+    }
+    openRecordForm('苦情 '+(a.complaint_no||''),fields,async fd=>{
+      const body={};for(const k of ['responded_on','summary','rank','guidance_content','next_action','followup_due'])body[k]=nullable(fdText(fd,k));
+      await api('/complaints/'+encodeURIComponent(a.id),{method:'PATCH',body,headers:{'If-Match':'"'+a.version+'"'}})
+    },{actions})
+  }
+
+  async function terminalAction(type,operation,record){
+    let body={};
+    if(operation==='reopen'){
+      const reason=window.prompt('再開理由を入力してください');
+      if(!reason||!reason.trim())return;
+      body.reason=reason.trim()
+    }
+    const plural=type==='accident'?'accidents':'complaints';
+    const {data}=await api('/'+plural+'/'+encodeURIComponent(record.id)+'/'+operation,{method:'POST',body,headers:{'If-Match':'"'+record.version+'"'}});
+    $('detailDialog').close();
+    state.dialog=null;
+    await loadView(state.view,{q:$('searchInput').value.trim()});
+    return data
+  }
+
+  async function newVehicle(){
+    const employees=await employeeChoices();
+    const options=[['','主担当なし'],...employees];
+    const fields=formField('car_no','3桁号車','','text','required pattern="[0-9]{3}"')+
+      formField('model','車種')+formField('service','用途')+
+      formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],'spare')+
+      formSelect('primary_employee_id','主担当',options,'')+
+      formField('inspection_due','車検期限','','date','required')+formField('next_maintenance_due','次回整備','','date')+formArea('maintenance_note','整備メモ');
+    openRecordForm('車両登録',fields,async fd=>{
+      await api('/vehicles',{method:'POST',body:{
+        car_no:fdText(fd,'car_no'),model:nullable(fdText(fd,'model')),service:nullable(fdText(fd,'service')),
+        assignment_mode:fdText(fd,'assignment_mode'),primary_employee_id:nullable(fdText(fd,'primary_employee_id')),
+        inspection_due:fdText(fd,'inspection_due'),next_maintenance_due:nullable(fdText(fd,'next_maintenance_due')),
+        maintenance_note:nullable(fdText(fd,'maintenance_note'))
+      }})
+    })
+  }
+
+  async function editVehicle(id){
+    const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle;state.dialog={type:'vehicle',record:v};
+    const fields=formField('model','車種',v.model)+formField('service','用途',v.service)+
+      formSelect('status','状態',[['active','稼働'],['maintenance','整備'],['inactive','停止']],v.status||'active')+
+      formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
+      formField('inspection_due','車検期限',fmtDate(v.inspection_due)==='—'?'':fmtDate(v.inspection_due),'date','required')+
+      formField('next_maintenance_due','次回整備',fmtDate(v.next_maintenance_due)==='—'?'':fmtDate(v.next_maintenance_due),'date')+
+      formArea('maintenance_note','整備メモ',v.maintenance_note);
+    openRecordForm('車両 '+v.car_no+'号車',fields,async fd=>{
+      const body={};for(const k of ['model','service','status','assignment_mode','inspection_due','next_maintenance_due','maintenance_note'])body[k]=nullable(fdText(fd,k));
+      await api('/vehicles/'+encodeURIComponent(v.id),{method:'PATCH',body,headers:{'If-Match':'"'+v.version+'"'}})
+    })
   }
 
   window.addEventListener('DOMContentLoaded',boot);
