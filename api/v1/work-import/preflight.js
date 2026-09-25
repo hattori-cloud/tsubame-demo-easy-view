@@ -56,7 +56,7 @@ function numberValue(v){
   const n=Number(cleaned);
   return Number.isFinite(n)?n:null
 }
-function numberCellValue(cell){
+function numberCellValue(cell,{date1904=false}={}){
   const fmt=String(cell?.numFmt||'').toLowerCase();
   const durationFormat=/\[h\]|h+:mm|h:mm/.test(fmt);
   let direct=cell?.value;
@@ -64,7 +64,7 @@ function numberCellValue(cell){
   if(durationFormat){
     if(typeof direct==='number'&&Number.isFinite(direct))return direct*24;
     if(direct instanceof Date){
-      const excelEpoch=Date.UTC(1899,11,30);
+      const excelEpoch=date1904?Date.UTC(1904,0,1):Date.UTC(1899,11,30);
       const hours=(direct.getTime()-excelEpoch)/3600000;
       if(Number.isFinite(hours)&&hours>=0)return hours
     }
@@ -145,6 +145,7 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
   const workbook=new ExcelJS.Workbook();
   try{await workbook.xlsx.load(buffer)}catch(_){throw new AuthError(422,'INVALID_XLSX','Excelファイルを解析できません')}
 
+  const date1904=Boolean(workbook.properties?.date1904);
   const sensitive=workbookSensitiveHeaders(workbook);
   if(sensitive.length){
     const labels=sensitive.slice(0,8).map(x=>x.sheet+'!R'+x.row+'C'+x.column+' '+x.header);
@@ -175,9 +176,9 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
       row:r,
       employee_no:employeeNo,
       month:chosen.map.month?String(cellValue(row.getCell(chosen.map.month))).trim():'',
-      restraint:chosen.map.restraint?numberCellValue(row.getCell(chosen.map.restraint)):null,
-      remaining:chosen.map.remaining?numberCellValue(row.getCell(chosen.map.remaining)):null,
-      overtime:chosen.map.overtime?numberCellValue(row.getCell(chosen.map.overtime)):null,
+      restraint:chosen.map.restraint?numberCellValue(row.getCell(chosen.map.restraint),{date1904}):null,
+      remaining:chosen.map.remaining?numberCellValue(row.getCell(chosen.map.remaining),{date1904}):null,
+      overtime:chosen.map.overtime?numberCellValue(row.getCell(chosen.map.overtime),{date1904}):null,
       last_posted:chosen.map.last_posted?dateValue(cellValue(row.getCell(chosen.map.last_posted))):''
     };
     item.month=monthValue(item.month,item.last_posted);
