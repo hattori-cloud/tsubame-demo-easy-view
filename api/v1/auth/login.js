@@ -37,6 +37,7 @@ module.exports=async function handler(req,res){
     await assertLoginAllowed(rateKeys)
   }catch(err){
     if(err?.code==='LOGIN_RATE_LIMITED'){
+      try{await writeAuthAudit({action:'login_rate_limited',result:'denied',requestId:id,summary:'distributed login rate limit active'})}catch(_){}
       const remaining=180-(Date.now()-authStartedAt);if(remaining>0)await sleep(remaining);
       return res.status(429).json(errorBody('LOGIN_RATE_LIMITED','ログイン試行が多すぎます。しばらくしてから再度お試しください',id))
     }
@@ -45,7 +46,10 @@ module.exports=async function handler(req,res){
   let account;
   try{account=await findCredentialAccount(loginId)}catch(_){return res.status(503).json(errorBody('AUTH_STORE_UNAVAILABLE','認証保存先を利用できません',id))}
   if(!account){
-    try{await recordNetworkLoginFailure(rateKeys)}catch(_){return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))}
+    try{
+      const rate=await recordNetworkLoginFailure(rateKeys);
+      if(rate.source?.blocked||rate.sourceLogin?.blocked)await writeAuthAudit({action:'login_rate_limit_reached',result:'denied',requestId:id,summary:'distributed login threshold reached'})
+    }catch(_){return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))}
     return delayedAuthFailure(res,id,authStartedAt)
   }
 
@@ -58,7 +62,8 @@ module.exports=async function handler(req,res){
   if(!allowed||!passwordOk){
     try{
       await recordLoginFailure(account.id);
-      await recordNetworkLoginFailure(rateKeys);
+      const rate=await recordNetworkLoginFailure(rateKeys);
+      if(rate.source?.blocked||rate.sourceLogin?.blocked)await writeAuthAudit({action:'login_rate_limit_reached',userId:account.id,result:'denied',requestId:id,summary:'distributed login threshold reached'});
       await writeAuthAudit({action:'login_failed',userId:account.id,result:'denied',requestId:id,summary:'generic credential failure'})
     }catch(_){return res.status(503).json(errorBody('RATE_LIMIT_UNAVAILABLE','ログイン保護機能を利用できません',id))}
     return delayedAuthFailure(res,id,authStartedAt)
