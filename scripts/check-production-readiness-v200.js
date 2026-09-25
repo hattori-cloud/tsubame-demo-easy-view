@@ -9,7 +9,7 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
   const env=backendReadiness();
   const db=env.database_env_present?await probeDatabaseReadiness():{
     connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,
-    auth_rate_limit_ready:false,work_import_ready:false
+    auth_rate_limit_ready:false,work_import_ready:false,runtime_role_ready:false
   };
   const blockers=[];
   if(!env.auth_env_present)blockers.push('auth_env');
@@ -20,6 +20,7 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
   if(!db.capacity_ready)blockers.push('near_miss_capacity');
   if(!db.auth_rate_limit_ready)blockers.push('distributed_login_rate_limit');
   if(!db.work_import_ready)blockers.push('work_import_persistence');
+  if(!db.runtime_role_ready)blockers.push('runtime_db_role');
   if(!env.document_storage_env_present)blockers.push('document_storage_env');
   if(!env.document_storage_adapter_ready)blockers.push('document_storage_adapter');
   if(!env.production_business_activation_requested)blockers.push('production_activation_flag');
@@ -35,6 +36,7 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
       near_miss_capacity:db.capacity_ready,
       distributed_login_rate_limit:db.auth_rate_limit_ready,
       work_import_persistence:db.work_import_ready,
+      runtime_db_role:db.runtime_role_ready,
       document_storage_env:env.document_storage_env_present,
       document_storage_adapter:env.document_storage_adapter_ready,
       production_activation_requested:env.production_business_activation_requested,
