@@ -9,12 +9,36 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "production.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "production-app.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "production.css",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/v1(?:/(.*))?",
       "dest": "/api/router.js?__path=$1"
+    },
+    {
+      "src": "/production(?:\\.html)?",
+      "dest": "/production.html"
+    },
+    {
+      "src": "/production-app\\.js",
+      "dest": "/production-app.js"
+    },
+    {
+      "src": "/production\\.css",
+      "dest": "/production.css"
     },
     {
       "src": "/(.*)",
