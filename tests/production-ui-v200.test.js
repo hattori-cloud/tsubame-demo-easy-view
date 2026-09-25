@@ -56,3 +56,25 @@ test('production UI escapes API-provided content before HTML insertion',()=>{
   assert.ok(js.includes("esc(e.name)"));
   assert.ok(js.includes("esc(x.summary)"));
 });
+
+
+test('production write flows use server concurrency guards and dedicated terminal endpoints',()=>{
+  assert.ok(js.includes("'If-Match':'\"'+e.version+'\"'"));
+  assert.ok(js.includes("'If-Match':'\"'+a.version+'\"'"));
+  assert.ok(js.includes("'If-Match':'\"'+v.version+'\"'"));
+  assert.ok(js.includes("'/'+plural+'/'+encodeURIComponent(record.id)+'/'+operation"));
+  assert.ok(js.includes("operation==='reopen'"));
+  assert.ok(js.includes("window.prompt('再開理由を入力してください')"));
+});
+
+test('production create flows cover employees accidents complaints and vehicles',()=>{
+  for(const token of ["action==='new-employee'","action==='new-accident'","action==='new-complaint'","action==='new-vehicle'"])assert.ok(js.includes(token),token);
+  for(const token of ["method:'POST',body:{","await api('/employees'","await api('/accidents'","await api('/complaints'","await api('/vehicles'"])assert.ok(js.includes(token),token);
+});
+
+test('production UI never mutates completed accident or complaint through normal status patch',()=>{
+  assert.equal(js.includes("body.status='completed'"),false);
+  assert.equal(js.includes("body.phase='completed'"),false);
+  assert.ok(js.includes("data-dialog-action=\"complete-accident\""));
+  assert.ok(js.includes("data-dialog-action=\"complete-complaint\""));
+});
