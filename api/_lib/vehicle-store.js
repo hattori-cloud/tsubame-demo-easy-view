@@ -34,7 +34,7 @@ async function listVehicles(user,filters={}){
     const searchPrimaryScope=scopeSql(user,params,'e2');
     const searchAssignedScope=scopeSql(user,params,'e3');
     params.push('%'+q+'%');const p=params.length;
-    where.push(`(v.car_no ilike ${p} or coalesce(v.model,'') ilike ${p} or coalesce(v.service,'') ilike ${p} or exists(select 1 from employees e2 where e2.id=v.primary_employee_id and (${searchPrimaryScope}) and (e2.name ilike ${p} or e2.employee_no ilike ${p})) or exists(select 1 from vehicle_users vu2 join employees e3 on e3.id=vu2.employee_id and (${searchAssignedScope}) where vu2.vehicle_id=v.id and vu2.ended_on is null and (e3.name ilike ${p} or e3.employee_no ilike ${p})))`)
+    where.push(`(v.car_no ilike $${p} or coalesce(v.model,'') ilike $${p} or coalesce(v.service,'') ilike $${p} or exists(select 1 from employees e2 where e2.id=v.primary_employee_id and (${searchPrimaryScope}) and (e2.name ilike $${p} or e2.employee_no ilike $${p})) or exists(select 1 from vehicle_users vu2 join employees e3 on e3.id=vu2.employee_id and (${searchAssignedScope}) where vu2.vehicle_id=v.id and vu2.ended_on is null and (e3.name ilike $${p} or e3.employee_no ilike $${p})))`)
   }
   const page=Math.max(1,Number.parseInt(filters.page,10)||1),pageSize=Math.min(100,Math.max(1,Number.parseInt(filters.page_size,10)||50)),offset=(page-1)*pageSize;
   params.push(pageSize,offset);
