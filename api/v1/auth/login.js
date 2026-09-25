@@ -7,6 +7,11 @@ const {findCredentialAccount,recordLoginFailure,clearLoginFailures,createSession
 function genericAuthError(id){return errorBody('LOGIN_FAILED','ID・社員番号・パスワードを確認してください',id)}
 function cleanText(value,max){return typeof value==='string'?value.trim().slice(0,max):''}
 function sleep(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function delayedAuthFailure(res,id,startedAt){
+  const remaining=180-(Date.now()-startedAt);
+  if(remaining>0)await sleep(remaining);
+  return res.status(401).json(genericAuthError(id))
+}
 function clientMeta(req){
   const ua=String(req.headers['user-agent']||'').slice(0,500);
   const forwarded=String(req.headers['x-forwarded-for']||'').split(',')[0].trim();
@@ -24,9 +29,10 @@ module.exports=async function handler(req,res){
   if(password.length>256)return res.status(401).json(genericAuthError(id));
   if(!productionAuthConfigured())return res.status(503).json(errorBody('AUTH_NOT_CONFIGURED','本番認証が未設定です',id));
 
+  const authStartedAt=Date.now();
   let account;
   try{account=await findCredentialAccount(loginId)}catch(_){return res.status(503).json(errorBody('AUTH_STORE_UNAVAILABLE','認証保存先を利用できません',id))}
-  if(!account){await sleep(180);return res.status(401).json(genericAuthError(id))}
+  if(!account)return delayedAuthFailure(res,id,authStartedAt)
 
   const locked=account.locked_until&&new Date(account.locked_until).getTime()>Date.now();
   const allowed=account.state==='active'&&account.employee_lifecycle_status!=='retired'&&!locked&&String(account.employee_no)===employeeNo;
@@ -39,7 +45,7 @@ module.exports=async function handler(req,res){
       await recordLoginFailure(account.id);
       await writeAuthAudit({action:'login_failed',userId:account.id,result:'denied',requestId:id,summary:'generic credential failure'})
     }catch(_){}
-    return res.status(401).json(genericAuthError(id))
+    return delayedAuthFailure(res,id,authStartedAt)
   }
 
   const meta=clientMeta(req);
@@ -65,7 +71,7 @@ module.exports=async function handler(req,res){
       return created
     })
   }catch(err){
-    if(err?.code==='SESSION_NOT_ALLOWED')return res.status(401).json(genericAuthError(id));
+    if(err?.code==='SESSION_NOT_ALLOWED')return delayedAuthFailure(res,id,authStartedAt);
     return res.status(503).json(errorBody('SESSION_CREATE_FAILED','ログインセッションを開始できません',id))
   }
   res.setHeader('Set-Cookie',secureCookie(rawSession,28800));
