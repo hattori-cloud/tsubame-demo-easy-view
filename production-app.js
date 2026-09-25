@@ -268,6 +268,16 @@
   }
 
 
+  async function renderNearMisses(q){
+    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const {data}=await api('/near-misses?'+sp);
+    const add='<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>';
+    $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
+      '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span></div></div>'
+    ).join('')+'</div>':empty())
+  }
+
   function formField(name,label,value='',type='text',extra=''){
     return '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+extra+'></label>'
   }
@@ -304,7 +314,8 @@
       if(action==='new-complaint')return newComplaint();
       if(action==='edit-complaint')return editComplaint(id);
       if(action==='new-vehicle')return newVehicle();
-      if(action==='edit-vehicle')return editVehicle(id)
+      if(action==='edit-vehicle')return editVehicle(id);
+      if(action==='new-near-miss')return newNearMiss()
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
@@ -437,6 +448,37 @@
     state.dialog=null;
     await loadView(state.view,{q:$('searchInput').value.trim()});
     return data
+  }
+
+  async function newNearMiss(){
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    let fields='';
+    if(manager){
+      const employees=await employeeChoices();
+      fields+=formSelect('employee_id','対象社員',employees,'','required')
+    }
+    fields+=formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('occurred_time','発生時刻','','time')+
+      formField('reported_on','報告日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('car_no','号車')+
+      formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']], '')+
+      formArea('summary','内容','','required')+
+      formArea('prevention','再発防止')+
+      formArea('education','指導・教育');
+    openRecordForm('ヒヤリ登録',fields,async fd=>{
+      const body={
+        occurred_on:fdText(fd,'occurred_on'),
+        occurred_time:nullable(fdText(fd,'occurred_time')),
+        reported_on:fdText(fd,'reported_on'),
+        car_no:nullable(fdText(fd,'car_no')),
+        risk_level:nullable(fdText(fd,'risk_level')),
+        summary:fdText(fd,'summary'),
+        prevention:nullable(fdText(fd,'prevention')),
+        education:nullable(fdText(fd,'education'))
+      };
+      if(manager)body.employee_id=fdText(fd,'employee_id');
+      await api('/near-misses',{method:'POST',body})
+    })
   }
 
   async function newVehicle(){
