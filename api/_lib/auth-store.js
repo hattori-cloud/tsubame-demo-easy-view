@@ -89,7 +89,7 @@ async function enrollUserMfa(userId,{ciphertext,iv,tag},client=null){
   return query(`update users set mfa_secret_ciphertext=$2,mfa_secret_iv=$3,mfa_secret_tag=$4,mfa_enrolled_at=now(),updated_at=now(),version=version+1 where id=$1`,[userId,ciphertext,iv,tag],client)
 }
 async function markMfaVerified(challengeId,client=null){
-  return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null`,[challengeId],client)
+  return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null and expires_at>now() and failed_attempts<5 returning id`,[challengeId],client)
 }
 async function recordMfaFailure(challengeId,client=null){
   return query(`update mfa_challenges set failed_attempts=failed_attempts+1 where id=$1`,[challengeId],client)
