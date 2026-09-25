@@ -3,6 +3,8 @@ const ExcelJS=require('@ayocore/exceljs');
 const {authenticateRequest,sendApiError,AuthError}=require('../../_lib/auth');
 const {applySecurityHeaders,requestId}=require('../../_lib/security');
 const {resolveCurrentUser}=require('../../_lib/authorization');
+const {databaseConfigured}=require('../../_lib/db');
+const {createWorkImportPreflight}=require('../../_lib/work-import-store');
 
 const MAX_FILE_BYTES=4*1024*1024;
 const MAX_DATA_ROWS=5000;
@@ -203,7 +205,7 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
 
   if(truncated)blockingIssues.push({row:end+1,employee_no:'',issues:['データ行が'+MAX_DATA_ROWS+'件を超えています。分割して確認してください']});
   const canCommit=missing.length===0&&blockingIssues.length===0&&rows.length>0&&!truncated;
-  return {
+  const result={
     file_name:fileName,
     sha256:crypto.createHash('sha256').update(buffer).digest('hex'),
     size:buffer.length,
@@ -222,7 +224,9 @@ async function parseWorkbookBuffer(buffer,fileName='work-summary.xlsx'){
     preview:rows.slice(0,20),
     blocking_issues:blockingIssues.slice(0,50),
     warnings:warnings.slice(0,50)
-  }
+  };
+  Object.defineProperty(result,'_rows',{value:rows,enumerable:false});
+  return result
 }
 module.exports=async function handler(req,res){
   if(req.method!=='POST'){
@@ -241,8 +245,21 @@ module.exports=async function handler(req,res){
     else throw new AuthError(400,'INVALID_FILE','Excelファイル本体を読み込めません');
 
     const preflight=await parseWorkbookBuffer(buffer,fileName);
-    const id=requestId(req);applySecurityHeaders(res);res.setHeader('X-Request-Id',id);
-    return res.status(200).json({preflight,persistence:'none',data_mode:'preflight-only'})
+    const id=requestId(req);
+    let batch=null;
+    if(preflight.can_commit&&databaseConfigured()){
+      batch=await createWorkImportPreflight({user,preflight,rows:preflight._rows,requestId:id})
+    }
+    applySecurityHeaders(res);res.setHeader('X-Request-Id',id);
+    return res.status(200).json({
+      preflight,
+      batch:batch?{
+        id:batch.id,state:batch.state,row_count:batch.row_count,warning_count:batch.warning_count,
+        expires_at:batch.expires_at,version:batch.version
+      }:null,
+      persistence:batch?'preflight-batch':'none',
+      data_mode:batch?'preflight-and-confirm':'preflight-only'
+    })
   }catch(err){
     return sendApiError(req,res,err)
   }
