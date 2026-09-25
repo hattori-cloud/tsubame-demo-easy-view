@@ -84,7 +84,6 @@ async function updateEmployee({user,employeeId,body,expectedVersion,requestId}){
 }
 async function changeEmployeeNumber({employeeId,newEmployeeNo,reason,actorUserId,expectedVersion,requestId}){
   return withTransaction(async client=>{
-    if(String(target?.lifecycle_status||'')==='retired')await lockFullAdminContinuity(client);
     const r=await query('select * from employees where id=$1 for update',[employeeId],client);
     const employee=r.rows[0];
     if(!employee)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
@@ -104,6 +103,7 @@ async function changeEmployeeNumber({employeeId,newEmployeeNo,reason,actorUserId
 }
 async function transitionEmployee({employeeId,target,reason,handoffNote,actorUserId,expectedVersion,requestId}){
   return withTransaction(async client=>{
+    if(String(target?.lifecycle_status||'')==='retired')await lockFullAdminContinuity(client);
     const r=await query('select * from employees where id=$1 for update',[employeeId],client);
     const before=r.rows[0];
     if(!before)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
