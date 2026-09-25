@@ -101,6 +101,25 @@ async function expectAppendOnly(client,sql,label){
       await client.query('rollback')
     }
 
+    const challenge=(await client.query(`
+      insert into mfa_challenges(user_id,challenge_hash,purpose,expires_at)
+      values($1,'ci-concurrent-mfa-challenge','verify',now()+interval '5 minutes')
+      returning id
+    `,[adminA.id])).rows[0];
+    const secondClient=new Client({connectionString,ssl:false});
+    await secondClient.connect();
+    try{
+      const {markMfaVerified}=require('../api/_lib/auth-store');
+      const consumed=await Promise.all([
+        markMfaVerified(challenge.id,client),
+        markMfaVerified(challenge.id,secondClient)
+      ]);
+      const counts=consumed.map(x=>x.rowCount).sort();
+      assert(counts[0]===0&&counts[1]===1,'MFA challenge was not single-use under concurrent consumption: '+JSON.stringify(counts))
+    }finally{
+      await secondClient.end()
+    }
+
     for(const [emp,state,reason] of [
       [a,'required',null],[b,'required',null],[c,'required',null],[d,'exempt','CI架空免除']
     ]){
@@ -143,6 +162,7 @@ async function expectAppendOnly(client,sql,label){
       capacity_view:true,
       append_only_enforced:true,
       full_admin_continuity_guard:true,
+      mfa_challenge_single_use:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
