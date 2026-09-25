@@ -17,7 +17,7 @@ module.exports=async function handler(req,res){
   }
 
   const readiness=backendReadiness();
-  const dbProbe=readiness.database_env_present?await probeDatabaseReadiness():{connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,auth_rate_limit_ready:false};
+  const dbProbe=readiness.database_env_present?await probeDatabaseReadiness():{connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,auth_rate_limit_ready:false,work_import_ready:false};
   const databaseReady=Boolean(readiness.auth_env_present&&dbProbe.connected&&dbProbe.core_schema_ready&&dbProbe.audit_append_only_ready);
   const blockers=[];
   if(!readiness.auth_env_present)blockers.push('認証設定');
@@ -28,7 +28,8 @@ module.exports=async function handler(req,res){
     if(!dbProbe.core_schema_ready)blockers.push('本番候補DBスキーマ');
     if(!dbProbe.audit_append_only_ready)blockers.push('監査追記専用DB保護');
     if(!dbProbe.capacity_ready)blockers.push('月次ヒヤリ集計DB構造');
-    if(!dbProbe.auth_rate_limit_ready)blockers.push('共有ログイン試行制限DB構造')
+    if(!dbProbe.auth_rate_limit_ready)blockers.push('共有ログイン試行制限DB構造');
+    if(!dbProbe.work_import_ready)blockers.push('勤務集計commit/history/rollback DB構造')
   }
   if(!readiness.document_storage_env_present)blockers.push('private原本ストレージ接続');
   if(!readiness.document_storage_adapter_ready)blockers.push('private原本ストレージ実アダプター');
@@ -45,6 +46,7 @@ module.exports=async function handler(req,res){
       database_audit_guard_ready:dbProbe.audit_append_only_ready,
       database_capacity_ready:dbProbe.capacity_ready,
       distributed_login_rate_limit_ready:dbProbe.auth_rate_limit_ready,
+      work_import_persistence_ready:dbProbe.work_import_ready,
       database_vertical_slice_ready:databaseReady,
       document_storage_adapter_ready:readiness.document_storage_adapter_ready,
       original_file_test_ready:Boolean(readiness.original_file_test_ready&&databaseReady)
