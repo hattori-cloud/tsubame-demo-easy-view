@@ -49,6 +49,9 @@ jobs:
       - name: Verify distributed login rate limiter
         run: node scripts/verify-login-rate-limit-v200.js
 
+      - name: Verify production DB role separation
+        run: node scripts/verify-db-role-v200.js
+
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
 
@@ -63,6 +66,8 @@ jobs:
             -c "CREATE DATABASE tsubame_restore;"
           docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD/.ci-backup:/backup" postgres:16 \
             pg_restore -h 127.0.0.1 -U postgres -d tsubame_restore --no-owner --no-privileges --exit-on-error /backup/tsubame.dump
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/work" postgres:16 \
+            psql -h 127.0.0.1 -U postgres -d tsubame_restore -v ON_ERROR_STOP=1 -f /work/docs/production-role-grants-v200.sql
           TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/tsubame_restore node scripts/verify-restored-db-v200.js
 
       - name: Verify external-audit regression cases
