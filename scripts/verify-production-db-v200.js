@@ -23,6 +23,7 @@ async function expectAppendOnly(client,sql,label){
     const base=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
     const authHardening=fs.readFileSync(path.join(__dirname,'..','docs','production-auth-hardening-v200.sql'),'utf8');
     const capacity=fs.readFileSync(path.join(__dirname,'..','docs','production-capacity-v189.sql'),'utf8');
+    const roleGrants=fs.readFileSync(path.join(__dirname,'..','docs','production-role-grants-v200.sql'),'utf8');
 
     await client.query(base);
 
@@ -67,6 +68,17 @@ async function expectAppendOnly(client,sql,label){
         to_regclass('public.near_miss_monthly_compliance') is not null as view_ready
     `);
     assert(Object.values(capacityChecks.rows[0]).every(Boolean),'capacity schema readiness failed');
+
+    await client.query(roleGrants);
+
+    const roleChecks=await client.query(`
+      select count(*)::int as n
+        from pg_roles
+       where rolname in ('tsubame_app_runtime','tsubame_migrator')
+         and rolcanlogin=false
+         and rolsuper=false
+    `);
+    assert(roleChecks.rows[0].n===2,'production role separation not ready');
 
     const duplicateIndexes=await client.query(`
       select indrelid::regclass::text as table_name,indkey::text,indisunique,indisprimary,
@@ -174,6 +186,7 @@ async function expectAppendOnly(client,sql,label){
       full_admin_continuity_guard:true,
       mfa_challenge_single_use:true,
       distributed_login_rate_limit_ready:true,
+      least_privilege_roles_ready:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
