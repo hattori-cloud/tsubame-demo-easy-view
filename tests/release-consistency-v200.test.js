@@ -12,8 +12,9 @@ test('screen and API declare the same v200 release',()=>{
   assert.match(health,/release:'v200'/);
 });
 
-test('v200 health endpoint remains fail-closed for business data',()=>{
-  assert.match(health,/business_api_enabled:false/);
+test('v200 health endpoint reports the explicit production activation gate',()=>{
+  assert.match(health,/production_business_activation_requested:readiness\.production_business_activation_requested/);
+  assert.match(health,/business_api_enabled:readiness\.production_business_data_enabled/);
   assert.match(health,/data_mode:'no-business-data'/);
   assert.match(health,/feature_set:'v200-fail-closed-staging-backend'/);
 });
