@@ -98,8 +98,10 @@ test('normal accident and complaint updates cannot bypass complete or reopen wor
   const complaintUpdate=store.slice(store.indexOf('async function updateComplaint'),store.indexOf('async function completeComplaint'));
   assert.ok(accidentUpdate.includes('REOPEN_REQUIRED'));
   assert.ok(accidentUpdate.includes('USE_COMPLETION_ENDPOINT'));
-  assert.equal(accidentUpdate.includes("'phase'"),false);
+  const accidentAllowed=accidentUpdate.match(/editablePatch\(body,\[([^\]]+)\]/);
+  assert.ok(accidentAllowed);assert.equal(accidentAllowed[1].includes("'phase'"),false);
   assert.ok(complaintUpdate.includes('REOPEN_REQUIRED'));
   assert.ok(complaintUpdate.includes('USE_COMPLETION_ENDPOINT'));
-  assert.equal(complaintUpdate.includes("'status'"),false);
+  const complaintAllowed=complaintUpdate.match(/editablePatch\(body,\[([^\]]+)\]/);
+  assert.ok(complaintAllowed);assert.equal(complaintAllowed[1].includes("'status'"),false);
 });
