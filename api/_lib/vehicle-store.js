@@ -94,11 +94,19 @@ async function updateVehicleAssignments({user,id,body,expectedVersion,requestId}
     const mode=String(body.assignment_mode||before.assignment_mode);
     if(mode==='dedicated'&&!primary)throw problem(422,'PRIMARY_EMPLOYEE_REQUIRED','専属車には主担当乗務員が必要です');
     const beforeUsers=(await query(`select employee_id,role from vehicle_users where vehicle_id=$1 and ended_on is null order by role,employee_id`,[id],client)).rows;
-    await query(`update vehicle_users set ended_on=current_date where vehicle_id=$1 and ended_on is null`,[id],client);
-    if(primary)await query(`insert into vehicle_users(vehicle_id,employee_id,role) values($1,$2,'primary')`,[id,primary.id],client);
-    for(const e of extra)await query(`insert into vehicle_users(vehicle_id,employee_id,role) values($1,$2,'additional')`,[id,e.id],client);
+    const desiredUsers=[...(primary?[{employee_id:primary.id,role:'primary'}]:[]),...extra.map(e=>({employee_id:e.id,role:'additional'}))];
+    const beforeKeys=new Set(beforeUsers.map(x=>String(x.employee_id)+'|'+String(x.role)));
+    const desiredKeys=new Set(desiredUsers.map(x=>String(x.employee_id)+'|'+String(x.role)));
+    for(const old of beforeUsers){
+      const key=String(old.employee_id)+'|'+String(old.role);
+      if(!desiredKeys.has(key))await query(`update vehicle_users set ended_on=current_date where vehicle_id=$1 and employee_id=$2 and role=$3 and ended_on is null`,[id,old.employee_id,old.role],client)
+    }
+    for(const next of desiredUsers){
+      const key=String(next.employee_id)+'|'+String(next.role);
+      if(!beforeKeys.has(key))await query(`insert into vehicle_users(vehicle_id,employee_id,role) values($1,$2,$3)`,[id,next.employee_id,next.role],client)
+    }
     const after=(await query(`update vehicles set primary_employee_id=$2,assignment_mode=$3,updated_at=now(),version=version+1 where id=$1 returning *`,[id,primary?.id||null,mode],client)).rows[0];
-    const afterUsers=[...(primary?[{employee_id:primary.id,role:'primary'}]:[]),...extra.map(e=>({employee_id:e.id,role:'additional'}))];
+    const afterUsers=desiredUsers;
     await query(`insert into record_histories(entity_type,entity_id,actor_user_id,action,before_data,after_data,reason) values('vehicle',$1,$2,'assignments_change',$3::jsonb,$4::jsonb,'車両担当変更')`,[id,user.id,JSON.stringify({assignment_mode:before.assignment_mode,primary_employee_id:before.primary_employee_id,users:beforeUsers}),JSON.stringify({assignment_mode:mode,primary_employee_id:primary?.id||null,users:afterUsers})],client);
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'車両担当変更','vehicle',$2,$3,'success',$4,$5)`,[user.id,id,primary?.id||null,requestId,'主担当 '+(primary?.employee_no||'なし')+' / 追加 '+extra.length+'名'],client);
     return after
