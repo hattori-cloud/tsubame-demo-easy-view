@@ -4,9 +4,15 @@ function problem(status,code,message){const e=new Error(message);e.status=status
 function requireFullAdmin(user){if(!user||user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','勤務集計の取込は全社管理者のみ操作できます')}
 function roundHours(v){const n=Number(v);if(!Number.isFinite(n))throw problem(422,'INVALID_WORK_HOURS','勤務時間を確認してください');return Math.round(n*100)/100}
 function monthStart(month){const s=String(month||'');if(!/^\d{4}-\d{2}$/.test(s))throw problem(422,'INVALID_WORK_MONTH','対象月を確認してください');return s+'-01'}
+function sqlDate(value){
+  if(value instanceof Date)return value.toISOString().slice(0,10);
+  const s=String(value||'').trim();
+  const m=s.match(/^(\d{4}-\d{2}-\d{2})/);
+  return m?m[1]:s
+}
 function summarySnapshot(row){
   if(!row)return null;
-  return {id:row.id,employee_id:row.employee_id,month_start:String(row.month_start).slice(0,10),restraint_hours:Number(row.restraint_hours),remaining_hours:Number(row.remaining_hours),overtime_hours:Number(row.overtime_hours),last_posted:String(row.last_posted).slice(0,10),source_batch_id:row.source_batch_id||null}
+  return {id:row.id,employee_id:row.employee_id,month_start:sqlDate(row.month_start),restraint_hours:Number(row.restraint_hours),remaining_hours:Number(row.remaining_hours),overtime_hours:Number(row.overtime_hours),last_posted:sqlDate(row.last_posted),source_batch_id:row.source_batch_id||null}
 }
 async function resolveEmployees(employeeNos,client){
   const unique=[...new Set(employeeNos.map(x=>String(x).trim()).filter(Boolean))];
@@ -42,7 +48,7 @@ async function commitWorkImport({user,fileName,sha256,rows,requestId}){
         await query("insert into work_import_changes(batch_id,summary_id,employee_id,month_start,action,before_data,after_data) values($1,$2,$3,$4::date,'insert',null,$5::jsonb)",[batch.id,after.id,employeeId,month,JSON.stringify(summarySnapshot(after))],client);
         inserted++;continue
       }
-      const same=Number(before.restraint_hours)===next.restraint_hours&&Number(before.remaining_hours)===next.remaining_hours&&Number(before.overtime_hours)===next.overtime_hours&&String(before.last_posted).slice(0,10)===next.last_posted;
+      const same=Number(before.restraint_hours)===next.restraint_hours&&Number(before.remaining_hours)===next.remaining_hours&&Number(before.overtime_hours)===next.overtime_hours&&sqlDate(before.last_posted)===next.last_posted;
       if(same){unchanged++;continue}
       const beforeSnapshot=summarySnapshot(before);
       const after=(await query("update work_monthly_summaries set restraint_hours=$3,remaining_hours=$4,overtime_hours=$5,last_posted=$6::date,source_batch_id=$7,updated_at=now(),version=version+1 where id=$1 and employee_id=$2 returning *",[before.id,employeeId,next.restraint_hours,next.remaining_hours,next.overtime_hours,next.last_posted,batch.id],client)).rows[0];
@@ -84,4 +90,4 @@ async function rollbackWorkImport({user,batchId,reason,requestId}){
   })
 }
 
-module.exports={commitWorkImport,listWorkImports,rollbackWorkImport,resolveEmployees,summarySnapshot};
+module.exports={commitWorkImport,listWorkImports,rollbackWorkImport,resolveEmployees,summarySnapshot,sqlDate};
