@@ -50,7 +50,7 @@ async function withTransaction(work){
   }finally{client.release()}
 }
 async function probeDatabaseReadiness(){
-  const empty={connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,auth_rate_limit_ready:false,work_import_ready:false};
+  const empty={connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,auth_rate_limit_ready:false,work_import_ready:false,runtime_role_ready:false};
   if(!databaseEnvPresent())return empty;
   try{
     const r=await query(`
@@ -65,6 +65,13 @@ async function probeDatabaseReadiness(){
         to_regclass('public.work_import_batches') is not null as work_import_batches_ready,
         to_regclass('public.work_import_rows') is not null as work_import_rows_ready,
         to_regclass('public.work_summary_monthly') is not null as work_summary_ready,
+        exists(
+          select 1 from pg_roles r
+           where r.rolname=current_user
+             and r.rolsuper=false
+             and r.rolcreatedb=false
+             and r.rolcreaterole=false
+        ) and pg_has_role(current_user,'tsubame_app_runtime','member') as runtime_role_ready,
         to_regclass('public.near_miss_monthly_targets') is not null as capacity_targets_ready,
         to_regclass('public.near_miss_monthly_compliance') is not null as capacity_view_ready,
         exists(
@@ -85,7 +92,8 @@ async function probeDatabaseReadiness(){
       audit_append_only_ready:Boolean(x.audit_guard_ready&&x.history_guard_ready),
       capacity_ready:Boolean(x.capacity_targets_ready&&x.capacity_view_ready),
       auth_rate_limit_ready:Boolean(x.auth_rate_limit_ready),
-      work_import_ready:Boolean(x.work_import_batches_ready&&x.work_import_rows_ready&&x.work_summary_ready)
+      work_import_ready:Boolean(x.work_import_batches_ready&&x.work_import_rows_ready&&x.work_summary_ready),
+      runtime_role_ready:Boolean(x.runtime_role_ready)
     }
   }catch(_){return empty}
 }
