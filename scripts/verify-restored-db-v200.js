@@ -38,12 +38,18 @@ async function expectAppendOnly(client,sql,label){
       select
         (select count(*)::int from employees where employee_no like 'CI9%') as employees,
         (select count(*)::int from near_misses where report_no like 'CI-N-%') as near_misses,
-        (select count(*)::int from near_miss_monthly_targets where month_start=date '2099-01-01') as targets
+        (select count(*)::int from near_miss_monthly_targets where month_start=date '2099-01-01') as targets,
+        (select count(*)::int from work_import_batches) as work_import_batches,
+        (select count(*)::int from work_import_rows) as work_import_rows,
+        (select count(*)::int from work_summary_monthly) as work_summaries
     `);
     const n=counts.rows[0];
     assert(n.employees===4,'restored fictional employee count mismatch: '+JSON.stringify(n));
     assert(n.near_misses===3,'restored near-miss count mismatch: '+JSON.stringify(n));
     assert(n.targets===4,'restored monthly target count mismatch: '+JSON.stringify(n));
+    assert(n.work_import_batches===3,'restored work import batch count mismatch: '+JSON.stringify(n));
+    assert(n.work_import_rows===4,'restored work import row count mismatch: '+JSON.stringify(n));
+    assert(n.work_summaries===1,'restored work summary count mismatch: '+JSON.stringify(n));
 
     const compliance=await client.query(`
       select employee_no_snapshot,compliance_state
@@ -66,6 +72,9 @@ async function expectAppendOnly(client,sql,label){
       fictional_employees:n.employees,
       near_misses:n.near_misses,
       monthly_targets:n.targets,
+      work_import_batches:n.work_import_batches,
+      work_import_rows:n.work_import_rows,
+      work_summaries:n.work_summaries,
       compliance_states:states,
       append_only_enforced_after_restore:true,
       distributed_login_rate_limit_ready:true,
