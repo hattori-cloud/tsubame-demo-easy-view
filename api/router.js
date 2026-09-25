@@ -2,6 +2,7 @@
 
 const {applySecurityHeaders,requestId,errorBody}=require('./_lib/security');
 const {isProductionRuntime,productionBusinessDataEnabled}=require('./_lib/runtime-config');
+const {probeDatabaseReadiness}=require('./_lib/db');
 
 // Vercel Hobby function-budget router: keep all v1 handlers as internal modules,
 // but deploy only this single Node function. Route params are restored onto req.query.
@@ -90,10 +91,16 @@ function rawPath(req){
 
 module.exports=async function handler(req,res){
   const path=rawPath(req);
-  if(isProductionRuntime() && path!=='/health' && !productionBusinessDataEnabled()){
+  if(isProductionRuntime() && path!=='/health'){
     const id=requestId(req);
     applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
-    return res.status(503).json(errorBody('PRODUCTION_NOT_ACTIVATED','本番業務APIはまだ有効化されていません',id))
+    if(!productionBusinessDataEnabled()){
+      return res.status(503).json(errorBody('PRODUCTION_NOT_ACTIVATED','本番業務APIはまだ有効化されていません',id))
+    }
+    const dbReady=await probeDatabaseReadiness();
+    if(!dbReady.connected||!dbReady.core_schema_ready||!dbReady.audit_append_only_ready||!dbReady.capacity_ready){
+      return res.status(503).json(errorBody('PRODUCTION_DATABASE_NOT_READY','本番データベースの実接続・スキーマ・監査保護を確認できません',id))
+    }
   }
   for(const route of ROUTES){
     const m=route.pattern.exec(path);
