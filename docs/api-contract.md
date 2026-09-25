@@ -26,7 +26,9 @@ Authentication:
 - Suspended, retired, locked, or unregistered users are rejected before business data is loaded.
 - The server derives the user's effective role and office × department scopes. Scope is never trusted from request parameters.
 - Login failures return a generic authentication error so the response does not reveal whether the login ID, employee number, or password was wrong.
-- Repeated failures are rate-limited and may temporarily lock the account. Login success/failure, lock, unlock, password reset, MFA result and logout are audited; passwords and password hashes are never written to audit logs.
+- Repeated failures increment account-wide failure controls and may temporarily lock the account. Login success/failure, lock, unlock, password reset, MFA result and logout are audited; passwords and password hashes are never written to audit logs.
+- A distributed network-source throttle (shared DB/Redis-class store, never per-instance memory) is still required before production activation. The v200 candidate already has account lockout and minimum generic-failure delay, but does not claim the shared network throttle is complete.
+- Production business APIs remain fail-closed until an explicit production activation flag is present, authentication is configured, the live PostgreSQL schema/audit guards/capacity view pass readiness checks, and the private original-document storage adapter is implemented and audited. In the current candidate the storage adapter readiness is deliberately `false`, so real production activation cannot occur accidentally.
 
 Recommended common response headers:
 
@@ -86,7 +88,7 @@ Unauthenticated endpoint. Request body:
 Server processing order:
 
 1. normalize `login_id` and `employee_no` without changing their meaning,
-2. rate-limit the request by account key and network source,
+2. enforce account failure controls; before production activation also enforce the documented shared network-source throttle,
 3. resolve an active user by exact `login_id`,
 4. resolve the linked employee through immutable `users.employee_id`,
 5. require the submitted employee number to equal **employees.employee_no**, never an old number from `employee_number_history`,
@@ -111,6 +113,10 @@ Session persistence rules:
 
 Completes the short-lived MFA challenge. Management accounts must not receive a normal business session until this succeeds.
 
+A successful MFA challenge is consumed atomically in PostgreSQL before session issuance. The same challenge cannot be replayed concurrently to create a second session. Expired, already-consumed or failure-locked challenges return the same generic MFA failure response.
+
+First-time MFA enrollment uses the same single-consumption rule. Pending enrollment secret initialization is atomic so concurrent start requests cannot overwrite each other with different secrets.
+
 ### POST /api/v1/auth/logout
 
 Invalidates the server-side session and writes an audit event.
@@ -125,7 +131,9 @@ Administrative recovery workflow. A full administrator may initiate a reset but 
 
 ### POST /api/v1/users/{id}/suspend
 
-Full administrator only. The server changes the user state to suspended and invalidates **all active sessions in the same logical operation**. Future business API requests are rejected immediately. The action and reason are audited.
+Full administrator only. The server changes the user state to suspended and invalidates **all active sessions in the same logical operation**. Future business API requests are rejected immediately. Pending MFA challenges and unused password-reset tokens are invalidated. The action and reason are audited.
+
+The operation is rejected if it would remove the last active full administrator. Full-admin demotion and retirement use the same continuity guard and PostgreSQL transaction advisory lock so concurrent operations cannot remove every full administrator.
 
 ### POST /api/v1/users/{id}/reactivate
 
@@ -133,7 +141,7 @@ Full administrator only. Requires the linked employee to be active and the accou
 
 ### PATCH /api/v1/users/{id}/access
 
-Full administrator only. Updates role level, office × department scopes and safety authority with version/concurrency protection. Existing sessions must either be re-evaluated on every request or invalidated when the effective authorization is reduced.
+Full administrator only. Updates role level, office × department scopes and safety authority with version/concurrency protection. Existing sessions are invalidated when effective access changes. Demoting the last active full administrator is rejected.
 
 ### POST /api/v1/users
 
@@ -147,7 +155,8 @@ When an employee transition is committed to `retired`, production must atomicall
 2. invalidate all active sessions,
 3. prevent new login,
 4. write employee-transition history,
-5. write authentication/access audit events.
+5. write authentication/access audit events,
+6. reject the retirement if the linked account is the last active full administrator.
 
 The operator must not need a second manual "disable login" step after retirement.
 
@@ -289,6 +298,8 @@ Scoped administrator.
 
 The server validates the target employee is in scope.
 
+If `owner_user_id` is supplied, it must resolve to an active full/scoped administrator who is authorized for the target employee's current office × department. A scoped administrator cannot assign the case to an out-of-scope or self-only account.
+
 At creation time the server also freezes the employee's current `office`, `department` and `employment_type` into `office_at_record`, `department_at_record` and `employment_at_record`. These historical analysis fields are server-derived, not trusted from browser payloads, and normal PATCH operations must not rewrite them after a later transfer.
 
 ### PATCH /api/v1/accidents/{id}
@@ -338,6 +349,8 @@ At creation time the server freezes employee number, office, department and empl
 
 ### GET /api/v1/complaints
 ### POST /api/v1/complaints
+
+Complaint ownership uses the same active-manager and employee-scope validation as accident ownership.
 ### PATCH /api/v1/complaints/{id}
 ### POST /api/v1/complaints/{id}/complete
 ### POST /api/v1/complaints/{id}/reopen
@@ -577,6 +590,8 @@ Returns handoffs visible to the authenticated manager.
 ### POST /api/v1/handoffs/{id}/acknowledge
 
 Handoff actions are audited.
+
+The recipient must be an active full/scoped administrator. When an employee is attached, the recipient must be authorized for that employee's current office × department. A scoped sender must supply the employee so recipient scope can be verified; it cannot create an unscoped cross-department handoff. Only the designated recipient may acknowledge the handoff.
 
 ## 13. Audit logs
 
