@@ -25,6 +25,15 @@ function documentVisibilitySql(user,identity,params,alias='d'){
   }
   return 'false'
 }
+async function listDocumentPolicies(user){
+  manager(user);
+  const r=await query(`
+    select category,original_handling,security_class,access_level,verification_required,retention_years,retention_note,version
+      from document_policy_rules
+     order by category
+  `);
+  return r.rows
+}
 async function listCredentials(user,identity,employeeId){
   const employee=await employeeForUser(user,employeeId);
   const qualifications=(await query(`select * from qualifications where employee_id=$1 and archived_at is null order by expiry nulls last,name,id`,[employee.id])).rows;
@@ -122,4 +131,4 @@ async function updateDocumentMetadata({user,identity,id,body,expectedVersion,req
     return after
   })
 }
-module.exports={listCredentials,createQualification,updateQualification,createDocumentMetadata,updateDocumentMetadata,policyForCategory,requireDocumentPrivilege,documentVisibilitySql,employeeForUser,getDocumentForAccess};
+module.exports={listDocumentPolicies,listCredentials,createQualification,updateQualification,createDocumentMetadata,updateDocumentMetadata,policyForCategory,requireDocumentPrivilege,documentVisibilitySql,employeeForUser,getDocumentForAccess};
