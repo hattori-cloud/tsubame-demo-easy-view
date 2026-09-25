@@ -4,6 +4,7 @@ const ALLOWED_CONTENT_TYPES=['application/pdf','image/jpeg','image/png','image/w
 const DEFAULT_MAX_BYTES=20*1024*1024;
 const UPLOAD_TTL_MS=10*60*1000;
 const DOWNLOAD_TTL_MS=60*1000;
+const SCAN_DOWNLOAD_TTL_MS=5*60*1000;
 
 function problem(status,code,message){const e=new Error(message);e.status=status;e.code=code;return e}
 function sdk(){try{return require('@vercel/blob')}catch(_){throw problem(503,'DOCUMENT_STORAGE_SDK_NOT_AVAILABLE','原本ストレージSDKを利用できません')}}
@@ -36,9 +37,10 @@ async function issuePrivateUpload({pathname,contentType,size}){
   return signedUrl(pathname,'put',{validForMs:UPLOAD_TTL_MS,allowedContentTypes:[spec.contentType],maximumSizeInBytes:spec.size})
 }
 async function issuePrivateDownload(pathname){return signedUrl(pathname,'get',{validForMs:DOWNLOAD_TTL_MS,useCache:false})}
+async function issuePrivateScanDownload(pathname){return signedUrl(pathname,'get',{validForMs:SCAN_DOWNLOAD_TTL_MS,useCache:false})}
 async function headPrivate(pathname){
   if(!providerConfigured())throw problem(503,'DOCUMENT_STORAGE_NOT_CONFIGURED','Vercel Private Blobが未接続です');
   const {head}=sdk();
   try{return await head(pathname,{access:'private'})}catch(err){throw problem(503,'DOCUMENT_STORAGE_HEAD_FAILED','隔離原本を確認できません')}
 }
-module.exports={ALLOWED_CONTENT_TYPES,DEFAULT_MAX_BYTES,UPLOAD_TTL_MS,DOWNLOAD_TTL_MS,providerConfigured,validateUploadSpec,randomQuarantinePath,issuePrivateUpload,issuePrivateDownload,headPrivate};
+module.exports={ALLOWED_CONTENT_TYPES,DEFAULT_MAX_BYTES,UPLOAD_TTL_MS,DOWNLOAD_TTL_MS,SCAN_DOWNLOAD_TTL_MS,providerConfigured,validateUploadSpec,randomQuarantinePath,issuePrivateUpload,issuePrivateDownload,issuePrivateScanDownload,headPrivate};
