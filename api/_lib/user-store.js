@@ -1,4 +1,5 @@
 const {query,withTransaction}=require('./db');
+const {lockFullAdminContinuity,requireOtherActiveFullAdmin}=require('./admin-continuity');
 
 function problem(status,code,message){const e=new Error(message);e.status=status;e.code=code;return e}
 function assertFullAdmin(user){if(!user||user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','利用者管理は全社管理者のみ実行できます')}
@@ -49,9 +50,11 @@ async function createUser({actor,employeeId,loginId,displayName,roleLevel='self'
 async function updateUserAccess({actor,userId,roleLevel,safetyAuthority,scopes,expectedVersion,requestId}){
   assertFullAdmin(actor);
   return withTransaction(async client=>{
+    if(roleLevel&&String(roleLevel)!=='full')await lockFullAdminContinuity(client);
     const before=(await query(`select u.*,e.lifecycle_status from users u join employees e on e.id=u.employee_id where u.id=$1 for update`,[userId],client)).rows[0];
     if(!before)throw problem(404,'USER_NOT_FOUND','対象利用者が見つかりません');assertVersion(before,expectedVersion);
     const role=String(roleLevel||before.role_level);if(!['full','scoped','self'].includes(role))throw problem(422,'INVALID_ROLE','権限区分を確認してください');
+    if(before.role_level==='full'&&before.state==='active'&&role!=='full')await requireOtherActiveFullAdmin([before.id],client);
     const normalized=normalizeScopes(scopes);if(role==='scoped'&&!normalized.length)throw problem(422,'SCOPE_REQUIRED','担当管理者には担当範囲が必要です');
     const mfaRequired=role!=='self';
     const after=(await query(`update users set role_level=$2,safety_authority=$3,mfa_required=$4,updated_at=now(),version=version+1 where id=$1 returning id,employee_id,login_id,display_name,role_level,safety_authority,state,mfa_required,mfa_enrolled_at,version`,[userId,role,Boolean(safetyAuthority),mfaRequired],client)).rows[0];
@@ -65,8 +68,10 @@ async function updateUserAccess({actor,userId,roleLevel,safetyAuthority,scopes,e
 async function setUserState({actor,userId,state,expectedVersion,reason,requestId}){
   assertFullAdmin(actor);if(!['active','suspended'].includes(state))throw problem(422,'INVALID_USER_STATE','利用者状態を確認してください');if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','理由を入力してください');
   return withTransaction(async client=>{
+    if(state==='suspended')await lockFullAdminContinuity(client);
     const before=(await query(`select u.*,e.lifecycle_status from users u join employees e on e.id=u.employee_id where u.id=$1 for update`,[userId],client)).rows[0];if(!before)throw problem(404,'USER_NOT_FOUND','対象利用者が見つかりません');assertVersion(before,expectedVersion);
     if(state==='active'&&before.lifecycle_status==='retired')throw problem(422,'EMPLOYEE_RETIRED','退職済み社員のアカウントは再有効化できません');
+    if(state==='suspended'&&before.state==='active'&&before.role_level==='full')await requireOtherActiveFullAdmin([before.id],client);
     const after=(await query(`update users set state=$2,failed_login_count=case when $2='active' then 0 else failed_login_count end,locked_until=case when $2='active' then null else locked_until end,updated_at=now(),version=version+1 where id=$1 returning id,employee_id,login_id,display_name,role_level,safety_authority,state,mfa_required,mfa_enrolled_at,version`,[userId,state],client)).rows[0];
     const sessions=await query(`update auth_sessions set revoked_at=now(),revoke_reason=$2 where user_id=$1 and revoked_at is null returning id`,[userId,state==='suspended'?'account_suspended':'account_reactivated'],client);
     let invalidatedMfa=0,invalidatedReset=0;
