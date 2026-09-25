@@ -80,3 +80,6 @@ jobs:
 
       - name: Verify external-audit regression cases
         run: node scripts/verify-audit-regressions-v200.js
+
+      - name: Verify private document storage contract
+        run: node scripts/verify-document-storage-contract-v200.js
