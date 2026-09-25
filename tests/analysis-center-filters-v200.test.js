@@ -19,3 +19,7 @@ assert(html.includes("対象社員 '+employees.length+'名"),'scope employee cou
 assert(html.includes('<th>期間内入社</th><th>期間内退職</th>'),'company department table period headers missing');
 
 console.log('analysis-center-filters-v200: OK');
+
+assert(html.includes('onchange="analysisCenterDimensionChanged()"'),'analysis dimension onchange handler missing');
+assert(html.includes("ANALYSIS_CENTER_FILTERS.dept=document.getElementById('analysisCenterDept')?.value||''"),'department selection is not persisted before redraw');
+assert(html.includes("ANALYSIS_CENTER_FILTERS.employment=document.getElementById('analysisCenterEmployment')?.value||''"),'employment selection is not persisted before redraw');
