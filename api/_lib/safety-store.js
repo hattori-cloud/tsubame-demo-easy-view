@@ -23,6 +23,27 @@ async function employeeSnapshotForUser(user,employeeId,client){
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象社員が見つかりません');
   return r.rows[0]
 }
+async function managerAssigneeForEmployee(employee,requestedUserId,client){
+  const id=String(requestedUserId||'').trim();
+  if(!id)return null;
+  const r=await query(`
+    select u.id,u.role_level,u.state
+      from users u
+     where u.id=$1
+       and u.state='active'
+       and u.role_level in ('full','scoped')
+       and (
+         u.role_level='full'
+         or exists(
+           select 1 from user_scopes s
+            where s.user_id=u.id and s.office=$2 and s.department=$3
+         )
+       )
+     limit 1
+  `,[id,employee.office,employee.department],client);
+  if(!r.rows[0])throw problem(422,'OWNER_USER_NOT_AUTHORIZED','担当者は対象社員を担当できる有効な管理者から選択してください');
+  return r.rows[0]
+}
 async function scopedRecord(user,table,id,client,{includeArchived=false}={}){
   const params=[id],scope=scopeSql(user,params,'e'),archive=includeArchived?'':` and r.archived_at is null`;
   const r=await query(`select r.* from ${table} r join employees e on e.id=r.employee_id where r.id=$1 and ${scope}${archive} limit 1`,params,client);
@@ -65,11 +86,12 @@ async function createAccident({user,body,requestId}){
   requireSafetyManager(user);
   return withTransaction(async client=>{
     const e=await employeeSnapshotForUser(user,String(body.employee_id||''),client);
+    const owner=await managerAssigneeForEmployee(e,body.owner_user_id||user.id,client);
     const occurred=String(body.occurred_on||'').trim(),address=String(body.address||'').trim(),summary=String(body.summary||'').trim();
     if(!occurred||!address||!summary)throw problem(422,'REQUIRED_FIELDS','発生日・場所・事故内容を入力してください');
     const no=businessNo('ACC');
     const r=await query(`insert into accidents(accident_no,employee_id,office_at_record,department_at_record,employment_at_record,occurred_on,occurred_time,car_no,district,accident_type,fault_rate,opponent_repair_status,opponent_repair_cost,company_repair_status,company_repair_cost,address,summary,phase,cause,prevention,response_history,owner_user_id,next_action,followup_due) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) returning *`,
-      [no,e.id,e.office,e.department,e.employment_type||null,occurred,body.occurred_time||null,body.car_no||null,body.district||null,body.accident_type||null,body.fault_rate??null,body.opponent_repair_status||null,body.opponent_repair_cost??null,body.company_repair_status||null,body.company_repair_cost??null,address,summary,body.phase||'initial',body.cause||null,body.prevention||null,body.response_history||null,body.owner_user_id||user.id,body.next_action||null,body.followup_due||null],client);
+      [no,e.id,e.office,e.department,e.employment_type||null,occurred,body.occurred_time||null,body.car_no||null,body.district||null,body.accident_type||null,body.fault_rate??null,body.opponent_repair_status||null,body.opponent_repair_cost??null,body.company_repair_status||null,body.company_repair_cost??null,address,summary,body.phase||'initial',body.cause||null,body.prevention||null,body.response_history||null,owner.id,body.next_action||null,body.followup_due||null],client);
     await audit(client,{actorUserId:user.id,action:'事故登録',entityType:'accident',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no});
     return r.rows[0]
   })
@@ -79,6 +101,10 @@ async function updateAccident({user,id,body,expectedVersion,requestId}){
   return withTransaction(async client=>{
     const before=await scopedRecord(user,'accidents',id,client);assertVersion(before,expectedVersion);
     const patch=editablePatch(body,['occurred_on','occurred_time','car_no','district','accident_type','fault_rate','opponent_repair_status','opponent_repair_cost','company_repair_status','company_repair_cost','address','summary','phase','cause','prevention','response_history','owner_user_id','next_action','followup_due']);
+    if(Object.prototype.hasOwnProperty.call(patch,'owner_user_id')&&patch.owner_user_id){
+      const employee=await employeeSnapshotForUser(user,before.employee_id,client);
+      patch.owner_user_id=(await managerAssigneeForEmployee(employee,patch.owner_user_id,client)).id
+    }
     if(!Object.keys(patch).length)return before;
     const after=await applyPatch('accidents',id,patch,client);
     await history(client,{entityType:'accident',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'update',before,after});
@@ -169,10 +195,12 @@ async function listComplaints(user,filters={}){
 }
 async function createComplaint({user,body,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
-    const e=await employeeSnapshotForUser(user,String(body.employee_id||''),client);const responded=String(body.responded_on||'').trim(),summary=String(body.summary||'').trim();
+    const e=await employeeSnapshotForUser(user,String(body.employee_id||''),client);
+    const owner=await managerAssigneeForEmployee(e,body.owner_user_id||user.id,client);
+    const responded=String(body.responded_on||'').trim(),summary=String(body.summary||'').trim();
     if(!responded||!summary)throw problem(422,'REQUIRED_FIELDS','対応日・内容を入力してください');const no=businessNo('CMP');
     const r=await query(`insert into complaints(complaint_no,employee_id,office_at_record,department_at_record,employment_at_record,responded_on,responded_time,responder,occurrence_date,occurrence_time,car_no,customer_alias,summary,rank,owner_user_id,guidance_content,next_action,followup_due,status) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) returning *`,
-      [no,e.id,e.office,e.department,e.employment_type||null,responded,body.responded_time||null,body.responder||null,body.occurrence_date||null,body.occurrence_time||null,body.car_no||null,body.customer_alias||null,summary,body.rank||'unrated',body.owner_user_id||user.id,body.guidance_content||null,body.next_action||null,body.followup_due||null,body.status||'open'],client);
+      [no,e.id,e.office,e.department,e.employment_type||null,responded,body.responded_time||null,body.responder||null,body.occurrence_date||null,body.occurrence_time||null,body.car_no||null,body.customer_alias||null,summary,body.rank||'unrated',owner.id,body.guidance_content||null,body.next_action||null,body.followup_due||null,body.status||'open'],client);
     await audit(client,{actorUserId:user.id,action:'苦情登録',entityType:'complaint',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no});return r.rows[0]
   })
 }
@@ -180,6 +208,10 @@ async function updateComplaint({user,id,body,expectedVersion,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
     const before=await scopedRecord(user,'complaints',id,client);assertVersion(before,expectedVersion);
     const patch=editablePatch(body,['responded_on','responded_time','responder','occurrence_date','occurrence_time','car_no','customer_alias','summary','rank','owner_user_id','guidance_content','next_action','followup_due','status']);
+    if(Object.prototype.hasOwnProperty.call(patch,'owner_user_id')&&patch.owner_user_id){
+      const employee=await employeeSnapshotForUser(user,before.employee_id,client);
+      patch.owner_user_id=(await managerAssigneeForEmployee(employee,patch.owner_user_id,client)).id
+    }
     if(!Object.keys(patch).length)return before;const after=await applyPatch('complaints',id,patch,client);
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'update',before,after});
     await audit(client,{actorUserId:user.id,action:'苦情更新',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:before.complaint_no});return after
@@ -205,4 +237,4 @@ async function archiveComplaint({user,id,expectedVersion,reason,requestId}){
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情アーカイブ',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
-module.exports={listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
+module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
