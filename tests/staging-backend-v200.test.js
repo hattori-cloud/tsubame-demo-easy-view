@@ -82,7 +82,7 @@ test('v200 health and secure probe do not return business records',()=>{
   const health=fs.readFileSync(path.join(__dirname,'..','api','v1','health.js'),'utf8');
   const probe=fs.readFileSync(path.join(__dirname,'..','api','v1','secure-probe.js'),'utf8');
   assert.ok(health.includes("release:'v200'"));
-  assert.ok(health.includes("business_api_enabled:false"));
+  assert.ok(health.includes('business_api_enabled:readiness.production_business_data_enabled'));
   assert.ok(probe.includes("business_data_returned:false"));
   assert.equal(probe.includes('resolveCurrentUser'),false);
   assert.equal(probe.includes('employee'),false)
