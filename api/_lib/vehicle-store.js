@@ -36,7 +36,10 @@ async function listVehicles(user,filters={}){
   const page=Math.max(1,Number.parseInt(filters.page,10)||1),pageSize=Math.min(100,Math.max(1,Number.parseInt(filters.page_size,10)||50)),offset=(page-1)*pageSize;
   params.push(pageSize,offset);
   const r=await query(`
-    select v.*,e.employee_no as primary_employee_no,e.name as primary_employee_name,
+    select v.id,v.car_no,v.model,v.service,v.status,v.assignment_mode,
+           case when e.id is null then null else v.primary_employee_id end as primary_employee_id,
+           v.inspection_due,v.next_maintenance_due,v.maintenance_note,v.archived_at,v.created_at,v.updated_at,v.version,
+           e.employee_no as primary_employee_no,e.name as primary_employee_name,
            coalesce((select jsonb_agg(jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role) order by vu.role,eu.employee_no) from vehicle_users vu join employees eu on eu.id=vu.employee_id and (${assignedScope}) where vu.vehicle_id=v.id and vu.ended_on is null),'[]'::jsonb) as users,
            count(*) over()::int as _total
       from vehicles v left join employees e on e.id=v.primary_employee_id and (${primaryScope})
@@ -47,9 +50,16 @@ async function listVehicles(user,filters={}){
 }
 async function getVehicle(user,id,client=null,{forUpdate=false}={}){
   requireVehicleManager(user);
-  const params=[id],scope=vehicleScopeSql(user,params,'v');
-  const lock=forUpdate?' for update':'';
-  const r=await query(`select v.* from vehicles v where v.id=$1 and v.archived_at is null and ${scope}${lock}`,params,client);
+  const params=[id],scope=vehicleScopeSql(user,params,'v'),primaryScope=scopeSql(user,params,'e');
+  const lock=forUpdate?' for update of v':'';
+  const r=await query(`
+    select v.id,v.car_no,v.model,v.service,v.status,v.assignment_mode,
+           case when e.id is null then null else v.primary_employee_id end as primary_employee_id,
+           v.inspection_due,v.next_maintenance_due,v.maintenance_note,v.archived_at,v.created_at,v.updated_at,v.version
+      from vehicles v
+ left join employees e on e.id=v.primary_employee_id and (${primaryScope})
+     where v.id=$1 and v.archived_at is null and ${scope}${lock}
+  `,params,client);
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象車両が見つかりません');
   return r.rows[0]
 }
