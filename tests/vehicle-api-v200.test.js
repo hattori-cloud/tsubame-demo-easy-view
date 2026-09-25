@@ -40,8 +40,8 @@ test('vehicle list is paginated and does not load archived vehicles by default',
 
 
 test('vehicle list and detail are manager-only and scoped employee fields are filtered',()=>{
-  assert.ok(store.includes("async function listVehicles(user,filters={}){\\n  requireVehicleManager(user);"));
-  assert.ok(store.includes("async function getVehicle(user,id,client=null,{forUpdate=false}={}){\\n  requireVehicleManager(user);"));
+  assert.match(store,/async function listVehicles\(user,filters=\{\}\)\{\s*requireVehicleManager\(user\)/);
+  assert.match(store,/async function getVehicle\(user,id,client=null,\{forUpdate=false\}=\{\}\)\{\s*requireVehicleManager\(user\)/);
   assert.ok(store.includes("join employees eu on eu.id=vu.employee_id and (${assignedScope})"));
   assert.ok(store.includes("left join employees e on e.id=v.primary_employee_id and (${primaryScope})"));
   assert.ok(store.includes("and (${searchPrimaryScope})"));
