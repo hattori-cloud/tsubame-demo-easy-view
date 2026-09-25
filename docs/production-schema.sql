@@ -108,7 +108,6 @@ create table login_rate_limits (
 create index login_rate_limits_blocked_idx
   on login_rate_limits (blocked_until)
   where blocked_until is not null;
-
 create table mfa_challenges (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -486,7 +485,55 @@ create table drafts (
 create table work_import_batches (
   id uuid primary key default gen_random_uuid(),
   file_name text not null,
-  sha256 char(64) not null check (sha256 ~ '^[0-9a-f]{64}  id uuid primary key default gen_random_uuid(),
+  sha256 char(64) not null check (sha256 ~ '^[0-9a-f]{64}$'),
+  row_count integer not null check (row_count >= 0),
+  inserted_count integer not null default 0 check (inserted_count >= 0),
+  updated_count integer not null default 0 check (updated_count >= 0),
+  unchanged_count integer not null default 0 check (unchanged_count >= 0),
+  status text not null default 'committing'
+    check (status in ('committing','committed','rolled_back')),
+  imported_by_user_id uuid not null references users(id),
+  committed_at timestamptz,
+  rolled_back_at timestamptz,
+  rolled_back_by_user_id uuid references users(id),
+  rollback_reason text,
+  created_at timestamptz not null default now(),
+  check (status <> 'committed' or committed_at is not null),
+  check (status <> 'rolled_back' or (rolled_back_at is not null and rolled_back_by_user_id is not null and rollback_reason is not null))
+);
+
+create unique index work_import_batches_committed_sha_uidx
+  on work_import_batches(sha256)
+  where status='committed';
+
+create table work_monthly_summaries (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  month_start date not null,
+  restraint_hours numeric(10,2) not null check (restraint_hours between 0 and 1000),
+  remaining_hours numeric(10,2) not null check (remaining_hours between 0 and 1000),
+  overtime_hours numeric(10,2) not null check (overtime_hours between 0 and 1000),
+  last_posted date not null,
+  source_batch_id uuid references work_import_batches(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  version integer not null default 1 check (version >= 1),
+  unique (employee_id, month_start)
+);
+
+create table work_import_changes (
+  id uuid primary key default gen_random_uuid(),
+  batch_id uuid not null references work_import_batches(id),
+  summary_id uuid not null,
+  employee_id uuid not null references employees(id),
+  month_start date not null,
+  action text not null check (action in ('insert','update')),
+  before_data jsonb,
+  after_data jsonb not null,
+  occurred_at timestamptz not null default now()
+);
+create table record_histories (
+  id uuid primary key default gen_random_uuid(),
   entity_type text not null,
   entity_id text not null,
   employee_id uuid references employees(id),
@@ -554,174 +601,6 @@ create index work_import_batches_status_idx on work_import_batches (status, crea
 create index work_monthly_summaries_month_idx on work_monthly_summaries (month_start desc, employee_id);
 create index work_monthly_summaries_batch_idx on work_monthly_summaries (source_batch_id);
 create index work_import_changes_batch_idx on work_import_changes (batch_id, occurred_at, id);
-
-create index users_employee_idx on users (employee_id);
-create index users_state_role_idx on users (state, role_level);
-create index user_scopes_scope_idx on user_scopes (office, department, user_id);
-
-create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
-create index documents_employee_idx on documents (employee_id, category, status);
-create index documents_expiry_idx on documents (expiry, status);
-create unique index documents_storage_key_uidx on documents (storage_key) where storage_key is not null;
-create index document_policy_security_idx on document_policy_rules (security_class, access_level);
-create index documents_security_idx on documents (security_class, access_level, status, registered_on desc);
-create index documents_retention_idx on documents (retention_until, status) where archived_at is null;
-create index documents_storage_state_idx on documents (storage_state, malware_scan_status, security_class);
-create index documents_uploaded_by_idx on documents (uploaded_by_user_id, uploaded_at desc);
-create index document_purge_state_idx on document_purge_requests (state, requested_at desc);
-create index document_purge_document_idx on document_purge_requests (document_id, requested_at desc);
-create index safety_training_due_idx on safety_training (employee_id, status, due);
-create index assets_employee_idx on assets (employee_id, status, return_due);
-
-create index accidents_employee_date_idx on accidents (employee_id, occurred_on desc, id);
-create index accidents_phase_due_idx on accidents (phase, followup_due, id);
-create index accidents_owner_idx on accidents (owner_user_id, phase, followup_due);
-create index accidents_car_no_idx on accidents (car_no, occurred_on desc);
-
-create index near_misses_employee_date_idx on near_misses (employee_id, reported_on desc, id);
-create index near_misses_risk_idx on near_misses (risk_level, reported_on desc, id);
-create index near_misses_car_no_idx on near_misses (car_no, reported_on desc);
-create index near_misses_office_department_idx on near_misses (office_at_report, department_at_report, reported_on desc, id);
-create index near_misses_active_reported_idx on near_misses (reported_on desc, id) where archived_at is null;
-
-create index complaints_employee_date_idx on complaints (employee_id, responded_on desc, id);
-create index complaints_status_due_idx on complaints (status, followup_due, id);
-create index complaints_owner_idx on complaints (owner_user_id, status, followup_due);
-create index complaints_car_no_idx on complaints (car_no, responded_on desc);
-
-create index guidance_employee_date_idx on guidance_records (employee_id, guidance_on desc, id);
-create index vehicles_status_due_idx on vehicles (status, inspection_due, id);
-create index vehicles_primary_employee_idx on vehicles (primary_employee_id, status);
-create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on, vehicle_id);
-
-create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
-create index notices_state_published_idx on notices (state, published_at desc);
-create index notice_reads_user_idx on notice_reads (user_id, read_at desc);
-create index confirmation_responses_confirmation_idx on confirmation_responses (confirmation_id, responded_at desc);
-create index confirmation_responses_employee_idx on confirmation_responses (employee_id, responded_at desc);
-create index confirmations_state_due_idx on confirmations (state, due);
-create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at desc);
-create index handoffs_case_idx on handoffs (case_type, case_id);
-create index drafts_owner_idx on drafts (owner_user_id, saved_at desc);
-create index histories_entity_idx on record_histories (entity_type, entity_id, occurred_at desc);
-create index histories_employee_idx on record_histories (employee_id, occurred_at desc);
-create index audit_entity_idx on audit_logs (entity_type, entity_id, occurred_at desc);
-create index audit_actor_idx on audit_logs (actor_user_id, occurred_at desc);
-create index audit_employee_idx on audit_logs (employee_id, occurred_at desc);
-
-commit;
-
--- High-volume / monthly-target additions live in:
--- docs/production-capacity-v189.sql
--- That file is additive and uses IF NOT EXISTS where appropriate.
-),
-  row_count integer not null check (row_count >= 0),
-  inserted_count integer not null default 0 check (inserted_count >= 0),
-  updated_count integer not null default 0 check (updated_count >= 0),
-  unchanged_count integer not null default 0 check (unchanged_count >= 0),
-  status text not null default 'committing'
-    check (status in ('committing','committed','rolled_back')),
-  imported_by_user_id uuid not null references users(id),
-  committed_at timestamptz,
-  rolled_back_at timestamptz,
-  rolled_back_by_user_id uuid references users(id),
-  rollback_reason text,
-  created_at timestamptz not null default now(),
-  check (status <> 'committed' or committed_at is not null),
-  check (status <> 'rolled_back' or (rolled_back_at is not null and rolled_back_by_user_id is not null and rollback_reason is not null))
-);
-
-create unique index work_import_batches_committed_sha_uidx
-  on work_import_batches(sha256)
-  where status='committed';
-
-create table work_monthly_summaries (
-  id uuid primary key default gen_random_uuid(),
-  employee_id uuid not null references employees(id),
-  month_start date not null,
-  restraint_hours numeric(10,2) not null check (restraint_hours between 0 and 1000),
-  remaining_hours numeric(10,2) not null check (remaining_hours between 0 and 1000),
-  overtime_hours numeric(10,2) not null check (overtime_hours between 0 and 1000),
-  last_posted date not null,
-  source_batch_id uuid references work_import_batches(id),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  version integer not null default 1 check (version >= 1),
-  unique (employee_id, month_start)
-);
-
-create table work_import_changes (
-  id uuid primary key default gen_random_uuid(),
-  batch_id uuid not null references work_import_batches(id),
-  summary_id uuid not null,
-  employee_id uuid not null references employees(id),
-  month_start date not null,
-  action text not null check (action in ('insert','update')),
-  before_data jsonb,
-  after_data jsonb not null,
-  occurred_at timestamptz not null default now()
-);
-
-create table record_histories (
-  id uuid primary key default gen_random_uuid(),
-  entity_type text not null,
-  entity_id text not null,
-  employee_id uuid references employees(id),
-  actor_user_id uuid references users(id),
-  action text not null,
-  before_data jsonb,
-  after_data jsonb,
-  reason text,
-  occurred_at timestamptz not null default now()
-);
-
-create table audit_logs (
-  id uuid primary key default gen_random_uuid(),
-  occurred_at timestamptz not null default now(),
-  actor_user_id uuid references users(id),
-  action text not null,
-  entity_type text not null,
-  entity_id text not null,
-  employee_id uuid references employees(id),
-  result text not null default 'success',
-  request_id text,
-  summary text
-);
-
--- Audit/history records are append-only at the database layer.
--- Application roles must still be granted INSERT/SELECT only in production.
-create or replace function reject_append_only_mutation()
-returns trigger
-language plpgsql
-as 'begin
-  raise exception ''append-only table % does not allow %'', TG_TABLE_NAME, TG_OP
-    using errcode = ''55000'';
-end;';
-
-create trigger audit_logs_append_only_guard
-before update or delete on audit_logs
-for each row execute function reject_append_only_mutation();
-
-create trigger record_histories_append_only_guard
-before update or delete on record_histories
-for each row execute function reject_append_only_mutation();
-
-create trigger employee_number_history_append_only_guard
-before update or delete on employee_number_history
-for each row execute function reject_append_only_mutation();
-
-create index employees_scope_idx on employees (office, department, lifecycle_status, employee_no);
-create index employees_name_idx on employees (name);
-create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
-create index employees_retired_on_idx on employees (retired_on desc) where lifecycle_status = 'retired';
-
-create index employee_number_history_old_idx on employee_number_history (old_employee_no, changed_at desc);
-create index employee_number_history_employee_idx on employee_number_history (employee_id, changed_at desc);
-
-create index auth_sessions_user_active_idx on auth_sessions (user_id, expires_at desc) where revoked_at is null;
-create index password_reset_tokens_user_idx on password_reset_tokens (user_id, expires_at desc) where used_at is null;
-create index mfa_challenges_user_idx on mfa_challenges (user_id, expires_at desc) where verified_at is null;
-
 create index users_employee_idx on users (employee_id);
 create index users_state_role_idx on users (state, role_level);
 create index user_scopes_scope_idx on user_scopes (office, department, user_id);
