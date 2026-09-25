@@ -19,7 +19,10 @@ module.exports=async function handler(req,res){
     const nextHash=await hash(next,{algorithm:Algorithm.Argon2id,memoryCost:19456,timeCost:2,parallelism:1,outputLen:32});
     const id=requestId(req);
     await withTransaction(async client=>{
+      await query('select id from users where id=$1 for update',[identity.user_id],client);
       await query(`update users set password_hash=$2,password_changed_at=now(),failed_login_count=0,locked_until=null,updated_at=now(),version=version+1 where id=$1`,[identity.user_id,nextHash],client);
+      await query(`update mfa_challenges set verified_at=now() where user_id=$1 and verified_at is null`,[identity.user_id],client);
+      await query(`update password_reset_tokens set used_at=now() where user_id=$1 and used_at is null`,[identity.user_id],client);
       await revokeAllUserSessions(identity.user_id,'password_changed',client);
       await writeAuthAudit({actorUserId:identity.user_id,action:'password_changed',userId:identity.user_id,result:'success',requestId:id,summary:'password hash replaced; sessions revoked'},client)
     });
