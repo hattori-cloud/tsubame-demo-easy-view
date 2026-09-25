@@ -56,8 +56,8 @@ async function listDeadlines(user,identity,filters={}){
     const r=await query(`select 'asset' as type,a.id::text as source_id,a.employee_id,e.employee_no,e.name as employee_name,e.office,e.department,a.item as label,a.return_due as due,(a.return_due-current_date)::int as days_remaining,a.status,'貸与品を確認・返却更新' as action from assets a join employees e on e.id=a.employee_id where a.status<>'returned' and ${scope} and ${due} and ${search}`,params);rows.push(...r.rows)
   }
   async function vehicleDue(type,label,column,action){
-    const params=[],scope=vehicleScopeSql(user,params,'v'),due=dueClause('v.'+column,params,filter),search=searchClause(params,filters.q,['v.car_no','v.model','v.service']);
-    const r=await query(`select '${type}' as type,v.id::text as source_id,v.primary_employee_id as employee_id,e.employee_no,e.name as employee_name,e.office,e.department,('${label} '||v.car_no||'号車') as label,v.${column} as due,(v.${column}-current_date)::int as days_remaining,v.status,'${action}' as action from vehicles v left join employees e on e.id=v.primary_employee_id where v.archived_at is null and ${scope} and ${due} and ${search}`,params);rows.push(...r.rows)
+    const params=[],scope=vehicleScopeSql(user,params,'v'),primaryScope=scopeSql(user,params,'e'),due=dueClause('v.'+column,params,filter),search=searchClause(params,filters.q,['v.car_no','v.model','v.service']);
+    const r=await query(`select '${type}' as type,v.id::text as source_id,case when e.id is null then null else v.primary_employee_id end as employee_id,e.employee_no,e.name as employee_name,e.office,e.department,('${label} '||v.car_no||'号車') as label,v.${column} as due,(v.${column}-current_date)::int as days_remaining,v.status,'${action}' as action from vehicles v left join employees e on e.id=v.primary_employee_id and (${primaryScope}) where v.archived_at is null and ${scope} and ${due} and ${search}`,params);rows.push(...r.rows)
   }
   await vehicleDue('vehicle_inspection','車検','inspection_due','車両で車検期限を更新');
   await vehicleDue('vehicle_maintenance','整備','next_maintenance_due','車両で整備予定を更新');
