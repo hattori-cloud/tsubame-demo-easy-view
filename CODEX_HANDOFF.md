@@ -4,9 +4,11 @@
 対象リリース: **v200**  
 
 > **2026-09-25 最終大監査候補**  
-> CODEXの新しいコード監査固定対象は `staging-v200-backend` の `c1e5b43442ce8f92a737df64c75038961a525740` です。  
-> この固定点では **276/276回帰テスト成功**に加え、PostgreSQL 16空DB実適用、append-only監査保護、同時更新競合、pg_dump/pg_restore復元、Vercel preview READYまで確認済みです。  
-> さらに、本番業務APIは明示的な有効化フラグ＋認証/DB readinessが成立しない限りrouter入口でfail-closedするよう強化済みです。  
+> CODEXの新しいコード監査固定対象は `staging-v200-backend` の `96e1bbfa301536a50b8894b31276e0f793092901` です。  
+> この固定点では **285/285回帰テスト成功**に加え、PostgreSQL 16空DB実適用、append-only監査保護、同時更新競合、pg_dump/pg_restore復元、Vercel preview READYまで確認済みです。  
+> さらに、本番業務APIは明示的な有効化フラグだけでは開かず、認証・DB・private原本ストレージ・原本実アダプターreadinessがそろうまでrouter入口でfail-closedします。現時点では原本実アダプターreadinessを意図的にfalse固定しています。  
+> PostgreSQL実試験では、最後のfull admin保護・MFA challenge single-use・同時更新競合・backup/restoreまで合格しています。  
+> Vercelは `d8030dd...` までREADY、直近runtime errors 0を確認済みですが、固定SHA `96e1bbfa...` とdeployment metadataの完全一致確認は実環境ゲートとして残しています。  
 > 最終大監査依頼は `docs/audits/CODEX_FINAL_AUDIT_REQUEST_V200_20260925.md`、詳細な現在地は `docs/v200-staging-status.md` を参照してください。  
 > 旧固定点 `e69d406b56cfe79a7469a3ed5bb245e7d753d1f6` と旧監査依頼は監査履歴として残しており、最終候補と混同しないでください。  
 > 下記の「対象ブランチ: main」「本番URL」はproduction側の説明であり、staging監査対象とは分けて扱ってください。  
