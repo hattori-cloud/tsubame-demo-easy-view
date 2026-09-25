@@ -79,11 +79,16 @@ async function createDocumentMetadata({user,identity,body,requestId}){
     const employee=await employeeForUser(user,String(body.employee_id||''),client),category=String(body.category||'').trim(),name=String(body.name||'').trim();
     if(!category||!name)throw problem(422,'REQUIRED_FIELDS','書類区分・書類名を入力してください');
     const policy=await policyForCategory(category,client);requireDocumentPrivilege(user,identity,policy);
+    const qualificationId=body.qualification_id?String(body.qualification_id):null;
+    if(qualificationId){
+      const linked=await query('select id from qualifications where id=$1 and employee_id=$2 and archived_at is null limit 1',[qualificationId,employee.id],client);
+      if(!linked.rows[0])throw problem(422,'QUALIFICATION_EMPLOYEE_MISMATCH','選択した資格は対象社員の有効な資格ではありません')
+    }
     if(['electronic_original','paper_and_electronic'].includes(policy.original_handling))throw problem(409,'ELECTRONIC_ORIGINAL_REQUIRED','この書類区分は原本アップロード経路を使用してください');
     const row=(await query(`
       insert into documents(employee_id,qualification_id,category,name,kind,registered_on,expiry,status,security_class,access_level,original_handling,verification_required,paper_location,retention_until,storage_state)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'not_uploaded') returning *
-    `,[employee.id,body.qualification_id||null,category,name,body.kind||null,body.registered_on||new Date().toISOString().slice(0,10),body.expiry||null,body.status||'pending',policy.security_class,policy.access_level,policy.original_handling,policy.verification_required,body.paper_location||null,body.retention_until||null],client)).rows[0];
+    `,[employee.id,qualificationId,category,name,body.kind||null,body.registered_on||new Date().toISOString().slice(0,10),body.expiry||null,body.status||'pending',policy.security_class,policy.access_level,policy.original_handling,policy.verification_required,body.paper_location||null,body.retention_until||null],client)).rows[0];
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'書類メタデータ登録','document',$2,$3,'success',$4,$5)`,[user.id,row.id,employee.id,requestId,category+' / '+name],client);
     return row
   })
