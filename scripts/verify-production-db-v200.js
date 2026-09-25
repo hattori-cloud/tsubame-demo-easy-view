@@ -23,6 +23,7 @@ async function expectAppendOnly(client,sql,label){
     const base=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
     const authHardening=fs.readFileSync(path.join(__dirname,'..','docs','production-auth-hardening-v200.sql'),'utf8');
     const capacity=fs.readFileSync(path.join(__dirname,'..','docs','production-capacity-v189.sql'),'utf8');
+    const workImport=fs.readFileSync(path.join(__dirname,'..','docs','production-work-import-v200.sql'),'utf8');
     const roleGrants=fs.readFileSync(path.join(__dirname,'..','docs','production-role-grants-v200.sql'),'utf8');
 
     await client.query(base);
@@ -68,6 +69,17 @@ async function expectAppendOnly(client,sql,label){
         to_regclass('public.near_miss_monthly_compliance') is not null as view_ready
     `);
     assert(Object.values(capacityChecks.rows[0]).every(Boolean),'capacity schema readiness failed');
+
+    await client.query(workImport);
+    const workImportChecks=await client.query(`
+      select
+        to_regclass('public.work_import_batches') is not null as batches_ready,
+        to_regclass('public.work_import_rows') is not null as rows_ready,
+        to_regclass('public.work_summary_monthly') is not null as summaries_ready,
+        (select count(*)::int from pg_tables where schemaname='public') as tables
+    `);
+    assert(workImportChecks.rows[0].batches_ready&&workImportChecks.rows[0].rows_ready&&workImportChecks.rows[0].summaries_ready,'work-import persistence schema missing');
+    assert(workImportChecks.rows[0].tables===33,'work-import table count expected 33, got '+workImportChecks.rows[0].tables);
 
     await client.query(roleGrants);
 
@@ -187,6 +199,7 @@ async function expectAppendOnly(client,sql,label){
       mfa_challenge_single_use:true,
       distributed_login_rate_limit_ready:true,
       least_privilege_roles_ready:true,
+      work_import_persistence_ready:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
