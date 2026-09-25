@@ -82,7 +82,16 @@ async function getMfaChallenge(challengeHash,client=null){
   return r.rows[0]||null
 }
 async function setMfaPendingSecret(challengeId,{ciphertext,iv,tag},client=null){
-  const r=await query(`update mfa_challenges set pending_secret_ciphertext=$2,pending_secret_iv=$3,pending_secret_tag=$4 where id=$1 and verified_at is null returning *`,[challengeId,ciphertext,iv,tag],client);
+  const r=await query(`
+    update mfa_challenges
+       set pending_secret_ciphertext=$2,pending_secret_iv=$3,pending_secret_tag=$4
+     where id=$1
+       and verified_at is null
+       and expires_at>now()
+       and failed_attempts<5
+       and pending_secret_ciphertext is null
+    returning *
+  `,[challengeId,ciphertext,iv,tag],client);
   return r.rows[0]||null
 }
 async function enrollUserMfa(userId,{ciphertext,iv,tag},client=null){
