@@ -25,3 +25,12 @@ test('login API contract protects password and employee renumbering semantics',(
   assert.match(contract,/passwords and password hashes are never written to audit logs/);
   assert.match(contract,/the next login uses the \*\*new current employee number\*\*/);
 });
+
+
+test('login failures share a minimum response delay to reduce account-state timing leakage',()=>{
+  const login=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','login.js'),'utf8');
+  assert.ok(login.includes('async function delayedAuthFailure'));
+  assert.ok(login.includes('180-(Date.now()-startedAt)'));
+  assert.ok(login.includes('if(!account)return delayedAuthFailure'));
+  assert.ok(login.includes('return delayedAuthFailure(res,id,authStartedAt)'));
+});
