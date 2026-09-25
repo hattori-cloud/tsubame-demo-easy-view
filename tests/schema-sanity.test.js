@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,29);
+  assert.equal(tables.length,32);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -163,4 +163,14 @@ test('production schema includes shared distributed login limiter state',()=>{
   assert.match(sql,/failure_count integer not null default 0/i);
   assert.match(sql,/blocked_until timestamptz/i);
   assert.match(sql,/create index login_rate_limits_blocked_idx/i);
+});
+
+
+test('work import schema supports transactional commit history and safe rollback',()=>{
+  assert.match(sql,/create table work_import_batches/i);
+  assert.match(sql,/create unique index work_import_batches_committed_sha_uidx/i);
+  assert.match(sql,/create table work_monthly_summaries/i);
+  assert.match(sql,/unique \(employee_id, month_start\)/i);
+  assert.match(sql,/create table work_import_changes/i);
+  assert.match(sql,/create trigger work_import_changes_append_only_guard[\s\S]*before update or delete on work_import_changes/i);
 });
