@@ -1,6 +1,7 @@
 'use strict';
 
 const {applySecurityHeaders,requestId,errorBody}=require('./_lib/security');
+const {isProductionRuntime,productionBusinessDataEnabled}=require('./_lib/runtime-config');
 
 // Vercel Hobby function-budget router: keep all v1 handlers as internal modules,
 // but deploy only this single Node function. Route params are restored onto req.query.
@@ -89,6 +90,11 @@ function rawPath(req){
 
 module.exports=async function handler(req,res){
   const path=rawPath(req);
+  if(isProductionRuntime() && path!=='/health' && !productionBusinessDataEnabled()){
+    const id=requestId(req);
+    applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
+    return res.status(503).json(errorBody('PRODUCTION_NOT_ACTIVATED','本番業務APIはまだ有効化されていません',id))
+  }
   for(const route of ROUTES){
     const m=route.pattern.exec(path);
     if(!m)continue;
