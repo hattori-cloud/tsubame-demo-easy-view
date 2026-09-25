@@ -27,8 +27,9 @@ function documentStorageAdapterReady(){
   return Boolean(process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER==='vercel_blob'&&documentStorageEnvPresent())
 }
 function documentMalwareScannerReady(){
-  // Keep production fail-closed until a real quarantine malware scanner adapter is connected and audited.
-  return false
+  const url=String(process.env.TSUBAME_DOCUMENT_SCANNER_URL||'');
+  const secret=String(process.env.TSUBAME_DOCUMENT_SCANNER_SECRET||'');
+  return Boolean(/^https:\/\//i.test(url)&&secret.length>=32&&process.env.TSUBAME_DOCUMENT_SCANNER_AUDITED==='1')
 }
 function stagingFixturesRequested(){
   return process.env.TSUBAME_ENABLE_STAGING_FIXTURES==='1'
