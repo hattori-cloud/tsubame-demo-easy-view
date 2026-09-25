@@ -26,7 +26,7 @@ async function expectAppendOnly(client,sql,label){
     await client.query(base);
 
     const baseTables=await client.query("select count(*)::int as n from pg_tables where schemaname='public'");
-    assert(baseTables.rows[0].n===28,'base schema table count expected 28, got '+baseTables.rows[0].n);
+    assert(baseTables.rows[0].n===29,'base schema table count expected 29, got '+baseTables.rows[0].n);
 
     const baseChecks=await client.query(`
       select
@@ -34,6 +34,7 @@ async function expectAppendOnly(client,sql,label){
         to_regclass('public.users') is not null as users_ready,
         to_regclass('public.documents') is not null as documents_ready,
         to_regclass('public.document_purge_requests') is not null as purge_ready,
+        to_regclass('public.login_rate_limits') is not null as rate_limit_ready,
         exists(select 1 from information_schema.columns where table_schema='public' and table_name='documents' and column_name='content_sha256') as sha_ready,
         exists(select 1 from information_schema.columns where table_schema='public' and table_name='documents' and column_name='malware_scan_status') as malware_ready,
         exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid where c.relname='audit_logs' and t.tgname='audit_logs_append_only_guard' and not t.tgisinternal) as audit_guard,
@@ -101,6 +102,23 @@ async function expectAppendOnly(client,sql,label){
       await client.query('rollback')
     }
 
+    const {recordLoginFailure:recordNetworkLoginFailure,state:rateLimitState}=require('../api/_lib/login-rate-limit');
+    const sourceKey='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+    const sourceLoginKey='bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+    const limiterClients=[];
+    try{
+      for(let i=0;i<10;i++){
+        const c2=new Client({connectionString,ssl:false});await c2.connect();limiterClients.push(c2)
+      }
+      await Promise.all(limiterClients.map(c2=>recordNetworkLoginFailure({sourceKey,sourceLoginKey},c2)));
+      const sourceState=await rateLimitState(sourceKey,client);
+      const sourceLoginState=await rateLimitState(sourceLoginKey,client);
+      assert(sourceState&&sourceState.failure_count===10&&!sourceState.blocked,'source limiter unexpected: '+JSON.stringify(sourceState));
+      assert(sourceLoginState&&sourceLoginState.failure_count===10&&sourceLoginState.blocked,'source+login limiter did not block atomically: '+JSON.stringify(sourceLoginState))
+    }finally{
+      await Promise.all(limiterClients.map(c2=>c2.end()))
+    }
+
     const challenge=(await client.query(`
       insert into mfa_challenges(user_id,challenge_hash,purpose,expires_at)
       values($1,'ci-concurrent-mfa-challenge','verify',now()+interval '5 minutes')
@@ -163,6 +181,7 @@ async function expectAppendOnly(client,sql,label){
       append_only_enforced:true,
       full_admin_continuity_guard:true,
       mfa_challenge_single_use:true,
+      distributed_login_rate_limiter:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
