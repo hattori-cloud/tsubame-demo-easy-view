@@ -1,4 +1,5 @@
 const {query,withTransaction}=require('./db');
+const {lockFullAdminContinuity,requireOtherActiveFullAdmin}=require('./admin-continuity');
 
 function problem(status,code,message){const e=new Error(message);e.status=status;e.code=code;return e}
 function scopeSql(user,params,alias='e'){
@@ -83,6 +84,7 @@ async function updateEmployee({user,employeeId,body,expectedVersion,requestId}){
 }
 async function changeEmployeeNumber({employeeId,newEmployeeNo,reason,actorUserId,expectedVersion,requestId}){
   return withTransaction(async client=>{
+    if(String(target?.lifecycle_status||'')==='retired')await lockFullAdminContinuity(client);
     const r=await query('select * from employees where id=$1 for update',[employeeId],client);
     const employee=r.rows[0];
     if(!employee)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
@@ -116,7 +118,9 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     const updated=(await query(`update employees set office=$2,department=$3,lifecycle_status=$4,retired_on=$5,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next.office,next.department,next.lifecycle_status,next.retired_on],client)).rows[0];
     await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
     if(next.lifecycle_status==='retired'){
-      const accounts=await query('select id,state from users where employee_id=$1 order by id',[employeeId],client);
+      const accounts=await query('select id,state,role_level from users where employee_id=$1 order by id',[employeeId],client);
+      const activeFull=accounts.rows.filter(u=>u.state==='active'&&u.role_level==='full').map(u=>u.id);
+      if(activeFull.length)await requireOtherActiveFullAdmin(activeFull,client);
       for(const u of accounts.rows){
         await query(`update mfa_challenges set verified_at=now() where user_id=$1 and verified_at is null`,[u.id],client);
         await query(`update password_reset_tokens set used_at=now() where user_id=$1 and used_at is null`,[u.id],client);
