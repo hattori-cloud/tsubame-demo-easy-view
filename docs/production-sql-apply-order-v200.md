@@ -11,8 +11,10 @@
 
 1. `docs/production-schema.sql`
 2. `docs/production-capacity-v189.sql`
+3. production runtime role `tsubame_app` を作成（非owner / 非superuser / 非createdb / 非createrole）
+4. `docs/production-runtime-grants-v200.sql`
 
-順番を逆にしないでください。
+順番を逆にしないでください。runtime grantはschema/capacity適用後に行います。
 
 基準スキーマは社員、利用者、事故、ヒヤリ、苦情、資格、書類、監査等の本体テーブルを作成します。
 容量追加SQLは、月次ヒヤリ対象者スナップショットと大容量運用向け索引・ビューを追加します。
@@ -65,3 +67,21 @@ SQLをその場で手修正して続行しないでください。
 - 制約違反が期待どおり拒否される
 - 月次ヒヤリcomplianceが zero / short / met / exempt を正しく返す
 - 実社員データ未使用
+
+
+## runtime role確認
+
+`tsubame_app` で最低限確認:
+
+- employee SELECT / UPDATE成功
+- audit_logs INSERT成功
+- record_histories INSERT成功
+- drafts / user_scopes の必要DELETE成功
+- audit_logs UPDATE失敗
+- record_histories DELETE失敗
+- ALTER TABLE失敗
+- CREATE TABLE失敗
+- DROP TABLE失敗
+- TRUNCATE失敗
+
+CIでは `scripts/verify-db-role-v200.js` がこの条件を実DBで検証します。
