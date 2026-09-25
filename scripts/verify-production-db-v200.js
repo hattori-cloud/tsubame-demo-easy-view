@@ -79,6 +79,28 @@ async function expectAppendOnly(client,sql,label){
     `);
     const [a,b,c,d]=emps.rows;
 
+    const admins=await client.query(`
+      insert into users(employee_id,login_id,password_hash,display_name,role_level,state,mfa_required)
+      values
+        ($1,'ci-admin-a','ci-hash-a','CI架空管理者A','full','active',true),
+        ($2,'ci-admin-b','ci-hash-b','CI架空管理者B','full','active',true)
+      returning id
+    `,[a.id,b.id]);
+    const [adminA,adminB]=admins.rows;
+    const {lockFullAdminContinuity,requireOtherActiveFullAdmin}=require('../api/_lib/admin-continuity');
+    await client.query('begin');
+    try{
+      await lockFullAdminContinuity(client);
+      await requireOtherActiveFullAdmin([adminA.id],client);
+      let blocked=false;
+      try{await requireOtherActiveFullAdmin([adminA.id,adminB.id],client)}catch(err){
+        blocked=err&&err.code==='LAST_FULL_ADMIN_REQUIRED'
+      }
+      assert(blocked,'last full administrator guard did not reject removing all active full admins')
+    }finally{
+      await client.query('rollback')
+    }
+
     for(const [emp,state,reason] of [
       [a,'required',null],[b,'required',null],[c,'required',null],[d,'exempt','CI架空免除']
     ]){
@@ -120,6 +142,7 @@ async function expectAppendOnly(client,sql,label){
       capacity_targets:true,
       capacity_view:true,
       append_only_enforced:true,
+      full_admin_continuity_guard:true,
       duplicate_structural_indexes:0,
       compliance_states:states,
       real_employee_data_used:false
