@@ -48,3 +48,14 @@ test('vehicle list and detail are manager-only and scoped employee fields are fi
   assert.ok(store.includes("and (${searchAssignedScope})"));
   assert.ok(store.includes("ilike $${p}"));
 });
+
+
+test('vehicle assignment edits apply deltas instead of ending and reinserting unchanged assignments',()=>{
+  assert.ok(store.includes('const desiredUsers='));
+  assert.ok(store.includes('const beforeKeys=new Set'));
+  assert.ok(store.includes('const desiredKeys=new Set'));
+  assert.ok(store.includes('if(!desiredKeys.has(key))'));
+  assert.ok(store.includes('if(!beforeKeys.has(key))'));
+  assert.match(schema,/create unique index vehicle_users_active_unique[\\s\\S]*where ended_on is null/i);
+  assert.equal(schema.includes('unique (vehicle_id, employee_id, role, assigned_on)'),false);
+});
