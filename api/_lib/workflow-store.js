@@ -122,8 +122,17 @@ async function listHandoffs(user){
 }
 async function createHandoff({user,body,requestId}){
   manager(user);return withTransaction(async client=>{
-    const employeeId=body.employee_id?String(body.employee_id):null;if(employeeId)await employeeForUser(user,employeeId,client);
-    const to=(await query(`select id,state from users where id=$1`,[String(body.to_user_id||'')],client)).rows[0];if(!to||to.state!=='active')throw problem(422,'TARGET_USER_INVALID','引継ぎ先利用者を確認してください');
+    const employeeId=body.employee_id?String(body.employee_id):null;
+    if(user.role_level==='scoped'&&!employeeId)throw problem(422,'EMPLOYEE_REQUIRED_FOR_SCOPED_HANDOFF','担当範囲管理者の引継ぎには対象社員が必要です');
+    const employee=employeeId?await employeeForUser(user,employeeId,client):null;
+    const targetId=String(body.to_user_id||'').trim();
+    const params=[targetId],where=[`u.id=$1`,`u.state='active'`,`u.role_level in ('full','scoped')`];
+    if(employee){
+      params.push(employee.office,employee.department);
+      where.push(`(u.role_level='full' or exists(select 1 from user_scopes s where s.user_id=u.id and s.office=$2 and s.department=$3))`)
+    }
+    const to=(await query(`select u.id,u.role_level,u.state from users u where ${where.join(' and ')} limit 1`,params,client)).rows[0];
+    if(!to)throw problem(422,'TARGET_USER_NOT_AUTHORIZED','引継ぎ先は対象社員を担当できる有効な管理者から選択してください');
     const type=String(body.case_type||'').trim(),caseId=String(body.case_id||'').trim();if(!type||!caseId)throw problem(422,'CASE_REQUIRED','引継ぎ対象を指定してください');
     const row=(await query(`insert into handoffs(case_type,case_id,employee_id,from_user_id,to_user_id,status,note) values($1,$2,$3,$4,$5,'pending',$6) returning *`,[type,caseId,employeeId,user.id,to.id,body.note||null],client)).rows[0];
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'引継ぎ作成','handoff',$2,$3,'success',$4,$5)`,[user.id,row.id,employeeId,requestId,type+' / '+caseId],client);return row
