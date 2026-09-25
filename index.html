@@ -1447,8 +1447,8 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
   <div><label>開始日</label><input id="analysisCenterFrom" type="date" onchange="analysisCenterCustomDateChanged()"></div>
   <div><label>終了日</label><input id="analysisCenterTo" type="date" onchange="analysisCenterCustomDateChanged()"></div>
   <div><label>事業所</label><select id="analysisCenterWorkplace" onchange="analysisCenterOrgChanged()"><option value="">全事業所</option></select></div>
-  <div><label>部署</label><select id="analysisCenterDept" onchange="renderAnalysisCenter()"><option value="">全部署</option></select></div>
-  <div><label>雇用区分</label><select id="analysisCenterEmployment" onchange="renderAnalysisCenter()"><option value="">全雇用区分</option></select></div>
+  <div><label>部署</label><select id="analysisCenterDept" onchange="analysisCenterDimensionChanged()"><option value="">全部署</option></select></div>
+  <div><label>雇用区分</label><select id="analysisCenterEmployment" onchange="analysisCenterDimensionChanged()"><option value="">全雇用区分</option></select></div>
  </div>
  <div id="analysisCenterScopeSummary" class="analysis-scope-note" style="margin-top:8px"></div>
 </div>
@@ -3844,7 +3844,7 @@ function clearAnalysisOperationScope(){
  if(document.getElementById('work')?.classList.contains('active'))renderWork();
  if(document.getElementById('training')?.classList.contains('active'))renderTraining()
 }
-function analysisCenterDateText(d){return d instanceof Date&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):''}
+function analysisCenterDateText(d){if(!(d instanceof Date)||Number.isNaN(d.getTime()))return '';return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')}
 function analysisCenterRange(today=new Date(TODAY+'T23:59:59')){
  let period=ANALYSIS_CENTER_FILTERS.period||'fy',to=new Date(today),from;
  if(period==='12m'){from=new Date(to);from.setFullYear(from.getFullYear()-1);from.setDate(from.getDate()+1)}
@@ -3866,6 +3866,11 @@ function analysisCenterCustomDateChanged(){
  let p=document.getElementById('analysisCenterPeriod');if(p)p.value='custom';
  ANALYSIS_CENTER_FILTERS.from=document.getElementById('analysisCenterFrom')?.value||'';
  ANALYSIS_CENTER_FILTERS.to=document.getElementById('analysisCenterTo')?.value||'';
+ renderAnalysisCenter()
+}
+function analysisCenterDimensionChanged(){
+ ANALYSIS_CENTER_FILTERS.dept=document.getElementById('analysisCenterDept')?.value||'';
+ ANALYSIS_CENTER_FILTERS.employment=document.getElementById('analysisCenterEmployment')?.value||'';
  renderAnalysisCenter()
 }
 function analysisCenterOrgChanged(){
