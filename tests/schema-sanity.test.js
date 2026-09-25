@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,28);
+  assert.equal(tables.length,29);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -154,4 +154,13 @@ test('production PL/pgSQL append-only function uses a valid stable body literal'
 test('document qualification foreign key cannot cross employee ownership',()=>{
   assert.match(sql,/create table qualifications[\s\S]*unique \(id, employee_id\)/i);
   assert.match(sql,/create table documents[\s\S]*foreign key \(qualification_id, employee_id\) references qualifications\(id, employee_id\)/i);
+});
+
+
+test('production schema includes shared distributed login limiter state',()=>{
+  assert.match(sql,/create table login_rate_limits/i);
+  assert.match(sql,/key_hash char\(64\) primary key/i);
+  assert.match(sql,/failure_count integer not null default 0/i);
+  assert.match(sql,/blocked_until timestamptz/i);
+  assert.match(sql,/create index login_rate_limits_blocked_idx/i);
 });
