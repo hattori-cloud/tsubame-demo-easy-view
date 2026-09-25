@@ -21,24 +21,32 @@ function vehicleScopeSql(user,params,alias='v'){
   return 'false'
 }
 async function listVehicles(user,filters={}){
-  const params=[],where=[vehicleScopeSql(user,params,'v'),'v.archived_at is null'];
+  requireVehicleManager(user);
+  const params=[];
+  const vehicleScope=vehicleScopeSql(user,params,'v');
+  const primaryScope=scopeSql(user,params,'e');
+  const assignedScope=scopeSql(user,params,'eu');
+  const searchPrimaryScope=scopeSql(user,params,'e2');
+  const searchAssignedScope=scopeSql(user,params,'e3');
+  const where=[vehicleScope,'v.archived_at is null'];
   const q=String(filters.q||'').trim(),status=String(filters.status||'').trim(),mode=String(filters.assignment_mode||'').trim();
   if(status){params.push(status);where.push(`v.status=$${params.length}`)}
   if(mode){params.push(mode);where.push(`v.assignment_mode=$${params.length}`)}
-  if(q){params.push('%'+q+'%');const p=params.length;where.push(`(v.car_no ilike $${p} or coalesce(v.model,'') ilike $${p} or coalesce(v.service,'') ilike $${p} or exists(select 1 from employees e2 where e2.id=v.primary_employee_id and (e2.name ilike $${p} or e2.employee_no ilike $${p})) or exists(select 1 from vehicle_users vu2 join employees e3 on e3.id=vu2.employee_id where vu2.vehicle_id=v.id and vu2.ended_on is null and (e3.name ilike $${p} or e3.employee_no ilike $${p})))`)}
+  if(q){params.push('%'+q+'%');const p=params.length;where.push(`(v.car_no ilike ${p} or coalesce(v.model,'') ilike ${p} or coalesce(v.service,'') ilike ${p} or exists(select 1 from employees e2 where e2.id=v.primary_employee_id and (${searchPrimaryScope}) and (e2.name ilike ${p} or e2.employee_no ilike ${p})) or exists(select 1 from vehicle_users vu2 join employees e3 on e3.id=vu2.employee_id and (${searchAssignedScope}) where vu2.vehicle_id=v.id and vu2.ended_on is null and (e3.name ilike ${p} or e3.employee_no ilike ${p})))`)}
   const page=Math.max(1,Number.parseInt(filters.page,10)||1),pageSize=Math.min(100,Math.max(1,Number.parseInt(filters.page_size,10)||50)),offset=(page-1)*pageSize;
   params.push(pageSize,offset);
   const r=await query(`
     select v.*,e.employee_no as primary_employee_no,e.name as primary_employee_name,
-           coalesce((select jsonb_agg(jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role) order by vu.role,eu.employee_no) from vehicle_users vu join employees eu on eu.id=vu.employee_id where vu.vehicle_id=v.id and vu.ended_on is null),'[]'::jsonb) as users,
+           coalesce((select jsonb_agg(jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role) order by vu.role,eu.employee_no) from vehicle_users vu join employees eu on eu.id=vu.employee_id and (${assignedScope}) where vu.vehicle_id=v.id and vu.ended_on is null),'[]'::jsonb) as users,
            count(*) over()::int as _total
-      from vehicles v left join employees e on e.id=v.primary_employee_id
+      from vehicles v left join employees e on e.id=v.primary_employee_id and (${primaryScope})
      where ${where.join(' and ')}
   order by v.car_no,v.id limit $${params.length-1} offset $${params.length}
   `,params);
   const total=r.rows[0]?Number(r.rows[0]._total):0;return {items:r.rows.map(({_total,...x})=>x),page,page_size:pageSize,total}
 }
 async function getVehicle(user,id,client=null,{forUpdate=false}={}){
+  requireVehicleManager(user);
   const params=[id],scope=vehicleScopeSql(user,params,'v');
   const lock=forUpdate?' for update':'';
   const r=await query(`select v.* from vehicles v where v.id=$1 and v.archived_at is null and ${scope}${lock}`,params,client);
