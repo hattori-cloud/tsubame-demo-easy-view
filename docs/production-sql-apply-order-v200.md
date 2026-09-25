@@ -12,7 +12,8 @@
 1. `docs/production-schema.sql`
 2. `docs/production-auth-hardening-v200.sql`
 3. `docs/production-capacity-v189.sql`
-4. `docs/production-role-grants-v200.sql`
+4. `docs/production-work-import-v200.sql`
+5. `docs/production-role-grants-v200.sql`
 
 順番を逆にしないでください。
 
@@ -49,6 +50,15 @@
 - 既存基準スキーマと同名・同一構成の不要indexを重複作成しない
 - 月次対象者 unique(month_start, employee_id) が有効
 
+### 勤務集計永続化SQL適用後
+
+- work_import_batches作成成功
+- work_import_rows作成成功
+- work_summary_monthly作成成功
+- employee_id × month_start unique有効
+- 元Excelファイル本体をDB保存しない
+- 基準28 + limiter1 + capacity1 + work-import3 = 33テーブル
+
 ### DB権限分離SQL適用後
 
 - tsubame_migrator / tsubame_app_runtime がNOLOGIN
@@ -79,7 +89,7 @@ SQLをその場で手修正して続行しないでください。
 
 ## 合格条件
 
-- 空DBに4ファイルを順番通り適用してerror 0
+- 空DBに5ファイルを順番通り適用してerror 0
 - schema/table/index/viewの件数確認
 - 制約違反が期待どおり拒否される
 - 月次ヒヤリcomplianceが zero / short / met / exempt を正しく返す
