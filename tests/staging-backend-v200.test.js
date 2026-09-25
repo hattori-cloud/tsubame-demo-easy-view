@@ -19,7 +19,9 @@ function envSnapshot(){
     DATABASE_URL:process.env.DATABASE_URL,
     TSUBAME_DATABASE_URL:process.env.TSUBAME_DATABASE_URL,
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
-    TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN
+    BLOB_STORE_ID:process.env.BLOB_STORE_ID,
+    TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN,
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER
   }
 }
 function restoreEnv(saved){
@@ -63,12 +65,14 @@ test('backend readiness reports booleans without secret values',()=>{
     process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value-32chars-plus';
     process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,7).toString('base64');
     process.env.BLOB_READ_WRITE_TOKEN='secret-storage-token';
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel_blob';
     const readiness=runtime.backendReadiness();
     assert.equal(readiness.auth_env_present,true);
     assert.equal(readiness.mfa_env_present,true);
     assert.equal(readiness.database_env_present,true);
     assert.equal(readiness.document_storage_env_present,true);
-    assert.equal(readiness.document_storage_adapter_ready,false);
+    assert.equal(readiness.document_storage_adapter_ready,true);
+    assert.equal(readiness.document_malware_scanner_ready,false);
     assert.equal(readiness.fictional_fixtures_enabled,true);
     assert.equal(readiness.original_file_test_ready,false);
     const serialized=JSON.stringify(readiness);
@@ -131,7 +135,7 @@ test('legacy OIDC variables alone do not mark credential-session auth as ready',
 });
 
 
-test('production business activation remains closed until auth, database and original storage adapter are ready',()=>{
+test('production business activation remains closed until auth, database, private storage and malware scanner are ready',()=>{
   const saved=envSnapshot();
   try{
     process.env.VERCEL_ENV='production';
@@ -145,8 +149,10 @@ test('production business activation remains closed until auth, database and ori
     process.env.DATABASE_URL='postgres://example.invalid/db';
     process.env.TSUBAME_SESSION_SECRET='12345678901234567890123456789012';
     process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,9).toString('base64');
-    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present-but-adapter-not-implemented';
-    assert.equal(runtime.documentStorageAdapterReady(),false);
+    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present';
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel_blob';
+    assert.equal(runtime.documentStorageAdapterReady(),true);
+    assert.equal(runtime.documentMalwareScannerReady(),false);
     assert.equal(runtime.productionBusinessDataEnabled(),false);
     process.env.VERCEL_ENV='preview';
     assert.equal(runtime.productionBusinessDataEnabled(),false);
