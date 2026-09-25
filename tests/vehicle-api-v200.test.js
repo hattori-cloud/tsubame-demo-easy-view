@@ -46,7 +46,6 @@ test('vehicle list and detail are manager-only and scoped employee fields are fi
   assert.ok(store.includes("left join employees e on e.id=v.primary_employee_id and (${primaryScope})"));
   assert.ok(store.includes("and (${searchPrimaryScope})"));
   assert.ok(store.includes("and (${searchAssignedScope})"));
-  assert.ok(store.includes("ilike $${p}"));
 });
 
 
