@@ -31,6 +31,7 @@ test('login failures share a minimum response delay to reduce account-state timi
   const login=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','login.js'),'utf8');
   assert.ok(login.includes('async function delayedAuthFailure'));
   assert.ok(login.includes('180-(Date.now()-startedAt)'));
-  assert.ok(login.includes('if(!account)return delayedAuthFailure'));
+  assert.ok(login.includes('if(!account){'));
+  assert.ok(login.includes('recordGenericLoginFailure({rateKeys,requestId:id})'));
   assert.ok(login.includes('return delayedAuthFailure(res,id,authStartedAt)'));
 });
