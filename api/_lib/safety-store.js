@@ -44,9 +44,9 @@ async function managerAssigneeForEmployee(employee,requestedUserId,client){
   if(!r.rows[0])throw problem(422,'OWNER_USER_NOT_AUTHORIZED','担当者は対象社員を担当できる有効な管理者から選択してください');
   return r.rows[0]
 }
-async function scopedRecord(user,table,id,client,{includeArchived=false}={}){
-  const params=[id],scope=scopeSql(user,params,'e'),archive=includeArchived?'':` and r.archived_at is null`;
-  const r=await query(`select r.* from ${table} r join employees e on e.id=r.employee_id where r.id=$1 and ${scope}${archive} limit 1`,params,client);
+async function scopedRecord(user,table,id,client,{includeArchived=false,forUpdate=false}={}){
+  const params=[id],scope=scopeSql(user,params,'e'),archive=includeArchived?'':` and r.archived_at is null`,lock=forUpdate?' for update of r':'';
+  const r=await query(`select r.* from ${table} r join employees e on e.id=r.employee_id where r.id=$1 and ${scope}${archive} limit 1${lock}`,params,client);
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象データが見つかりません');
   return r.rows[0]
 }
@@ -89,9 +89,10 @@ async function createAccident({user,body,requestId}){
     const owner=await managerAssigneeForEmployee(e,body.owner_user_id||user.id,client);
     const occurred=String(body.occurred_on||'').trim(),address=String(body.address||'').trim(),summary=String(body.summary||'').trim();
     if(!occurred||!address||!summary)throw problem(422,'REQUIRED_FIELDS','発生日・場所・事故内容を入力してください');
+    if(Object.prototype.hasOwnProperty.call(body||{},'phase')&&String(body.phase)!=='initial')throw problem(422,'USE_COMPLETION_ENDPOINT','事故の完了状態は専用操作を使用してください');
     const no=businessNo('ACC');
     const r=await query(`insert into accidents(accident_no,employee_id,office_at_record,department_at_record,employment_at_record,occurred_on,occurred_time,car_no,district,accident_type,fault_rate,opponent_repair_status,opponent_repair_cost,company_repair_status,company_repair_cost,address,summary,phase,cause,prevention,response_history,owner_user_id,next_action,followup_due) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24) returning *`,
-      [no,e.id,e.office,e.department,e.employment_type||null,occurred,body.occurred_time||null,body.car_no||null,body.district||null,body.accident_type||null,body.fault_rate??null,body.opponent_repair_status||null,body.opponent_repair_cost??null,body.company_repair_status||null,body.company_repair_cost??null,address,summary,body.phase||'initial',body.cause||null,body.prevention||null,body.response_history||null,owner.id,body.next_action||null,body.followup_due||null],client);
+      [no,e.id,e.office,e.department,e.employment_type||null,occurred,body.occurred_time||null,body.car_no||null,body.district||null,body.accident_type||null,body.fault_rate??null,body.opponent_repair_status||null,body.opponent_repair_cost??null,body.company_repair_status||null,body.company_repair_cost??null,address,summary,'initial',body.cause||null,body.prevention||null,body.response_history||null,owner.id,body.next_action||null,body.followup_due||null],client);
     await audit(client,{actorUserId:user.id,action:'事故登録',entityType:'accident',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no});
     return r.rows[0]
   })
@@ -99,8 +100,10 @@ async function createAccident({user,body,requestId}){
 async function updateAccident({user,id,body,expectedVersion,requestId}){
   requireSafetyManager(user);
   return withTransaction(async client=>{
-    const before=await scopedRecord(user,'accidents',id,client);assertVersion(before,expectedVersion);
-    const patch=editablePatch(body,['occurred_on','occurred_time','car_no','district','accident_type','fault_rate','opponent_repair_status','opponent_repair_cost','company_repair_status','company_repair_cost','address','summary','phase','cause','prevention','response_history','owner_user_id','next_action','followup_due']);
+    const before=await scopedRecord(user,'accidents',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
+    if(before.phase==='completed')throw problem(409,'REOPEN_REQUIRED','完了済み事故は再開してから修正してください');
+    if(Object.prototype.hasOwnProperty.call(body||{},'phase'))throw problem(422,'USE_COMPLETION_ENDPOINT','事故の完了・再開は専用操作を使用してください');
+    const patch=editablePatch(body,['occurred_on','occurred_time','car_no','district','accident_type','fault_rate','opponent_repair_status','opponent_repair_cost','company_repair_status','company_repair_cost','address','summary','cause','prevention','response_history','owner_user_id','next_action','followup_due']);
     if(Object.prototype.hasOwnProperty.call(patch,'owner_user_id')&&patch.owner_user_id){
       const employee=await employeeSnapshotForUser(user,before.employee_id,client);
       patch.owner_user_id=(await managerAssigneeForEmployee(employee,patch.owner_user_id,client)).id
@@ -115,7 +118,8 @@ async function updateAccident({user,id,body,expectedVersion,requestId}){
 async function completeAccident({user,id,expectedVersion,requestId}){
   requireSafetyManager(user);
   return withTransaction(async client=>{
-    const before=await scopedRecord(user,'accidents',id,client);assertVersion(before,expectedVersion);
+    const before=await scopedRecord(user,'accidents',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
+    if(before.phase==='completed')throw problem(409,'ALREADY_COMPLETED','この事故はすでに完了しています');
     if(!String(before.cause||'').trim()||!String(before.prevention||'').trim()||!String(before.response_history||'').trim())throw problem(422,'COMPLETION_FIELDS_REQUIRED','原因・再発防止・対応履歴を入力してから完了してください');
     const after=(await query(`update accidents set phase='completed',completed_at=now(),completed_by_user_id=$2,updated_at=now(),version=version+1 where id=$1 returning *`,[id,user.id],client)).rows[0];
     await history(client,{entityType:'accident',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'complete',before,after});
@@ -125,7 +129,8 @@ async function completeAccident({user,id,expectedVersion,requestId}){
 async function reopenAccident({user,id,expectedVersion,reason,requestId}){
   requireSafetyManager(user);if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','再開理由を入力してください');
   return withTransaction(async client=>{
-    const before=await scopedRecord(user,'accidents',id,client);assertVersion(before,expectedVersion);
+    const before=await scopedRecord(user,'accidents',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
+    if(before.phase!=='completed')throw problem(409,'NOT_COMPLETED','完了済み事故だけ再開できます');
     const after=(await query(`update accidents set phase='followup',completed_at=null,completed_by_user_id=null,updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
     await history(client,{entityType:'accident',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'reopen',before,after,reason});
     await audit(client,{actorUserId:user.id,action:'事故再開',entityType:'accident',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
@@ -134,7 +139,7 @@ async function reopenAccident({user,id,expectedVersion,reason,requestId}){
 async function archiveAccident({user,id,expectedVersion,reason,requestId}){
   requireSafetyManager(user);if(user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','事故のアーカイブは全社管理者のみ実行できます');if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','アーカイブ理由を入力してください');
   return withTransaction(async client=>{
-    const before=await scopedRecord(user,'accidents',id,client);assertVersion(before,expectedVersion);
+    const before=await scopedRecord(user,'accidents',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
     const after=(await query(`update accidents set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
     await history(client,{entityType:'accident',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});
     await audit(client,{actorUserId:user.id,action:'事故アーカイブ',entityType:'accident',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
@@ -167,7 +172,7 @@ async function createNearMiss({user,body,requestId}){
 }
 async function updateNearMiss({user,id,body,expectedVersion,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
-    const before=await scopedRecord(user,'near_misses',id,client);assertVersion(before,expectedVersion);
+    const before=await scopedRecord(user,'near_misses',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
     const patch=editablePatch(body,['occurred_on','occurred_time','reported_on','car_no','summary','prevention','education','risk_level','cause_side','location_tags','situation_tags','road_tags','target_tags','internal_factors']);
     for(const k of ['location_tags','situation_tags','road_tags','target_tags','internal_factors'])if(k in patch)patch[k]=JSON.stringify(patch[k]||[]);
     const keys=Object.keys(patch);if(!keys.length)return before;
@@ -179,7 +184,7 @@ async function updateNearMiss({user,id,body,expectedVersion,requestId}){
 }
 async function archiveNearMiss({user,id,expectedVersion,reason,requestId}){
   requireSafetyManager(user);if(user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','ヒヤリのアーカイブは全社管理者のみ実行できます');if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','アーカイブ理由を入力してください');
-  return withTransaction(async client=>{const before=await scopedRecord(user,'near_misses',id,client);assertVersion(before,expectedVersion);const after=(await query(`update near_misses set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];await history(client,{entityType:'near_miss',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'ヒヤリアーカイブ',entityType:'near_miss',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after})
+  return withTransaction(async client=>{const before=await scopedRecord(user,'near_misses',id,client,{forUpdate:true});assertVersion(before,expectedVersion);const after=(await query(`update near_misses set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];await history(client,{entityType:'near_miss',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'ヒヤリアーカイブ',entityType:'near_miss',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after})
 }
 
 async function listComplaints(user,filters={}){
@@ -198,16 +203,20 @@ async function createComplaint({user,body,requestId}){
     const e=await employeeSnapshotForUser(user,String(body.employee_id||''),client);
     const owner=await managerAssigneeForEmployee(e,body.owner_user_id||user.id,client);
     const responded=String(body.responded_on||'').trim(),summary=String(body.summary||'').trim();
-    if(!responded||!summary)throw problem(422,'REQUIRED_FIELDS','対応日・内容を入力してください');const no=businessNo('CMP');
+    if(!responded||!summary)throw problem(422,'REQUIRED_FIELDS','対応日・内容を入力してください');
+    if(Object.prototype.hasOwnProperty.call(body||{},'status')&&String(body.status)!=='open')throw problem(422,'USE_COMPLETION_ENDPOINT','苦情の完了状態は専用操作を使用してください');
+    const no=businessNo('CMP');
     const r=await query(`insert into complaints(complaint_no,employee_id,office_at_record,department_at_record,employment_at_record,responded_on,responded_time,responder,occurrence_date,occurrence_time,car_no,customer_alias,summary,rank,owner_user_id,guidance_content,next_action,followup_due,status) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) returning *`,
-      [no,e.id,e.office,e.department,e.employment_type||null,responded,body.responded_time||null,body.responder||null,body.occurrence_date||null,body.occurrence_time||null,body.car_no||null,body.customer_alias||null,summary,body.rank||'unrated',owner.id,body.guidance_content||null,body.next_action||null,body.followup_due||null,body.status||'open'],client);
+      [no,e.id,e.office,e.department,e.employment_type||null,responded,body.responded_time||null,body.responder||null,body.occurrence_date||null,body.occurrence_time||null,body.car_no||null,body.customer_alias||null,summary,body.rank||'unrated',owner.id,body.guidance_content||null,body.next_action||null,body.followup_due||null,'open'],client);
     await audit(client,{actorUserId:user.id,action:'苦情登録',entityType:'complaint',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no});return r.rows[0]
   })
 }
 async function updateComplaint({user,id,body,expectedVersion,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
-    const before=await scopedRecord(user,'complaints',id,client);assertVersion(before,expectedVersion);
-    const patch=editablePatch(body,['responded_on','responded_time','responder','occurrence_date','occurrence_time','car_no','customer_alias','summary','rank','owner_user_id','guidance_content','next_action','followup_due','status']);
+    const before=await scopedRecord(user,'complaints',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
+    if(before.status==='completed')throw problem(409,'REOPEN_REQUIRED','完了済み苦情は再開してから修正してください');
+    if(Object.prototype.hasOwnProperty.call(body||{},'status'))throw problem(422,'USE_COMPLETION_ENDPOINT','苦情の完了・再開は専用操作を使用してください');
+    const patch=editablePatch(body,['responded_on','responded_time','responder','occurrence_date','occurrence_time','car_no','customer_alias','summary','rank','owner_user_id','guidance_content','next_action','followup_due']);
     if(Object.prototype.hasOwnProperty.call(patch,'owner_user_id')&&patch.owner_user_id){
       const employee=await employeeSnapshotForUser(user,before.employee_id,client);
       patch.owner_user_id=(await managerAssigneeForEmployee(employee,patch.owner_user_id,client)).id
@@ -219,7 +228,8 @@ async function updateComplaint({user,id,body,expectedVersion,requestId}){
 }
 async function completeComplaint({user,id,expectedVersion,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
-    const before=await scopedRecord(user,'complaints',id,client);assertVersion(before,expectedVersion);
+    const before=await scopedRecord(user,'complaints',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
+    if(before.status==='completed')throw problem(409,'ALREADY_COMPLETED','この苦情はすでに完了しています');
     if(!String(before.guidance_content||'').trim()||!String(before.next_action||'').trim())throw problem(422,'COMPLETION_FIELDS_REQUIRED','指導内容・対応内容を確認してから完了してください');
     const after=(await query(`update complaints set status='completed',completed_at=now(),completed_by_user_id=$2,updated_at=now(),version=version+1 where id=$1 returning *`,[id,user.id],client)).rows[0];
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'complete',before,after});await audit(client,{actorUserId:user.id,action:'苦情完了',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:before.complaint_no});return after
@@ -227,13 +237,13 @@ async function completeComplaint({user,id,expectedVersion,requestId}){
 }
 async function reopenComplaint({user,id,expectedVersion,reason,requestId}){
   requireSafetyManager(user);if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','再開理由を入力してください');return withTransaction(async client=>{
-    const before=await scopedRecord(user,'complaints',id,client);assertVersion(before,expectedVersion);const after=(await query(`update complaints set status='open',completed_at=null,completed_by_user_id=null,updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
+    const before=await scopedRecord(user,'complaints',id,client,{forUpdate:true});assertVersion(before,expectedVersion);if(before.status!=='completed')throw problem(409,'NOT_COMPLETED','完了済み苦情だけ再開できます');const after=(await query(`update complaints set status='open',completed_at=null,completed_by_user_id=null,updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'reopen',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情再開',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
 async function archiveComplaint({user,id,expectedVersion,reason,requestId}){
   requireSafetyManager(user);if(user.role_level!=='full')throw problem(403,'FULL_ADMIN_REQUIRED','苦情のアーカイブは全社管理者のみ実行できます');if(!String(reason||'').trim())throw problem(422,'REASON_REQUIRED','アーカイブ理由を入力してください');return withTransaction(async client=>{
-    const before=await scopedRecord(user,'complaints',id,client);assertVersion(before,expectedVersion);const after=(await query(`update complaints set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
+    const before=await scopedRecord(user,'complaints',id,client,{forUpdate:true});assertVersion(before,expectedVersion);const after=(await query(`update complaints set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情アーカイブ',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
