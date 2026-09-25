@@ -188,6 +188,7 @@ async function archiveNearMiss({user,id,expectedVersion,reason,requestId}){
   return withTransaction(async client=>{const before=await scopedRecord(user,'near_misses',id,client,{forUpdate:true});assertVersion(before,expectedVersion);const after=(await query(`update near_misses set archived_at=now(),updated_at=now(),version=version+1 where id=$1 returning *`,[id],client)).rows[0];await history(client,{entityType:'near_miss',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'ヒヤリアーカイブ',entityType:'near_miss',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after})
 }
 
+async function getComplaint(user,id){requireSafetyManager(user);return scopedRecord(user,'complaints',id,null)}
 async function listComplaints(user,filters={}){
   requireSafetyManager(user);
   const params=[],where=[scopeSql(user,params,'e'),'c.archived_at is null'];
@@ -249,4 +250,4 @@ async function archiveComplaint({user,id,expectedVersion,reason,requestId}){
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情アーカイブ',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
-module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
+module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,getComplaint,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
