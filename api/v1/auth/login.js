@@ -3,6 +3,7 @@ const {applySecurityHeaders,requestId,errorBody,productionAuthConfigured}=requir
 const {newRawToken,tokenHash,secureCookie}=require('../../_lib/auth');
 const {withTransaction}=require('../../_lib/db');
 const {findCredentialAccount,findCredentialAccountById,recordLoginFailure,clearLoginFailures,createSession,createMfaChallenge,writeAuthAudit,hashMetadata}=require('../../_lib/auth-store');
+const {loginRateKeys,checkLoginRateLimit,recordLoginRateFailure}=require('../../_lib/login-rate-limit');
 
 function genericAuthError(id){return errorBody('LOGIN_FAILED','ID・社員番号・パスワードを確認してください',id)}
 function cleanText(value,max){return typeof value==='string'?value.trim().slice(0,max):''}
@@ -18,6 +19,17 @@ function clientMeta(req){
   return {userAgentHash:hashMetadata(ua),ipPrefixHash:hashMetadata(forwarded)}
 }
 
+async function recordGenericLoginFailure({rateKeys,userId=null,requestId:id}){
+  return withTransaction(async client=>{
+    if(userId)await recordLoginFailure(userId,client);
+    await recordLoginRateFailure(rateKeys,client);
+    await writeAuthAudit({
+      action:'login_failed',userId,result:'denied',requestId:id,
+      summary:'generic credential failure'
+    },client)
+  })
+}
+
 module.exports=async function handler(req,res){
   const id=requestId(req);
   applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
@@ -30,9 +42,26 @@ module.exports=async function handler(req,res){
   if(!productionAuthConfigured())return res.status(503).json(errorBody('AUTH_NOT_CONFIGURED','本番認証が未設定です',id));
 
   const authStartedAt=Date.now();
+  let rateKeys;
+  try{
+    rateKeys=loginRateKeys(req,loginId);
+    const rate=await checkLoginRateLimit(rateKeys);
+    if(rate.blocked){
+      if(rate.retry_after_seconds>0)res.setHeader('Retry-After',String(rate.retry_after_seconds));
+      try{await writeAuthAudit({action:'login_rate_limited',result:'denied',requestId:id,summary:'distributed login rate limit exceeded'})}catch(_){}
+      return res.status(429).json(errorBody('LOGIN_RATE_LIMITED','ログイン試行が多いため、一時的に制限されています',id))
+    }
+  }catch(_){
+    return res.status(503).json(errorBody('LOGIN_RATE_LIMIT_UNAVAILABLE','ログイン試行制限を確認できません',id))
+  }
+
   let account;
   try{account=await findCredentialAccount(loginId)}catch(_){return res.status(503).json(errorBody('AUTH_STORE_UNAVAILABLE','認証保存先を利用できません',id))}
-  if(!account)return delayedAuthFailure(res,id,authStartedAt)
+  if(!account){
+    try{await recordGenericLoginFailure({rateKeys,requestId:id})}
+    catch(_){return res.status(503).json(errorBody('LOGIN_RATE_LIMIT_UNAVAILABLE','ログイン試行制限を記録できません',id))}
+    return delayedAuthFailure(res,id,authStartedAt)
+  }
 
   const locked=account.locked_until&&new Date(account.locked_until).getTime()>Date.now();
   const allowed=account.state==='active'&&account.employee_lifecycle_status!=='retired'&&!locked&&String(account.employee_no)===employeeNo;
@@ -41,10 +70,8 @@ module.exports=async function handler(req,res){
     try{passwordOk=await verify(account.password_hash,password)}catch(_){passwordOk=false}
   }
   if(!allowed||!passwordOk){
-    try{
-      await recordLoginFailure(account.id);
-      await writeAuthAudit({action:'login_failed',userId:account.id,result:'denied',requestId:id,summary:'generic credential failure'})
-    }catch(_){}
+    try{await recordGenericLoginFailure({rateKeys,userId:account.id,requestId:id})}
+    catch(_){return res.status(503).json(errorBody('LOGIN_RATE_LIMIT_UNAVAILABLE','ログイン試行制限を記録できません',id))}
     return delayedAuthFailure(res,id,authStartedAt)
   }
 
