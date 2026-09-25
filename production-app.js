@@ -94,6 +94,8 @@
       const button=$('nav').querySelector('[data-view="'+view+'"]');
       if(button)button.hidden=!manager
     }
+    const workImport=$('nav').querySelector('[data-view="work-import"]');
+    if(workImport)workImport.hidden=state.me?.role_level!=='full'
   }
 
   async function login(e){
@@ -150,7 +152,7 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両'}[view]||view;
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込'}[view]||view;
     $('searchWrap').hidden=view==='home';
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
@@ -160,6 +162,9 @@
       else if(view==='accidents')await renderAccidents(opts.q||'');
       else if(view==='complaints')await renderComplaints(opts.q||'');
       else if(view==='vehicles')await renderVehicles(opts.q||'')
+      else if(view==='near-misses')await renderNearMisses(opts.q||'')
+      else if(view==='credentials')await renderCredentials(opts.q||'')
+      else if(view==='work-import')await renderWorkImport()
     }catch(err){$('content').innerHTML='';showError(err,'データ取得')}finally{state.loading=false}
   }
 
