@@ -70,6 +70,7 @@ async function applyPatch(table,id,patch,client){
 }
 
 async function listAccidents(user,filters={}){
+  requireSafetyManager(user);
   const params=[],where=[scopeSql(user,params,'e'),'a.archived_at is null'];
   if(filters.employee_id){params.push(String(filters.employee_id));where.push(`a.employee_id=$${params.length}`)}
   if(filters.phase){params.push(String(filters.phase));where.push(`a.phase=$${params.length}`)}
@@ -81,7 +82,7 @@ async function listAccidents(user,filters={}){
   const r=await query(`select a.*,e.employee_no,e.name as employee_name,count(*) over()::int as _total from accidents a join employees e on e.id=a.employee_id where ${where.join(' and ')} order by a.occurred_on desc,a.id desc limit $${params.length-1} offset $${params.length}`,params);
   const total=r.rows[0]?Number(r.rows[0]._total):0;return {items:r.rows.map(({_total,...x})=>x),page,page_size:pageSize,total}
 }
-async function getAccident(user,id){return scopedRecord(user,'accidents',id,null)}
+async function getAccident(user,id){requireSafetyManager(user);return scopedRecord(user,'accidents',id,null)}
 async function createAccident({user,body,requestId}){
   requireSafetyManager(user);
   return withTransaction(async client=>{
@@ -188,6 +189,7 @@ async function archiveNearMiss({user,id,expectedVersion,reason,requestId}){
 }
 
 async function listComplaints(user,filters={}){
+  requireSafetyManager(user);
   const params=[],where=[scopeSql(user,params,'e'),'c.archived_at is null'];
   if(filters.employee_id){params.push(String(filters.employee_id));where.push(`c.employee_id=$${params.length}`)}
   if(filters.status){params.push(String(filters.status));where.push(`c.status=$${params.length}`)}
