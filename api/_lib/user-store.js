@@ -68,8 +68,14 @@ async function setUserState({actor,userId,state,expectedVersion,reason,requestId
     const before=(await query(`select u.*,e.lifecycle_status from users u join employees e on e.id=u.employee_id where u.id=$1 for update`,[userId],client)).rows[0];if(!before)throw problem(404,'USER_NOT_FOUND','対象利用者が見つかりません');assertVersion(before,expectedVersion);
     if(state==='active'&&before.lifecycle_status==='retired')throw problem(422,'EMPLOYEE_RETIRED','退職済み社員のアカウントは再有効化できません');
     const after=(await query(`update users set state=$2,failed_login_count=case when $2='active' then 0 else failed_login_count end,locked_until=case when $2='active' then null else locked_until end,updated_at=now(),version=version+1 where id=$1 returning id,employee_id,login_id,display_name,role_level,safety_authority,state,mfa_required,mfa_enrolled_at,version`,[userId,state],client)).rows[0];
-    await query(`update auth_sessions set revoked_at=now(),revoke_reason=$2 where user_id=$1 and revoked_at is null`,[userId,state==='suspended'?'account_suspended':'account_reactivated'],client);
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,$2,'user',$3,$4,'success',$5,$6)`,[actor.id,state==='suspended'?'利用者停止':'利用者再開',userId,before.employee_id,requestId,String(reason)],client);
+    const sessions=await query(`update auth_sessions set revoked_at=now(),revoke_reason=$2 where user_id=$1 and revoked_at is null returning id`,[userId,state==='suspended'?'account_suspended':'account_reactivated'],client);
+    let invalidatedMfa=0,invalidatedReset=0;
+    if(state==='suspended'){
+      invalidatedMfa=(await query(`update mfa_challenges set verified_at=now() where user_id=$1 and verified_at is null returning id`,[userId],client)).rows.length;
+      invalidatedReset=(await query(`update password_reset_tokens set used_at=now() where user_id=$1 and used_at is null returning id`,[userId],client)).rows.length
+    }
+    const summary=String(reason)+(state==='suspended'?` / sessions ${sessions.rows.length}件失効 / pending MFA ${invalidatedMfa}件無効 / reset ${invalidatedReset}件無効`:'');
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,$2,'user',$3,$4,'success',$5,$6)`,[actor.id,state==='suspended'?'利用者停止':'利用者再開',userId,before.employee_id,requestId,summary],client);
     return after
   })
 }
