@@ -21,10 +21,10 @@ async function expectDenied(client,sql,label){
     const roles=await client.query(`
       select rolname,rolcanlogin,rolsuper,rolcreatedb,rolcreaterole,rolreplication,rolbypassrls
         from pg_roles
-       where rolname in ('tsubame_app_runtime','tsubame_migrator')
+       where rolname in ('tsubame_app_runtime','tsubame_maintenance','tsubame_migrator')
        order by rolname
     `);
-    assert(roles.rows.length===2,'expected runtime and migrator roles');
+    assert(roles.rows.length===3,'expected runtime, maintenance and migrator roles');
     for(const r of roles.rows){
       assert(r.rolcanlogin===false,r.rolname+' must be NOLOGIN');
       assert(r.rolsuper===false,r.rolname+' must not be superuser');
@@ -49,6 +49,14 @@ async function expectDenied(client,sql,label){
     await expectDenied(client,'delete from record_histories where false','runtime DELETE record_histories');
     await client.query('reset role');
 
+    await client.query('set role tsubame_maintenance');
+    await client.query('select count(*) from auth_sessions');
+    await client.query('delete from login_rate_limits where false');
+    await client.query('update work_import_batches set updated_at=updated_at where false');
+    await expectDenied(client,'delete from employees where false','maintenance DELETE employees');
+    await expectDenied(client,"update audit_logs set summary='forbidden' where false",'maintenance UPDATE audit_logs');
+    await client.query('reset role');
+
     await client.query('set role tsubame_migrator');
     await client.query('create table public.ci_migrator_probe(id integer)');
     await client.query('drop table public.ci_migrator_probe');
@@ -61,6 +69,9 @@ async function expectDenied(client,sql,label){
       runtime_employee_delete_denied:true,
       runtime_audit_mutation_denied:true,
       runtime_work_import_rollback_delete_allowed:true,
+      maintenance_auth_cleanup_allowed:true,
+      maintenance_employee_delete_denied:true,
+      maintenance_audit_mutation_denied:true,
       migrator_ddl_allowed:true,
       real_employee_data_used:false
     }))
