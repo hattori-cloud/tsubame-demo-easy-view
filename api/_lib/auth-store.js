@@ -105,10 +105,7 @@ async function enrollUserMfa(userId,{ciphertext,iv,tag},client=null){
 }
 async function invalidatePendingMfaChallenges(userId,{purpose=null,excludeId=null}={},client=null){
   const params=[userId],where=['user_id=$1','verified_at is null'];
-  if(purpose){params.push(String(purpose));where.push('purpose=$'+params.length)}
-  if(excludeId){params.push(excludeId);where.push('id<>$'+params.length)}
-  return query(`update mfa_challenges set verified_at=now() where ${where.join(' and ')} returning id`,params,client)
-}
+  if(purpose){params.push(String(purpose));where.push('purpose=
 async function markMfaVerified(challengeId,client=null){
   return query(`update mfa_challenges set verified_at=now() where id=$1 and verified_at is null and expires_at>now() and failed_attempts<5 returning id`,[challengeId],client)
 }
