@@ -1,0 +1,21 @@
+{
+  "totals": {
+    "employees": 4,
+    "users": 2,
+    "qualifications": 0,
+    "documents": 0,
+    "vehicles": 0,
+    "accidents": 0,
+    "complaints": 0,
+    "near_misses": 3
+  },
+  "lifecycle": {
+    "active": 4
+  },
+  "office": {
+    "本社": 4
+  },
+  "department": {
+    "タクシー課": 4
+  }
+}
