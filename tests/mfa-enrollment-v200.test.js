@@ -70,3 +70,24 @@ test('MFA enrollment start rejects ineligible accounts and does not overwrite a 
   assert.ok(store.includes('pending_secret_ciphertext is null'));
   assert.ok(store.includes('expires_at>now()'));
 });
+
+
+test('password reset and password change invalidate pending MFA enrollment challenges',()=>{
+  const users=fs.readFileSync(path.join(__dirname,'..','api','_lib','user-store.js'),'utf8');
+  const change=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','password','change.js'),'utf8');
+  assert.ok((users.match(/update mfa_challenges set verified_at=now\(\) where user_id=\$1 and verified_at is null/g)||[]).length>=2);
+  assert.ok(change.includes('update mfa_challenges set verified_at=now()'));
+  assert.ok(change.includes('update password_reset_tokens set used_at=now()'));
+  assert.ok(change.indexOf("select id from users where id=$1 for update")<change.indexOf('update mfa_challenges set verified_at=now()'));
+});
+
+test('first-time MFA enrollment is user-single-use, not merely challenge-single-use',()=>{
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','auth-store.js'),'utf8');
+  const complete=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','enroll','complete.js'),'utf8');
+  const start=fs.readFileSync(path.join(__dirname,'..','api','v1','auth','mfa','enroll','start.js'),'utf8');
+  assert.ok(store.includes('where id=$1 and mfa_enrolled_at is null'));
+  assert.ok(complete.includes("findCredentialAccountById(challenge.user_id,client,{forUpdate:true})"));
+  assert.ok(complete.includes('MFA_ALREADY_ENROLLED'));
+  assert.ok(complete.includes("purpose:'enroll'"));
+  assert.ok(start.includes('account.mfa_enrolled_at'));
+});
