@@ -14,3 +14,7 @@ assert(html.includes("scope={from:d.from,to:d.to,type:d.type,workplace:d.workpla
 assert(html.includes("employment&&'雇用 '+employment"),'analysis note employment scope missing');
 assert(html.includes("期間・社員・事業所・部署・雇用区分・号車"),'detailed safety help text missing employment');
 console.log('analysis-center-safety-transfer-v200: OK');
+
+assert(html.includes("String(d.getMonth()+1).padStart(2,'0')"),'analysis date helper must use local calendar month');
+assert(html.includes("String(d.getDate()).padStart(2,'0')"),'analysis date helper must use local calendar day');
+assert.equal(html.includes("function analysisCenterDateText(d){return d instanceof Date&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):''}"),false,'analysis date helper still UTC-shifts local calendar dates');
