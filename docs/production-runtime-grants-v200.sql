@@ -37,18 +37,22 @@ grant insert, update on
   confirmation_responses,
   handoffs,
   drafts,
+  work_import_batches,
+  work_monthly_summaries,
   near_miss_monthly_targets
 to tsubame_app;
 
 grant insert on
   employee_number_history,
+  work_import_changes,
   record_histories,
   audit_logs
 to tsubame_app;
 
 grant delete on
   user_scopes,
-  drafts
+  drafts,
+  work_monthly_summaries
 to tsubame_app;
 
 grant select on near_miss_monthly_compliance to tsubame_app;
