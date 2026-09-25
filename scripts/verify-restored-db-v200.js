@@ -24,6 +24,7 @@ async function expectAppendOnly(client,sql,label){
         to_regclass('public.near_miss_monthly_targets') is not null as targets_ready,
         to_regclass('public.near_miss_monthly_compliance') is not null as compliance_ready,
         to_regclass('public.login_rate_limits') is not null as rate_limit_ready,
+        to_regclass('public.document_upload_tickets') is not null as upload_tickets_ready,
         to_regclass('public.work_import_batches') is not null as work_import_batches_ready,
         to_regclass('public.work_monthly_summaries') is not null as work_summaries_ready,
         to_regclass('public.work_import_changes') is not null as work_import_changes_ready,
@@ -31,8 +32,8 @@ async function expectAppendOnly(client,sql,label){
         exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid where c.relname='record_histories' and t.tgname='record_histories_append_only_guard' and not t.tgisinternal) as history_guard
     `);
     const o=objects.rows[0];
-    assert(Number(o.tables)===33,'restored table count expected 33, got '+o.tables);
-    assert(o.targets_ready&&o.compliance_ready&&o.rate_limit_ready&&o.work_import_batches_ready&&o.work_summaries_ready&&o.work_import_changes_ready&&o.audit_guard&&o.history_guard,'restored schema protection missing: '+JSON.stringify(o));
+    assert(Number(o.tables)===34,'restored table count expected 34, got '+o.tables);
+    assert(o.targets_ready&&o.compliance_ready&&o.rate_limit_ready&&o.upload_tickets_ready&&o.work_import_batches_ready&&o.work_summaries_ready&&o.work_import_changes_ready&&o.audit_guard&&o.history_guard,'restored schema protection missing: '+JSON.stringify(o));
 
     const counts=await client.query(`
       select
