@@ -12,6 +12,9 @@ begin
   if not exists(select 1 from pg_roles where rolname='tsubame_app_runtime') then
     create role tsubame_app_runtime nologin nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
   end if;
+  if not exists(select 1 from pg_roles where rolname='tsubame_maintenance') then
+    create role tsubame_maintenance nologin nosuperuser nocreatedb nocreaterole noreplication nobypassrls;
+  end if;
 end
 $roles$;
 
@@ -56,5 +59,19 @@ revoke update,delete on public.record_histories from tsubame_app_runtime;
 revoke update,delete on public.employee_number_history from tsubame_app_runtime;
 
 grant usage,select on all sequences in schema public to tsubame_app_runtime;
+
+-- Maintenance is intentionally narrower than migrator/owner.
+grant usage on schema public to tsubame_maintenance;
+grant select,update,delete on
+  public.auth_sessions,
+  public.mfa_challenges,
+  public.password_reset_tokens,
+  public.login_rate_limits,
+  public.work_import_batches,
+  public.work_import_rows
+to tsubame_maintenance;
+revoke insert,update,delete on public.employees from tsubame_maintenance;
+revoke insert,update,delete on public.audit_logs from tsubame_maintenance;
+revoke insert,update,delete on public.record_histories from tsubame_maintenance;
 
 commit;
