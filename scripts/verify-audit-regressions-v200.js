@@ -212,7 +212,7 @@ async function enrollComplete(token,secret){
     assert.equal(first.statusCode,200);
     const second=await call('/vehicles/'+v.id+'/assignments','POST',{
       primary_employee_id:staff.e.id,additional_employee_ids:[outside.e.id],assignment_mode:'shared'
-    },admin.cookie,{'if-match':'"'+first.body.version+'"'});
+    },admin.cookie,{'if-match':'"'+first.body.vehicle.version+'"'});
     assert.equal(second.statusCode,200);
     const active=(await q('select employee_id,role from vehicle_users where vehicle_id=$1 and ended_on is null order by role,employee_id',[v.id])).rows;
     assert.equal(active.length,2);
