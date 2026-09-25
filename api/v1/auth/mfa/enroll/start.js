@@ -14,7 +14,7 @@ module.exports=async function handler(req,res){
   if(!challenge||challenge.purpose!=='enroll'||Number(challenge.failed_attempts)>=5)return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を開始できません',id));
   const account=await findCredentialAccountById(challenge.user_id);
   const locked=account?.locked_until&&new Date(account.locked_until).getTime()>Date.now();
-  if(!account||!account.mfa_required||account.state!=='active'||account.employee_lifecycle_status==='retired'||locked)return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を開始できません',id));
+  if(!account||!account.mfa_required||account.mfa_enrolled_at||account.state!=='active'||account.employee_lifecycle_status==='retired'||locked)return res.status(401).json(errorBody('MFA_ENROLLMENT_FAILED','MFA登録を開始できません',id));
   let enrollment;
   if(challenge.pending_secret_ciphertext){
     const secret=decryptSecret({mfa_secret_ciphertext:challenge.pending_secret_ciphertext,mfa_secret_iv:challenge.pending_secret_iv,mfa_secret_tag:challenge.pending_secret_tag});
