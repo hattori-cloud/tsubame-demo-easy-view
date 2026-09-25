@@ -68,8 +68,9 @@ test('backend readiness reports booleans without secret values',()=>{
     assert.equal(readiness.mfa_env_present,true);
     assert.equal(readiness.database_env_present,true);
     assert.equal(readiness.document_storage_env_present,true);
+    assert.equal(readiness.document_storage_adapter_ready,false);
     assert.equal(readiness.fictional_fixtures_enabled,true);
-    assert.equal(readiness.original_file_test_ready,true);
+    assert.equal(readiness.original_file_test_ready,false);
     const serialized=JSON.stringify(readiness);
     assert.equal(serialized.includes('secret-password'),false);
     assert.equal(serialized.includes('secret-storage-token'),false);
@@ -130,7 +131,7 @@ test('legacy OIDC variables alone do not mark credential-session auth as ready',
 });
 
 
-test('production business activation is explicit and requires production auth/database readiness',()=>{
+test('production business activation remains closed until auth, database and original storage adapter are ready',()=>{
   const saved=envSnapshot();
   try{
     process.env.VERCEL_ENV='production';
@@ -144,7 +145,9 @@ test('production business activation is explicit and requires production auth/da
     process.env.DATABASE_URL='postgres://example.invalid/db';
     process.env.TSUBAME_SESSION_SECRET='12345678901234567890123456789012';
     process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,9).toString('base64');
-    assert.equal(runtime.productionBusinessDataEnabled(),true);
+    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present-but-adapter-not-implemented';
+    assert.equal(runtime.documentStorageAdapterReady(),false);
+    assert.equal(runtime.productionBusinessDataEnabled(),false);
     process.env.VERCEL_ENV='preview';
     assert.equal(runtime.productionBusinessDataEnabled(),false);
   }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
