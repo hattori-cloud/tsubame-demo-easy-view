@@ -55,6 +55,11 @@ jobs:
       - name: Verify transactional work-import lifecycle
         run: node scripts/verify-work-import-v200.js
 
+      - name: Verify migration reconciliation
+        env:
+          MIGRATION_MANIFEST_PATH: tests/fixtures/migration-manifest-ci-v200.json
+        run: node scripts/reconcile-production-migration-v200.js
+
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
 
