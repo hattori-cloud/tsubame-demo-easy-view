@@ -80,7 +80,12 @@
   function showApp(){
     $('authShell').hidden=true;$('appShell').hidden=false;
     $('sessionUser').innerHTML='<b>'+esc(state.me?.display_name||'利用者')+'</b><span>'+esc(roleLabel(state.me?.role_level))+'</span>';
-    document.body.dataset.role=state.me?.role_level||''
+    document.body.dataset.role=state.me?.role_level||'';
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    for(const view of ['accidents','complaints','vehicles']){
+      const button=$('nav').querySelector('[data-view="'+view+'"]');
+      if(button)button.hidden=!manager
+    }
   }
 
   async function login(e){
