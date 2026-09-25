@@ -61,6 +61,7 @@ async function probeDatabaseReadiness(){
         to_regclass('public.record_histories') is not null as record_histories_ready,
         to_regclass('public.documents') is not null as documents_ready,
         to_regclass('public.document_purge_requests') is not null as purge_ready,
+        to_regclass('public.login_rate_limits') is not null as rate_limit_ready,
         to_regclass('public.near_miss_monthly_targets') is not null as capacity_targets_ready,
         to_regclass('public.near_miss_monthly_compliance') is not null as capacity_view_ready,
         exists(
@@ -77,7 +78,7 @@ async function probeDatabaseReadiness(){
     const x=r.rows[0]||{};
     return {
       connected:true,
-      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready),
+      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready&&x.rate_limit_ready),
       audit_append_only_ready:Boolean(x.audit_guard_ready&&x.history_guard_ready),
       capacity_ready:Boolean(x.capacity_targets_ready&&x.capacity_view_ready)
     }
