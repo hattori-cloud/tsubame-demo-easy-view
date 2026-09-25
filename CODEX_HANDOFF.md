@@ -1,7 +1,17 @@
 # CODEX 引継ぎ資料 — つばめ交通 社員一元管理システム
 
-更新日: 2026-09-24  
+更新日: 2026-09-25  
 対象リリース: **v200**  
+
+> **2026-09-25 最終大監査候補**  
+> CODEXの新しいコード監査固定対象は `staging-v200-backend` の `96e1bbfa301536a50b8894b31276e0f793092901` です。  
+> この固定点では **285/285回帰テスト成功**に加え、PostgreSQL 16空DB実適用、append-only監査保護、同時更新競合、pg_dump/pg_restore復元、Vercel preview READYまで確認済みです。  
+> さらに、本番業務APIは明示的な有効化フラグだけでは開かず、認証・DB・private原本ストレージ・原本実アダプターreadinessがそろうまでrouter入口でfail-closedします。現時点では原本実アダプターreadinessを意図的にfalse固定しています。  
+> PostgreSQL実試験では、最後のfull admin保護・MFA challenge single-use・同時更新競合・backup/restoreまで合格しています。  
+> Vercelは `d8030dd...` までREADY、直近runtime errors 0を確認済みですが、固定SHA `96e1bbfa...` とdeployment metadataの完全一致確認は実環境ゲートとして残しています。  
+> 最終大監査依頼は `docs/audits/CODEX_FINAL_AUDIT_REQUEST_V200_20260925.md`、詳細な現在地は `docs/v200-staging-status.md` を参照してください。  
+> 旧固定点 `e69d406b56cfe79a7469a3ed5bb245e7d753d1f6` と旧監査依頼は監査履歴として残しており、最終候補と混同しないでください。  
+> 下記の「対象ブランチ: main」「本番URL」はproduction側の説明であり、staging監査対象とは分けて扱ってください。  
 対象リポジトリ: **hattori-cloud/tsubame-demo-easy-view**  
 対象ブランチ: **main**  
 本番URL: **https://tsubame-demo-easy-view.vercel.app**  
@@ -31,7 +41,7 @@ v200原本ルール・差替え履歴・保管期限確認・書類監査履歴�
 - 詳細な安全要件・合格条件は `docs/production-document-storage-v200.md`
 - 本番DBは `documents` の storage_state / content_type / size_bytes / SHA-256 / malware状態 / upload actor と、`document_purge_requests` を持つ
 - 2026-09-24の静的監査で JavaScript構文、原本安全要件、API契約、DB重複を再確認し **35/35 合格**
-- 監査中に production-schema.sql の正規 commit 後ろへ残っていた古い重複断片を検出し、22テーブル・重複0へ修正
+- 監査時点では production-schema.sql の古い重複断片を除去して22テーブル・重複0へ修正。その後、認証・確認回答等の本番API基盤追加に伴い、現在の正規基準スキーマは28テーブル
 
 重要: `DOCUMENT_STORAGE_CONFIG.connected=false` のままです。  
 実社員の原本ファイル投入は、本番認証・サーバー権限・DB・監査・バックアップ復元・原本ストレージの実接続と受入試験が完了するまで禁止です。

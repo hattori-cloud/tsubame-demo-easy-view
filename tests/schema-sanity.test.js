@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,22);
+  assert.equal(tables.length,28);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -42,11 +42,116 @@ test('document policy rules enforce strict security',()=>{
 });
 
 test('document storage lifecycle and purge approval are fail-closed',()=>{
+  assert.match(sql,/content_sha256 char\(64\) check \(content_sha256 is null or content_sha256 ~ '\^\[0-9a-f\]\{64\}\$'\),/);
+  assert.match(sql,/malware_scan_status text not null default 'not_scanned'/);
+  assert.match(sql,/malware_scan_status in \('not_scanned','pending','clean','blocked','error'\)/);
+  assert.match(sql,/malware_scanned_at timestamptz/);
   assert.match(sql,/storage_state text not null default 'not_uploaded'/);
   assert.match(sql,/storage_state in \('not_uploaded','quarantine','active','blocked','restore_only','purged'\)/);
   assert.match(sql,/uploaded_by_user_id uuid references users\(id\)/);
-  assert.match(sql,/content_sha256 char\(64\)/);
   assert.match(sql,/create table document_purge_requests/i);
   assert.match(sql,/approved_by_user_id <> requested_by_user_id/);
   assert.match(sql,/state in \('requested','approved','rejected','executed','failed','cancelled'\)/);
+});
+
+
+test('every simple production index references an existing table column',()=>{
+  const tableColumns=new Map();
+  for(const match of sql.matchAll(/create\s+table\s+([a-z0-9_]+)\s*\(([\s\S]*?)\n\);/gi)){
+    const columns=new Set();
+    for(const line of match[2].split('\n')){
+      const column=/^\s*([a-z][a-z0-9_]*)\s+/i.exec(line);
+      if(column&&!/^(check|unique|primary|foreign|constraint)$/i.test(column[1]))columns.add(column[1]);
+    }
+    tableColumns.set(match[1],columns);
+  }
+  const invalid=[];
+  for(const match of sql.matchAll(/create\s+(?:unique\s+)?index\s+([a-z0-9_]+)\s+on\s+([a-z0-9_]+)\s*\(([^)]*)\)/gi)){
+    const [,indexName,tableName,inside]=match;
+    const columns=inside.split(',').map(x=>x.trim().split(/\s+/)[0].replace(/["']/g,'')).filter(Boolean);
+    for(const column of columns){
+      if(/^[a-z][a-z0-9_]*$/i.test(column)&&tableColumns.has(tableName)&&!tableColumns.get(tableName).has(column)){
+        invalid.push(indexName+' -> '+tableName+'.'+column);
+      }
+    }
+  }
+  assert.deepEqual(invalid,[])
+});
+
+
+test('audit and record history tables are append-only at database layer',()=>{
+  assert.match(sql,/create or replace function reject_append_only_mutation\(\)/i);
+  assert.match(sql,/raise exception ''append-only table % does not allow %''/i);
+  assert.match(sql,/create trigger audit_logs_append_only_guard[\s\S]*before update or delete on audit_logs/i);
+  assert.match(sql,/create trigger record_histories_append_only_guard[\s\S]*before update or delete on record_histories/i);
+  assert.match(sql,/create trigger employee_number_history_append_only_guard[\s\S]*before update or delete on employee_number_history/i);
+});
+
+test('employee number history supports safe renumbering without rewriting employee foreign keys',()=>{
+  assert.match(sql,/create table employee_number_history/i);
+  assert.match(sql,/employee_id uuid not null references employees\(id\)/i);
+  assert.match(sql,/old_employee_no text not null/i);
+  assert.match(sql,/new_employee_no text not null/i);
+  assert.match(sql,/reason text not null/i);
+  assert.match(sql,/changed_by_user_id uuid references users\(id\)/i);
+  assert.match(sql,/check \(old_employee_no <> new_employee_no\)/i);
+  assert.match(sql,/create index employee_number_history_old_idx on employee_number_history \(old_employee_no, changed_at desc\)/i);
+});
+
+
+test('production users schema supports three-field login without storing plaintext passwords',()=>{
+  assert.match(sql,/login_id text not null unique/i);
+  assert.match(sql,/password_hash text not null/i);
+  assert.match(sql,/failed_login_count integer not null default 0/i);
+  assert.match(sql,/locked_until timestamptz/i);
+  assert.match(sql,/last_login_at timestamptz/i);
+  assert.doesNotMatch(sql,/\bpassword\s+text\b/i);
+});
+
+
+test('production auth persistence supports revocable sessions reset tokens and MFA challenges',()=>{
+  assert.match(sql,/create table auth_sessions/i);
+  assert.match(sql,/token_hash text not null unique/i);
+  assert.match(sql,/mfa_verified boolean not null default false/i);
+  assert.match(sql,/revoked_at timestamptz/i);
+  assert.match(sql,/create table password_reset_tokens/i);
+  assert.match(sql,/create table mfa_challenges/i);
+  assert.match(sql,/challenge_hash text not null unique/i);
+  assert.doesNotMatch(sql,/create table auth_sessions[\s\S]*\btoken text\b/i);
+});
+
+
+test('MFA enrollment challenge separates verify and enroll purposes and never stores pending secret plaintext',()=>{
+  assert.match(sql,/purpose text not null default 'verify' check \(purpose in \('verify','enroll'\)\)/i);
+  assert.match(sql,/pending_secret_ciphertext text/i);
+  assert.match(sql,/pending_secret_iv text/i);
+  assert.match(sql,/pending_secret_tag text/i);
+  assert.doesNotMatch(sql,/pending_secret_plain/i);
+});
+
+
+test('communications persist notice reads and confirmation responses by immutable identities',()=>{
+  assert.match(sql,/create table notice_reads/i);
+  assert.match(sql,/notice_id uuid not null references notices\(id\) on delete cascade/i);
+  assert.match(sql,/user_id uuid not null references users\(id\) on delete cascade/i);
+  assert.match(sql,/unique \(notice_id, user_id\)/i);
+  assert.match(sql,/create table confirmation_responses/i);
+  assert.match(sql,/employee_id uuid not null references employees\(id\)/i);
+  assert.match(sql,/unique \(confirmation_id, user_id\)/i);
+});
+
+
+test('production PL/pgSQL append-only function uses a valid stable body literal',()=>{
+  const schema=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
+  assert.ok(schema.includes('create or replace function reject_append_only_mutation()'));
+  assert.ok(schema.includes("language plpgsql\nas 'begin"));
+  assert.ok(schema.includes("using errcode = ''55000'';"));
+  assert.ok(schema.includes("end;';"));
+  assert.equal(/\bas \$\r?\n/.test(schema),false);
+});
+
+
+test('document qualification foreign key cannot cross employee ownership',()=>{
+  assert.match(sql,/create table qualifications[\s\S]*unique \(id, employee_id\)/i);
+  assert.match(sql,/create table documents[\s\S]*foreign key \(qualification_id, employee_id\) references qualifications\(id, employee_id\)/i);
 });

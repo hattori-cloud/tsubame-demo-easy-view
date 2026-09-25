@@ -10,24 +10,14 @@
 begin;
 
 -- Retired employees remain in the employee master. They are not hard-deleted.
-alter table employees
-  add column if not exists retired_on date;
+-- V200 base schema already defines employees.retired_on and its index.
 
 create index if not exists employees_lifecycle_office_dept_idx
   on employees (lifecycle_status, office, department, employee_no);
 
-create index if not exists employees_retired_on_idx
-  on employees (retired_on desc)
-  where lifecycle_status = 'retired';
-
--- A near-miss report must preserve the organization context at the time of
--- submission so later transfers do not rewrite historical monthly results.
-alter table near_misses
-  add column if not exists reported_on date,
-  add column if not exists summary text,
-  add column if not exists employee_no_at_report text,
-  add column if not exists office_at_report text,
-  add column if not exists department_at_report text;
+-- A near-miss report preserves organization context at submission time so later
+-- transfers do not rewrite historical monthly results.
+-- V200 base schema already defines reported_on, summary and the reporting snapshots.
 
 -- Backfill candidates for staging/migration only. Production migration must
 -- validate these values before making them NOT NULL.
@@ -54,21 +44,14 @@ where e.id = n.employee_id
 
 -- High-volume list/search indexes. The UI/API should still paginate; indexes
 -- prevent each request from scanning all historical near-miss rows.
+-- V200 base schema already provides employee+reported_on, office+department+reported_on,
+-- and active reported_on indexes. This addendum only creates capacity indexes that
+-- are not already present in the canonical base schema.
 create index if not exists near_misses_reported_on_idx
   on near_misses (reported_on desc, id);
 
-create index if not exists near_misses_employee_reported_idx
-  on near_misses (employee_id, reported_on desc, id);
-
 create index if not exists near_misses_department_reported_idx
   on near_misses (department_at_report, reported_on desc, id);
-
-create index if not exists near_misses_office_department_reported_idx
-  on near_misses (office_at_report, department_at_report, reported_on desc, id);
-
-create index if not exists near_misses_active_reported_idx
-  on near_misses (reported_on desc, id)
-  where archived_at is null;
 
 -- Monthly target snapshot.
 -- The target population is frozen per month so later transfers/retirements do
@@ -89,7 +72,9 @@ create table if not exists near_miss_monthly_targets (
   exemption_reason text,
   created_at timestamptz not null default now(),
   created_by_user_id uuid references users(id),
+  updated_by_user_id uuid references users(id),
   updated_at timestamptz not null default now(),
+  version integer not null default 1 check (version >= 1),
   unique (month_start, employee_id),
   check (date_trunc('month', month_start)::date = month_start),
   check (

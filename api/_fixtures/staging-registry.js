@@ -1,3 +1,4 @@
+const {stagingFixturesAllowed}=require('../_lib/runtime-config');
 const USERS=[
   {id:'11111111-1111-4111-8111-111111111111',external_subject:'demo-admin-full',display_name:'デモ全社管理者',role_level:'full',safety_authority:true,state:'active',mfa_required:true,employee_id:null,scopes:[]},
   {id:'22222222-2222-4222-8222-222222222222',external_subject:'demo-admin-hq-taxi',display_name:'デモ本社担当管理者',role_level:'scoped',safety_authority:false,state:'active',mfa_required:true,employee_id:null,scopes:[{office:'本社',department:'タクシー1課'}]},
@@ -9,11 +10,12 @@ const EMPLOYEES=[
   {id:'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',employee_no:'DEMO-2001',name:'架空 二郎',office:'府中',department:'タクシー2課',position:'乗務員',lifecycle_status:'active',safety_state:'通常',version:1},
   {id:'cccccccc-cccc-4ccc-8ccc-cccccccccccc',employee_no:'DEMO-3001',name:'架空 三郎',office:'馬木',department:'バス課',position:'乗務員',lifecycle_status:'active',safety_state:'通常',version:1}
 ];
-function fixturesEnabled(){return process.env.TSUBAME_ENABLE_STAGING_FIXTURES==='1'}
+function fixturesEnabled(){return stagingFixturesAllowed()}
 function requireFixtures(){
   if(!fixturesEnabled()){const e=new Error('STAGING_FIXTURES_DISABLED');e.code='STAGING_FIXTURES_DISABLED';throw e}
 }
 function findUserBySubject(subject){requireFixtures();return USERS.find(x=>x.external_subject===subject)||null}
+function findUserById(id){requireFixtures();return USERS.find(x=>x.id===id)||null}
 function findEmployeeById(id){requireFixtures();return EMPLOYEES.find(x=>x.id===id)||null}
 function listEmployees(){requireFixtures();return EMPLOYEES.map(x=>({...x}))}
-module.exports={fixturesEnabled,findUserBySubject,findEmployeeById,listEmployees};
+module.exports={fixturesEnabled,findUserBySubject,findUserById,findEmployeeById,listEmployees};

@@ -4,10 +4,12 @@
   "version": "1.0.0",
   "description": "Tsubame employee and operations management demo / production foundation",
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
-    "@ayocore/exceljs": "5.0.4"
+    "@ayocore/exceljs": "5.0.4",
+    "pg": "8.23.0",
+    "@node-rs/argon2": "2.2.1"
   },
   "scripts": {
     "test": "node --test tests/*.test.js"

@@ -39,13 +39,24 @@ create table employees (
 
 create table users (
   id uuid primary key default gen_random_uuid(),
-  external_subject text unique,
-  employee_id uuid references employees(id),
+  employee_id uuid not null unique references employees(id),
+  login_id text not null unique,
+  password_hash text not null,
+  password_changed_at timestamptz,
+  failed_login_count integer not null default 0 check (failed_login_count >= 0),
+  locked_until timestamptz,
+  last_login_at timestamptz,
   display_name text not null,
   role_level text not null check (role_level in ('full','scoped','self')),
   safety_authority boolean not null default false,
   state text not null default 'active' check (state in ('active','suspended')),
-  mfa_required boolean not null default true,
+  mfa_required boolean not null default false,
+  mfa_secret_ciphertext text,
+  mfa_secret_iv text,
+  mfa_secret_tag text,
+  mfa_enrolled_at timestamptz,
+  check (role_level = 'self' or mfa_required = true),
+  check (mfa_secret_ciphertext is null or (mfa_secret_iv is not null and mfa_secret_tag is not null and mfa_enrolled_at is not null)),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1)
@@ -60,6 +71,59 @@ create table user_scopes (
   unique (user_id, office, department)
 );
 
+create table auth_sessions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  mfa_verified boolean not null default false,
+  issued_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  revoked_at timestamptz,
+  revoke_reason text,
+  user_agent_hash text,
+  ip_prefix_hash text,
+  check (expires_at > issued_at)
+);
+
+create table password_reset_tokens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  token_hash text not null unique,
+  requested_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  used_at timestamptz,
+  check (expires_at > created_at)
+);
+
+create table mfa_challenges (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  challenge_hash text not null unique,
+  purpose text not null default 'verify' check (purpose in ('verify','enroll')),
+  pending_secret_ciphertext text,
+  pending_secret_iv text,
+  pending_secret_tag text,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null,
+  verified_at timestamptz,
+  failed_attempts integer not null default 0 check (failed_attempts >= 0),
+  check (expires_at > created_at),
+  check (pending_secret_ciphertext is null or (pending_secret_iv is not null and pending_secret_tag is not null))
+);
+
+create table employee_number_history (
+  id uuid primary key default gen_random_uuid(),
+  employee_id uuid not null references employees(id),
+  old_employee_no text not null,
+  new_employee_no text not null,
+  reason text not null,
+  changed_by_user_id uuid references users(id),
+  changed_at timestamptz not null default now(),
+  check (old_employee_no <> new_employee_no)
+);
+
 create table qualifications (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
@@ -72,13 +136,14 @@ create table qualifications (
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  version integer not null default 1 check (version >= 1)
+  version integer not null default 1 check (version >= 1),
+  unique (id, employee_id)
 );
 
 create table documents (
   id uuid primary key default gen_random_uuid(),
   employee_id uuid not null references employees(id),
-  qualification_id uuid references qualifications(id),
+  qualification_id uuid,
   category text not null,
   name text not null,
   kind text,
@@ -108,7 +173,10 @@ create table documents (
   uploaded_at timestamptz,
   uploaded_by_user_id uuid references users(id),
   activated_at timestamptz,
-  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}
+  content_sha256 char(64) check (content_sha256 is null or content_sha256 ~ '^[0-9a-f]{64}$'),
+  malware_scan_status text not null default 'not_scanned'
+    check (malware_scan_status in ('not_scanned','pending','clean','blocked','error')),
+  malware_scanned_at timestamptz,
   verified_by_user_id uuid references users(id),
   replaced_from_document_id uuid references documents(id),
   replaced_by_document_id uuid references documents(id),
@@ -118,6 +186,7 @@ create table documents (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1),
+  foreign key (qualification_id, employee_id) references qualifications(id, employee_id),
   check (security_class <> 'strict' or access_level = 'full_admin'),
   check (original_handling not in ('company_paper_original','paper_and_electronic') or paper_location is not null)
 );
@@ -193,6 +262,9 @@ create table accidents (
   id uuid primary key default gen_random_uuid(),
   accident_no text not null unique,
   employee_id uuid not null references employees(id),
+  office_at_record text,
+  department_at_record text,
+  employment_at_record text,
   occurred_on date not null,
   occurred_time time,
   car_no text check (car_no is null or car_no ~ '^[0-9]{3}$'),
@@ -236,6 +308,7 @@ create table near_misses (
   employee_no_at_report text not null,
   office_at_report text not null,
   department_at_report text not null,
+  employment_at_report text,
   location_tags jsonb not null default '[]'::jsonb,
   situation_tags jsonb not null default '[]'::jsonb,
   road_tags jsonb not null default '[]'::jsonb,
@@ -251,6 +324,9 @@ create table complaints (
   id uuid primary key default gen_random_uuid(),
   complaint_no text not null unique,
   employee_id uuid not null references employees(id),
+  office_at_record text,
+  department_at_record text,
+  employment_at_record text,
   responded_on date not null,
   responded_time time,
   responder text,
@@ -289,6 +365,7 @@ create table guidance_records (
 create table vehicles (
   id uuid primary key default gen_random_uuid(),
   car_no text not null unique check (car_no ~ '^[0-9]{3}$'),
+  model text,
   service text,
   status text not null default 'active',
   assignment_mode text not null default 'dedicated',
@@ -309,9 +386,12 @@ create table vehicle_users (
   role text not null check (role in ('primary','additional')),
   assigned_on date not null default current_date,
   ended_on date,
-  created_at timestamptz not null default now(),
-  unique (vehicle_id, employee_id, role, assigned_on)
+  created_at timestamptz not null default now()
 );
+
+create unique index vehicle_users_active_unique
+  on vehicle_users(vehicle_id,employee_id,role)
+  where ended_on is null;
 
 create table applications (
   id uuid primary key default gen_random_uuid(),
@@ -348,6 +428,24 @@ create table confirmations (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1)
+);
+
+create table notice_reads (
+  id uuid primary key default gen_random_uuid(),
+  notice_id uuid not null references notices(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  read_at timestamptz not null default now(),
+  unique (notice_id, user_id)
+);
+
+create table confirmation_responses (
+  id uuid primary key default gen_random_uuid(),
+  confirmation_id uuid not null references confirmations(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  employee_id uuid not null references employees(id),
+  response text not null,
+  responded_at timestamptz not null default now(),
+  unique (confirmation_id, user_id)
 );
 
 create table handoffs (
@@ -399,10 +497,39 @@ create table audit_logs (
   summary text
 );
 
+-- Audit/history records are append-only at the database layer.
+-- Application roles must still be granted INSERT/SELECT only in production.
+create or replace function reject_append_only_mutation()
+returns trigger
+language plpgsql
+as 'begin
+  raise exception ''append-only table % does not allow %'', TG_TABLE_NAME, TG_OP
+    using errcode = ''55000'';
+end;';
+
+create trigger audit_logs_append_only_guard
+before update or delete on audit_logs
+for each row execute function reject_append_only_mutation();
+
+create trigger record_histories_append_only_guard
+before update or delete on record_histories
+for each row execute function reject_append_only_mutation();
+
+create trigger employee_number_history_append_only_guard
+before update or delete on employee_number_history
+for each row execute function reject_append_only_mutation();
+
 create index employees_scope_idx on employees (office, department, lifecycle_status, employee_no);
 create index employees_name_idx on employees (name);
 create index employees_deadline_idx on employees (license_expiry, health_check_due, aptitude_due);
 create index employees_retired_on_idx on employees (retired_on desc) where lifecycle_status = 'retired';
+
+create index employee_number_history_old_idx on employee_number_history (old_employee_no, changed_at desc);
+create index employee_number_history_employee_idx on employee_number_history (employee_id, changed_at desc);
+
+create index auth_sessions_user_active_idx on auth_sessions (user_id, expires_at desc) where revoked_at is null;
+create index password_reset_tokens_user_idx on password_reset_tokens (user_id, expires_at desc) where used_at is null;
+create index mfa_challenges_user_idx on mfa_challenges (user_id, expires_at desc) where verified_at is null;
 
 create index users_employee_idx on users (employee_id);
 create index users_state_role_idx on users (state, role_level);
@@ -445,6 +572,9 @@ create index vehicle_users_employee_idx on vehicle_users (employee_id, ended_on,
 
 create index applications_employee_status_idx on applications (employee_id, status, applied_at desc);
 create index notices_state_published_idx on notices (state, published_at desc);
+create index notice_reads_user_idx on notice_reads (user_id, read_at desc);
+create index confirmation_responses_confirmation_idx on confirmation_responses (confirmation_id, responded_at desc);
+create index confirmation_responses_employee_idx on confirmation_responses (employee_id, responded_at desc);
 create index confirmations_state_due_idx on confirmations (state, due);
 create index handoffs_to_user_idx on handoffs (to_user_id, status, created_at desc);
 create index handoffs_case_idx on handoffs (case_type, case_id);

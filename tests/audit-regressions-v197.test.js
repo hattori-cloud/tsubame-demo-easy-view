@@ -71,7 +71,9 @@ test('historical target state rolls back later transfer/retirement details',()=>
 test('past-month near-miss registration carries quota month context',()=>{
   assert.ok(source.includes("function openNearForm(idx=-1,defaultNo='',quotaMonth='')"));
   assert.ok(source.includes('選択月の不足件数には入りません'));
-  assert.ok(source.includes("openNearForm(-1,'+safeNo+'"))
+  const quotaBlock=between('function renderNearQuotaCenterRows',"let NEAR_MONTH=''");
+  assert.ok(quotaBlock.includes('openNearForm(-1'));
+  assert.ok(quotaBlock.includes('String(month).replaceAll'))
 });
 
 test('mobile monthly priority list is capped and category-balanced',()=>{
@@ -79,4 +81,66 @@ test('mobile monthly priority list is capped and category-balanced',()=>{
   assert.ok(block.includes("'(max-width:700px)'"));
   assert.ok(block.includes("?3:8"));
   assert.ok(block.includes("['accident','near','quota']"))
+});
+
+
+test('deadline center excludes inactive credentials and historical document versions',()=>{
+  const block=between('function collectDeadlines','function deadlineFilterLabel');
+  assert.ok(block.includes("q.status!=='無効'"));
+  assert.ok(block.includes("q.status!=='失効'"));
+  assert.ok(block.includes("!d.archived"));
+  assert.ok(block.includes("!d.replacedByDocumentId"));
+  assert.ok(block.includes("d.status!=='差替え済み'"));
+  assert.ok(block.includes("d.status!=='無効'"))
+});
+
+test('recovery-required key is not evaluated before its declaration',()=>{
+  const declaration=source.indexOf("const CORE_RECOVERY_REQUIRED_KEY='v197CORE_RECOVERY_REQUIRED'");
+  assert.ok(declaration>=0,'recovery key declaration missing');
+  const prefix=source.slice(0,declaration);
+  assert.equal(prefix.includes('CORE_RECOVERY_REQUIRED_KEY'),false,'recovery key referenced before initialization');
+  assert.ok(source.includes("const SYSTEM_RESTORE_EXTRA_KEYS=['v23E','v45EmployeeDataVersion','v68SCHEMA','v91RESTORED_SOURCE_SCHEMA','v91RESTORED_CORE_SCHEMA','v70LAST_RESTORE','v197CORE_RECOVERY_REQUIRED']"));
+});
+
+
+test('complaint edit comparison covers guidance and all editable response fields',()=>{
+  const block=between('let complaintBefore=rec?','if(rec&&!complaintLines.length)');
+  for(const field of [
+    'responseTime','responder','customerName','occurrenceDate','occurrenceTime',
+    'guidanceContent','instructor','guidanceDate','guidanceTime','ownerId'
+  ]){
+    assert.ok(block.includes(field),field+' missing from complaint change detection')
+  }
+  assert.ok(block.includes("guidanceContent:'指導内容'"));
+});
+
+
+test('form save guard blocks stale or recovery-required state before form mutation handlers run',()=>{
+  const block=between("fsave.addEventListener('click',e=>{","window.addEventListener('storage'");
+  const guard=block.indexOf('if(!coreSaveRevisionIsCurrent())');
+  const attempt=block.indexOf('FORM_SAVE_ATTEMPT=true');
+  assert.ok(guard>=0,'missing pre-mutation save guard');
+  assert.ok(attempt>guard,'save guard must run before form save attempt and onclick mutation');
+  assert.ok(block.includes('e.stopImmediatePropagation()'));
+  assert.ok(block.includes('save();'));
+});
+
+
+test('failed or rejected core saves restore the last good in-memory state',()=>{
+  const saveBlock=between('let CORE_LAST_GOOD_MEMORY=null;','function coreMutationReady()');
+  assert.ok(saveBlock.includes('function captureCoreMemorySnapshot()'));
+  assert.ok(saveBlock.includes('function restoreCoreMemorySnapshot(snapshot)'));
+  assert.ok(saveBlock.includes('function rememberCoreMemoryAsGood()'));
+  assert.ok(saveBlock.includes('function restoreLastGoodCoreMemory()'));
+  assert.ok(saveBlock.includes('if(!coreSaveRevisionIsCurrent()){\n  restoreLastGoodCoreMemory();'));
+  assert.ok(saveBlock.includes('let memoryRollbackFailed=restoreLastGoodCoreMemory();'));
+  assert.ok(saveBlock.includes('rememberCoreMemoryAsGood();\n  return true'));
+  assert.ok(source.includes('runBootMigrations();\nrememberCoreMemoryAsGood();'));
+});
+
+test('memory rollback mutates core arrays in place instead of replacing shared references',()=>{
+  const block=between('function restoreCoreMemorySnapshot(snapshot){','function rememberCoreMemoryAsGood()');
+  assert.ok(block.includes('target.splice(0,target.length,...value)'));
+  assert.ok(block.includes('Object.keys(target).forEach(k=>delete target[k])'));
+  assert.ok(block.includes('Object.assign(target,value)'));
 });

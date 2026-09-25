@@ -1,84 +1,73 @@
 const crypto=require('crypto');
 const {applySecurityHeaders,requestId,errorBody,productionAuthConfigured}=require('./security');
+const {stagingFixturesAllowed}=require('./runtime-config');
+const {loadSessionByTokenHash}=require('./auth-store');
+const {findUserBySubject}=require('../_fixtures/staging-registry');
 
 class AuthError extends Error{
   constructor(status,code,message){super(message);this.status=status;this.code=code}
 }
 
-let jwksCache={url:'',expiresAt:0,keys:[]};
-
-function base64urlJson(part){
-  try{return JSON.parse(Buffer.from(part,'base64url').toString('utf8'))}
-  catch(_){throw new AuthError(401,'INVALID_TOKEN','認証トークンの形式が正しくありません')}
+function parseCookies(req){
+  const raw=String(req.headers.cookie||'');
+  const out={};
+  raw.split(';').forEach(part=>{
+    const i=part.indexOf('=');
+    if(i<0)return;
+    const key=part.slice(0,i).trim(),value=part.slice(i+1).trim();
+    if(key)out[key]=decodeURIComponent(value)
+  });
+  return out
 }
-function getBearer(req){
-  const raw=req.headers.authorization||'';
-  const m=/^Bearer\s+(.+)$/i.exec(raw);
-  if(!m)throw new AuthError(401,'AUTH_REQUIRED','認証が必要です');
-  return m[1].trim()
-}
-function audienceMatches(actual,expected){
-  return Array.isArray(actual)?actual.includes(expected):actual===expected
-}
-async function loadJwks(){
-  const url=process.env.TSUBAME_AUTH_JWKS_URL;
-  if(!url)throw new AuthError(503,'AUTH_NOT_CONFIGURED','JWKS URLが未設定です');
-  const now=Date.now();
-  if(jwksCache.url===url&&jwksCache.expiresAt>now&&jwksCache.keys.length)return jwksCache.keys;
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),5000);
-  let response;
-  try{response=await fetch(url,{headers:{accept:'application/json'},signal:controller.signal})}
-  catch(_){throw new AuthError(503,'AUTH_PROVIDER_UNAVAILABLE','認証鍵を取得できません')}
-  finally{clearTimeout(timer)}
-  if(!response.ok)throw new AuthError(503,'AUTH_PROVIDER_UNAVAILABLE','認証鍵を取得できません');
-  let body;
-  try{body=await response.json()}catch(_){throw new AuthError(503,'AUTH_PROVIDER_INVALID_RESPONSE','認証鍵の応答が不正です')}
-  if(!Array.isArray(body.keys)||!body.keys.length)throw new AuthError(503,'AUTH_PROVIDER_INVALID_RESPONSE','利用可能な認証鍵がありません');
-  jwksCache={url,expiresAt:now+5*60*1000,keys:body.keys};
-  return jwksCache.keys
-}
-async function verifyAccessToken(token){
-  if(!productionAuthConfigured())throw new AuthError(503,'AUTH_NOT_CONFIGURED','本番認証が未設定です');
-  const parts=token.split('.');
-  if(parts.length!==3)throw new AuthError(401,'INVALID_TOKEN','認証トークンの形式が正しくありません');
-  const header=base64urlJson(parts[0]),claims=base64urlJson(parts[1]);
-  if(header.alg!=='RS256'||!header.kid)throw new AuthError(401,'UNSUPPORTED_TOKEN','RS256署名トークンのみ受け付けます');
-  const keys=await loadJwks();
-  let jwk=keys.find(k=>k.kid===header.kid&&(!k.alg||k.alg==='RS256')&&(!k.use||k.use==='sig'));
-  if(!jwk){
-    jwksCache.expiresAt=0;
-    const refreshed=await loadJwks();
-    jwk=refreshed.find(k=>k.kid===header.kid&&(!k.alg||k.alg==='RS256')&&(!k.use||k.use==='sig'))
+function rawSessionToken(req){
+  const cookie=parseCookies(req).tsubame_session;
+  if(cookie)return cookie;
+  if(stagingFixturesAllowed()){
+    const raw=String(req.headers.authorization||'');
+    const m=/^Bearer\s+(.+)$/i.exec(raw);
+    if(m)return m[1].trim()
   }
-  if(!jwk)throw new AuthError(401,'UNKNOWN_SIGNING_KEY','認証トークンの署名鍵を確認できません');
-  let key;
-  try{key=crypto.createPublicKey({key:jwk,format:'jwk'})}
-  catch(_){throw new AuthError(503,'AUTH_KEY_INVALID','認証鍵を利用できません')}
-  const signed=Buffer.from(parts[0]+'.'+parts[1]);
-  const signature=Buffer.from(parts[2],'base64url');
-  const ok=crypto.verify('RSA-SHA256',signed,key,signature);
-  if(!ok)throw new AuthError(401,'INVALID_SIGNATURE','認証トークンの署名を確認できません');
-
-  const now=Math.floor(Date.now()/1000),skew=60;
-  if(!claims.sub)throw new AuthError(401,'INVALID_TOKEN','認証主体がありません');
-  if(typeof claims.exp!=='number'||claims.exp<now-skew)throw new AuthError(401,'TOKEN_EXPIRED','認証の有効期限が切れています');
-  if(typeof claims.nbf==='number'&&claims.nbf>now+skew)throw new AuthError(401,'TOKEN_NOT_ACTIVE','認証トークンはまだ有効ではありません');
-  if(claims.iss!==process.env.TSUBAME_AUTH_ISSUER)throw new AuthError(401,'INVALID_ISSUER','認証元が一致しません');
-  if(!audienceMatches(claims.aud,process.env.TSUBAME_AUTH_AUDIENCE))throw new AuthError(401,'INVALID_AUDIENCE','認証対象が一致しません');
-
-  const domain=(process.env.TSUBAME_AUTH_ALLOWED_DOMAIN||'').trim().toLowerCase();
-  if(domain){
-    const email=String(claims.email||claims.preferred_username||'').toLowerCase();
-    if(!email.endsWith('@'+domain))throw new AuthError(403,'COMPANY_ACCOUNT_REQUIRED','会社で許可されたアカウントが必要です')
-  }
-  const amr=Array.isArray(claims.amr)?claims.amr.map(x=>String(x).toLowerCase()):[];
-  const requiredAcr=(process.env.TSUBAME_AUTH_MFA_ACR||'').trim();
-  const mfa=amr.some(x=>['mfa','otp','hwk','fido','webauthn'].includes(x))||Boolean(requiredAcr&&claims.acr===requiredAcr);
-  return {subject:String(claims.sub),email:claims.email||claims.preferred_username||'',mfa,claims}
+  throw new AuthError(401,'AUTH_REQUIRED','認証が必要です')
+}
+function sessionSecret(){
+  const secret=String(process.env.TSUBAME_SESSION_SECRET||'');
+  if(secret.length<32)throw new AuthError(503,'AUTH_NOT_CONFIGURED','セッション秘密鍵が未設定または短すぎます');
+  return secret
+}
+function tokenHash(token){
+  return crypto.createHmac('sha256',sessionSecret()).update(String(token)).digest('hex')
+}
+function newRawToken(){return crypto.randomBytes(32).toString('base64url')}
+function secureCookie(token,maxAge=28800){
+  return `tsubame_session=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAge}`
+}
+function clearSessionCookie(){
+  return 'tsubame_session=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0'
+}
+function stagingFixtureIdentity(req){
+  if(!stagingFixturesAllowed())return null;
+  const raw=String(req.headers.authorization||'');
+  const m=/^Bearer\s+fixture:([^:]+)(?::(mfa))?$/i.exec(raw);
+  if(!m)return null;
+  const user=findUserBySubject(m[1]);
+  if(!user)throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません');
+  return {subject:user.external_subject,user_id:user.id,mfa:m[2]==='mfa',session_id:'fixture-session',user:{...user,employee_lifecycle_status:null},fixture:true}
 }
 async function authenticateRequest(req){
-  return verifyAccessToken(getBearer(req))
+  const fixture=stagingFixtureIdentity(req);if(fixture)return fixture;
+  if(!productionAuthConfigured())throw new AuthError(503,'AUTH_NOT_CONFIGURED','本番認証が未設定です');
+  const token=rawSessionToken(req);
+  const session=await loadSessionByTokenHash(tokenHash(token));
+  if(!session)throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません');
+  if(session.revoked_at)throw new AuthError(401,'SESSION_REVOKED','認証セッションは失効しています');
+  if(new Date(session.expires_at).getTime()<=Date.now())throw new AuthError(401,'SESSION_EXPIRED','認証セッションの有効期限が切れています');
+  const user={
+    id:String(session.user_id),employee_id:session.employee_id||null,display_name:session.display_name,
+    role_level:session.role_level,safety_authority:Boolean(session.safety_authority),state:session.state,
+    mfa_required:Boolean(session.mfa_required),scopes:session.scopes||[],
+    employee_lifecycle_status:session.employee_lifecycle_status||null,employee_no:session.employee_no||null
+  };
+  return {subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id),user}
 }
 function sendApiError(req,res,err){
   const id=requestId(req);
@@ -89,4 +78,4 @@ function sendApiError(req,res,err){
   const message=err instanceof AuthError?err.message:structured?err.message:'サーバー処理に失敗しました';
   return res.status(status).json(errorBody(code,message,id))
 }
-module.exports={AuthError,authenticateRequest,verifyAccessToken,sendApiError};
+module.exports={AuthError,authenticateRequest,sendApiError,parseCookies,rawSessionToken,tokenHash,newRawToken,secureCookie,clearSessionCookie,stagingFixtureIdentity};

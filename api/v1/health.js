@@ -1,4 +1,5 @@
-const {applySecurityHeaders,requestId,productionAuthConfigured}=require('../_lib/security');
+const {applySecurityHeaders,requestId}=require('../_lib/security');
+const {backendReadiness}=require('../_lib/runtime-config');
 
 module.exports=function handler(req,res){
   const id=requestId(req);
@@ -8,14 +9,16 @@ module.exports=function handler(req,res){
     res.setHeader('Allow','GET');
     return res.status(405).json({error:{code:'METHOD_NOT_ALLOWED',message:'GETのみ利用できます',request_id:id}});
   }
+  const readiness=backendReadiness();
   return res.status(200).json({
     service:'tsubame-employee-management-api',
-    release:'v129',
+    release:'v200',
     status:'ok',
     data_mode:'no-business-data',
-    production_auth_configured:productionAuthConfigured(),
-    business_api_enabled:false,
-    feature_set:'role-aware-home-action-center',
+    production_auth_configured:readiness.auth_env_present,
+    production_business_activation_requested:readiness.production_business_activation_requested,
+    business_api_enabled:readiness.production_business_data_enabled,
+    feature_set:'v200-fail-closed-staging-backend',
     timestamp:new Date().toISOString()
   });
 };
