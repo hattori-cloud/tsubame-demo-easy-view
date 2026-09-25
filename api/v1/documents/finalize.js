@@ -2,10 +2,11 @@ const {authenticateRequest,sendApiError}=require('../../_lib/auth');
 const {resolveCurrentUser}=require('../../_lib/authorization');
 const {applySecurityHeaders,requestId}=require('../../_lib/security');
 const {documentStorageAdapterReady,documentMalwareScannerReady}=require('../../_lib/runtime-config');
-const {query,withTransaction}=require('../../_lib/db');
+const {query}=require('../../_lib/db');
 const {employeeForUser,policyForCategory,requireDocumentPrivilege}=require('../../_lib/credential-store');
 const {headPrivate,issuePrivateScanDownload}=require('../../_lib/document-storage');
 const {scanOriginal}=require('../../_lib/document-malware');
+const {blockUploadTicket,finalizeCleanOriginal}=require('../../_lib/document-original-store');
 
 function problem(status,code,message){const e=new Error(message);e.status=status;e.code=code;return e}
 function samePolicy(ticket,policy){
@@ -44,43 +45,11 @@ module.exports=async function handler(req,res){
     });
 
     if(scan.verdict==='blocked'){
-      await withTransaction(async client=>{
-        const locked=(await query('select * from document_upload_tickets where id=$1 for update',[ticketId],client)).rows[0];
-        if(locked?.state==='issued')await query("update document_upload_tickets set state='cancelled',updated_at=now() where id=$1",[ticketId],client);
-        await query("insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'原本malware検査','document_upload_ticket',$2,$3,'denied',$4,$5)",[user.id,ticketId,ticket.employee_id,rid,'blocked / '+scan.engine+' / '+scan.signature],client)
-      });
+      await blockUploadTicket({user,ticketId,employeeId:ticket.employee_id,requestId:rid,scan});
       throw problem(422,'DOCUMENT_MALWARE_BLOCKED','危険なファイルとして検出されたため原本登録を拒否しました')
     }
 
-    const document=await withTransaction(async client=>{
-      const locked=(await query('select * from document_upload_tickets where id=$1 for update',[ticketId],client)).rows[0];
-      if(!locked||locked.state!=='issued'||new Date(locked.expires_at).getTime()<=Date.now())throw problem(409,'UPLOAD_TICKET_CONSUMED','原本アップロード認可は既に利用済みまたは期限切れです');
-      await employeeForUser(user,locked.employee_id,client);
-      const currentPolicy=await policyForCategory(locked.category,client);requireDocumentPrivilege(user,identity,currentPolicy);
-      if(!samePolicy(locked,currentPolicy))throw problem(409,'DOCUMENT_POLICY_CHANGED','原本アップロード認可以降に書類ルールが変更されています。新しい認可を取得してください');
-
-      const row=(await query(`
-        insert into documents(
-          employee_id,qualification_id,category,name,kind,registered_on,expiry,status,
-          security_class,access_level,original_handling,verification_required,paper_location,retention_until,
-          original_filename,content_type,size_bytes,storage_key,storage_state,uploaded_at,uploaded_by_user_id,
-          activated_at,content_sha256,malware_scan_status,malware_scanned_at
-        ) values(
-          $1,$2,$3,$4,$5,$6,$7,'pending',
-          $8,$9,$10,$11,$12,$13,
-          $14,$15,$16,$17,'active',now(),$18,
-          now(),$19,'clean',now()
-        ) returning *
-      `,[
-        locked.employee_id,locked.qualification_id,locked.category,locked.name,locked.kind,locked.registered_on,locked.expiry,
-        locked.security_class,locked.access_level,locked.original_handling,locked.verification_required,locked.paper_location,locked.retention_until,
-        locked.original_file_name,scan.content_type,scan.size_bytes,locked.storage_key,user.id,scan.sha256
-      ],client)).rows[0];
-
-      await query("update document_upload_tickets set state='finalized',finalized_document_id=$2,updated_at=now() where id=$1",[ticketId,row.id],client);
-      await query("insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'原本確定','document',$2,$3,'success',$4,$5)",[user.id,row.id,row.employee_id,rid,'clean / sha256 '+scan.sha256.slice(0,12)+'... / '+scan.engine],client);
-      return row
-    });
+    const document=await finalizeCleanOriginal({user,identity,ticketId,scan,requestId:rid});
 
     applySecurityHeaders(res);res.setHeader('X-Request-Id',rid);res.setHeader('Cache-Control','no-store');
     return res.status(201).json({document})
