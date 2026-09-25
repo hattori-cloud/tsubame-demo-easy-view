@@ -62,6 +62,52 @@ async function enrollComplete(token,secret){
   return call('/auth/mfa/enroll/complete','POST',{challenge_token:token,code:mfa.totpCode(secret,Math.floor(Date.now()/30000))})
 }
 
+async function waitForLockQuery(fragment){
+  for(let i=0;i<160;i++){
+    const r=await q("select count(*)::int n from pg_stat_activity where pid<>pg_backend_pid() and wait_event_type='Lock' and query ilike $1",['%'+fragment+'%']);
+    if(r.rows[0].n)return;
+    await new Promise(resolve=>setTimeout(resolve,25))
+  }
+  throw new Error('Lock wait not reached: '+fragment)
+}
+async function verifyPasswordCredentialRace(admin,mode){
+  const a=await seed('RG-RACE-'+mode,'full');
+  let resetTokenHash=null;
+  if(mode==='reset'){
+    resetTokenHash=auth.tokenHash(auth.newRawToken());
+    await users.issuePasswordReset({actor:admin.u,userId:a.u.id,tokenHash:resetTokenHash,requestId})
+  }
+  const sentinelHash=auth.tokenHash(auth.newRawToken());
+  await authStore.createMfaChallenge({userId:a.u.id,challengeHash:sentinelHash,purpose:'enroll',ttlSeconds:300});
+  const nextPassword='New-audit-password-987!';
+  const nextHash=await hash(nextPassword,{algorithm:Algorithm.Argon2id,memoryCost:19456,timeCost:2,parallelism:1});
+  const blocker=await db.getPool().connect();
+  let pendingChange=null,concurrentLogin=null,locked=false;
+  try{
+    await blocker.query('begin');locked=true;
+    await blocker.query('select id from mfa_challenges where challenge_hash=$1 for update',[sentinelHash]);
+    pendingChange=mode==='reset'
+      ? users.completePasswordReset({tokenHash:resetTokenHash,passwordHash:nextHash,requestId})
+      : call('/auth/password/change','POST',{current_password:a.password,new_password:nextPassword},a.cookie);
+    await waitForLockQuery('update mfa_challenges set verified_at');
+    concurrentLogin=login(a);
+    await waitForLockQuery('for update of u');
+    await blocker.query('commit');locked=false;
+    const changed=await pendingChange;
+    const oldLogin=await concurrentLogin;
+    if(mode==='reset')assert.equal(changed.user_id,a.u.id);
+    else assert.equal(changed.statusCode,200);
+    assert.equal(oldLogin.statusCode,401);
+    const active=(await q('select count(*)::int n from auth_sessions where user_id=$1 and revoked_at is null',[a.u.id])).rows[0].n;
+    assert.equal(active,0);
+    return {change:mode==='reset'?'completed':changed.statusCode,concurrent_old_password:oldLogin.statusCode,active_sessions:active}
+  }finally{
+    if(locked)await blocker.query('rollback');
+    blocker.release();
+    await Promise.allSettled([pendingChange,concurrentLogin].filter(Boolean))
+  }
+}
+
 (async()=>{
   const admin=await seed('RG-A','full');
   const staff=await seed('RG-S');
@@ -97,7 +143,7 @@ async function enrollComplete(token,secret){
     report.cases.H02={first:first.statusCode,replay:replay.statusCode,other_old:staleOther.statusCode}
   }
 
-  // H03: password reset invalidates a pending MFA enrollment flow.
+  // H03: password reset/change invalidates old MFA flows and cannot be crossed by an old-password login already in flight.
   {
     const a=await seed('RG-R','full');
     const challenge=(await login(a)).body.challenge_token;
@@ -114,7 +160,9 @@ async function enrollComplete(token,secret){
     assert.equal(stale.statusCode,401);
     const active=(await q('select count(*)::int n from auth_sessions where user_id=$1 and revoked_at is null',[a.u.id])).rows[0].n;
     assert.equal(active,0);
-    report.cases.H03={stale_enrollment:stale.statusCode,active_sessions:active}
+    const resetRace=await verifyPasswordCredentialRace(admin,'reset');
+    const changeRace=await verifyPasswordCredentialRace(admin,'change');
+    report.cases.H03={stale_enrollment:stale.statusCode,active_sessions:active,reset_race:resetRace,change_race:changeRace}
   }
 
   // H04: two same-version accident updates must produce exactly one success and one VERSION_CONFLICT.
@@ -182,23 +230,46 @@ async function enrollComplete(token,secret){
     report.cases.H05=statuses
   }
 
-  // H06: scoped vehicle list may include the vehicle, but cannot expose out-of-scope employee identity.
+  // H06/N01: every vehicle return path must mask out-of-scope employees and q-search must remain valid SQL.
   {
+    const today=(await q("select current_date::text d")).rows[0].d;
     const v=await vehicles.createVehicle({user:admin.u,body:{
-      car_no:'998',inspection_due:'2027-09-25',assignment_mode:'shared'
+      car_no:'998',inspection_due:today,assignment_mode:'shared'
     },requestId});
-    await vehicles.updateVehicleAssignments({user:admin.u,id:v.id,body:{
+    const assigned=await vehicles.updateVehicleAssignments({user:admin.u,id:v.id,body:{
       primary_employee_id:outside.e.id,additional_employee_ids:[staff.e.id],assignment_mode:'shared'
     },expectedVersion:v.version,requestId});
+    const leakFlags=body=>{
+      const serialized=JSON.stringify(body);
+      return {
+        name:serialized.includes(outside.e.name),
+        employee_no:serialized.includes(outside.e.employee_no),
+        uuid:serialized.includes(outside.e.id)
+      }
+    };
     const self=await call('/vehicles','GET',{},staff.cookie);
     assert.equal(self.statusCode,403);
     const scopedRes=await call('/vehicles','GET',{},scoped.cookie);
     assert.equal(scopedRes.statusCode,200);
-    const serialized=JSON.stringify(scopedRes.body);
-    assert.equal(serialized.includes(outside.e.name),false);
-    assert.equal(serialized.includes(outside.e.employee_no),false);
-    assert.equal(serialized.includes(outside.e.id),false);
-    report.cases.H06={self:self.statusCode,scoped:scopedRes.statusCode,leak:false}
+    assert.deepEqual(leakFlags(scopedRes.body),{name:false,employee_no:false,uuid:false});
+
+    for(const actor of [staff,scoped]){
+      const deadlines=await call('/deadlines','GET',{},actor.cookie);
+      assert.equal(deadlines.statusCode,200);
+      assert.deepEqual(leakFlags(deadlines.body),{name:false,employee_no:false,uuid:false})
+    }
+
+    for(const actor of [admin,scoped]){
+      const searched=await call('/vehicles','GET',{},actor.cookie,{}, {q:'998'});
+      assert.equal(searched.statusCode,200)
+    }
+
+    const updated=await call('/vehicles/'+v.id,'PATCH',{maintenance_note:'Fictional scoped note'},scoped.cookie,{'if-match':'"'+assigned.version+'"'});
+    assert.equal(updated.statusCode,200);
+    assert.deepEqual(leakFlags(updated.body),{name:false,employee_no:false,uuid:false});
+
+    report.cases.H06={self:self.statusCode,scoped:scopedRes.statusCode,deadlines_masked:true,update_masked:true};
+    report.cases.N01={full_search:200,scoped_search:200}
   }
 
   // M01: unchanged same-day assignments must not be ended/reinserted or hit a unique violation.
