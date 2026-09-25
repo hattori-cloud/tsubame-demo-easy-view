@@ -97,6 +97,18 @@ create table password_reset_tokens (
   check (expires_at > created_at)
 );
 
+create table login_rate_limits (
+  key_hash char(64) primary key,
+  window_started_at timestamptz not null default now(),
+  failure_count integer not null default 0 check (failure_count >= 0),
+  blocked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+create index login_rate_limits_blocked_idx
+  on login_rate_limits (blocked_until)
+  where blocked_until is not null;
+
 create table mfa_challenges (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
