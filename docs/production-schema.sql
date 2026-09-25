@@ -653,7 +653,7 @@ create table work_monthly_summaries (
 create table work_import_changes (
   id uuid primary key default gen_random_uuid(),
   batch_id uuid not null references work_import_batches(id),
-  summary_id uuid not null references work_monthly_summaries(id),
+  summary_id uuid not null,
   employee_id uuid not null references employees(id),
   month_start date not null,
   action text not null check (action in ('insert','update')),
