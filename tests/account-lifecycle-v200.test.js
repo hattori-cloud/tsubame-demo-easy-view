@@ -50,3 +50,14 @@ test('retirement invalidates pending credentials and records account suspension 
   assert.ok(store.includes("'退職連動利用者停止'"));
   assert.ok(store.includes("revoke_reason='employee_retired'"));
 });
+
+
+test('retirement protects full administrator continuity before automatic suspension',()=>{
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','employee-store.js'),'utf8');
+  const guard=fs.readFileSync(path.join(__dirname,'..','api','_lib','admin-continuity.js'),'utf8');
+  assert.ok(store.includes('lockFullAdminContinuity'));
+  assert.ok(store.includes('requireOtherActiveFullAdmin'));
+  assert.ok(store.includes("role_level==='full'"));
+  assert.ok(guard.includes('pg_advisory_xact_lock'));
+  assert.ok(guard.includes('LAST_FULL_ADMIN_REQUIRED'));
+});
