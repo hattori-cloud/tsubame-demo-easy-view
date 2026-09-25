@@ -21,7 +21,10 @@ function envSnapshot(){
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
     BLOB_STORE_ID:process.env.BLOB_STORE_ID,
     TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN,
-    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER,
+    TSUBAME_DOCUMENT_SCANNER_URL:process.env.TSUBAME_DOCUMENT_SCANNER_URL,
+    TSUBAME_DOCUMENT_SCANNER_SECRET:process.env.TSUBAME_DOCUMENT_SCANNER_SECRET,
+    TSUBAME_DOCUMENT_SCANNER_AUDITED:process.env.TSUBAME_DOCUMENT_SCANNER_AUDITED
   }
 }
 function restoreEnv(saved){
@@ -154,6 +157,11 @@ test('production business activation remains closed until auth, database, privat
     assert.equal(runtime.documentStorageAdapterReady(),true);
     assert.equal(runtime.documentMalwareScannerReady(),false);
     assert.equal(runtime.productionBusinessDataEnabled(),false);
+    process.env.TSUBAME_DOCUMENT_SCANNER_URL='https://scanner.example.invalid/scan';
+    process.env.TSUBAME_DOCUMENT_SCANNER_SECRET='12345678901234567890123456789012';
+    process.env.TSUBAME_DOCUMENT_SCANNER_AUDITED='1';
+    assert.equal(runtime.documentMalwareScannerReady(),true);
+    assert.equal(runtime.productionBusinessDataEnabled(),true);
     process.env.VERCEL_ENV='preview';
     assert.equal(runtime.productionBusinessDataEnabled(),false);
   }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
