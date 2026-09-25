@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging-v200-backend
+      - post-audit-v200-prod-readiness
 
 permissions:
   contents: read
@@ -44,6 +45,9 @@ jobs:
 
       - name: Apply and verify production PostgreSQL schema
         run: node scripts/verify-production-db-v200.js
+
+      - name: Verify distributed login rate limiter
+        run: node scripts/verify-login-rate-limit-v200.js
 
       - name: Verify multi-user optimistic concurrency
         run: node scripts/verify-concurrency-v200.js
