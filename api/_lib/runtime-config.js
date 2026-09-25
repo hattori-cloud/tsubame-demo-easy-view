@@ -28,6 +28,12 @@ function stagingFixturesRequested(){
 function stagingFixturesAllowed(){
   return stagingFixturesRequested() && isNonProductionRuntime()
 }
+function productionBusinessActivationRequested(){
+  return process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA==='1'
+}
+function productionBusinessDataEnabled(){
+  return Boolean(isProductionRuntime() && productionBusinessActivationRequested() && authEnvPresent() && databaseEnvPresent())
+}
 function backendReadiness(){
   const auth=authEnvPresent(),mfa=mfaEnvPresent(),db=databaseEnvPresent(),storage=documentStorageEnvPresent(),fixtures=stagingFixturesAllowed();
   return {
@@ -41,11 +47,13 @@ function backendReadiness(){
     fictional_registry_ready:auth&&fixtures,
     database_vertical_slice_ready:auth&&db,
     original_file_test_ready:auth&&db&&storage,
-    production_business_data_enabled:false
+    production_business_activation_requested:productionBusinessActivationRequested(),
+    production_business_data_enabled:productionBusinessDataEnabled()
   }
 }
 module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
   authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageEnvPresent,
-  stagingFixturesRequested,stagingFixturesAllowed,backendReadiness
+  stagingFixturesRequested,stagingFixturesAllowed,
+  productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };
