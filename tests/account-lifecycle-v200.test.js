@@ -61,3 +61,12 @@ test('retirement protects full administrator continuity before automatic suspens
   assert.ok(guard.includes('pg_advisory_xact_lock'));
   assert.ok(guard.includes('LAST_FULL_ADMIN_REQUIRED'));
 });
+
+
+test('retirement acquires full-admin continuity lock before employee row lock and renumber does not reference transition target',()=>{
+  const store=fs.readFileSync(path.join(__dirname,'..','api','_lib','employee-store.js'),'utf8');
+  const renumber=store.slice(store.indexOf('async function changeEmployeeNumber'),store.indexOf('async function transitionEmployee'));
+  const transition=store.slice(store.indexOf('async function transitionEmployee'));
+  assert.equal(renumber.includes('target?.lifecycle_status'),false);
+  assert.ok(transition.indexOf('lockFullAdminContinuity(client)')<transition.indexOf("select * from employees where id=$1 for update"));
+});
