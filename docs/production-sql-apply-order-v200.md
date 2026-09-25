@@ -10,11 +10,13 @@
 ## 適用順序
 
 1. `docs/production-schema.sql`
-2. `docs/production-capacity-v189.sql`
+2. `docs/production-auth-hardening-v200.sql`
+3. `docs/production-capacity-v189.sql`
 
 順番を逆にしないでください。
 
 基準スキーマは社員、利用者、事故、ヒヤリ、苦情、資格、書類、監査等の本体テーブルを作成します。
+認証強化SQLは、全Vercel/serverless instanceで共有するログイン試行制限テーブルを追加します。
 容量追加SQLは、月次ヒヤリ対象者スナップショットと大容量運用向け索引・ビューを追加します。
 
 ## 空DB試験の必須確認
@@ -29,6 +31,14 @@
 - malware_scan_status / malware_scanned_at列あり
 - document_purge_requests作成成功
 - audit_logs / record_histories の UPDATE・DELETE がDBトリガーで拒否される
+
+### 認証強化SQL適用後
+
+- login_rate_limits作成成功
+- key_hashはSHA-256/HMACの64桁hexのみ
+- source / source_loginの2種のみ
+- blocked_until / updated_at索引作成成功
+- 基準28テーブル + limiter 1テーブル = 29テーブル
 
 ### 容量追加SQL適用後
 
@@ -59,7 +69,7 @@ SQLをその場で手修正して続行しないでください。
 
 ## 合格条件
 
-- 空DBに2ファイルを順番通り適用してerror 0
+- 空DBに3ファイルを順番通り適用してerror 0
 - schema/table/index/viewの件数確認
 - 制約違反が期待どおり拒否される
 - 月次ヒヤリcomplianceが zero / short / met / exempt を正しく返す
