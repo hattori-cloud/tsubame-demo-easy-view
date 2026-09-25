@@ -12,6 +12,7 @@
 1. `docs/production-schema.sql`
 2. `docs/production-auth-hardening-v200.sql`
 3. `docs/production-capacity-v189.sql`
+4. `docs/production-role-grants-v200.sql`
 
 順番を逆にしないでください。
 
@@ -48,6 +49,15 @@
 - 既存基準スキーマと同名・同一構成の不要indexを重複作成しない
 - 月次対象者 unique(month_start, employee_id) が有効
 
+### DB権限分離SQL適用後
+
+- tsubame_migrator / tsubame_app_runtime がNOLOGIN
+- runtime roleはDDL不可
+- runtime roleはemployees等の任意DELETE不可
+- runtime roleはaudit_logs / record_histories / employee_number_historyのUPDATE/DELETE不可
+- migrator roleはschema変更可能
+- 実接続LOGIN roleのpassword/credentialはこのSQLに書かない
+
 ## 動作確認用の架空データ
 
 実社員情報は禁止。
@@ -69,7 +79,7 @@ SQLをその場で手修正して続行しないでください。
 
 ## 合格条件
 
-- 空DBに3ファイルを順番通り適用してerror 0
+- 空DBに4ファイルを順番通り適用してerror 0
 - schema/table/index/viewの件数確認
 - 制約違反が期待どおり拒否される
 - 月次ヒヤリcomplianceが zero / short / met / exempt を正しく返す
