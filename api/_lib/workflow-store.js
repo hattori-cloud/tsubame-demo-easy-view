@@ -56,6 +56,7 @@ async function updateApplication({user,id,body,expectedVersion,requestId}){
     const before=(await query(`select a.* from applications a join employees e on e.id=a.employee_id where a.id=$1 and ${scope} for update`,params,client)).rows[0];
     if(!before)throw problem(404,'NOT_FOUND','対象申請が見つかりません');assertVersion(before,expectedVersion);
     const status=String(body.status||before.status),payload=Object.prototype.hasOwnProperty.call(body||{},'payload')?body.payload:before.payload;
+    if(!['submitted','approved','rejected','cancelled'].includes(status))throw problem(422,'INVALID_APPLICATION_STATUS','申請状態を確認してください');
     const decided=['approved','rejected','cancelled'].includes(status);
     const after=(await query(`update applications set status=$2,payload=$3::jsonb,decided_at=case when $4 then now() else decided_at end,decided_by_user_id=case when $4 then $5 else decided_by_user_id end,updated_at=now(),version=version+1 where id=$1 returning *`,[id,status,JSON.stringify(payload||{}),decided,user.id],client)).rows[0];
     await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('application',$1,$2,$3,'update',$4::jsonb,$5::jsonb,'申請処理')`,[id,before.employee_id,user.id,JSON.stringify({status:before.status,payload:before.payload}),JSON.stringify({status:after.status,payload:after.payload})],client);
