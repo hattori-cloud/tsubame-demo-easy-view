@@ -22,7 +22,7 @@ Authentication:
 - Passwords are never stored or logged in plain text. The server stores only a strong password hash (Argon2id or an equivalently approved password hashing implementation).
 - Every production business request requires an authenticated individual user and server-side session.
 - The authenticated user must map to an active row in `users` and its linked `employees` row.
-- Management accounts require MFA after primary ID / employee-number / password verification.
+- Every designated production user requires MFA after primary ID / employee-number / password verification.
 - Suspended, retired, locked, or unregistered users are rejected before business data is loaded.
 - The server derives the user's effective role and office × department scopes. Scope is never trusted from request parameters.
 - Login failures return a generic authentication error so the response does not reveal whether the login ID, employee number, or password was wrong.
@@ -111,7 +111,7 @@ Session persistence rules:
 
 ### POST /api/v1/auth/mfa/verify
 
-Completes the short-lived MFA challenge. Management accounts must not receive a normal business session until this succeeds.
+Completes the short-lived MFA challenge. No designated production user receives a normal business session until this succeeds.
 
 A successful MFA challenge is consumed atomically in PostgreSQL before session issuance. The same challenge cannot be replayed concurrently to create a second session. Expired, already-consumed or failure-locked challenges return the same generic MFA failure response.
 
@@ -137,7 +137,7 @@ The operation is rejected if it would remove the last active full administrator.
 
 ### POST /api/v1/users/{id}/reactivate
 
-Full administrator only. Requires the linked employee to be active and the account configuration to be valid. Management users must have required MFA enrollment before a normal business session can be issued.
+Full administrator only. Requires the linked employee to be active and the account configuration to be valid. Reactivated users must have required MFA enrollment before a normal business session can be issued.
 
 ### PATCH /api/v1/users/{id}/access
 
@@ -181,9 +181,9 @@ Can access only employees and records inside assigned office × department scope
 
 Filtering the UI never expands this scope.
 
-### General employee
+### Legacy general-employee / self role
 
-Can access only explicitly allowed self-service information for their own employee row.
+Retired from the production access model. New and migrated production users are limited to `full` or `scoped`. Legacy `self` identities are preserved only for historical references, converted to suspended scoped accounts with no scopes or feature permissions, and cannot receive a business session.
 
 ### Safety authority
 
@@ -588,21 +588,16 @@ A draft is owned by exactly one user. Other users, including scoped administrato
 
 Successful creation of the corresponding official record should delete that user's draft in the same logical workflow.
 
-## 11. Applications and communications
+## 11. Retired self-service communication endpoints
 
-### GET /api/v1/applications
-### POST /api/v1/applications
-### PATCH /api/v1/applications/{id}
+The following legacy routes are retired and are not registered as business routes:
 
-### GET /api/v1/notices
-### POST /api/v1/notices
-### PATCH /api/v1/notices/{id}
+- `/api/v1/applications`
+- `/api/v1/notices`
+- `/api/v1/confirmations`
+- their legacy item/read/respond subroutes
 
-### GET /api/v1/confirmations
-### POST /api/v1/confirmations
-### PATCH /api/v1/confirmations/{id}
-
-These endpoints still use server-side scope/role validation.
+The central router returns `404 NOT_FOUND` for these paths in every environment. The legacy database tables may remain temporarily for migration, rollback and audit compatibility, but the runtime must not create, update, read or respond to new workflow records through these endpoints.
 
 ## 12. Handoffs
 
