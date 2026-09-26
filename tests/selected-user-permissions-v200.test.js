@@ -104,3 +104,12 @@ test('production permission presets use manager handoffs instead of retired noti
   assert.ok(ui.includes("{feature:'handoffs',access_level:'edit'}"));
   assert.equal(ui.includes('notices_workflow'),false)
 });
+
+
+test('fresh production schema allows only designated full or scoped users and requires MFA',()=>{
+  const schema=src('docs','production-schema.sql');
+  const users=schema.slice(schema.indexOf('create table users'),schema.indexOf('create table user_scopes'));
+  assert.ok(users.includes("role_level in ('full','scoped')"));
+  assert.equal(users.includes("role_level in ('full','scoped','self')"),false);
+  assert.ok(users.includes('check (mfa_required = true)'));
+});
