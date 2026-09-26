@@ -27,3 +27,7 @@
 .list-pager span{font-size:12px;color:#68747e;font-weight:700}
 .list-pager button:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:390px){.list-pager{display:grid;grid-template-columns:1fr 1fr}.list-pager span{grid-column:1/-1;grid-row:1;text-align:center}.list-pager button{width:100%}}
+
+.deadline-filters{justify-content:flex-start;gap:8px;flex-wrap:wrap}
+.deadline-filters button{min-width:72px}
+@media(max-width:390px){.deadline-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.deadline-filters button{width:100%}}
