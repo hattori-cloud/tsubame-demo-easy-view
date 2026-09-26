@@ -53,13 +53,15 @@ If any dependency fails, document metadata may remain readable according to perm
    - random quarantine storage key,
    - short expiry.
 7. File is uploaded to a private quarantine location.
-8. Server verifies actual object size/type and computes or validates SHA-256.
-9. Malware scan runs.
-10. Only a clean file can be finalized into an active document record.
-11. The finalization transaction writes document metadata, storage state and audit log together.
-12. Pending/blocked/error files cannot be downloaded through the normal document API.
+8. Server reads the stored bytes, verifies actual object size/type and computes SHA-256.
+9. A quarantine DB row is created with `malware_scan_status=pending` before the scanner verdict is trusted.
+10. Malware scan runs against the exact bytes bound to that SHA-256.
+11. `clean` is recorded first; only then can the object become `active`.
+12. `blocked` becomes durable `storage_state=blocked`; `error` remains quarantined for investigation/retry.
+13. Pending/blocked/error files cannot be downloaded through the normal document API.
+14. Scan, activation and access decisions are written to append-only audit/history.
 
-A failed finalize must not create a normal active document row pointing at an unverified object.
+A failed finalize must never create a normal active document row. It may retain a quarantine/blocked security record so the failed object and its SHA-256 remain auditable.
 
 ## 4. Download/view flow
 
@@ -140,7 +142,7 @@ At minimum, server audit events include:
 
 - document_upload_ticket_issued / denied
 - document_upload_received
-- document_scan_clean / blocked / error
+- document_malware_clean / document_malware_blocked / document_malware_error
 - document_finalized
 - document_view_authorized / denied
 - document_download_authorized / denied
@@ -178,3 +180,39 @@ Production original-file storage remains a blocking gate until staging proves al
 Provider choice is intentionally deferred until contract, cost, data-location, backup/restore and operational requirements are approved.
 
 A private object-storage product such as Vercel Blob private or an S3-compatible private store may be evaluated, but no provider is accepted solely because it can store private objects. It must satisfy the full acceptance criteria above.
+
+
+## 12. Scanner adapter contract
+
+Production scanning is deliberately separate from object storage.
+
+The supported production scanner contract requires:
+
+- provider name `private-https`,
+- explicit company approval flag,
+- HTTPS endpoint,
+- secret token of approved strength,
+- bounded request timeout,
+- redirects disabled,
+- no browser/client access to scanner credentials.
+
+The scanner receives only file bytes, MIME type, SHA-256 and request id. Employee identity and original filename are excluded.
+
+The response must contain:
+- verdict: `clean` or `blocked`,
+- the same SHA-256,
+- optional engine/signature metadata.
+
+Any timeout, HTTP failure, invalid response or hash mismatch is stored/treated as `error` and cannot activate the original.
+
+## 13. Live readiness probes
+
+The production readiness command must not trust environment-variable presence alone.
+
+Before activation it verifies:
+
+- PostgreSQL connection/schema/audit/capacity/rate-limit/work-import/runtime-role state,
+- private Blob signing can actually issue a short-lived authorization,
+- the approved scanner can actually scan a fixed synthetic, non-employee PDF and return `clean` with the same SHA-256.
+
+The live scanner probe never uses an employee document.
