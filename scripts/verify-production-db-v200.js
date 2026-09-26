@@ -60,7 +60,7 @@ async function expectAppendOnly(client,sql,label){
         (select count(*)::int from pg_tables where schemaname='public') as tables
     `);
     assert(authHardeningChecks.rows[0].limiter_ready,'distributed login limiter table missing');
-    assert(authHardeningChecks.rows[0].tables===29,'auth hardening table count expected 29, got '+authHardeningChecks.rows[0].tables);
+    assert(authHardeningChecks.rows[0].tables===30,'auth hardening table count expected 30, got '+authHardeningChecks.rows[0].tables);
 
     await client.query(capacity);
 
@@ -80,7 +80,7 @@ async function expectAppendOnly(client,sql,label){
         (select count(*)::int from pg_tables where schemaname='public') as tables
     `);
     assert(workImportChecks.rows[0].batches_ready&&workImportChecks.rows[0].rows_ready&&workImportChecks.rows[0].summaries_ready,'work-import persistence schema missing');
-    assert(workImportChecks.rows[0].tables===33,'work-import table count expected 33, got '+workImportChecks.rows[0].tables);
+    assert(workImportChecks.rows[0].tables===34,'work-import table count expected 34, got '+workImportChecks.rows[0].tables);
 
     await client.query(roleGrants);
 
