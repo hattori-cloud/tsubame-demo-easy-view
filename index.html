@@ -9693,6 +9693,20 @@ function fillComplaintEmployeeDefaults(){
  let vehicle=document.getElementById('fcvehicle');
  if(vehicle&&!vehicle.value.trim()){let v=V.find(x=>x.employee_no===e.no&&x.status!=='廃車');if(v)vehicle.value=v.plate}
 }
+function complaintCompletionMissingFields(data){
+ let missing=[];
+ if(String(data?.rank||'未判定')==='未判定')missing.push('クレームランク');
+ if(!String(data?.guidanceContent||'').trim())missing.push('指導内容');
+ if(!String(data?.nextAction||'').trim())missing.push('次回対応内容');
+ return missing
+}
+function validateComplaintCompletion(data){
+ if(String(data?.status||'')!=='完了')return true;
+ let missing=complaintCompletionMissingFields(data);
+ if(!missing.length)return true;
+ alert('完了にする前に、次の項目を入力してください。\n・'+missing.join('\n・'));
+ return false
+}
 function openComplaintForm(idx=-1,defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('苦情／お客様対応の登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?C[idx]:null;if(rec&&(!rec.employee_no||!guardEmployeeEdit(rec.employee_no,'苦情／お客様対応')))return;
@@ -9715,7 +9729,7 @@ function openComplaintForm(idx=-1,defaultNo=''){
   if(!validateVehicleNumberValue(fcvehicle.value))return;
   let ownerSel=resolveManagerSelection(fcowner.value);if(!ownerSel.id)return alert('担当者を選択してください');
   let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:rec?(rec.dept||''):e.dept,officeAtRecord:rec?(rec.officeAtRecord||''):(e.branch||e.workplace||''),departmentAtRecord:rec?(rec.departmentAtRecord||''):(e.dept||''),employmentAtRecord:rec?(rec.employmentAtRecord||''):(e.employment||''),vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
-  if(data.status==='完了'&&data.rank==='未判定')return alert('完了にする前に、クレームランク A・B・C のいずれかを選択してください');
+  if(!validateComplaintCompletion(data))return;
   let complaintWarnings=[];if(data.status!=='完了'){if(!data.owner)complaintWarnings.push('担当者が未設定です');if(!data.nextAction)complaintWarnings.push('次回対応内容が未設定です');if(!data.followupDue)complaintWarnings.push('フォロー期限が未設定です')}if(data.rank==='未判定')complaintWarnings.push('クレームランクが未判定です');
   let complaintBefore=rec?{
    responseDate:rec.responseDate||rec.date||'',
