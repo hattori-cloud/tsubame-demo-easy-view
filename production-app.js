@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -28,6 +28,30 @@
       return {data,res}
     }catch(err){
       if(err.name==='AbortError'){const e=new Error('通信がタイムアウトしました。ネットワークを確認してください。');e.code='REQUEST_TIMEOUT';throw e}
+      throw err
+    }finally{clearTimeout(timeout)}
+  }
+
+  async function apiRaw(path,{body,headers={}}={}){
+    const ctrl=new AbortController();
+    const timeout=setTimeout(()=>ctrl.abort(),30000);
+    try{
+      const res=await fetch('/api/v1'+path,{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Accept':'application/json','Content-Type':'application/octet-stream',...headers},
+        body,signal:ctrl.signal
+      });
+      const requestId=res.headers.get('x-request-id')||'';
+      if(requestId)state.lastRequestId=requestId;
+      let data={};try{data=await res.json()}catch(_){}
+      if(!res.ok){
+        const e=new Error(data?.error?.message||('HTTP '+res.status));
+        e.status=res.status;e.code=data?.error?.code||'HTTP_ERROR';e.requestId=data?.error?.request_id||requestId;e.data=data;
+        throw e
+      }
+      return {data,res}
+    }catch(err){
+      if(err.name==='AbortError'){const e=new Error('勤務取込の通信がタイムアウトしました。');e.code='REQUEST_TIMEOUT';throw e}
       throw err
     }finally{clearTimeout(timeout)}
   }
