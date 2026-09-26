@@ -451,3 +451,28 @@ test('active employee UI uses office and department without a duplicate taxi-sec
   assert.equal(js.includes("formField('taxi_section','タクシー課区分'"),false);
   assert.equal(js.includes("detail('タクシー課区分',e.taxi_section)"),false);
 });
+
+
+test('department shift and lifecycle changes are one dedicated audited workflow',()=>{
+  assert.ok(js.includes('所属・勤務・在籍変更'));
+  assert.ok(js.includes("formSelect('work_pattern','勤務区分',work.options,work.value)"));
+  assert.ok(js.includes("work_pattern:nullable(fdText(fd,'work_pattern'))"));
+  assert.ok(js.includes("confirmTaxiPlacement(fdText(fd,'department'),fdText(fd,'work_pattern'))"));
+  assert.ok(js.includes('所属と勤務区分を同時に変更できます'));
+  assert.ok(js.includes('訓練課修了によりタクシー1課・隔勤へ移行'));
+});
+
+test('ordinary employee profile edit does not duplicate the dedicated shift workflow',()=>{
+  const start=js.indexOf('function editEmployee(e)');
+  const end=js.indexOf('function transitionEmployeeForm(employee)',start);
+  assert.ok(start>=0&&end>start);
+  const block=js.slice(start,end);
+  assert.equal(block.includes("formSelect('work_pattern'"),false);
+  assert.equal(block.includes("'work_pattern'"),false);
+  assert.ok(block.includes('所属・勤務・在籍変更'));
+});
+
+test('employee transition history shows shift beside office department and lifecycle',()=>{
+  assert.ok(js.includes("workPatternDisplay(before.work_pattern)"));
+  assert.ok(js.includes("workPatternDisplay(after.work_pattern)"));
+});
