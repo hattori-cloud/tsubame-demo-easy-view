@@ -58,7 +58,9 @@ test('production UI uses permission presets and hides unavailable modules',()=>{
   assert.ok(ui.includes("viewer:"));
   assert.ok(ui.includes("manager:"));
   assert.ok(ui.includes("safety:"));
-  assert.ok(ui.includes("button.hidden=feature?!canView(feature):false"));
+  assert.ok(ui.includes("button.hidden=!canViewAny(NAV_FEATURES[button.dataset.view]||[])"));
+  assert.ok(ui.includes("work:['deadlines','credentials_documents','work_import']"));
+  assert.ok(ui.includes("safety:['accidents','complaints','near_misses','employees','handoffs']"));
   assert.ok(ui.includes("canEdit('accidents')"));
   assert.ok(ui.includes("canEdit('complaints')"));
   assert.ok(ui.includes("canEdit('near_misses')"));

@@ -76,7 +76,8 @@ test('selected-user production UI exposes handoffs but no employee self-service 
   assert.ok(js.includes("api('/handoffs')"));
   for(const retired of ['/notices','/confirmations','/applications'])assert.equal(js.includes(retired),false,retired);
   assert.equal(js.includes('notices_workflow'),false);
-  assert.ok(html.includes('data-view="business">引継ぎ</button>'))
+  assert.ok(html.includes('data-view="safety">運行・安全</button>'));
+  assert.ok(js.includes("hubButton('business','引継ぎ・指導'"))
 });
 
 
