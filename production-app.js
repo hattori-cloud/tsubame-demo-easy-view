@@ -408,6 +408,7 @@
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
         detail('タクシー課区分',e.taxi_section)+detail('班',e.team)+detail('勤務区分',workPatternDisplay(e.work_pattern))+
+        (canView('vehicles')?detail('基本固定車',employeeBasicFixedCarText(e,state.employeeOperational)):'')+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
         '</div>'+employeeHistoryHtml(data.history)+employeeOperationalHtml(e,state.employeeOperational)+employeeQuickCreateHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
       $('detailDialog').showModal()
@@ -432,6 +433,11 @@
     }).join(''):'<div class="empty compact-empty">勤務区分変更履歴はありません。</div>';
     return '<section class="employee-support employee-history"><div class="support-head"><div><b>社員履歴</b><span>社員番号・所属/在籍・勤務区分の変更を確認</span></div></div>'+
       '<div class="support-grid"><div><h4>社員番号</h4>'+numberRows+'</div><div><h4>異動・在籍状態</h4>'+transitionRows+'</div><div><h4>勤務区分</h4>'+workRows+'</div></div></section>'
+  }
+  function employeeBasicFixedCarText(employee,ops){
+    const fixed=(ops?.vehicles?.items||[]).filter(v=>isBasicFixedVehicle(v,employee));
+    if(!fixed.length)return 'なし';
+    return fixed.map(v=>String(v.car_no||'')+'号車').filter(Boolean).join(' / ')||'なし'
   }
   function employeeOperationalHtml(employee,ops){
     const deadlines=ops?.deadlines,vehicles=ops?.vehicles,accidents=ops?.accidents,complaints=ops?.complaints,near=ops?.near;
