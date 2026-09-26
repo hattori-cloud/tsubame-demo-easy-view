@@ -327,11 +327,18 @@ create table near_misses (
   road_tags jsonb not null default '[]'::jsonb,
   target_tags jsonb not null default '[]'::jsonb,
   internal_factors jsonb not null default '[]'::jsonb,
+  source_type text not null default 'system'
+    check (source_type in ('system','google_form','paper')),
+  external_ref text,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   version integer not null default 1 check (version >= 1)
 );
+
+create unique index near_misses_source_ref_unique
+  on near_misses(source_type,external_ref)
+  where external_ref is not null and archived_at is null;
 
 create table complaints (
   id uuid primary key default gen_random_uuid(),
