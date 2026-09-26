@@ -406,8 +406,8 @@
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
       state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
       $('dialogBody').innerHTML='<div class="detail-grid">'+
-        detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
-        detail('タクシー課区分',e.taxi_section)+detail('班',e.team)+detail('勤務区分',workPatternDisplay(e.work_pattern))+
+        detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('所属部署',e.department)+
+        detail('班',e.team)+detail('勤務区分',workPatternDisplay(e.work_pattern))+
         (canView('vehicles')?detail('基本固定車',employeeBasicFixedCarText(e,state.employeeOperational)):'')+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
         '</div>'+employeeHistoryHtml(data.history)+employeeOperationalHtml(e,state.employeeOperational)+employeeQuickCreateHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
@@ -1348,7 +1348,7 @@
       formField('name','氏名','','text','required')+
       formField('furigana','フリガナ')+
       formField('office','事業所','','text','required')+
-      formField('department','部署','','text','required')+
+      formField('department','所属部署','','text','required')+
       formField('position','職位')+
       formField('employment_type','雇用区分')+
       formSelect('work_pattern','勤務区分',[['','未設定'],['日勤','日勤'],['夜勤','夜勤'],['隔勤','隔勤'],['H勤','H勤']],'')+
@@ -1368,7 +1368,7 @@
     const work=workPatternOptions(e.work_pattern);
     const fields=
       formField('name','氏名',e.name,'text','required')+formField('furigana','フリガナ',e.furigana)+
-      formField('position','職位',e.position)+formField('taxi_section','タクシー課区分',e.taxi_section)+
+      formField('position','職位',e.position)+
       formField('team','班',e.team)+formField('employment_type','雇用区分',e.employment_type)+
       formSelect('work_pattern','勤務区分',work.options,work.value)+
       formNote('勤務区分と基本固定車は別管理です。日勤でも基本固定車を持てます。事故・修理・代車時は実際に乗った号車を事故・ヒヤリ側で記録します。')+
@@ -1378,7 +1378,7 @@
       formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
     openRecordForm('社員情報を編集',fields,async fd=>{
       if(!confirmTaxiPlacement(e.department,fdText(fd,'work_pattern')))return;
-      const body={};for(const k of ['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
+      const body={};for(const k of ['name','furigana','position','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
       await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
     })
   }
@@ -1387,7 +1387,7 @@
     if(state.me?.role_level!=='full')return;
     const fields=
       formField('office','事業所',employee.office,'text','required')+
-      formField('department','部署',employee.department,'text','required')+
+      formField('department','所属部署',employee.department,'text','required')+
       formSelect('lifecycle_status','在籍状態',[['active','在籍'],['leave','休職'],['retirement_planned','退職予定'],['retired','退職']],employee.lifecycle_status||'active','required')+
       formField('retired_on','退職日',fmtDate(employee.retired_on)==='—'?'':fmtDate(employee.retired_on),'date')+
       formArea('reason','変更理由','','required placeholder="異動・休職・退職等の理由を入力"')+
