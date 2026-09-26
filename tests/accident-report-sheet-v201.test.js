@@ -48,3 +48,10 @@ test('accident detail warns about report fields still missing',()=>{
   assert.match(html,/報告書の未入力/);
   assert.match(html,/不足項目を入力/);
 });
+
+
+test('cannot mark investigation report complete while required fields are missing',()=>{
+  assert.match(html,/faereportstatus\.value==='完成'&&reportMissing\.length/);
+  assert.match(html,/事故調査票を「完成」にするには/);
+  assert.match(html,/faereportstatus\.value='作成中'/);
+});
