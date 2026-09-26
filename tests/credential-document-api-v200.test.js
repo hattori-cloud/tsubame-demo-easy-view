@@ -44,7 +44,8 @@ test('original-file endpoints require private transport and fail closed until th
   assert.ok(finalize.includes('DOCUMENT_ORIGINAL_PIPELINE_NOT_READY'));
   assert.ok(finalize.includes('readQuarantineForScan'));
   assert.ok(finalize.includes('getDocumentMalwareScanner'));
-  assert.ok(finalize.includes('DOCUMENT_MALWARE_NOT_CLEAN'));
+  assert.ok(finalize.includes('DOCUMENT_MALWARE_BLOCKED'));
+  assert.ok(finalize.includes('DOCUMENT_MALWARE_SCAN_FAILED'));
 });
 
 test('qualification and document metadata changes are versioned and audited',()=>{
