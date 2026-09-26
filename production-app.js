@@ -297,7 +297,7 @@
     state.credentialEmployeeId=employeeId;
     const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
     const actions=manager
-      ?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button><button class="small-primary" data-action="new-document">＋ 書類登録</button>'
+      ?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button><button class="small-primary" data-action="new-document">＋ 書類登録</button><button class="small-primary" data-action="new-original-document">＋ 電子原本</button>'
       :'';
     const back=state.me?.role_level==='self'?'':'<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
     const qs=data.qualifications||[],docs=data.documents||[];
@@ -323,6 +323,9 @@
   }
   function formSelect(name,label,options,value='',extra=''){
     return '<label>'+esc(label)+'<select name="'+esc(name)+'" '+extra+'>'+options.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(v)===String(value)?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>'
+  }
+  function formFile(name,label,accept,extra=''){
+    return '<label class="wide">'+esc(label)+'<input name="'+esc(name)+'" type="file" accept="'+esc(accept)+'" '+extra+'></label>'
   }
   function openRecordForm(title,fields,onSubmit,{actions=''}={}){
     $('dialogTitle').textContent=title;
@@ -356,7 +359,8 @@
       if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
       if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
       if(action==='new-qualification')return newQualification();
-      if(action==='new-document')return newDocumentMetadata()
+      if(action==='new-document')return newDocumentMetadata();
+      if(action==='new-original-document')return newOriginalDocument()
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
@@ -422,6 +426,59 @@
         paper_location:nullable(fdText(fd,'paper_location')),
         retention_until:nullable(fdText(fd,'retention_until'))
       }})
+    })
+  }
+
+  async function sha256File(file){
+    const bytes=await file.arrayBuffer();
+    const digest=await crypto.subtle.digest('SHA-256',bytes);
+    return [...new Uint8Array(digest)].map(b=>b.toString(16).padStart(2,'0')).join('')
+  }
+
+  async function newOriginalDocument(){
+    if(!state.credentialEmployeeId||state.me?.role_level==='self')return;
+    const [{data:policyData},{data:credentialData}]=await Promise.all([
+      api('/document-policies'),
+      api('/credentials?employee_id='+encodeURIComponent(state.credentialEmployeeId))
+    ]);
+    const policies=(policyData.policies||[]).filter(p=>['electronic_original','paper_and_electronic'].includes(p.original_handling));
+    if(!policies.length){
+      const e=new Error('電子原本の対象となる書類区分がありません。');e.code='NO_ORIGINAL_DOCUMENT_POLICY';throw e
+    }
+    const qualificationOptions=[['','資格へ紐付けない'],...(credentialData.qualifications||[]).map(q=>[q.id,q.name+(q.expiry?' / '+fmtDate(q.expiry):'')])];
+    const policyOptions=policies.map(p=>[p.category,p.category+' / '+p.original_handling]);
+    const fields=
+      formSelect('category','書類区分',policyOptions,policyOptions[0]?.[0]||'','required')+
+      formField('name','書類名','','text','required')+
+      formSelect('qualification_id','関連資格',qualificationOptions,'')+
+      formField('kind','種類')+
+      formField('registered_on','登録日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('expiry','有効期限','','date')+
+      formField('paper_location','紙原本の保管場所')+
+      formField('retention_until','保管期限','','date')+
+      formFile('original_file','電子原本','application/pdf,image/jpeg,image/png,image/webp','required');
+    openRecordForm('電子原本登録',fields,async fd=>{
+      const file=fd.get('original_file');
+      if(!(file instanceof File)||!file.size){const e=new Error('原本ファイルを選択してください');e.code='ORIGINAL_FILE_REQUIRED';throw e}
+      const sha256=await sha256File(file);
+      const ticket=(await api('/documents/upload-ticket',{method:'POST',body:{
+        employee_id:state.credentialEmployeeId,
+        category:fdText(fd,'category'),
+        name:fdText(fd,'name'),
+        qualification_id:nullable(fdText(fd,'qualification_id')),
+        kind:nullable(fdText(fd,'kind')),
+        registered_on:fdText(fd,'registered_on'),
+        expiry:nullable(fdText(fd,'expiry')),
+        paper_location:nullable(fdText(fd,'paper_location')),
+        retention_until:nullable(fdText(fd,'retention_until')),
+        content_type:file.type,
+        size_bytes:file.size,
+        sha256,
+        original_file_name:file.name
+      }})).data;
+      const upload=await fetch(ticket.upload.url,{method:ticket.upload.method||'PUT',headers:{'Content-Type':ticket.upload.content_type||file.type},body:file,credentials:'omit',cache:'no-store'});
+      if(!upload.ok){const e=new Error('原本ファイルを隔離領域へ保存できませんでした');e.code='ORIGINAL_UPLOAD_FAILED';throw e}
+      await api('/documents/finalize',{method:'POST',body:{ticket_id:ticket.ticket_id}})
     })
   }
 
