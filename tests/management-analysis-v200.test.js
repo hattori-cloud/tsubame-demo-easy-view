@@ -17,9 +17,10 @@ test('management analysis combines current workforce operations with snapshot-ba
 });
 
 test('management analysis respects feature permissions before exposing non-safety aggregates',()=>{
-  for(const feature of ['employees','deadlines','credentials_documents','assets_training','work_import'])assert.ok(store.includes("hasFeaturePermission(user,'"+feature+"'"));
+  for(const feature of ['employees','deadlines','credentials_documents','assets_training','vehicles','work_import'])assert.ok(store.includes("hasFeaturePermission(user,'"+feature+"'"));
   assert.ok(store.includes('access.credentials?credentialSummary'));
   assert.ok(store.includes('access.assets_training?supportSummary'));
+  assert.ok(store.includes('access.vehicles?vehicleSummary'));
   assert.ok(store.includes('access.work_import?workSummary'));
 });
 
