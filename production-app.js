@@ -347,6 +347,38 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function newNotice(){
+    if(state.me?.role_level!=='full')return;
+    const fields=
+      formField('title','件名','','text','required')+
+      formArea('body','本文','','required')+
+      formSelect('state','公開状態',[['draft','下書き'],['published','公開']],'draft','required');
+    openRecordForm('お知らせ作成',fields,async fd=>{
+      await api('/notices',{method:'POST',body:{
+        title:fdText(fd,'title'),
+        body:fdText(fd,'body'),
+        state:fdText(fd,'state')
+      }})
+    })
+  }
+
+  async function newConfirmation(){
+    if(state.me?.role_level!=='full')return;
+    const fields=
+      formField('title','確認件名','','text','required')+
+      formArea('body','確認内容')+
+      formField('due','回答期限','','date')+
+      formSelect('state','状態',[['open','回答受付'],['draft','下書き']],'open','required');
+    openRecordForm('一斉確認作成',fields,async fd=>{
+      await api('/confirmations',{method:'POST',body:{
+        title:fdText(fd,'title'),
+        body:nullable(fdText(fd,'body')),
+        due:nullable(fdText(fd,'due')),
+        state:fdText(fd,'state')
+      }})
+    })
+  }
+
   async function newGuidance(){
     const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
     if(!manager)return;
@@ -466,8 +498,12 @@
 
     $('content').innerHTML=
       '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div><button class="small-primary" data-action="new-application">＋ 申請</button></div>'+applicationHtml+'</section>'+
-      '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div></div>'+noticeHtml+'</section>'+
-      '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div></div>'+confirmationHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div>'+
+      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
+      '</div>'+noticeHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div>'+
+      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
+      '</div>'+confirmationHtml+'</section>'+
       (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div><button class="small-primary" data-action="new-guidance">＋ 指導登録</button></div>'+guidanceHtml+'</section>':'')+
       (manager?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
   }
@@ -718,7 +754,9 @@
       if(action==='application-reject')return decideApplication(id,'rejected');
       if(action==='application-cancel')return decideApplication(id,'cancelled');
       if(action==='new-guidance')return newGuidance();
-      if(action==='ack-handoff')return acknowledgeHandoff(id)
+      if(action==='ack-handoff')return acknowledgeHandoff(id);
+      if(action==='new-notice')return newNotice();
+      if(action==='new-confirmation')return newConfirmation()
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
