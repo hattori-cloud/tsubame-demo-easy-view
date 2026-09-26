@@ -96,7 +96,7 @@ async function sessionFor(userId,mfaVerified){
   const downloaded=await storage._test.ciReadDownload(downloadToken);
   assert(Buffer.compare(downloaded,bytes)===0,'downloaded bytes differ from uploaded bytes');
 
-  const blockedBytes=Buffer.from('CI-MALWARE-BLOCK fictional blocked content','utf8');
+  const blockedBytes=Buffer.from('%PDF-1.7\nCI-MALWARE-BLOCK fictional blocked content\n%%EOF','utf8');
   const blockedUpload=await call('/documents/upload-ticket','POST',{
     ...body,name:'CI架空blocked原本',original_filename:'blocked.pdf',size_bytes:blockedBytes.length
   },mfaCookie);

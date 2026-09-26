@@ -44,6 +44,21 @@ function randomStorageKey(){
 function allowedContentTypes(){
   return new Set(['application/pdf','image/jpeg','image/png'])
 }
+function detectedContentType(bytes){
+  const b=Buffer.isBuffer(bytes)?bytes:Buffer.from(bytes||[]);
+  if(b.length>=5&&b.subarray(0,5).toString('ascii')==='%PDF-')return 'application/pdf';
+  if(b.length>=3&&b[0]===0xff&&b[1]===0xd8&&b[2]===0xff)return 'image/jpeg';
+  if(b.length>=8&&b.subarray(0,8).equals(Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a])))return 'image/png';
+  return null
+}
+function validateStoredContentSignature(bytes,declaredType){
+  const expected=String(declaredType||'').toLowerCase();
+  const detected=detectedContentType(bytes);
+  if(!detected||detected!==expected){
+    throw problem(409,'DOCUMENT_CONTENT_SIGNATURE_MISMATCH','原本の実ファイル形式と申告形式が一致しません')
+  }
+  return detected
+}
 function maxUploadBytes(){
   const n=Number.parseInt(process.env.TSUBAME_DOCUMENT_MAX_BYTES||'',10);
   return Math.min(25*1024*1024,Math.max(1024,Number.isFinite(n)?n:10*1024*1024))
@@ -153,6 +168,7 @@ async function readPrivateBlob(storageKey){
   if(!got?.ok)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を読み込めません');
   const bytes=Buffer.from(await got.arrayBuffer());
   if(bytes.length!==contentLength)throw problem(409,'DOCUMENT_SIZE_MISMATCH','保存済み原本のサイズが一致しません');
+  validateStoredContentSignature(bytes,contentType);
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
   return {
     storage_key:key,state:'quarantine',content_type:contentType,size_bytes:contentLength,
@@ -202,6 +218,7 @@ async function ciPutObject({uploadToken,body,contentType}){
   const bytes=Buffer.isBuffer(body)?body:Buffer.from(body||[]);
   if(bytes.length!==Number(auth.sizeBytes))throw problem(422,'UPLOAD_SIZE_MISMATCH','アップロードサイズが一致しません');
   if(String(contentType||'').toLowerCase()!==String(auth.contentType))throw problem(422,'UPLOAD_TYPE_MISMATCH','アップロード形式が一致しません');
+  validateStoredContentSignature(bytes,auth.contentType);
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
   const obj={
     storage_key:auth.storageKey,state:'quarantine',content_type:auth.contentType,size_bytes:bytes.length,
@@ -231,7 +248,7 @@ function resetTestOverrides(){blobSdkOverride=null;fetchOverride=null}
 
 module.exports={
   providerName,adapterReady,getDocumentStorageAdapter,probeDocumentStorageTransport,encryptTicket,decryptTicket,randomStorageKey,
-  validateUploadRequest,maxUploadBytes,
+  validateUploadRequest,maxUploadBytes,detectedContentType,validateStoredContentSignature,
   _test:{
     ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,readPrivateBlob,
     setBlobSdk(v){blobSdkOverride=v},setFetch(v){fetchOverride=v},resetTestOverrides

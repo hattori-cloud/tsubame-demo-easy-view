@@ -131,7 +131,7 @@ async function recordDocumentScanResult({user,identity,id,scan,requestId}){
     `,[
       user.id,
       verdict==='clean'?'document_malware_clean':verdict==='blocked'?'document_malware_blocked':'document_malware_error',
-      id,before.employee_id,verdict==='clean'?'success':'blocked',requestId,
+      id,before.employee_id,verdict==='clean'?'success':verdict==='blocked'?'blocked':'error',requestId,
       before.category+' / '+verdict+(safeMeta.error_code?' / '+safeMeta.error_code:'')
     ],client);
     return after

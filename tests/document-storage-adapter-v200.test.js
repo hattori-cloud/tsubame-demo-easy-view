@@ -121,3 +121,16 @@ test('Vercel private Blob adapter signs constrained operations and remains scan-
     for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v}
   }
 });
+
+
+test('stored original signature must match declared PDF/JPEG/PNG type',()=>{
+  const mod=require('../api/_lib/document-storage');
+  const pdf=Buffer.from('%PDF-1.7\nfixture','utf8');
+  const jpg=Buffer.from([0xff,0xd8,0xff,0xdb,0x00]);
+  const png=Buffer.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00]);
+  assert.equal(mod.detectedContentType(pdf),'application/pdf');
+  assert.equal(mod.detectedContentType(jpg),'image/jpeg');
+  assert.equal(mod.detectedContentType(png),'image/png');
+  assert.throws(()=>mod.validateStoredContentSignature(Buffer.from('not-a-pdf'),'application/pdf'),e=>e?.code==='DOCUMENT_CONTENT_SIGNATURE_MISMATCH');
+  assert.throws(()=>mod.validateStoredContentSignature(pdf,'image/png'),e=>e?.code==='DOCUMENT_CONTENT_SIGNATURE_MISMATCH');
+});

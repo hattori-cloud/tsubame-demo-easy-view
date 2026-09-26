@@ -51,7 +51,7 @@ function malwareScannerProvider(){
 function malwareScannerEndpointValid(){
   try{
     const u=new URL(String(process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_URL||''));
-    return u.protocol==='https:'&&Boolean(u.hostname)
+    return u.protocol==='https:'&&Boolean(u.hostname)&&!u.username&&!u.password&&!u.search&&!u.hash
   }catch(_){return false}
 }
 function documentMalwareScannerReady(){

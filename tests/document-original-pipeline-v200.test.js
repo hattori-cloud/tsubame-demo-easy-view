@@ -39,3 +39,9 @@ test('same upload ticket is idempotent for transient scan retry but active or co
   assert.ok(reserve.includes('DOCUMENT_UPLOAD_CONFLICT'));
   assert.ok(reserve.includes('DOCUMENT_ALREADY_FINALIZED'));
 });
+
+
+test('scanner error audit uses error result instead of blocked',()=>{
+  const scan=store.slice(store.indexOf('async function recordDocumentScanResult'),store.indexOf('async function activateDocumentOriginal'));
+  assert.ok(scan.includes("verdict==='clean'?'success':verdict==='blocked'?'blocked':'error'"));
+});
