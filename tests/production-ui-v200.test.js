@@ -211,3 +211,10 @@ test('large production lists paginate instead of silently stopping at the first 
   assert.ok(css.includes('.list-pager'));
   assert.ok(css.includes('@media(max-width:390px){.list-pager'));
 });
+
+
+test('filtered navigation keeps the visible search box synchronized and clears stale cross-view queries',()=>{
+  assert.ok(js.includes("Object.prototype.hasOwnProperty.call(opts,'q')"));
+  assert.ok(js.includes("$('searchInput').value=String(opts.q||'')"));
+  assert.ok(js.includes("previousView!==view||opts.resetPage"));
+});
