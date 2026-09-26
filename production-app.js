@@ -1023,6 +1023,21 @@
     if(normalized&&!base.some(([v])=>v===normalized))base.push([normalized,normalized+'（既存値）']);
     return {options:base,value:normalized}
   }
+  function normalizedTaxiDepartment(value){
+    return String(value||'').replace(/[１２３]/g,m=>({'１':'1','２':'2','３':'3'}[m]||m)).replace(/\s+/g,'')
+  }
+  function taxiPlacementWarning(department,workPattern){
+    const dept=normalizedTaxiDepartment(department),work=workPatternDisplay(workPattern);
+    if(!workPattern||work==='未設定')return '';
+    if(dept.includes('訓練課')&&work!=='日勤')return '訓練課は通常「日勤」です。';
+    if((dept.includes('1課')||dept.includes('2課'))&&['日勤','夜勤'].includes(work))return '1課・2課は通常「隔勤」または「H勤」です。';
+    if(dept.includes('3課')&&['隔勤','H勤'].includes(work))return '3課は通常「日勤」または「夜勤」です。';
+    return ''
+  }
+  function confirmTaxiPlacement(department,workPattern){
+    const warning=taxiPlacementWarning(department,workPattern);
+    return !warning||window.confirm(warning+'\n例外としてこのまま登録しますか？')
+  }
   function vehicleAssignmentLabel(mode){
     return {dedicated:'基本固定車',shared:'共用車',spare:'予備車',loaner:'代車・貸出'}[String(mode||'')]||'未設定'
   }
@@ -1334,6 +1349,7 @@
       formNote('タクシー乗務員の基本：入社時は訓練課で日勤。その後、隔勤・H勤は1課/2課、日勤・夜勤は3課が基本です。例外はそのまま登録できます。')+
       formField('hired_on','入社日','','date');
     openRecordForm('社員登録',fields,async fd=>{
+      if(!confirmTaxiPlacement(fdText(fd,'department'),fdText(fd,'work_pattern')))return;
       await api('/employees',{method:'POST',body:{
         employee_no:fdText(fd,'employee_no'),name:fdText(fd,'name'),furigana:nullable(fdText(fd,'furigana')),
         office:fdText(fd,'office'),department:fdText(fd,'department'),position:nullable(fdText(fd,'position')),
@@ -1355,6 +1371,7 @@
       formField('health_check_due','健康診断期限',fmtDate(e.health_check_due)==='—'?'':fmtDate(e.health_check_due),'date')+
       formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
     openRecordForm('社員情報を編集',fields,async fd=>{
+      if(!confirmTaxiPlacement(e.department,fdText(fd,'work_pattern')))return;
       const body={};for(const k of ['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
       await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
     })
@@ -1370,6 +1387,7 @@
       formArea('reason','変更理由','','required placeholder="異動・休職・退職等の理由を入力"')+
       formArea('handoff_note','引継ぎメモ','','placeholder="必要な引継ぎ事項"');
     openRecordForm('異動・在籍状態｜'+employee.name,fields,async fd=>{
+      if(!confirmTaxiPlacement(fdText(fd,'department'),employee.work_pattern))return;
       await api('/employees/'+encodeURIComponent(employee.id)+'/transition',{
         method:'POST',
         body:{
