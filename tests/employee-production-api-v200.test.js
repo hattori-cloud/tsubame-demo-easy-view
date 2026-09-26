@@ -44,3 +44,12 @@ test('employee creation requires full administrator MFA',()=>{
   assert.ok(listRoute.includes("user.role_level!=='full'||!identity.mfa"));
   assert.ok(listRoute.includes('FULL_ADMIN_MFA_REQUIRED'));
 });
+
+
+test('employee detail exposes scoped renumber and lifecycle history from append-only records',()=>{
+  assert.ok(store.includes('async function getEmployeeHistoryForUser'));
+  assert.ok(store.includes('employee_number_history where employee_id=$1'));
+  assert.ok(store.includes("action='employee_transition'"));
+  assert.ok(detailRoute.includes('getEmployeeHistoryForUser'));
+  assert.ok(detailRoute.includes('{employee,history,data_mode:'));
+});
