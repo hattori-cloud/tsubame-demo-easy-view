@@ -5363,7 +5363,7 @@ function renderManageGuide(){
 function renderAdminDailyCenter(){
  let el=document.getElementById('adminDailyCenter');if(!el||PREVIEW_ROLE!=='管理者')return;
  let items=actionQueueItems(),over=items.filter(x=>x.kind==='deadline'&&x.bucket==='over').length,todayN=items.filter(x=>x.kind==='deadline'&&x.bucket==='today').length;
- let cases=items.filter(x=>['accident','complaint'].includes(x.kind)).length,handoffs=items.filter(x=>x.kind==='handoff').length,apps=items.filter(x=>x.kind==='application').length,qualityBad=items.filter(x=>x.kind==='quality').length;
+ let cases=items.filter(x=>['accident','complaint'].includes(x.kind)).length,handoffs=items.filter(x=>x.kind==='handoff').length,qualityBad=items.filter(x=>x.kind==='quality').length;
  let urgent=items.filter(x=>x.urgency==='danger').length,rows=items.slice(0,8);
  el.innerHTML=`<div class="list-summary"><div><h3 style="margin:0">今日やること <span class="mini">${esc(appDateLabel(TODAY))}</span></h3><div class="mini">${MY_TASKS_ONLY?'自分の担当案件だけ表示中':'担当範囲の要対応を優先順で表示'}。乗務不可・引継ぎ・期限超過を最優先にします。</div></div><div class="toolbar"><button class="btn ${MY_TASKS_ONLY?'primary':'soft'}" onclick="toggleMyTasksOnly()">自分の担当だけ</button><span class="badge ${urgent?'danger':items.length?'warn':'ok'}">${items.length}件</span><button class="btn primary" ${items.length?'':'disabled'} onclick="actionQueueOpen(0)">最優先から処理</button></div></div>
  <div class="admin-daily-kpis">
@@ -5371,7 +5371,6 @@ function renderAdminDailyCenter(){
   <button class="admin-daily-kpi ${todayN?'warn':''}" onclick="openDeadlineCenter('today')"><small>本日期限</small><b>${todayN}</b><span class="mini">本日分を確認</span></button>
   <button class="admin-daily-kpi ${cases?'warn':''}" onclick="go('safe')"><small>事故・苦情 要対応</small><b>${cases}</b><span class="mini">安全画面へ</span></button>
   <button class="admin-daily-kpi ${handoffs?'warn':''}" onclick="go('home')"><small>引継ぎ未確認</small><b>${handoffs}</b><span class="mini">引継ぎを確認</span></button>
-  <button class="admin-daily-kpi ${apps?'warn':''}" onclick="go('comms');setTimeout(()=>commsTab('application'),30)"><small>申請対応中</small><b>${apps}</b><span class="mini">申請を処理</span></button>
   <button class="admin-daily-kpi ${qualityBad?'danger':''}" onclick="showQualityDetails()"><small>今すぐ確認</small><b>${qualityBad}</b><span class="mini">修正内容を見る</span></button>
  </div>
  <div class="admin-daily-rows">${rows.length?rows.map(x=>`<div class="action-queue-item ${x.urgency||''}"><div class="queue-main">${homeQueueTitleHtml(x)}${homeQueueBodyHtml(x)}</div>${homeQueueActionsHtml(x)}</div>`).join(''):'<div class="notice"><div><b>現在、優先処理する案件はありません。</b><div class="mini">担当範囲の要対応は確認済みです。</div></div><span class="badge ok">OK</span></div>'}</div>
@@ -5380,7 +5379,7 @@ function renderAdminDailyCenter(){
 function renderAdminOverview(){
  let el=document.getElementById('adminOverview');if(!el)return;
  let deadlines=collectDeadlines(),urgent=deadlines.filter(x=>['over','today','7'].includes(x.bucket)).length,quality=qualityIssues();
- let pendingApps=scopedApplications().filter(a=>!['承認','差戻し'].includes(a.status)).length;
+ let openSafety=scopedAccidents().filter(a=>a.phase!=='完了').length+scopedComplaints().filter(x=>x.status!=='完了').length;
  let handoffAged=PREVIEW_ROLE==='管理者'?pendingHandoffsForCurrentManager().filter(handoffIsOverdue).length:0;
  let pendingDocs=DOCS.filter(d=>canViewDocumentRecord(d)&&d.status!=='原本確認済み').length;
  let staleWork=scopedEmployees().filter(e=>e.status!=='退職'&&workUpdateStatus(e)==='更新確認').length;
@@ -5388,7 +5387,7 @@ function renderAdminOverview(){
   <button class="card metric ${urgent?'warn':''}" onclick="openDeadlineCenter('all')"><small>7日以内・超過</small><b>${urgent}</b><span>全期限</span></button>
   <button class="card metric ${staleWork?'warn':''}" onclick="go('work')"><small>勤務更新確認</small><b>${staleWork}</b><span>最終計上を確認</span></button>
   <button class="card metric ${pendingDocs?'warn':''}" onclick="openCredentialCenter()"><small>書類確認待ち等</small><b>${pendingDocs}</b><span>資格・書類</span></button>
-  <button class="card metric ${pendingApps?'warn':''}" onclick="go('comms')"><small>申請対応中</small><b>${pendingApps}</b><span>担当範囲</span></button>
+  <button class="card metric ${openSafety?'warn':''}" onclick="go('safe')"><small>安全案件 未完了</small><b>${openSafety}</b><span>事故・苦情を確認</span></button>
   <button class="card metric ${handoffAged?'danger':''}" onclick="go('home')"><small>引継ぎ未確認 1日超</small><b>${handoffAged}</b><span>自分宛て</span></button>
   <button class="card metric ${quality.length?'warn':''}" onclick="showQualityDetails()"><small>確認・修正</small><b>${quality.length}</b><span>入力漏れ・矛盾</span></button>
  </div>`
@@ -5558,10 +5557,6 @@ function actionQueueItems(){
   scopedAccidents().filter(a=>a.phase!=='完了'&&!a.due).forEach(a=>add({id:'accident:'+a.id,kind:'accident',priority:3,label:'事故 / '+a.driver,sub:a.id+' / 期限未設定 / '+(a.nextAction||'次回対応を確認'),key:a.id,no:String(a.employee_no||''),owner:a.owner||'',ownerId:a.ownerId||'',urgency:'warn'}));
   scopedComplaints().filter(x=>x.status!=='完了'&&!x.followupDue).forEach(x=>add({id:'complaint:'+x.id,kind:'complaint',priority:3,label:'苦情 / '+(x.driverName||x.name||x.employee_no),sub:x.id+' / 期限未設定 / '+(x.nextAction||'次回対応を確認'),key:x.id,no:String(x.employee_no||''),owner:x.owner||'',ownerId:x.ownerId||'',urgency:'warn'}));
   pendingHandoffsForCurrentManager().forEach(h=>add({id:'handoff:'+h.id,kind:'handoff',priority:handoffIsOverdue(h)?0:0.5,label:'新しい引継ぎ / '+h.kind+' '+h.caseId,sub:h.fromOwner+'→'+h.toOwner+' / '+handoffAgeLabel(h)+' / '+h.note,key:h.id,no:String(h.employee_no||''),owner:h.toOwner,ownerId:h.toManagerId,urgency:handoffIsOverdue(h)?'danger':'warn'}));
-  scopedApplications().filter(a=>!['承認','差戻し'].includes(a.status)).forEach(a=>{
-   let e=emp(a.employee_no);
-   add({id:'application:'+a.id,kind:'application',priority:3.5,label:'申請 / '+(e?.name||a.employee_no),sub:a.id+' / '+a.type+' / '+a.status+' / 申請日 '+a.date,key:a.id,no:a.employee_no,urgency:'warn'})
-  })
  }
  if(MY_TASKS_ONLY&&PREVIEW_ROLE==='管理者'){
   items=items.filter(x=>{
@@ -5569,7 +5564,6 @@ function actionQueueItems(){
    if(x.kind==='complaint')return recordAssignedToCurrentManager(C.find(r=>r.id===x.key)||x);
    if(x.kind==='deadline')return deadlineAssignedToCurrentManager({type:x.type,key:x.key,no:x.no,owner:x.owner,ownerId:x.ownerId});
    if(x.kind==='handoff')return true;
-   if(x.kind==='application')return false;
    if(x.kind==='quality'){
     let t=x.qualityTarget;
     if(isFullCompanyAdmin())return true;
@@ -5590,7 +5584,6 @@ function homeQueueTitleHtml(item){
  if(item.kind==='deadline')prefix=(item.type||'期限')+' / ';
  else if(item.kind==='accident')prefix='事故 / ';
  else if(item.kind==='complaint')prefix='苦情 / ';
- else if(item.kind==='application')prefix='申請 / ';
  else if(item.kind==='handoff')prefix='引継ぎ / ';
  return '<div class="home-priority-name">'+(prefix?'<b>'+esc(prefix)+'</b>':'')+employeeNameLinkHtml(e.no,e.name,'work-employee-link')+'</div>'
 }
