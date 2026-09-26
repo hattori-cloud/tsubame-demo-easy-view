@@ -48,8 +48,13 @@ async function seed(no,role='self',office='HQ',department='Taxi'){
     'insert into users(employee_id,login_id,password_hash,display_name,role_level,mfa_required) values($1,$2,$3,$4,$5,$6) returning *',
     [e.id,'audit-'+no,passwordHash,'Fictional '+no,role,role!=='self']
   )).rows[0];
-  if(role==='scoped')await q('insert into user_scopes(user_id,office,department) values($1,$2,$3)',[u.id,office,department]);
+  if(role==='scoped'){
+    await q('insert into user_scopes(user_id,office,department) values($1,$2,$3)',[u.id,office,department]);
+    await q(`insert into user_feature_permissions(user_id,feature,access_level) values
+      ($1,'vehicles','edit'),($1,'deadlines','view')`,[u.id]);
+  }
   u.scopes=role==='scoped'?[{office,department}]:[];
+  u.permissions=role==='scoped'?[{feature:'vehicles',access_level:'edit'},{feature:'deadlines',access_level:'view'}]:[];
   const raw=auth.newRawToken();
   await authStore.createSession({userId:u.id,tokenHash:auth.tokenHash(raw),mfaVerified:role!=='self',ttlSeconds:3600});
   return {e,u,password,cookie:auth.secureCookie(raw,3600).split(';')[0]}
