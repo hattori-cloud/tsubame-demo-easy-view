@@ -200,6 +200,7 @@ async function listComplaints(user,filters={}){
   const r=await query(`select c.*,e.employee_no,e.name as employee_name,count(*) over()::int as _total from complaints c join employees e on e.id=c.employee_id where ${where.join(' and ')} order by c.responded_on desc,c.id desc limit $${params.length-1} offset $${params.length}`,params);
   const total=r.rows[0]?Number(r.rows[0]._total):0;return {items:r.rows.map(({_total,...x})=>x),page,page_size:pageSize,total}
 }
+async function getComplaint(user,id){requireSafetyManager(user);return scopedRecord(user,'complaints',id,null)}
 async function createComplaint({user,body,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
     const e=await employeeSnapshotForUser(user,String(body.employee_id||''),client);
@@ -249,4 +250,4 @@ async function archiveComplaint({user,id,expectedVersion,reason,requestId}){
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情アーカイブ',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
-module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
+module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,getComplaint,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
