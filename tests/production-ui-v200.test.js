@@ -182,10 +182,17 @@ test('employee detail is an operational hub for deadlines vehicles and safety hi
   assert.ok(css.includes('@media(max-width:390px){.support-stat-grid'));
 });
 
-test('deadline rows lead directly to the employee or vehicle that must be handled',()=>{
-  assert.ok(js.includes("x.type==='vehicle_inspection'||x.type==='vehicle_maintenance'"));
-  assert.ok(js.includes('data-action="edit-vehicle" data-id="'));
-  assert.ok(js.includes('data-action="open-employee" data-id="'));
+test('deadline rows open the exact work target instead of a generic employee page',()=>{
+  assert.ok(js.includes('function deadlineTargetButton'));
+  assert.ok(js.includes('async function openDeadlineTarget'));
+  assert.ok(js.includes("if(action==='deadline-target')"));
+  assert.ok(js.includes("['qualification','document'].includes(type)"));
+  assert.ok(js.includes("['training','asset'].includes(type)"));
+  assert.ok(js.includes("['vehicle_inspection','vehicle_maintenance'].includes(type)"));
+  assert.ok(js.includes('editQualification(sourceId)'));
+  assert.ok(js.includes('editDocumentMetadata(sourceId)'));
+  assert.ok(js.includes('editTrainingForEmployee(employee,sourceId)'));
+  assert.ok(js.includes('editAssetForEmployee(employee,sourceId)'));
 });
 
 
@@ -257,4 +264,32 @@ test('management analysis connects vehicle inspection and maintenance workload t
   assert.ok(js.includes('車検超過'));
   assert.ok(js.includes('整備予定超過'));
   assert.ok(js.includes("hubButton('vehicles','車両を確認'"));
+});
+
+
+test('employee and vehicle context is carried into new safety records without retyping known identifiers',()=>{
+  assert.ok(js.includes('function employeeQuickCreateHtml'));
+  assert.ok(js.includes('function employeeSuggestedCar'));
+  for(const action of ['employee-new-accident','employee-new-complaint','employee-new-near','employee-new-guidance','vehicle-new-accident','vehicle-new-near']){
+    assert.ok(js.includes(action),action);
+  }
+  assert.ok(js.includes('async function newAccident(context={})'));
+  assert.ok(js.includes('async function newComplaint(context={})'));
+  assert.ok(js.includes('async function newNearMiss(context={})'));
+  assert.ok(js.includes('async function newGuidance(context={})'));
+  assert.ok(js.includes("const employee=knownEmployee||await resolveEmployeeReference"));
+  assert.ok(js.includes("formField('car_no','号車',context.carNo||'')"));
+  assert.ok(js.includes("cars.length===1?'担当号車 '"));
+});
+
+test('credential pages can update existing qualifications and document metadata with optimistic concurrency',()=>{
+  assert.ok(js.includes('state.credentialData=data'));
+  assert.ok(js.includes('data-action="edit-qualification"'));
+  assert.ok(js.includes('data-action="edit-document"'));
+  assert.ok(js.includes('function editQualification(id)'));
+  assert.ok(js.includes('function editDocumentMetadata(id)'));
+  assert.ok(js.includes("'/qualifications/'+encodeURIComponent(q.id)"));
+  assert.ok(js.includes("'/documents/'+encodeURIComponent(d.id)"));
+  assert.ok(js.includes("'If-Match':'"'+q.version+'"'"));
+  assert.ok(js.includes("'If-Match':'"'+d.version+'"'"));
 });
