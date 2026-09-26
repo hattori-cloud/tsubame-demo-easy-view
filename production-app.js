@@ -407,6 +407,7 @@
       state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
+        detail('タクシー課区分',e.taxi_section)+detail('班',e.team)+detail('勤務区分',workPatternDisplay(e.work_pattern))+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
         '</div>'+employeeHistoryHtml(data.history)+employeeOperationalHtml(e,state.employeeOperational)+employeeQuickCreateHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
       $('detailDialog').showModal()
@@ -414,8 +415,8 @@
   }
 
   function employeeHistoryHtml(history){
-    const numbers=history?.number_changes||[],transitions=history?.transitions||[];
-    if(!numbers.length&&!transitions.length)return '';
+    const numbers=history?.number_changes||[],transitions=history?.transitions||[],workPatterns=history?.work_pattern_changes||[];
+    if(!numbers.length&&!transitions.length&&!workPatterns.length)return '';
     const numberRows=numbers.length?numbers.map(x=>
       '<div class="support-row"><div><b>社員番号 '+esc(x.old_employee_no)+' → '+esc(x.new_employee_no)+'</b><span>'+esc(fmtDate(x.changed_at))+' / '+esc(x.reason||'理由記録なし')+'</span></div></div>'
     ).join(''):'<div class="empty compact-empty">社員番号変更履歴はありません。</div>';
@@ -425,8 +426,12 @@
       const to=[after.office,after.department,after.lifecycle_status].filter(Boolean).join(' / ')||'—';
       return '<div class="support-row"><div><b>'+esc(from)+' → '+esc(to)+'</b><span>'+esc(fmtDate(x.occurred_at))+' / '+esc(x.reason||'理由記録なし')+'</span></div></div>'
     }).join(''):'<div class="empty compact-empty">異動・在籍状態履歴はありません。</div>';
-    return '<section class="employee-support employee-history"><div class="support-head"><div><b>社員履歴</b><span>社員番号変更と異動・在籍状態の変更履歴</span></div></div>'+
-      '<div class="support-grid"><div><h4>社員番号</h4>'+numberRows+'</div><div><h4>異動・在籍状態</h4>'+transitionRows+'</div></div></section>'
+    const workRows=workPatterns.length?workPatterns.map(x=>{
+      const before=workPatternDisplay(x.before_data?.work_pattern),after=workPatternDisplay(x.after_data?.work_pattern);
+      return '<div class="support-row"><div><b>'+esc(before)+' → '+esc(after)+'</b><span>'+esc(fmtDate(x.occurred_at))+'</span></div></div>'
+    }).join(''):'<div class="empty compact-empty">勤務区分変更履歴はありません。</div>';
+    return '<section class="employee-support employee-history"><div class="support-head"><div><b>社員履歴</b><span>社員番号・所属/在籍・勤務区分の変更を確認</span></div></div>'+
+      '<div class="support-grid"><div><h4>社員番号</h4>'+numberRows+'</div><div><h4>異動・在籍状態</h4>'+transitionRows+'</div><div><h4>勤務区分</h4>'+workRows+'</div></div></section>'
   }
   function employeeOperationalHtml(employee,ops){
     const deadlines=ops?.deadlines,vehicles=ops?.vehicles,accidents=ops?.accidents,complaints=ops?.complaints,near=ops?.near;
@@ -441,9 +446,10 @@
     const dueHtml=deadlineRows.length?deadlineRows.slice(0,4).map(x=>
       '<div class="support-row"><div><b>'+esc(x.label)+'</b><span>'+esc(fmtDate(x.due))+' / '+esc(x.action||'確認')+'</span></div><span class="due '+esc(x.due_state)+'">'+esc(x.days_remaining<0?'超過 '+Math.abs(x.days_remaining)+'日':x.days_remaining===0?'本日':x.days_remaining+'日後')+'</span></div>'
     ).join(''):'<div class="empty compact-empty">60日以内に要対応の期限はありません。</div>';
-    const vehicleHtml=vehicleRows.length?vehicleRows.slice(0,4).map(v=>
-      '<div class="support-row"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+' / 車検 '+esc(fmtDate(v.inspection_due))+'</span></div><button class="record-action" data-dialog-action="open-employee-vehicle" data-id="'+esc(v.id)+'">車両</button></div>'
-    ).join(''):'<div class="empty compact-empty">現在の担当号車はありません。</div>';
+    const vehicleHtml=vehicleRows.length?vehicleRows.slice(0,4).map(v=>{
+      const label=isBasicFixedVehicle(v,employee)?'基本固定車':'その他担当車';
+      return '<div class="support-row"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(label)+' / '+esc(v.model||v.service||'—')+' / 車検 '+esc(fmtDate(v.inspection_due))+'</span></div><button class="record-action" data-dialog-action="open-employee-vehicle" data-id="'+esc(v.id)+'">車両</button></div>'
+    }).join(''):'<div class="empty compact-empty">現在の担当号車はありません。</div>';
     if(!metrics&&!deadlineRows.length&&!vehicleRows.length)return '';
     return '<section class="employee-support employee-operational"><div class="support-head"><div><b>この社員の業務状況</b><span>期限・号車・安全履歴をここから追えます</span></div></div>'+
       (metrics?'<div class="support-stat-grid">'+metrics+'</div>':'')+
@@ -456,13 +462,13 @@
     if(canEdit('near_misses'))buttons.push('<button class="ghost light" data-dialog-action="employee-new-near">＋ ヒヤリ</button>');
     if(canEdit('employees'))buttons.push('<button class="ghost light" data-dialog-action="employee-new-guidance">＋ 安全指導</button>');
     if(!buttons.length)return '';
-    const cars=ops?.vehicles?.items||[];
-    const carNote=cars.length===1?'担当号車 '+cars[0].car_no+' を初期入力':cars.length>1?'担当号車が複数のため号車は選択して入力':'担当号車なし';
+    const fixed=(ops?.vehicles?.items||[]).filter(v=>isBasicFixedVehicle(v,employee));
+    const carNote=fixed.length===1?'基本固定車 '+fixed[0].car_no+'号車を初期表示（実際の乗車号車へ変更可）':fixed.length>1?'基本固定車が複数あるため号車は自動入力しません':'基本固定車なし。実際に乗った号車を入力してください';
     return '<section class="employee-support quick-create"><div class="support-head"><div><b>この社員で新規登録</b><span>社員を再検索せず、そのまま業務登録へ進めます。'+esc(carNote)+'</span></div><div>'+buttons.join('')+'</div></div></section>'
   }
-  function employeeSuggestedCar(ops){
-    const rows=ops?.vehicles?.items||[];
-    return rows.length===1?String(rows[0].car_no||''):''
+  function employeeSuggestedCar(employee,ops){
+    const fixed=(ops?.vehicles?.items||[]).filter(v=>isBasicFixedVehicle(v,employee));
+    return fixed.length===1?String(fixed[0].car_no||''):''
   }
   function employeeSupportHtml(employee,support){
     if(!canView('assets_training'))return '';
@@ -1004,6 +1010,25 @@
   function formSelect(name,label,options,value='',extra=''){
     return '<label>'+esc(label)+'<select name="'+esc(name)+'" '+extra+'>'+options.map(([v,l])=>'<option value="'+esc(v)+'" '+(String(v)===String(value)?'selected':'')+'>'+esc(l)+'</option>').join('')+'</select></label>'
   }
+  function formNote(text){
+    return '<div class="form-note wide">'+esc(text)+'</div>'
+  }
+  function workPatternDisplay(value){
+    const v=String(value||'');
+    return {'隔日勤務':'隔勤','隔日':'隔勤','午後から隔日勤務':'H勤','H勤務':'H勤'}[v]||v||'未設定'
+  }
+  function workPatternOptions(current=''){
+    const normalized=workPatternDisplay(current)==='未設定'?'':workPatternDisplay(current);
+    const base=[['','未設定'],['日勤','日勤'],['夜勤','夜勤'],['隔勤','隔勤'],['H勤','H勤']];
+    if(normalized&&!base.some(([v])=>v===normalized))base.push([normalized,normalized+'（既存値）']);
+    return {options:base,value:normalized}
+  }
+  function vehicleAssignmentLabel(mode){
+    return {dedicated:'基本固定車',shared:'共用車',spare:'予備車',loaner:'代車・貸出'}[String(mode||'')]||'未設定'
+  }
+  function isBasicFixedVehicle(vehicle,employee){
+    return String(vehicle?.assignment_mode||'')==='dedicated'&&String(vehicle?.primary_employee_id||'')===String(employee?.id||'')
+  }
   function formFile(name,label,accept,extra=''){
     return '<label class="wide">'+esc(label)+'<input name="'+esc(name)+'" type="file" accept="'+esc(accept)+'" '+extra+'></label>'
   }
@@ -1094,9 +1119,9 @@
       if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no,resetPage:true})}
       if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no,resetPage:true})}
       if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no,resetPage:true})}
-      if(action==='employee-new-accident')return newAccident({employee:d.record,carNo:employeeSuggestedCar(state.employeeOperational)});
+      if(action==='employee-new-accident')return newAccident({employee:d.record,carNo:employeeSuggestedCar(d.record,state.employeeOperational)});
       if(action==='employee-new-complaint')return newComplaint({employee:d.record});
-      if(action==='employee-new-near')return newNearMiss({employee:d.record,carNo:employeeSuggestedCar(state.employeeOperational)});
+      if(action==='employee-new-near')return newNearMiss({employee:d.record,carNo:employeeSuggestedCar(d.record,state.employeeOperational)});
       if(action==='employee-new-guidance')return newGuidance({employee:d.record});
       if(action==='edit-vehicle-assignments')return editVehicleAssignments(d.record);
       if(action==='vehicle-new-accident')return newAccident({employee:d.record.primary_employee_id?{id:d.record.primary_employee_id,employee_no:d.record.primary_employee_no,name:d.record.primary_employee_name}:null,carNo:d.record.car_no});
@@ -1305,22 +1330,27 @@
       formField('department','部署','','text','required')+
       formField('position','職位')+
       formField('employment_type','雇用区分')+
+      formSelect('work_pattern','勤務区分',[['','未設定'],['日勤','日勤'],['夜勤','夜勤'],['隔勤','隔勤'],['H勤','H勤']],'')+
+      formNote('タクシー乗務員の基本：入社時は訓練課で日勤。その後、隔勤・H勤は1課/2課、日勤・夜勤は3課が基本です。例外はそのまま登録できます。')+
       formField('hired_on','入社日','','date');
     openRecordForm('社員登録',fields,async fd=>{
       await api('/employees',{method:'POST',body:{
         employee_no:fdText(fd,'employee_no'),name:fdText(fd,'name'),furigana:nullable(fdText(fd,'furigana')),
         office:fdText(fd,'office'),department:fdText(fd,'department'),position:nullable(fdText(fd,'position')),
-        employment_type:nullable(fdText(fd,'employment_type')),hired_on:nullable(fdText(fd,'hired_on'))
+        employment_type:nullable(fdText(fd,'employment_type')),work_pattern:nullable(fdText(fd,'work_pattern')),hired_on:nullable(fdText(fd,'hired_on'))
       }})
     })
   }
 
   function editEmployee(e){
+    const work=workPatternOptions(e.work_pattern);
     const fields=
       formField('name','氏名',e.name,'text','required')+formField('furigana','フリガナ',e.furigana)+
       formField('position','職位',e.position)+formField('taxi_section','タクシー課区分',e.taxi_section)+
       formField('team','班',e.team)+formField('employment_type','雇用区分',e.employment_type)+
-      formField('work_pattern','勤務区分',e.work_pattern)+formField('main_license','主免許',e.main_license)+
+      formSelect('work_pattern','勤務区分',work.options,work.value)+
+      formNote('勤務区分と基本固定車は別管理です。日勤でも基本固定車を持てます。事故・修理・代車時は実際に乗った号車を事故・ヒヤリ側で記録します。')+
+      formField('main_license','主免許',e.main_license)+
       formField('license_expiry','免許期限',fmtDate(e.license_expiry)==='—'?'':fmtDate(e.license_expiry),'date')+
       formField('health_check_due','健康診断期限',fmtDate(e.health_check_due)==='—'?'':fmtDate(e.health_check_due),'date')+
       formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
@@ -1380,7 +1410,7 @@
       :formField('employee_ref','対象社員（社員番号または氏名）',p.employee_no||p.employee_ref||'','text','required placeholder="例：1001 または 安芸太郎"');
     const fields=employeeField+
       formField('occurred_on','発生日',p.occurred_on||new Date().toISOString().slice(0,10),'date','required')+
-      formField('car_no','号車',context.carNo||p.car_no||'')+formField('address','場所',p.address||'','text','required')+
+      formField('car_no','実際の乗車号車',context.carNo||p.car_no||'')+formNote('基本固定車が入っていても変更できます。事故当日に実際に乗っていた号車を記録してください。')+formField('address','場所',p.address||'','text','required')+
       formArea('summary','事故内容',p.summary||'','required')+formArea('cause','原因',p.cause||'')+formArea('prevention','再発防止',p.prevention||'')+
       formArea('response_history','対応履歴',p.response_history||'')+formField('followup_due','フォロー期限',p.followup_due||'','date');
     const title=(knownEmployee?'事故登録｜'+knownEmployee.name:'事故登録')+(compatible&&draft?'｜下書き復元':'');
@@ -1499,7 +1529,8 @@
     fields+=formField('occurred_on','発生日',p.occurred_on||new Date().toISOString().slice(0,10),'date','required')+
       formField('occurred_time','発生時刻',p.occurred_time||'','time')+
       formField('reported_on','報告日',p.reported_on||new Date().toISOString().slice(0,10),'date','required')+
-      formField('car_no','号車',context.carNo||p.car_no||'')+
+      formField('car_no','実際の乗車号車',context.carNo||p.car_no||'')+
+      formNote('基本固定車が入っていても変更できます。発生時に実際に乗っていた号車を記録してください。')+
       formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']],p.risk_level||'')+
       formArea('summary','内容',p.summary||'','required')+
       formArea('prevention','再発防止',p.prevention||'')+
@@ -1527,12 +1558,13 @@
   async function newVehicle(){
     const fields=formField('car_no','3桁号車','','text','required pattern="[0-9]{3}"')+
       formField('model','車種')+formField('service','用途')+
-      formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],'spare')+
-      formField('primary_employee','主担当（社員番号または氏名）','','text','placeholder="専属車は必須。例：1001 または 安芸太郎"')+
+      formSelect('assignment_mode','車両の使い方',[['spare','予備車'],['shared','共用車'],['dedicated','基本固定車'],['loaner','代車・貸出']],'spare')+
+      formField('primary_employee','主担当（社員番号または氏名）','','text','placeholder="基本固定車は必須。例：1001 または 安芸太郎"')+
+      formNote('基本固定車は普段の基準車です。日勤・夜勤・隔勤・H勤のどの勤務区分でも設定できます。事故・修理・代車時の実乗車号車は事故・ヒヤリ登録側で変更します。')+
       formField('inspection_due','車検期限','','date','required')+formField('next_maintenance_due','次回整備','','date')+formArea('maintenance_note','整備メモ');
     openRecordForm('車両登録',fields,async fd=>{
       const mode=fdText(fd,'assignment_mode'),primaryRef=fdText(fd,'primary_employee');
-      if(mode==='dedicated'&&!primaryRef){const err=new Error('専属車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
+      if(mode==='dedicated'&&!primaryRef){const err=new Error('基本固定車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
       const primary=primaryRef?await resolveEmployeeReference(primaryRef):null;
       await api('/vehicles',{method:'POST',body:{
         car_no:fdText(fd,'car_no'),model:nullable(fdText(fd,'model')),service:nullable(fdText(fd,'service')),
@@ -1563,12 +1595,13 @@
     const fields=
       formSelect('assignment_mode','車両区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
       formField('primary_employee','主担当（社員番号または氏名）',primary?.employee_no||v.primary_employee_no||'','text','placeholder="例：1001 または 安芸太郎"')+
+      formNote('「基本固定車」は普段の基準車で、絶対固定ではありません。事故・修理・代車時は別号車に乗れます。')+
       formArea('additional_employees','追加担当（1行1名・社員番号推奨）',additional.map(x=>x.employee_no||x.name).join('\n'),'placeholder="1002&#10;1015"');
     state.dialog={type:'vehicle',record:v};
     openRecordForm('車両 '+v.car_no+'号車｜担当乗務員',fields,async fd=>{
       const mode=fdText(fd,'assignment_mode');
       const primaryRef=fdText(fd,'primary_employee');
-      if(mode==='dedicated'&&!primaryRef){const err=new Error('専属車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
+      if(mode==='dedicated'&&!primaryRef){const err=new Error('基本固定車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
       const primaryEmployee=primaryRef?await resolveEmployeeReference(primaryRef):null;
       const refs=String(fd.get('additional_employees')||'').split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean);
       const resolved=await Promise.all(refs.map(resolveEmployeeReference));
@@ -1588,7 +1621,7 @@
         (canEdit('accidents')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-accident">＋ この号車で事故</button>':'')+
         (canEdit('near_misses')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-near">＋ この号車でヒヤリ</button>':'');
       return openReadOnlyDialog('車両 '+v.car_no+'号車',[
-        ['車種',v.model],['用途',v.service],['状態',v.status],['区分',v.assignment_mode],
+        ['車種',v.model],['用途',v.service],['状態',v.status],['車両の使い方',vehicleAssignmentLabel(v.assignment_mode)],
         ['主担当',v.primary_employee_name?((v.primary_employee_no||'')+' '+v.primary_employee_name):'未設定'],
         ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
       ],{actions:quick})
@@ -1598,7 +1631,7 @@
       formField('inspection_due','車検期限',fmtDate(v.inspection_due)==='—'?'':fmtDate(v.inspection_due),'date','required')+
       formField('next_maintenance_due','次回整備',fmtDate(v.next_maintenance_due)==='—'?'':fmtDate(v.next_maintenance_due),'date')+
       formArea('maintenance_note','整備メモ',v.maintenance_note);
-    const actions='<button type="button" class="ghost light" data-dialog-action="edit-vehicle-assignments">担当乗務員・区分を変更</button>'+
+    const actions='<button type="button" class="ghost light" data-dialog-action="edit-vehicle-assignments">担当乗務員・基本車両を変更</button>'+
       (canEdit('accidents')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-accident">＋ この号車で事故</button>':'')+
       (canEdit('near_misses')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-near">＋ この号車でヒヤリ</button>':'');
     openRecordForm('車両 '+v.car_no+'号車',fields,async fd=>{
