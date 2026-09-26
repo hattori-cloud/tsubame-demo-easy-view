@@ -39,11 +39,12 @@ async function getEmployeeForUser(user,id){
 }
 async function getEmployeeHistoryForUser(user,id){
   const employee=await getEmployeeForUser(user,id);
-  const [numbers,transitions]=await Promise.all([
+  const [numbers,transitions,workPatterns]=await Promise.all([
     query(`select old_employee_no,new_employee_no,reason,changed_at from employee_number_history where employee_id=$1 order by changed_at desc limit 20`,[employee.id]),
-    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='employee_transition' order by occurred_at desc limit 20`,[employee.id])
+    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='employee_transition' order by occurred_at desc limit 20`,[employee.id]),
+    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='profile_update' and (before_data ? 'work_pattern' or after_data ? 'work_pattern') order by occurred_at desc limit 20`,[employee.id])
   ]);
-  return {number_changes:numbers.rows,transitions:transitions.rows}
+  return {number_changes:numbers.rows,transitions:transitions.rows,work_pattern_changes:workPatterns.rows}
 }
 function requireEmployeeManager(user){
   if(!user||!['full','scoped'].includes(user.role_level))throw problem(403,'MANAGER_REQUIRED','社員情報の更新は管理者のみ実行できます');
@@ -61,7 +62,7 @@ async function createEmployee({user,body,requestId}){
       insert into employees(employee_no,name,furigana,office,department,position,taxi_section,team,employment_type,lifecycle_status,work_pattern,main_license,license_expiry,health_check_due,aptitude_due,safety_state,eligibility,hired_on)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       returning *
-    `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||null,body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
+    `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||'日勤',body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
     const employee=r.rows[0];
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員登録','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[user.id,employee.id,requestId,no+' '+name],client);
     return employee
