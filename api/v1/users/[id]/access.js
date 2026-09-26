@@ -10,7 +10,7 @@ module.exports=async function handler(req,res){
     const identity=await authenticateRequest(req),actor=resolveCurrentUser(identity);
     if(!identity.mfa){const e=new Error('権限変更にはMFA確認済みセッションが必要です');e.status=403;e.code='MFA_REQUIRED';throw e}
     const rid=requestId(req),user=await updateUserAccess({
-      actor,userId:String(req.query.id||''),roleLevel:req.body?.role_level,safetyAuthority:Boolean(req.body?.safety_authority),scopes:req.body?.scopes||[],
+      actor,userId:String(req.query.id||''),roleLevel:req.body?.role_level,safetyAuthority:Boolean(req.body?.safety_authority),scopes:req.body?.scopes||[],permissions:req.body?.permissions||[],
       expectedVersion:parseIfMatchHeader(req.headers['if-match']),requestId:rid
     });
     applySecurityHeaders(res);res.setHeader('X-Request-Id',rid);setVersionEtag(res,user.version);return res.status(200).json({user,relogin_required:true})
