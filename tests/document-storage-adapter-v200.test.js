@@ -47,7 +47,7 @@ test('original upload/finalize/download APIs use the provider-neutral adapter',(
   assert.ok(upload.includes('encryptTicket'));
   assert.ok(upload.includes('prepareDocumentUpload'));
   assert.ok(finalize.includes('decryptTicket'));
-  assert.ok(finalize.includes('inspectQuarantine'));
+  assert.ok(finalize.includes('readQuarantineForScan'));
   assert.ok(finalize.includes('reserveDocumentOriginal'));
   assert.ok(finalize.includes('activateDocumentOriginal'));
   assert.ok(download.includes('createDownloadAuthorization'));
