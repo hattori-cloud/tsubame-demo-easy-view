@@ -5,7 +5,7 @@ const {isProductionRuntime,productionBusinessDataEnabled}=require('./_lib/runtim
 const {probeDatabaseReadiness}=require('./_lib/db');
 const {requestFromInternalNetwork}=require('./_lib/network-access');
 const {authenticateRequest,sendApiError}=require('./_lib/auth');
-const {resolveCurrentUser,requireFeaturePermission}=require('./_lib/authorization');
+const {resolveCurrentUser,requireFeaturePermission,hasFeaturePermission}=require('./_lib/authorization');
 
 function featureForPath(path){
   if(/^\/employees\/[^/]+\/credentials(?:\/|$)/.test(path)||/^\/qualifications(?:\/|$)/.test(path)||/^\/documents(?:\/|$)/.test(path))return 'credentials_documents';
@@ -29,7 +29,22 @@ function requiredFeatureAccess(req,path){
   const method=String(req?.method||'GET').toUpperCase();
   return ['GET','HEAD','OPTIONS'].includes(method)?'view':'edit'
 }
+function allowedDraftKinds(user){
+  const pairs=[['accident','accidents'],['complaint','complaints'],['near_miss','near_misses']];
+  return pairs.filter(([,feature])=>hasFeaturePermission(user,feature,'view')).map(([kind])=>kind)
+}
 async function enforceFeatureAccess(req,res,path){
+  if(/^\/drafts\/?$/.test(path)){
+    try{
+      const identity=await authenticateRequest(req),user=resolveCurrentUser(identity);
+      const allowed=allowedDraftKinds(user);
+      if(!allowed.length){
+        const e=new Error('下書きを利用できる業務権限がありません');e.status=403;e.code='FEATURE_ACCESS_DENIED';throw e
+      }
+      req._tsubameAllowedDraftKinds=allowed;
+      return {identity,user,feature:'drafts'}
+    }catch(err){sendApiError(req,res,err);return false}
+  }
   const feature=featureForPath(path);
   if(!feature)return null;
   try{
@@ -170,3 +185,4 @@ module.exports=async function handler(req,res){
 module.exports.ROUTES=ROUTES;
 module.exports.featureForPath=featureForPath;
 module.exports.requiredFeatureAccess=requiredFeatureAccess;
+module.exports.allowedDraftKinds=allowedDraftKinds;
