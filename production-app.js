@@ -504,7 +504,7 @@
     const confirmationHtml=confirmationItems.length?'<div class="cards">'+confirmationItems.map(x=>
       '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
       '<div class="record-meta"><span>'+esc(x.state)+'</span><span>期限 '+esc(fmtDate(x.due))+'</span><span>'+esc(x.response||'未回答')+'</span>'+
-      (x.state==='open'?'<button class="record-action" data-action="respond-confirmation" data-id="'+esc(x.id)+'">回答</button>':'')+'</div></div>'
+      (x.state==='open'&&canEdit('notices_workflow')?'<button class="record-action" data-action="respond-confirmation" data-id="'+esc(x.id)+'">回答</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
@@ -515,16 +515,16 @@
     const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
       '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
       '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span>'+
-      (x.status==='pending'&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
+      (x.status==='pending'&&canEdit('notices_workflow')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     $('content').innerHTML=
-      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div><button class="small-primary" data-action="new-application">＋ 申請</button></div>'+applicationHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div>'+(canEdit('notices_workflow')?'<button class="small-primary" data-action="new-application">＋ 申請</button>':'')+'</div>'+applicationHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div>'+
-      (canEdit('notices_workflow')?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
+      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
       '</div>'+noticeHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div>'+
-      (canEdit('notices_workflow')?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
+      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
       '</div>'+confirmationHtml+'</section>'+
       (canGuidance?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')+
       (canView('notices_workflow')?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
@@ -738,6 +738,13 @@
   function formFile(name,label,accept,extra=''){
     return '<label class="wide">'+esc(label)+'<input name="'+esc(name)+'" type="file" accept="'+esc(accept)+'" '+extra+'></label>'
   }
+  function openReadOnlyDialog(title,items){
+    $('dialogTitle').textContent=title;
+    $('dialogBody').innerHTML='<div class="detail-grid">'+items.map(([label,value])=>detail(label,value)).join('')+
+      '</div><div class="dialog-actions"><button type="button" class="ghost light" data-dialog-close>閉じる</button></div>';
+    $('detailDialog').showModal()
+  }
+
   function openRecordForm(title,fields,onSubmit,{actions=''}={}){
     $('dialogTitle').textContent=title;
     $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
@@ -930,6 +937,11 @@
 
   async function editAccident(id){
     const {data}=await api('/accidents/'+encodeURIComponent(id));const a=data.accident;state.dialog={type:'accident',record:a};
+    if(!canEdit('accidents'))return openReadOnlyDialog('事故 '+(a.accident_no||''),[
+      ['発生日',fmtDate(a.occurred_on)],['状態',a.phase],['号車',a.car_no],['場所',a.address],
+      ['事故内容',a.summary],['原因',a.cause],['再発防止',a.prevention],['対応履歴',a.response_history],
+      ['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)]
+    ]);
     const terminal=a.phase==='completed';
     const fields=formField('occurred_on','発生日',fmtDate(a.occurred_on),'date','required')+formField('car_no','号車',a.car_no)+
       formField('address','場所',a.address,'text','required')+formArea('summary','事故内容',a.summary,'required')+
@@ -965,6 +977,10 @@
 
   async function editComplaint(id){
     const {data}=await api('/complaints/'+encodeURIComponent(id));const a=data.complaint;state.dialog={type:'complaint',record:a};
+    if(!canEdit('complaints'))return openReadOnlyDialog('苦情 '+(a.complaint_no||''),[
+      ['対応日',fmtDate(a.responded_on)],['状態',a.status],['ランク',a.rank],['苦情内容',a.summary],
+      ['指導内容',a.guidance_content],['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)],['完了',fmtDate(a.completed_at)]
+    ]);
     const terminal=a.status==='completed';
     const fields=formField('responded_on','対応日',fmtDate(a.responded_on),'date','required')+
       formArea('summary','苦情内容',a.summary,'required')+
@@ -1049,6 +1065,10 @@
 
   async function editVehicle(id){
     const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle;state.dialog={type:'vehicle',record:v};
+    if(!canEdit('vehicles'))return openReadOnlyDialog('車両 '+v.car_no+'号車',[
+      ['車種',v.model],['用途',v.service],['状態',v.status],['区分',v.assignment_mode],
+      ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
+    ]);
     const fields=formField('model','車種',v.model)+formField('service','用途',v.service)+
       formSelect('status','状態',[['active','稼働'],['maintenance','整備'],['inactive','停止']],v.status||'active')+
       formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
