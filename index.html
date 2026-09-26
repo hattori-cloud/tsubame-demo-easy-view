@@ -7299,7 +7299,8 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
   <div class="detail-primary-item"><label>修理費合計</label><b>${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</b></div>
  </div></div>
  <div class="section"><h3>事故概要</h3><div class="acc-v50-text">${esc(a.summary||'未登録')}</div></div>
- <details class="detail-fold" open><summary>事故報告・調査票（${esc(a.reportSheetStatus||'未着手')}）</summary><div class="detail-fold-body">
+ <details class="detail-fold" open><summary>事故報告・調査票（${esc(a.reportSheetStatus||'未着手')} / 不足 ${accidentReportMissingFields(a).length}項目）</summary><div class="detail-fold-body">
+  ${accidentReportMissingFields(a).length?'<div class="detail-alert warn"><b>報告書の未入力：</b> '+accidentReportMissingFields(a).map(esc).join('・')+(canEditEmployee(a.employee_no)?'<div style="margin-top:8px"><button class="btn primary" onclick="openAccidentEdit(\''+a.id+'\')">不足項目を入力</button></div>':'')+'</div>':'<div class="detail-alert ok"><b>主要な報告項目は入力済みです。</b><div class="mini">印刷前に内容を確認してください。</div></div>'}
   <div class="acc-v50-detail-grid">
    <div class="acc-v50-box"><label>天候</label><b>${esc(a.weather||'未設定')}</b></div>
    <div class="acc-v50-box"><label>警察対応</label><b>${esc(a.policeStatus||'未確認')}</b></div>
