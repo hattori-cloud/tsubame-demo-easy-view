@@ -336,3 +336,16 @@ test('employee detail shows renumber and lifecycle history beside current data',
   assert.ok(js.includes('社員番号変更と異動・在籍状態の変更履歴'));
   assert.ok(js.includes("employeeHistoryHtml(data.history)"));
 });
+
+
+test('safety cases can create handoffs without entering internal user ids and recipients can reopen the case',()=>{
+  assert.ok(js.includes('async function createHandoffForm(context)'));
+  assert.ok(js.includes("'/handoffs/targets?employee_id='"));
+  assert.ok(js.includes("formSelect('to_user_id','引継ぎ先'"));
+  assert.ok(js.includes("api('/handoffs',{method:'POST'"));
+  assert.ok(js.includes('data-dialog-action="handoff-accident"'));
+  assert.ok(js.includes('data-dialog-action="handoff-complaint"'));
+  assert.ok(js.includes('data-action="new-handoff-near"'));
+  assert.ok(js.includes('function handoffCaseButton(x)'));
+  assert.ok(js.includes('>案件を開く</button>'));
+});
