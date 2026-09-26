@@ -7229,6 +7229,17 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
   <div class="detail-primary-item"><label>修理費合計</label><b>${accidentTotalRepairCost(a).toLocaleString('ja-JP')}円</b></div>
  </div></div>
  <div class="section"><h3>事故概要</h3><div class="acc-v50-text">${esc(a.summary||'未登録')}</div></div>
+ <details class="detail-fold" open><summary>事故報告・調査票（${esc(a.reportSheetStatus||'未着手')}）</summary><div class="detail-fold-body">
+  <div class="acc-v50-detail-grid">
+   <div class="acc-v50-box"><label>天候</label><b>${esc(a.weather||'未設定')}</b></div>
+   <div class="acc-v50-box"><label>警察対応</label><b>${esc(a.policeStatus||'未確認')}</b></div>
+   <div class="acc-v50-box"><label>写真・見取図</label><b>${esc(a.evidenceStatus||'未確認')}</b></div>
+   <div class="acc-v50-box"><label>調査票</label><b>${esc(a.reportSheetStatus||'未着手')}</b></div>
+  </div>
+  <div class="section"><h3>相手方・関係者</h3><div class="acc-v50-text">${esc(a.opponentSummary||'未登録')}</div></div>
+  <div class="section"><h3>事故発生時に取った措置</h3><div class="acc-v50-text">${esc(a.onsiteActions||'未登録')}</div></div>
+  <div class="grid2"><div class="section"><h3>道路・現場状況</h3><div class="acc-v50-text">${esc(a.roadCondition||'未登録')}</div></div><div class="section"><h3>負傷・損傷状況</h3><div class="acc-v50-text">${esc(a.damageInjurySummary||'未登録')}</div></div></div>
+ </div></details>
  ${accidentManagementChecklistHtml(a)}
  <div class="grid2">
   <div class="section"><h3>原因</h3><div class="acc-v50-text">${esc(a.cause||'未登録')}</div></div>
