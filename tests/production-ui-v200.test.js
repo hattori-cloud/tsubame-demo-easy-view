@@ -435,3 +435,11 @@ test('employee detail distinguishes basic fixed cars from other assigned cars',(
   assert.ok(js.includes('<h4>基本固定車・担当車</h4>'));
   assert.ok(js.includes('vehicleAssignmentLabel(v.assignment_mode)'));
 });
+
+
+test('employee detail shows basic fixed car next to shift without exposing it when vehicle access is unavailable',()=>{
+  assert.ok(js.includes('function employeeBasicFixedCarText(employee,ops)'));
+  assert.ok(js.includes("detail('基本固定車',employeeBasicFixedCarText(e,state.employeeOperational))"));
+  assert.ok(js.includes("canView('vehicles')?detail('基本固定車'"));
+  assert.ok(js.includes("fixed.map(v=>String(v.car_no||'')+'号車')"));
+});
