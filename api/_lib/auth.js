@@ -54,7 +54,8 @@ function stagingFixtureIdentity(req){
   return {subject:user.external_subject,user_id:user.id,mfa:m[2]==='mfa',session_id:'fixture-session',user:{...user,employee_lifecycle_status:null},fixture:true}
 }
 async function authenticateRequest(req){
-  const fixture=stagingFixtureIdentity(req);if(fixture)return fixture;
+  if(req&&req._tsubameIdentity)return req._tsubameIdentity;
+  const fixture=stagingFixtureIdentity(req);if(fixture){if(req)req._tsubameIdentity=fixture;return fixture}
   if(!productionAuthConfigured())throw new AuthError(503,'AUTH_NOT_CONFIGURED','本番認証が未設定です');
   const token=rawSessionToken(req);
   const session=await loadSessionByTokenHash(tokenHash(token));
@@ -67,7 +68,9 @@ async function authenticateRequest(req){
     mfa_required:Boolean(session.mfa_required),scopes:session.scopes||[],permissions:session.permissions||[],
     employee_lifecycle_status:session.employee_lifecycle_status||null,employee_no:session.employee_no||null
   };
-  return {subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id),user}
+  const identity={subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id),user};
+  if(req)req._tsubameIdentity=identity;
+  return identity
 }
 function sendApiError(req,res,err){
   const id=requestId(req);
