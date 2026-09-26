@@ -73,7 +73,6 @@ const ROUTES=[
   {pattern:/^\/complaints\/([^\/]+)\/archive\/?$/,keys:["id"],handler:require("./v1/complaints/[id]/archive.js"),source:"api/v1/complaints/[id]/archive.js"},
   {pattern:/^\/complaints\/([^\/]+)\/complete\/?$/,keys:["id"],handler:require("./v1/complaints/[id]/complete.js"),source:"api/v1/complaints/[id]/complete.js"},
   {pattern:/^\/complaints\/([^\/]+)\/reopen\/?$/,keys:["id"],handler:require("./v1/complaints/[id]/reopen.js"),source:"api/v1/complaints/[id]/reopen.js"},
-  {pattern:/^\/confirmations\/([^\/]+)\/respond\/?$/,keys:["id"],handler:require("./v1/confirmations/[id]/respond.js"),source:"api/v1/confirmations/[id]/respond.js"},
   {pattern:/^\/documents\/([^\/]+)\/download-ticket\/?$/,keys:["id"],handler:require("./v1/documents/[id]/download-ticket.js"),source:"api/v1/documents/[id]/download-ticket.js"},
   {pattern:/^\/employees\/([^\/]+)\/credentials\/?$/,keys:["id"],handler:require("./v1/employees/[id]/credentials.js"),source:"api/v1/employees/[id]/credentials.js"},
   {pattern:/^\/employees\/([^\/]+)\/employee-number\/?$/,keys:["id"],handler:require("./v1/employees/[id]/employee-number.js"),source:"api/v1/employees/[id]/employee-number.js"},
@@ -81,7 +80,6 @@ const ROUTES=[
   {pattern:/^\/handoffs\/([^\/]+)\/acknowledge\/?$/,keys:["id"],handler:require("./v1/handoffs/[id]/acknowledge.js"),source:"api/v1/handoffs/[id]/acknowledge.js"},
   {pattern:/^\/near-miss-compliance\/targets\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/near-miss-compliance/targets/[id].js"),source:"api/v1/near-miss-compliance/targets/[id].js"},
   {pattern:/^\/near-misses\/([^\/]+)\/archive\/?$/,keys:["id"],handler:require("./v1/near-misses/[id]/archive.js"),source:"api/v1/near-misses/[id]/archive.js"},
-  {pattern:/^\/notices\/([^\/]+)\/read\/?$/,keys:["id"],handler:require("./v1/notices/[id]/read.js"),source:"api/v1/notices/[id]/read.js"},
   {pattern:/^\/users\/([^\/]+)\/access\/?$/,keys:["id"],handler:require("./v1/users/[id]/access.js"),source:"api/v1/users/[id]/access.js"},
   {pattern:/^\/users\/([^\/]+)\/reactivate\/?$/,keys:["id"],handler:require("./v1/users/[id]/reactivate.js"),source:"api/v1/users/[id]/reactivate.js"},
   {pattern:/^\/users\/([^\/]+)\/suspend\/?$/,keys:["id"],handler:require("./v1/users/[id]/suspend.js"),source:"api/v1/users/[id]/suspend.js"},
@@ -98,25 +96,20 @@ const ROUTES=[
   {pattern:/^\/work-import\/batches\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/work-import/batches/[id].js"),source:"api/v1/work-import/batches/[id].js"},
   {pattern:/^\/work-import\/preflight\/?$/,keys:[],handler:require("./v1/work-import/preflight.js"),source:"api/v1/work-import/preflight.js"},
   {pattern:/^\/accidents\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/accidents/[id].js"),source:"api/v1/accidents/[id].js"},
-  {pattern:/^\/applications\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/applications/[id].js"),source:"api/v1/applications/[id].js"},
   {pattern:/^\/assets\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/assets/[id].js"),source:"api/v1/assets/[id].js"},
   {pattern:/^\/complaints\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/complaints/[id].js"),source:"api/v1/complaints/[id].js"},
-  {pattern:/^\/confirmations\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/confirmations/[id].js"),source:"api/v1/confirmations/[id].js"},
   {pattern:/^\/documents\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/documents/[id].js"),source:"api/v1/documents/[id].js"},
   {pattern:/^\/drafts\/([^\/]+)\/?$/,keys:["kind"],handler:require("./v1/drafts/[kind].js"),source:"api/v1/drafts/[kind].js"},
   {pattern:/^\/employees\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/employees/[id].js"),source:"api/v1/employees/[id].js"},
   {pattern:/^\/guidance\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/guidance/[id].js"),source:"api/v1/guidance/[id].js"},
   {pattern:/^\/near-misses\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/near-misses/[id].js"),source:"api/v1/near-misses/[id].js"},
-  {pattern:/^\/notices\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/notices/[id].js"),source:"api/v1/notices/[id].js"},
   {pattern:/^\/qualifications\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/qualifications/[id].js"),source:"api/v1/qualifications/[id].js"},
   {pattern:/^\/training\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/training/[id].js"),source:"api/v1/training/[id].js"},
   {pattern:/^\/vehicles\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/vehicles/[id].js"),source:"api/v1/vehicles/[id].js"},
   {pattern:/^\/accidents\/?$/,keys:[],handler:require("./v1/accidents/index.js"),source:"api/v1/accidents/index.js"},
-  {pattern:/^\/applications\/?$/,keys:[],handler:require("./v1/applications/index.js"),source:"api/v1/applications/index.js"},
   {pattern:/^\/assets\/?$/,keys:[],handler:require("./v1/assets/index.js"),source:"api/v1/assets/index.js"},
   {pattern:/^\/audit-logs\/?$/,keys:[],handler:require("./v1/audit-logs/index.js"),source:"api/v1/audit-logs/index.js"},
   {pattern:/^\/complaints\/?$/,keys:[],handler:require("./v1/complaints/index.js"),source:"api/v1/complaints/index.js"},
-  {pattern:/^\/confirmations\/?$/,keys:[],handler:require("./v1/confirmations/index.js"),source:"api/v1/confirmations/index.js"},
   {pattern:/^\/deadlines\/?$/,keys:[],handler:require("./v1/deadlines/index.js"),source:"api/v1/deadlines/index.js"},
   {pattern:/^\/documents\/?$/,keys:[],handler:require("./v1/documents/index.js"),source:"api/v1/documents/index.js"},
   {pattern:/^\/drafts\/?$/,keys:[],handler:require("./v1/drafts/index.js"),source:"api/v1/drafts/index.js"},
@@ -127,7 +120,6 @@ const ROUTES=[
   {pattern:/^\/me\/?$/,keys:[],handler:require("./v1/me.js"),source:"api/v1/me.js"},
   {pattern:/^\/near-miss-compliance\/?$/,keys:[],handler:require("./v1/near-miss-compliance/index.js"),source:"api/v1/near-miss-compliance/index.js"},
   {pattern:/^\/near-misses\/?$/,keys:[],handler:require("./v1/near-misses/index.js"),source:"api/v1/near-misses/index.js"},
-  {pattern:/^\/notices\/?$/,keys:[],handler:require("./v1/notices/index.js"),source:"api/v1/notices/index.js"},
   {pattern:/^\/qualifications\/?$/,keys:[],handler:require("./v1/qualifications/index.js"),source:"api/v1/qualifications/index.js"},
   {pattern:/^\/secure-probe\/?$/,keys:[],handler:require("./v1/secure-probe.js"),source:"api/v1/secure-probe.js"},
   {pattern:/^\/staging-readiness\/?$/,keys:[],handler:require("./v1/staging-readiness.js"),source:"api/v1/staging-readiness.js"},
@@ -155,7 +147,7 @@ module.exports=async function handler(req,res){
       return res.status(404).json(errorBody('NOT_FOUND','対象データが見つかりません',networkId))
     }
   }
-  if(isProductionRuntime() && retiredSelectedUserPath(path)){
+  if(retiredSelectedUserPath(path)){
     const id=requestId(req);
     applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
     return res.status(404).json(errorBody('NOT_FOUND','対象データが見つかりません',id))
