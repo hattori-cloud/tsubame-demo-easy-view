@@ -166,7 +166,7 @@ async function yearEnd(year,employeeSequence,adminUserId){
   for(const e of retirees){
     await query("update employees set lifecycle_status='retired',retired_on=$2,updated_at=now(),version=version+1 where id=$1",[e.id,isoDate(year,12,31)]);
     await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason)
-      values('employee',$1,$1,$2,'simulation_retirement',$3::jsonb,$4::jsonb,'5-year fictional simulation')`,
+      values('employee',$1::text,$1::uuid,$2::uuid,'simulation_retirement',$3::jsonb,$4::jsonb,'5-year fictional simulation')`,
       [e.id,adminUserId,JSON.stringify({lifecycle_status:'active'}),JSON.stringify({lifecycle_status:'retired',retired_on:isoDate(year,12,31)})])
   }
 
@@ -185,7 +185,7 @@ async function yearEnd(year,employeeSequence,adminUserId){
     const next=movedAssignment(e);
     await query('update employees set office=$2,department=$3,updated_at=now(),version=version+1 where id=$1',[e.id,next.office,next.department]);
     await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason)
-      values('employee',$1,$1,$2,'simulation_transfer',$3::jsonb,$4::jsonb,'5-year fictional simulation')`,
+      values('employee',$1::text,$1::uuid,$2::uuid,'simulation_transfer',$3::jsonb,$4::jsonb,'5-year fictional simulation')`,
       [e.id,adminUserId,JSON.stringify({office:e.office,department:e.department}),JSON.stringify(next)])
   }
 
