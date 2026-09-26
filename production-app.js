@@ -355,7 +355,8 @@
       if(action==='new-near-miss')return newNearMiss();
       if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
       if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
-      if(action==='new-qualification')return newQualification()
+      if(action==='new-qualification')return newQualification();
+      if(action==='new-document')return newDocumentMetadata()
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
@@ -383,6 +384,43 @@
         certificate_no:nullable(fdText(fd,'certificate_no')),
         expiry:nullable(fdText(fd,'expiry')),
         evidence_requirement:fdText(fd,'evidence_requirement')||'unset'
+      }})
+    })
+  }
+
+  async function newDocumentMetadata(){
+    if(!state.credentialEmployeeId||state.me?.role_level==='self')return;
+    const [{data:policyData},{data:credentialData}]=await Promise.all([
+      api('/document-policies'),
+      api('/credentials?employee_id='+encodeURIComponent(state.credentialEmployeeId))
+    ]);
+    const policies=(policyData.policies||[]).filter(p=>!['electronic_original','paper_and_electronic'].includes(p.original_handling));
+    if(!policies.length){
+      const e=new Error('通常登録できる書類区分がありません。電子原本は原本アップロード経路を使用してください。');
+      e.code='NO_METADATA_DOCUMENT_POLICY';throw e
+    }
+    const qualificationOptions=[['','資格へ紐付けない'],...(credentialData.qualifications||[]).map(q=>[q.id,q.name+(q.expiry?' / '+fmtDate(q.expiry):'')])];
+    const policyOptions=policies.map(p=>[p.category,p.category+' / '+p.original_handling]);
+    const fields=
+      formSelect('category','書類区分',policyOptions,policyOptions[0]?.[0]||'','required')+
+      formField('name','書類名','','text','required')+
+      formSelect('qualification_id','関連資格',qualificationOptions,'')+
+      formField('kind','種類')+
+      formField('registered_on','登録日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('expiry','有効期限','','date')+
+      formField('paper_location','紙原本の保管場所')+
+      formField('retention_until','保管期限','','date');
+    openRecordForm('書類登録',fields,async fd=>{
+      await api('/documents',{method:'POST',body:{
+        employee_id:state.credentialEmployeeId,
+        category:fdText(fd,'category'),
+        name:fdText(fd,'name'),
+        qualification_id:nullable(fdText(fd,'qualification_id')),
+        kind:nullable(fdText(fd,'kind')),
+        registered_on:fdText(fd,'registered_on'),
+        expiry:nullable(fdText(fd,'expiry')),
+        paper_location:nullable(fdText(fd,'paper_location')),
+        retention_until:nullable(fdText(fd,'retention_until'))
       }})
     })
   }
