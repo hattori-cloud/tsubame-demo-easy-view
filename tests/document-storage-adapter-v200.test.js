@@ -59,3 +59,62 @@ test('finalize returns no raw storage key or internal SHA',()=>{
   assert.equal(finalize.includes('storage_key:d.storage_key'),false);
   assert.equal(finalize.includes('content_sha256:d.content_sha256'),false);
 });
+
+
+test('Vercel private Blob adapter signs constrained operations and remains scan-pending',async()=>{
+  const saved={
+    VERCEL_ENV:process.env.VERCEL_ENV,
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER,
+    TSUBAME_DOCUMENT_TICKET_SECRET:process.env.TSUBAME_DOCUMENT_TICKET_SECRET,
+    BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN
+  };
+  const mod=require('../api/_lib/document-storage');
+  const calls=[];
+  const bytes=Buffer.from('%PDF-1.7\nfake private original\n%%EOF','utf8');
+  try{
+    process.env.VERCEL_ENV='production';
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='test-private-token';
+    mod._test.setBlobSdk({
+      async issueSignedToken(options){calls.push({kind:'issue',options});return {delegationToken:'d',clientSigningToken:'s'}},
+      async presignUrl(_token,options){calls.push({kind:'presign',options});return {presignedUrl:'https://blob.invalid/'+options.operation}}
+    });
+    mod._test.setFetch(async(url,options)=>{
+      const operation=String(url).split('/').pop();
+      if(operation==='head')return {
+        ok:true,
+        headers:{get(k){return {'content-type':'application/pdf','content-length':String(bytes.length),'etag':'"etag-private-1"'}[String(k).toLowerCase()]||null}}
+      };
+      if(operation==='get')return {ok:true,async arrayBuffer(){return bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.byteLength)}};
+      throw new Error('unexpected fetch '+url+' '+options?.method)
+    });
+    const adapter=mod.getDocumentStorageAdapter();
+    const key='quarantine/0123456789abcdef0123456789abcdef';
+    const uploadAuth=await adapter.createUploadAuthorization({storageKey:key,contentType:'application/pdf',sizeBytes:bytes.length,expiresSeconds:60});
+    assert.equal(uploadAuth.method,'PUT');
+    assert.equal(uploadAuth.upload_url,'https://blob.invalid/put');
+    const putSign=calls.find(x=>x.kind==='presign'&&x.options.operation==='put').options;
+    assert.equal(putSign.access,'private');
+    assert.equal(putSign.allowOverwrite,false);
+    assert.equal(putSign.addRandomSuffix,false);
+    assert.deepEqual(putSign.allowedContentTypes,['application/pdf']);
+    assert.equal(putSign.maximumSizeInBytes,bytes.length);
+
+    const inspected=await adapter.inspectQuarantine(key);
+    assert.equal(inspected.content_type,'application/pdf');
+    assert.equal(inspected.size_bytes,bytes.length);
+    assert.match(inspected.sha256,/^[0-9a-f]{64}$/);
+    assert.equal(inspected.malware_status,'pending');
+    assert.equal(inspected.malware_scanned_at,null);
+
+    const downloadAuth=await adapter.createDownloadAuthorization({storageKey:key,expiresSeconds:60});
+    assert.equal(downloadAuth.download_url,'https://blob.invalid/get');
+    const getSign=calls.filter(x=>x.kind==='presign'&&x.options.operation==='get').at(-1).options;
+    assert.equal(getSign.access,'private');
+    assert.equal(getSign.useCache,false);
+  }finally{
+    mod._test.resetTestOverrides();
+    for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v}
+  }
+});
