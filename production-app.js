@@ -400,6 +400,8 @@
       if(canView('complaints'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-complaints">苦情履歴</button>');
       if(canView('near_misses'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-near">ヒヤリ履歴</button>');
       if(canEdit('employees'))employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
+      if(state.me?.role_level==='full')employeeActions.push('<button class="ghost light" data-dialog-action="transition-employee">異動・在籍状態</button>');
+      if(state.me?.role_level==='full')employeeActions.push('<button class="ghost light" data-dialog-action="renumber-employee">社員番号変更</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
       state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
@@ -994,6 +996,8 @@
       if(action==='edit-vehicle-assignments')return editVehicleAssignments(d.record);
       if(action==='vehicle-new-accident')return newAccident({employee:d.record.primary_employee_id?{id:d.record.primary_employee_id,employee_no:d.record.primary_employee_no,name:d.record.primary_employee_name}:null,carNo:d.record.car_no});
       if(action==='vehicle-new-near')return newNearMiss({employee:d.record.primary_employee_id?{id:d.record.primary_employee_id,employee_no:d.record.primary_employee_no,name:d.record.primary_employee_name}:null,carNo:d.record.car_no});
+      if(action==='transition-employee')return transitionEmployeeForm(d.record);
+      if(action==='renumber-employee')return changeEmployeeNumberForm(d.record);
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
       if(action==='new-training')return newTrainingForEmployee(d.record);
@@ -1216,6 +1220,48 @@
     openRecordForm('社員情報を編集',fields,async fd=>{
       const body={};for(const k of ['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
       await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
+    })
+  }
+
+  function transitionEmployeeForm(employee){
+    if(state.me?.role_level!=='full')return;
+    const fields=
+      formField('office','事業所',employee.office,'text','required')+
+      formField('department','部署',employee.department,'text','required')+
+      formSelect('lifecycle_status','在籍状態',[['active','在籍'],['leave','休職'],['retirement_planned','退職予定'],['retired','退職']],employee.lifecycle_status||'active','required')+
+      formField('retired_on','退職日',fmtDate(employee.retired_on)==='—'?'':fmtDate(employee.retired_on),'date')+
+      formArea('reason','変更理由','','required placeholder="異動・休職・退職等の理由を入力"')+
+      formArea('handoff_note','引継ぎメモ','','placeholder="必要な引継ぎ事項"');
+    openRecordForm('異動・在籍状態｜'+employee.name,fields,async fd=>{
+      await api('/employees/'+encodeURIComponent(employee.id)+'/transition',{
+        method:'POST',
+        body:{
+          target:{
+            office:fdText(fd,'office'),
+            department:fdText(fd,'department'),
+            lifecycle_status:fdText(fd,'lifecycle_status'),
+            retired_on:nullable(fdText(fd,'retired_on'))
+          },
+          reason:fdText(fd,'reason'),
+          handoff_note:nullable(fdText(fd,'handoff_note'))
+        },
+        headers:{'If-Match':'"'+employee.version+'"'}
+      })
+    })
+  }
+
+  function changeEmployeeNumberForm(employee){
+    if(state.me?.role_level!=='full')return;
+    const fields=
+      formField('current_employee_no','現在の社員番号',employee.employee_no,'text','readonly')+
+      formField('new_employee_no','新しい社員番号','','text','required maxlength="64"')+
+      formArea('reason','変更理由','','required placeholder="社員番号変更の理由を入力"');
+    openRecordForm('社員番号変更｜'+employee.name,fields,async fd=>{
+      await api('/employees/'+encodeURIComponent(employee.id)+'/employee-number',{
+        method:'POST',
+        body:{new_employee_no:fdText(fd,'new_employee_no'),reason:fdText(fd,'reason')},
+        headers:{'If-Match':'"'+employee.version+'"'}
+      })
     })
   }
 
