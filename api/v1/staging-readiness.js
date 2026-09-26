@@ -36,6 +36,7 @@ module.exports=async function handler(req,res){
   if(!readiness.document_storage_transport_ready)blockers.push('private原本ストレージ実アダプター');
   if(!readiness.document_malware_scanner_ready)blockers.push('原本マルウェアスキャナ');
   if(!readiness.original_document_pipeline_ready)blockers.push('原本安全確認パイプライン');
+  if(!readiness.document_backup_ready)blockers.push('原本別障害領域バックアップ');
 
   return res.status(200).json({
     service:'tsubame-staging-readiness',
@@ -56,6 +57,7 @@ module.exports=async function handler(req,res){
       document_storage_adapter_ready:readiness.document_storage_adapter_ready,
       document_malware_scanner_ready:readiness.document_malware_scanner_ready,
       original_document_pipeline_ready:readiness.original_document_pipeline_ready,
+      document_backup_ready:readiness.document_backup_ready,
       original_file_test_ready:Boolean(readiness.original_file_test_ready&&databaseReady)
     },
     blockers,

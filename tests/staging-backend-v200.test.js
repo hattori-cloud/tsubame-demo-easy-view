@@ -23,7 +23,13 @@ function envSnapshot(){
     TSUBAME_DOCUMENT_BLOB_STORE_ID:process.env.TSUBAME_DOCUMENT_BLOB_STORE_ID,
     VERCEL_OIDC_TOKEN:process.env.VERCEL_OIDC_TOKEN,
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
-    TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN
+    TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN,
+    TSUBAME_DOCUMENT_BACKUP_PROVIDER:process.env.TSUBAME_DOCUMENT_BACKUP_PROVIDER,
+    TSUBAME_DOCUMENT_BACKUP_APPROVED:process.env.TSUBAME_DOCUMENT_BACKUP_APPROVED,
+    TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN:process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN,
+    TSUBAME_DOCUMENT_BACKUP_URL:process.env.TSUBAME_DOCUMENT_BACKUP_URL,
+    TSUBAME_DOCUMENT_BACKUP_TOKEN:process.env.TSUBAME_DOCUMENT_BACKUP_TOKEN,
+    TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY:process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY
   }
 }
 function restoreEnv(saved){
@@ -78,6 +84,7 @@ test('backend readiness reports booleans without secret values',()=>{
     assert.equal(readiness.document_storage_adapter_ready,true);
     assert.equal(readiness.document_malware_scanner_ready,false);
     assert.equal(readiness.original_document_pipeline_ready,false);
+    assert.equal(readiness.document_backup_ready,false);
     assert.equal(readiness.fictional_fixtures_enabled,true);
     assert.equal(readiness.original_file_test_ready,false);
     const serialized=JSON.stringify(readiness);
@@ -157,5 +164,39 @@ test('production business activation remains closed when private transport exist
     assert.equal(runtime.productionBusinessDataEnabled(),false);
     process.env.VERCEL_ENV='preview';
     assert.equal(runtime.productionBusinessDataEnabled(),false);
+  }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
+});
+
+
+test('production activation remains closed without approved separate-failure-domain original backup',()=>{
+  const saved=envSnapshot();
+  try{
+    process.env.VERCEL_ENV='production';
+    process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA='1';
+    process.env.DATABASE_URL='postgres://example.invalid/db';
+    process.env.TSUBAME_SESSION_SECRET='12345678901234567890123456789012';
+    process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,9).toString('base64');
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_PROVIDER='private-https';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_APPROVED='1';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_URL='https://scanner.internal.example/scan';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_TOKEN='12345678901234567890123456789012';
+    delete process.env.TSUBAME_DOCUMENT_BACKUP_PROVIDER;
+    assert.equal(runtime.originalDocumentPipelineReady(),true);
+    assert.equal(runtime.documentBackupReady(),false);
+    assert.equal(runtime.productionBusinessDataEnabled(),false);
+
+    process.env.TSUBAME_DOCUMENT_BACKUP_PROVIDER='private-https';
+    process.env.TSUBAME_DOCUMENT_BACKUP_APPROVED='1';
+    process.env.TSUBAME_DOCUMENT_BACKUP_URL='https://backup.internal.example/originals';
+    process.env.TSUBAME_DOCUMENT_BACKUP_TOKEN='12345678901234567890123456789012';
+    process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY=Buffer.alloc(32,12).toString('base64');
+    delete process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN;
+    assert.equal(runtime.documentBackupReady(),false);
+    process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN='1';
+    assert.equal(runtime.documentBackupReady(),true);
+    assert.equal(runtime.productionBusinessDataEnabled(),true)
   }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
 });

@@ -84,3 +84,6 @@ jobs:
 
       - name: Verify private document storage contract
         run: node scripts/verify-document-storage-contract-v200.js
+
+      - name: Verify encrypted original backup restore contract
+        run: node scripts/verify-document-backup-restore-v200.js

@@ -64,6 +64,32 @@ function documentMalwareScannerReady(){
     String(process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_TOKEN||'').length>=32
   )
 }
+function documentBackupProvider(){
+  const explicit=String(process.env.TSUBAME_DOCUMENT_BACKUP_PROVIDER||'').trim().toLowerCase();
+  if(explicit)return explicit;
+  return ''
+}
+function documentBackupEndpointValid(){
+  try{
+    const u=new URL(String(process.env.TSUBAME_DOCUMENT_BACKUP_URL||''));
+    return u.protocol==='https:'&&Boolean(u.hostname)&&!u.username&&!u.password&&!u.search&&!u.hash
+  }catch(_){return false}
+}
+function documentBackupEncryptionKeyPresent(){
+  try{return Buffer.from(String(process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY||''),'base64').length===32}catch(_){return false}
+}
+function documentBackupReady(){
+  const provider=documentBackupProvider();
+  if(provider==='ci-memory')return Boolean(isNonProductionRuntime()&&documentBackupEncryptionKeyPresent());
+  if(provider!=='private-https')return false;
+  return Boolean(
+    process.env.TSUBAME_DOCUMENT_BACKUP_APPROVED==='1' &&
+    process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN==='1' &&
+    documentBackupEndpointValid() &&
+    String(process.env.TSUBAME_DOCUMENT_BACKUP_TOKEN||'').length>=32 &&
+    documentBackupEncryptionKeyPresent()
+  )
+}
 function documentStorageAdapterReady(){
   return documentStorageTransportReady()
 }
@@ -82,13 +108,14 @@ function productionBusinessActivationRequested(){
 function productionBusinessDataEnabled(){
   return Boolean(
     isProductionRuntime() && productionBusinessActivationRequested() &&
-    authEnvPresent() && databaseEnvPresent() && originalDocumentPipelineReady()
+    authEnvPresent() && databaseEnvPresent() && originalDocumentPipelineReady() && documentBackupReady()
   )
 }
 function backendReadiness(){
   const auth=authEnvPresent(),mfa=mfaEnvPresent(),db=databaseEnvPresent();
   const storage=documentStorageEnvPresent(),storageTransport=documentStorageTransportReady();
   const malwareScanner=documentMalwareScannerReady(),originalPipeline=originalDocumentPipelineReady();
+  const backup=documentBackupReady();
   const fixtures=stagingFixturesAllowed();
   return {
     environment:runtimeEnvironment(),
@@ -100,11 +127,12 @@ function backendReadiness(){
     document_storage_adapter_ready:storageTransport,
     document_malware_scanner_ready:malwareScanner,
     original_document_pipeline_ready:originalPipeline,
+    document_backup_ready:backup,
     fictional_fixtures_enabled:fixtures,
     auth_probe_ready:auth,
     fictional_registry_ready:auth&&fixtures,
     database_vertical_slice_ready:auth&&db,
-    original_file_test_ready:auth&&db&&originalPipeline,
+    original_file_test_ready:auth&&db&&originalPipeline&&backup,
     production_business_activation_requested:productionBusinessActivationRequested(),
     production_business_data_enabled:productionBusinessDataEnabled()
   }
@@ -114,7 +142,9 @@ module.exports={
   authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,
   documentStorageProvider,documentStorageTicketSecretPresent,documentStorageStaticTokenPresent,documentStorageOidcPresent,
   documentStorageEnvPresent,documentStorageTransportReady,documentStorageAdapterReady,
-  malwareScannerProvider,malwareScannerEndpointValid,documentMalwareScannerReady,originalDocumentPipelineReady,
+  malwareScannerProvider,malwareScannerEndpointValid,documentMalwareScannerReady,
+  documentBackupProvider,documentBackupEndpointValid,documentBackupEncryptionKeyPresent,documentBackupReady,
+  originalDocumentPipelineReady,
   stagingFixturesRequested,stagingFixturesAllowed,
   productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };

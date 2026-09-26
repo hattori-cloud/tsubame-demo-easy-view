@@ -10,6 +10,8 @@ test('production readiness performs live private storage and scanner probes',()=
   assert.ok(source.includes('probeDocumentMalwareScanner'));
   assert.ok(source.includes('document_storage_live_probe'));
   assert.ok(source.includes('document_malware_scanner_live_probe'));
+  assert.ok(source.includes('probeDocumentBackup'));
+  assert.ok(source.includes('document_backup_live_restore_probe'));
 });
 
 test('production readiness report never echoes configured secret values',()=>{
@@ -17,4 +19,6 @@ test('production readiness report never echoes configured secret values',()=>{
   assert.equal(source.includes('TSUBAME_DOCUMENT_MALWARE_SCANNER_TOKEN'),false);
   assert.equal(source.includes('BLOB_READ_WRITE_TOKEN'),false);
   assert.equal(source.includes('TSUBAME_SESSION_SECRET'),false);
+  assert.equal(source.includes('TSUBAME_DOCUMENT_BACKUP_TOKEN'),false);
+  assert.equal(source.includes('TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY'),false);
 });

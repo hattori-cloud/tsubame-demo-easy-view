@@ -89,6 +89,11 @@ function ciAdapter(){
       if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
       return {...obj,bytes:Buffer.from(obj.bytes)}
     },
+    async readObjectForBackup(storageKey){
+      const obj=memoryObjects.get(storageKey);
+      if(!obj||obj.state!=='active')throw problem(409,'DOCUMENT_OBJECT_NOT_ACTIVE','有効な原本を確認できません');
+      return {...obj,bytes:Buffer.from(obj.bytes)}
+    },
     async activate(storageKey){
       const obj=memoryObjects.get(storageKey);
       if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
@@ -189,6 +194,7 @@ function vercelBlobAdapter(){
     },
     async inspectQuarantine(storageKey){return inspectPrivateBlob(storageKey)},
     async readQuarantineForScan(storageKey){return readPrivateBlob(storageKey)},
+    async readObjectForBackup(storageKey){return readPrivateBlob(storageKey)},
     async activate(storageKey){
       const inspected=await inspectPrivateBlob(storageKey);
       if(!inspected.etag)throw problem(409,'DOCUMENT_STORAGE_VERSION_MISSING','原本ストレージversionを確認できません');

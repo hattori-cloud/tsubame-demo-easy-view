@@ -6,6 +6,7 @@ const {backendReadiness}=require('../api/_lib/runtime-config');
 const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
 const {probeDocumentStorageTransport}=require('../api/_lib/document-storage');
 const {probeDocumentMalwareScanner}=require('../api/_lib/document-malware-scanner');
+const {probeDocumentBackup}=require('../api/_lib/document-backup');
 
 (async()=>{
   const env=backendReadiness();
@@ -15,6 +16,7 @@ const {probeDocumentMalwareScanner}=require('../api/_lib/document-malware-scanne
   };
   const storageLive=env.document_storage_transport_ready?await probeDocumentStorageTransport():false;
   const scannerLive=env.document_malware_scanner_ready?await probeDocumentMalwareScanner():false;
+  const backupLive=env.document_backup_ready?await probeDocumentBackup():false;
   const blockers=[];
   if(!env.auth_env_present)blockers.push('auth_env');
   if(!env.database_env_present)blockers.push('database_env');
@@ -31,6 +33,8 @@ const {probeDocumentMalwareScanner}=require('../api/_lib/document-malware-scanne
   if(!env.document_malware_scanner_ready)blockers.push('document_malware_scanner');
   else if(!scannerLive)blockers.push('document_malware_scanner_live_probe');
   if(!env.original_document_pipeline_ready)blockers.push('original_document_pipeline');
+  if(!env.document_backup_ready)blockers.push('document_backup');
+  else if(!backupLive)blockers.push('document_backup_live_restore_probe');
   if(!env.production_business_activation_requested)blockers.push('production_activation_flag');
 
   const report={
@@ -51,6 +55,8 @@ const {probeDocumentMalwareScanner}=require('../api/_lib/document-malware-scanne
       document_malware_scanner:env.document_malware_scanner_ready,
       document_malware_scanner_live_probe:scannerLive,
       original_document_pipeline:env.original_document_pipeline_ready,
+      document_backup:env.document_backup_ready,
+      document_backup_live_restore_probe:backupLive,
       production_activation_requested:env.production_business_activation_requested,
       production_business_data_enabled:env.production_business_data_enabled
     },
