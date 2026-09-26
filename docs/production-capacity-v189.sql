@@ -46,19 +46,6 @@ alter table near_misses
   add column if not exists source_type text not null default 'system',
   add column if not exists external_ref text;
 
-do $
-begin
-  if not exists(
-    select 1 from pg_constraint
-     where conname='near_misses_source_type_check'
-       and conrelid='near_misses'::regclass
-  ) then
-    alter table near_misses
-      add constraint near_misses_source_type_check
-      check (source_type in ('system','google_form','paper'));
-  end if;
-end $;
-
 create unique index if not exists near_misses_source_ref_unique
   on near_misses(source_type,external_ref)
   where external_ref is not null and archived_at is null;
