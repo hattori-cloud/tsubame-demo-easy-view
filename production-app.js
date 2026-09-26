@@ -362,6 +362,22 @@
     })
   }
 
+  async function decideApplication(id,status){
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    if(!manager)return;
+    const {data}=await api('/applications?page_size=100');
+    const item=(data.items||[]).find(x=>String(x.id)===String(id));
+    if(!item){const e=new Error('対象申請が見つかりません');e.code='APPLICATION_NOT_FOUND';throw e}
+    const label={approved:'承認',rejected:'却下',cancelled:'取消'}[status]||status;
+    if(!window.confirm('この申請を「'+label+'」にしますか？'))return;
+    await api('/applications/'+encodeURIComponent(id),{
+      method:'PATCH',
+      body:{status},
+      headers:{'If-Match':'"'+item.version+'"'}
+    });
+    await renderBusiness()
+  }
+
   async function markNoticeRead(id){
     await api('/notices/'+encodeURIComponent(id)+'/read',{method:'POST'});
     await renderBusiness()
@@ -391,7 +407,10 @@
 
     const applicationHtml=appItems.length?'<div class="cards">'+appItems.map(x=>
       '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span></div>'+
-      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.applied_at))+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.applied_at))+'</span>'+
+      (manager&&x.status==='submitted'
+        ?'<button class="success" data-action="application-approve" data-id="'+esc(x.id)+'">承認</button><button class="warning" data-action="application-reject" data-id="'+esc(x.id)+'">却下</button><button class="ghost light" data-action="application-cancel" data-id="'+esc(x.id)+'">取消</button>'
+        :'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     const noticeHtml=noticeItems.length?'<div class="cards">'+noticeItems.map(x=>
@@ -665,7 +684,10 @@
       if(action==='reactivate-user')return changeUserState(id,'active');
       if(action==='new-application')return newApplication();
       if(action==='read-notice')return markNoticeRead(id);
-      if(action==='respond-confirmation')return respondConfirmation(id)
+      if(action==='respond-confirmation')return respondConfirmation(id);
+      if(action==='application-approve')return decideApplication(id,'approved');
+      if(action==='application-reject')return decideApplication(id,'rejected');
+      if(action==='application-cancel')return decideApplication(id,'cancelled')
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
