@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>つばめ交通 社員一元管理システム — 本番API接続</title>
+<link rel="stylesheet" href="/production.css">
+</head>
+<body>
+<div id="globalError" class="error-banner" hidden></div>
+
+<main id="authShell" class="auth-shell">
+  <section id="loginPanel" class="auth-card">
+    <div class="brand-mark">つ</div>
+    <p class="eyebrow">つばめ交通</p><h1>社員一元管理システム</h1>
+    <p class="sub">本番API接続画面</p>
+    <form id="loginForm">
+      <label>ログインID<input id="loginId" autocomplete="username" maxlength="128" required></label>
+      <label>社員番号<input id="employeeNo" inputmode="numeric" autocomplete="organization-title" maxlength="64" required></label>
+      <label>パスワード<input id="password" type="password" autocomplete="current-password" maxlength="256" required></label>
+      <button id="loginSubmit" class="primary" type="submit">ログイン</button>
+    </form>
+    <p class="notice">実社員情報を使用するのは、本番環境の全ゲート合格後に限ります。</p>
+  </section>
+  <section id="mfaPanel" class="auth-card" hidden>
+    <p class="eyebrow">追加認証</p><h1>MFA確認</h1>
+    <div id="mfaEnroll" class="enroll" hidden></div>
+    <form id="mfaForm">
+      <label>6桁コード<input id="mfaCode" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required></label>
+      <button id="mfaSubmit" class="primary" type="submit">確認する</button>
+    </form>
+  </section>
+</main>
+
+<div id="appShell" class="app-shell" hidden>
+  <aside>
+    <div class="brand"><span>つ</span><div><b>つばめ交通</b><small>本番APIモード</small></div></div>
+    <nav id="nav">
+      <button data-view="home" class="active">ホーム</button>
+      <button data-view="employees">社員</button>
+      <button data-view="deadlines">期限センター</button>
+      <button data-view="accidents">事故</button>
+      <button data-view="complaints">苦情</button>
+      <button data-view="vehicles">車両</button>
+      <button data-view="near-misses">ヒヤリ</button>
+      <button data-view="credentials">資格・書類</button>
+      <button data-view="work-import">勤務取込</button>
+      <button data-view="analysis">安全分析</button>
+      <button data-view="users">利用者管理</button>
+      <button data-view="business">業務</button>
+    </nav>
+    <div id="sessionUser" class="session-user"></div>
+    <button id="logoutBtn" class="ghost">ログアウト</button>
+  </aside>
+  <section class="workspace">
+    <header>
+      <div><p class="eyebrow">SERVER DATA</p><h1 id="viewTitle">ホーム</h1></div>
+      <div id="searchWrap" class="toolbar" hidden>
+        <form id="searchForm"><input id="searchInput" placeholder="名前・社員番号・号車など"><button>検索</button></form>
+        <button id="refreshBtn" class="ghost">再読込</button>
+      </div>
+    </header>
+    <div id="content"></div>
+  </section>
+</div>
+
+<dialog id="detailDialog">
+  <div class="dialog-head"><h2 id="dialogTitle"></h2><button onclick="this.closest('dialog').close()" aria-label="閉じる">×</button></div>
+  <div id="dialogBody"></div>
+</dialog>
+<script src="/production-app.js" defer></script>
+</body>
+</html>
