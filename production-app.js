@@ -1375,7 +1375,6 @@
       formField('health_check_due','健康診断期限',fmtDate(e.health_check_due)==='—'?'':fmtDate(e.health_check_due),'date')+
       formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
     openRecordForm('社員情報を編集',fields,async fd=>{
-      if(!confirmTaxiPlacement(e.department,fdText(fd,'work_pattern')))return;
       const body={};for(const k of ['name','furigana','position','team','employment_type','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
       await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
     })
