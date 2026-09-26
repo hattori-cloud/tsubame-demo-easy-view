@@ -327,3 +327,12 @@ test('read-only vehicle users can still start permitted safety records without g
   assert.ok(js.includes("openReadOnlyDialog('車両 '+v.car_no+'号車'"));
   assert.ok(js.includes("{actions:quick}"));
 });
+
+
+test('employee detail shows renumber and lifecycle history beside current data',()=>{
+  assert.ok(js.includes('function employeeHistoryHtml(history)'));
+  assert.ok(js.includes('history?.number_changes'));
+  assert.ok(js.includes('history?.transitions'));
+  assert.ok(js.includes('社員番号変更と異動・在籍状態の変更履歴'));
+  assert.ok(js.includes("employeeHistoryHtml(data.history)"));
+});
