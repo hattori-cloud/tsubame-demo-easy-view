@@ -1119,6 +1119,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .near-theme-row b{display:block}
 .near-theme-row span{display:block;color:#526770;font-size:12px;margin-top:4px;line-height:1.55}
 @media(max-width:800px){.near-analysis-dashboard{grid-template-columns:1fr}.near-analysis-dashboard .full{grid-column:auto}.near-analysis-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v200 audit O02: keep detail modal inside narrow viewport */
+@media(max-width:360px){
+ .modalbg{max-width:100vw;overflow-x:hidden}
+ .modal{width:100%;max-width:100vw;min-width:0;overflow-x:hidden}
+ .mhead{min-width:0;max-width:100%;gap:8px;flex-wrap:wrap}
+ .mhead h2{min-width:0;max-width:100%;flex:1 1 180px;overflow-wrap:anywhere;word-break:break-word}
+ .mhead .btn,.mhead button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .mbody,.detail-actions,.backbar{min-width:0;max-width:100%}
+}
 </style>
 </head><body>
 <div class="demo">検証環境｜本番運用画面を確認中｜架空データ｜実社員データ入力禁止</div>
