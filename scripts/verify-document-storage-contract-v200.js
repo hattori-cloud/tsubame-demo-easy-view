@@ -79,7 +79,7 @@ async function sessionFor(userId,mfaVerified){
   const put=await storage._test.ciPutObject({
     uploadToken:upload.body.upload.token,body:bytes,contentType:'application/pdf'
   });
-  assert(put.state==='quarantine'&&put.malware_status==='clean','clean object did not enter clean quarantine');
+  assert(put.state==='quarantine'&&put.malware_status==='pending','uploaded object must remain scan-pending in quarantine');
   assert(/^[0-9a-f]{64}$/.test(put.sha256),'SHA-256 missing');
 
   const finalized=await call('/documents/finalize','POST',{upload_ticket:upload.body.upload_ticket},mfaCookie);
@@ -104,19 +104,23 @@ async function sessionFor(userId,mfaVerified){
   const blockedPut=await storage._test.ciPutObject({
     uploadToken:blockedUpload.body.upload.token,body:blockedBytes,contentType:'application/pdf'
   });
-  assert(blockedPut.malware_status==='blocked','CI blocked sample was not blocked');
+  assert(blockedPut.malware_status==='pending','blocked sample must remain pending until scanner runs');
   const blockedFinalize=await call('/documents/finalize','POST',{upload_ticket:blockedUpload.body.upload_ticket},mfaCookie);
-  assert(blockedFinalize.statusCode===409,'malware-blocked original was finalized');
-  assert(blockedFinalize.body?.error?.code==='DOCUMENT_MALWARE_NOT_CLEAN','wrong malware block error');
+  assert(blockedFinalize.statusCode===422,'malware-blocked original was finalized');
+  assert(blockedFinalize.body?.error?.code==='DOCUMENT_MALWARE_BLOCKED','wrong malware block error');
+  const blockedClaims=storage.decryptTicket(blockedUpload.body.upload_ticket);
+  const blockedRow=(await db.query(`select storage_state,malware_scan_status,content_sha256 from documents where storage_key=$1`,[blockedClaims.storage_key])).rows[0];
+  assert(blockedRow?.storage_state==='blocked'&&blockedRow?.malware_scan_status==='blocked','blocked original did not remain durably isolated');
+  assert(/^[0-9a-f]{64}$/.test(String(blockedRow?.content_sha256||'')),'blocked original hash was not retained');
 
   const audit=(await db.query(`
     select action,count(*)::int n
       from audit_logs
-     where action in ('document_upload_ticket_issued','document_upload_received','document_finalized','document_download_authorized')
+     where action in ('document_upload_ticket_issued','document_upload_received','document_malware_clean','document_malware_blocked','document_finalized','document_download_authorized')
      group by action
   `)).rows;
   const actions=Object.fromEntries(audit.map(x=>[x.action,Number(x.n)]));
-  for(const action of ['document_upload_ticket_issued','document_upload_received','document_finalized','document_download_authorized']){
+  for(const action of ['document_upload_ticket_issued','document_upload_received','document_malware_clean','document_malware_blocked','document_finalized','document_download_authorized']){
     assert(actions[action]>=1,'missing audit event '+action)
   }
 
@@ -125,12 +129,13 @@ async function sessionFor(userId,mfaVerified){
     strict_mfa_denied:true,
     encrypted_upload_ticket:true,
     opaque_storage_key:true,
-    quarantine_clean:true,
+    quarantine_scan_pending:true,
     sha256_recorded:true,
     finalized_active:true,
     short_lived_download:true,
     downloaded_bytes_match:true,
     malware_blocked:true,
+    blocked_state_durable:true,
     audit_events:true,
     production_provider_enabled:false,
     real_employee_data_used:false
