@@ -75,6 +75,7 @@ async function listNotices(user,filters={}){
 }
 async function saveNotice({user,id=null,body,expectedVersion,requestId}){
   full(user);const title=String(body.title||'').trim(),text=String(body.body||'').trim();if(!title||!text)throw problem(422,'REQUIRED_FIELDS','件名・本文を入力してください');
+  const requestedNoticeState=String(body.state||'').trim();if(requestedNoticeState&&!['draft','published'].includes(requestedNoticeState))throw problem(422,'INVALID_NOTICE_STATE','お知らせ状態を確認してください');
   return withTransaction(async client=>{
     let row,before=null;
     if(id){
@@ -100,6 +101,7 @@ async function listConfirmations(user){
 }
 async function saveConfirmation({user,id=null,body,expectedVersion,requestId}){
   full(user);const title=String(body.title||'').trim();if(!title)throw problem(422,'TITLE_REQUIRED','確認件名を入力してください');
+  const requestedConfirmationState=String(body.state||'').trim();if(requestedConfirmationState&&!['draft','open','closed'].includes(requestedConfirmationState))throw problem(422,'INVALID_CONFIRMATION_STATE','一斉確認状態を確認してください');
   return withTransaction(async client=>{
     let row,before=null;
     if(id){before=(await query('select * from confirmations where id=$1 for update',[id],client)).rows[0];if(!before)throw problem(404,'NOT_FOUND','一斉確認が見つかりません');assertVersion(before,expectedVersion);row=(await query(`update confirmations set title=$2,body=$3,due=$4,state=$5,updated_at=now(),version=version+1 where id=$1 returning *`,[id,title,body.body??before.body,body.due??before.due,body.state||before.state],client)).rows[0]}
