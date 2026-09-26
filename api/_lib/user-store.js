@@ -58,7 +58,7 @@ async function createUser({actor,employeeId,loginId,displayName,roleLevel='scope
     const normalizedPermissions=normalizePermissions(permissions);if(roleLevel==='scoped'&&!normalizedPermissions.length)throw problem(422,'PERMISSION_REQUIRED','範囲指定利用者には利用機能を1つ以上設定してください');
     const mfaRequired=true;
     const row=(await query(`insert into users(employee_id,login_id,password_hash,display_name,role_level,safety_authority,state,mfa_required) values($1,$2,$3,$4,$5,$6,'active',$7) returning id,employee_id,login_id,display_name,role_level,safety_authority,state,mfa_required,version`,[employeeId,id,passwordHash,String(displayName||emp.name).trim()||emp.name,roleLevel,Boolean(safetyAuthority),mfaRequired],client)).rows[0];
-    for(const s of normalized)await query('insert into user_scopes(user_id,office,department) values($1,$2,$3)',[row.id,s.office,s.department],client);
+    for(const s of (roleLevel==='scoped'?normalized:[]))await query('insert into user_scopes(user_id,office,department) values($1,$2,$3)',[row.id,s.office,s.department],client);
     for(const p of (roleLevel==='scoped'?normalizedPermissions:[]))await query('insert into user_feature_permissions(user_id,feature,access_level) values($1,$2,$3)',[row.id,p.feature,p.access_level],client);
     await query(`insert into password_reset_tokens(user_id,token_hash,requested_by_user_id,expires_at) values($1,$2,$3,now()+interval '30 minutes')`,[row.id,resetTokenHash,actor.id],client);
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'利用者発行','user',$2,$3,'success',$4,$5)`,[actor.id,row.id,employeeId,requestId,id+' / '+roleLevel],client);
