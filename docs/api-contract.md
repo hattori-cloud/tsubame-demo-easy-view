@@ -410,6 +410,7 @@ Required server checks:
 - actual object size/type is acceptable,
 - server-computed SHA-256 is recorded,
 - approved scanner returns a valid verdict bound to the same SHA-256,
+- malware scan state is `clean` before activation,
 - target employee/category authorization is still valid,
 - strict category still satisfies full-administrator + MFA.
 
