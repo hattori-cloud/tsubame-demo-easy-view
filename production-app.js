@@ -281,7 +281,7 @@
       '<div class="toolbar"><input id="homeGlobalSearch" placeholder="氏名 / 社員番号 / 号車 / 事故番号 / 苦情 / ヒヤリ" autocomplete="off"><button class="small-primary" data-action="home-search">検索</button></div>'+
       '<div id="homeGlobalResults" class="cards"><div class="empty">検索語を入力すると、社員・車両・安全案件を横断して探します。</div></div></section>'+
       (pending.length?'<section class="panel"><div class="list-head"><div><b>自分宛ての未確認引継ぎ</b><span>'+esc(pending.length)+'件</span></div></div><div class="cards">'+pending.slice(0,5).map(x=>
-        '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span><button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button></div></div>'
+        '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span>'+handoffCaseButton(x)+'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button></div></div>'
       ).join('')+'</div></section>':'')+
       '<section class="panel"><div class="list-head"><div><b>よく使う入口</b><span>業務の流れで配置</span></div></div><div class="hub-grid">'+quick.join('')+'</div></section>'
   }
@@ -518,7 +518,7 @@
     if(canView('near_misses'))shortcuts.push(hubButton('near-misses','ヒヤリ','報告 → 月次確認 → 改善',String(near?.total??0)+'件'));
     if(canView('safety_analysis'))shortcuts.push(hubButton('analysis','安全分析','傾向を見て該当案件へ戻る'));
     const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.slice(0,8).map(x=>
-      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span>'+
+      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span>'+handoffCaseButton(x)+
       (canEdit('handoffs')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
     const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
@@ -607,7 +607,7 @@
     const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'</div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+(canEdit('handoffs')&&x.employee_id?'<button class="record-action" data-action="new-handoff-near" data-id="'+esc(x.report_no||x.id)+'" data-q="'+esc(x.employee_id)+'">引継ぎ</button>':'')+'</div></div>'
     ).join('')+'</div>':empty())
     $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'near-misses',q));
   }
@@ -669,6 +669,33 @@
         summary:fdText(fd,'summary'),
         owner:fdText(fd,'owner'),
         next_review:nullable(fdText(fd,'next_review'))
+      }})
+    })
+  }
+
+  function handoffCaseButton(x){
+    const type=String(x.case_type||''),id=String(x.case_id||'');
+    const view=type==='accident'?'accidents':type==='complaint'?'complaints':type==='near_miss'?'near-misses':'';
+    return view&&id?'<button class="record-action" data-action="open-filtered-view" data-id="'+view+'" data-q="'+esc(id)+'">案件を開く</button>':''
+  }
+
+  async function createHandoffForm(context){
+    if(!canEdit('handoffs'))return;
+    const employeeId=String(context?.employeeId||'').trim();
+    if(!employeeId){const e=new Error('引継ぎには対象社員が必要です');e.code='HANDOFF_EMPLOYEE_REQUIRED';throw e}
+    const {data}=await api('/handoffs/targets?employee_id='+encodeURIComponent(employeeId));
+    const targets=data.targets||[];
+    if(!targets.length){const e=new Error('この社員を担当できる引継ぎ先管理者がいません');e.code='HANDOFF_TARGET_NOT_FOUND';throw e}
+    const options=targets.map(t=>[t.id,(t.display_name||t.employee_name||'管理者')+' / '+roleLabel(t.role_level)]);
+    const fields=formSelect('to_user_id','引継ぎ先',options,'','required')+
+      formArea('note','引継ぎ内容','','required placeholder="相手が次に何を確認・対応するかを入力"');
+    openRecordForm('引継ぎ｜'+String(context.label||context.caseId||''),fields,async fd=>{
+      await api('/handoffs',{method:'POST',body:{
+        case_type:String(context.caseType||''),
+        case_id:String(context.caseId||''),
+        employee_id:employeeId,
+        to_user_id:fdText(fd,'to_user_id'),
+        note:fdText(fd,'note')
       }})
     })
   }
@@ -991,6 +1018,7 @@
       if(action==='suspend-user')return changeUserState(id,'suspended');
       if(action==='reactivate-user')return changeUserState(id,'active');
       if(action==='new-guidance')return newGuidance();
+      if(action==='new-handoff-near')return createHandoffForm({caseType:'near_miss',caseId:id,employeeId:q,label:'ヒヤリ '+id});
       if(action==='ack-handoff')return acknowledgeHandoff(id)
     }catch(err){showError(err,'操作')}
   }
@@ -1019,6 +1047,8 @@
       if(action==='new-asset')return newAssetForEmployee(d.record);
       if(action==='edit-training')return editTrainingForEmployee(d.record,id);
       if(action==='edit-asset')return editAssetForEmployee(d.record,id);
+      if(action==='handoff-accident')return createHandoffForm({caseType:'accident',caseId:d.record.accident_no||d.record.id,employeeId:d.record.employee_id,label:'事故 '+(d.record.accident_no||'')});
+      if(action==='handoff-complaint')return createHandoffForm({caseType:'complaint',caseId:d.record.complaint_no||d.record.id,employeeId:d.record.employee_id,label:'苦情 '+(d.record.complaint_no||'')});
       if(action==='complete-accident')return terminalAction('accident','complete',d.record);
       if(action==='reopen-accident')return terminalAction('accident','reopen',d.record);
       if(action==='complete-complaint')return terminalAction('complaint','complete',d.record);
@@ -1312,7 +1342,8 @@
       formField('address','場所',a.address,'text','required')+formArea('summary','事故内容',a.summary,'required')+
       formArea('cause','原因',a.cause)+formArea('prevention','再発防止',a.prevention)+formArea('response_history','対応履歴',a.response_history)+
       formArea('next_action','次回対応',a.next_action)+formField('followup_due','フォロー期限',fmtDate(a.followup_due)==='—'?'':fmtDate(a.followup_due),'date');
-    const actions=terminal?'<button type="button" class="warning" data-dialog-action="reopen-accident">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-accident">完了</button>';
+    const actions=(canEdit('handoffs')?'<button type="button" class="ghost light" data-dialog-action="handoff-accident">引継ぎ</button>':'')+
+      (terminal?'<button type="button" class="warning" data-dialog-action="reopen-accident">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-accident">完了</button>');
     if(terminal){
       $('dialogTitle').textContent='事故 '+(a.accident_no||'');
       $('dialogBody').innerHTML='<div class="detail-grid">'+detail('対象',a.employee_id)+detail('発生日',fmtDate(a.occurred_on))+detail('状態',a.phase)+detail('号車',a.car_no)+'</div><div class="dialog-actions">'+actions+'</div>';
@@ -1356,7 +1387,8 @@
       formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],a.rank||'unrated')+
       formArea('guidance_content','指導内容',a.guidance_content)+formArea('next_action','次回対応',a.next_action)+
       formField('followup_due','フォロー期限',fmtDate(a.followup_due)==='—'?'':fmtDate(a.followup_due),'date');
-    const actions=terminal?'<button type="button" class="warning" data-dialog-action="reopen-complaint">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-complaint">完了</button>';
+    const actions=(canEdit('handoffs')?'<button type="button" class="ghost light" data-dialog-action="handoff-complaint">引継ぎ</button>':'')+
+      (terminal?'<button type="button" class="warning" data-dialog-action="reopen-complaint">理由を入力して再開</button>':'<button type="button" class="success" data-dialog-action="complete-complaint">完了</button>');
     if(terminal){
       $('dialogTitle').textContent='苦情 '+(a.complaint_no||'');
       $('dialogBody').innerHTML='<div class="detail-grid">'+detail('対応日',fmtDate(a.responded_on))+detail('状態',a.status)+detail('ランク',a.rank)+detail('完了',fmtDate(a.completed_at))+'</div><div class="dialog-actions">'+actions+'</div>';
