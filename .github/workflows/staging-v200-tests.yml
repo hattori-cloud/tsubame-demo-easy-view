@@ -87,3 +87,18 @@ jobs:
 
       - name: Verify encrypted original backup restore contract
         run: node scripts/verify-document-backup-restore-v200.js
+
+      - name: Run five-year fictional operation simulation
+        run: |
+          docker run --rm --network host -e PGPASSWORD=postgres postgres:16 \
+            psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "DROP DATABASE IF EXISTS tsubame_sim5 WITH (FORCE);" \
+            -c "CREATE DATABASE tsubame_sim5;"
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/work" postgres:16 \
+            psql -h 127.0.0.1 -U postgres -d tsubame_sim5 -v ON_ERROR_STOP=1 \
+            -f /work/docs/production-schema.sql
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/tsubame_sim5 \
+          TSUBAME_DB_SSL=disable \
+          VERCEL_ENV=preview \
+          TSUBAME_FIVE_YEAR_SIMULATION=1 \
+            node scripts/simulate-five-years-v200.js
