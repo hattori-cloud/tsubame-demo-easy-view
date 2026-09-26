@@ -224,11 +224,16 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     if(view==='business')view='safety';
+    const previousView=state.view;
     if(opts.resetPage)state.pages[view]=1;
     if(opts.page)state.pages[view]=Math.max(1,Number(opts.page)||1);
     state.loading=true;state.view=view;navActive(view);clearError();
     $('viewTitle').textContent={home:'ホーム',employees:'社員',work:'期限・勤務',deadlines:'期限',accidents:'事故',complaints:'苦情',safety:'運行・安全',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'分析',admin:'管理',users:'利用者管理',audit:'監査ログ'}[view]||view;
     $('searchWrap').hidden=['home','work','safety','admin','work-import','analysis'].includes(view);
+    if(!$('searchWrap').hidden){
+      if(Object.prototype.hasOwnProperty.call(opts,'q'))$('searchInput').value=String(opts.q||'');
+      else if(previousView!==view||opts.resetPage)$('searchInput').value=''
+    }
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
       if(view==='home')await renderHome();
