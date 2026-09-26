@@ -161,6 +161,21 @@ Scoped administrator.
 
 The server validates the target employee is in scope.
 
+Accident creation is intentionally a short initial report. Employee/vehicle master data should be referenced rather than manually duplicated where possible.
+
+The follow-up accident investigation fields support the current paper accident report workflow:
+
+- weather
+- opponent_summary
+- onsite_actions
+- road_condition
+- damage_injury_summary
+- police_status
+- evidence_status
+- report_sheet_status
+
+These fields may be completed after the initial report without reopening a second unrelated record.
+
 ### PATCH /api/v1/accidents/{id}
 
 Requires version match.
