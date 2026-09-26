@@ -1119,6 +1119,16 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 .near-theme-row b{display:block}
 .near-theme-row span{display:block;color:#526770;font-size:12px;margin-top:4px;line-height:1.55}
 @media(max-width:800px){.near-analysis-dashboard{grid-template-columns:1fr}.near-analysis-dashboard .full{grid-column:auto}.near-analysis-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* v200 audit O02: keep detail modal inside narrow viewport */
+@media(max-width:360px){
+ .modalbg{max-width:100vw;overflow-x:hidden}
+ .modal{width:100%;max-width:100vw;min-width:0;overflow-x:hidden}
+ .mhead{min-width:0;max-width:100%;gap:8px;flex-wrap:wrap}
+ .mhead h2{min-width:0;max-width:100%;flex:1 1 180px;overflow-wrap:anywhere;word-break:break-word}
+ .mhead .btn,.mhead button{max-width:100%;white-space:normal;overflow-wrap:anywhere}
+ .mbody,.detail-actions,.backbar{min-width:0;max-width:100%}
+}
 </style>
 </head><body>
 <div class="demo">検証環境｜本番運用画面を確認中｜架空データ｜実社員データ入力禁止</div>
@@ -9693,6 +9703,20 @@ function fillComplaintEmployeeDefaults(){
  let vehicle=document.getElementById('fcvehicle');
  if(vehicle&&!vehicle.value.trim()){let v=V.find(x=>x.employee_no===e.no&&x.status!=='廃車');if(v)vehicle.value=v.plate}
 }
+function complaintCompletionMissingFields(data){
+ let missing=[];
+ if(String(data?.rank||'未判定')==='未判定')missing.push('クレームランク');
+ if(!String(data?.guidanceContent||'').trim())missing.push('指導内容');
+ if(!String(data?.nextAction||'').trim())missing.push('次回対応内容');
+ return missing
+}
+function validateComplaintCompletion(data){
+ if(String(data?.status||'')!=='完了')return true;
+ let missing=complaintCompletionMissingFields(data);
+ if(!missing.length)return true;
+ alert('完了にする前に、次の項目を入力してください。\n・'+missing.join('\n・'));
+ return false
+}
 function openComplaintForm(idx=-1,defaultNo=''){
  if(PREVIEW_ROLE!=='管理者'){alert('苦情／お客様対応の登録・更新は管理者のみ操作できます');return}
  let rec=idx>=0?C[idx]:null;if(rec&&(!rec.employee_no||!guardEmployeeEdit(rec.employee_no,'苦情／お客様対応')))return;
@@ -9715,7 +9739,7 @@ function openComplaintForm(idx=-1,defaultNo=''){
   if(!validateVehicleNumberValue(fcvehicle.value))return;
   let ownerSel=resolveManagerSelection(fcowner.value);if(!ownerSel.id)return alert('担当者を選択してください');
   let prevStatus=rec?.status||'',previousOwner=rec?.owner||'',data={date:fcdate.value,responseDate:fcdate.value,responseTime:fctime.value,responder:fcresp.value.trim(),employee_no:e.no,name:e.name,driverName:e.name,dept:rec?(rec.dept||''):e.dept,officeAtRecord:rec?(rec.officeAtRecord||''):(e.branch||e.workplace||''),departmentAtRecord:rec?(rec.departmentAtRecord||''):(e.dept||''),employmentAtRecord:rec?(rec.employmentAtRecord||''):(e.employment||''),vehicle:normalizeVehicleNumberInput(fcvehicle.value)||'未設定',customerName:fccustomer.value.trim()||'匿名',occurrenceDate:fcoccurd.value,occurrenceTime:fcoccurt.value,summary:fcs.value.trim(),inputBy:rec?.inputBy||reviewer.name,guidanceContent:fcguide.value.trim(),rank:fcrank.value,instructor:fcinst.value.trim(),guidanceDate:fcguided.value,guidanceTime:fcguidet.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:fcnext.value.trim(),followupDue:fcdue.value,status:fcst.value};
-  if(data.status==='完了'&&data.rank==='未判定')return alert('完了にする前に、クレームランク A・B・C のいずれかを選択してください');
+  if(!validateComplaintCompletion(data))return;
   let complaintWarnings=[];if(data.status!=='完了'){if(!data.owner)complaintWarnings.push('担当者が未設定です');if(!data.nextAction)complaintWarnings.push('次回対応内容が未設定です');if(!data.followupDue)complaintWarnings.push('フォロー期限が未設定です')}if(data.rank==='未判定')complaintWarnings.push('クレームランクが未判定です');
   let complaintBefore=rec?{
    responseDate:rec.responseDate||rec.date||'',
