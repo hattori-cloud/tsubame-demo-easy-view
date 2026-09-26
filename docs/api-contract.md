@@ -397,28 +397,51 @@ The authorization expires quickly (target 60 seconds unless approved configurati
 
 Finalizes a quarantined upload after server verification.
 
+The server now uses a three-stage flow:
+
+1. create or reuse an idempotent `documents` quarantine row with `malware_scan_status=pending`,
+2. scan the exact bytes whose SHA-256 is stored on that row,
+3. activate only when the scanner returns `clean` with the same SHA-256.
+
 Required server checks:
 
 - ticket/object ownership and expiry,
 - actual object exists in private quarantine storage,
 - actual object size/type is acceptable,
-- SHA-256 is recorded,
-- malware scan state is `clean`,
+- server-computed SHA-256 is recorded,
+- approved scanner returns a valid verdict bound to the same SHA-256,
 - target employee/category authorization is still valid,
 - strict category still satisfies full-administrator + MFA.
 
-If any check fails, the API must not create an active document row.
+A failed scan must never create an active document. `blocked` and `error` outcomes remain durable quarantine/security records for audit and operational follow-up.
 
-On success, the transaction writes:
+On clean success, the transaction writes/updates:
 
 - `documents` metadata,
 - storage key/version,
 - content type and byte size,
 - SHA-256,
 - upload actor/time,
-- malware scan state,
+- malware scan state/time,
 - lifecycle state,
-- audit log.
+- append-only audit/history records.
+
+The same upload ticket is idempotent for a short transient retry window. An already-active or conflicting storage key is rejected.
+
+### Production malware scanner contract
+
+Production scanning is provider-neutral. A scanner is considered configured only when all approved deployment settings are present, including an explicit company-approval flag, an HTTPS endpoint and a sufficiently long secret token.
+
+The scanner request contains only:
+
+- original file bytes,
+- MIME type,
+- server-computed SHA-256,
+- request id.
+
+Employee name, employee number and original filename are not sent by the scanner adapter.
+
+The scanner response must return `clean` or `blocked` plus the exact same SHA-256. Timeout, network failure, malformed JSON, non-success HTTP response or hash mismatch becomes `error`, never `clean`.
 
 ### POST /api/v1/documents
 
