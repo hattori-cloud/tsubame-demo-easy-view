@@ -482,3 +482,15 @@ runtime実装SHA:
 - 旧workflowテーブルはrollback・監査互換のため当面保持。
 - 固定点 `51462fa2bf29904bc681ce99c4bca6e355132eb0` で通常回帰、PostgreSQL、backup/restore、外部監査、原本契約、5年架空運用simulationまで GitHub Actions success。
 - Vercel previewの新規生成はFreeプランのbuild rate limitにより一時制限中。コードCIとは分離して扱う。
+
+
+## 2026-09-26 管理分析の本番強化
+
+- 新規API: `GET /api/v1/analysis/management-summary`
+- 安全分析に加え、現在人員、期限、資格・書類、教育・貸与品、勤務、車両の要対応集計を追加。
+- 集計はfeature permission単位で隔離し、権限のない領域の集計値は返さない。
+- 横断確認は人数のみ。個人ランキング、危険人物判定、退職予測は実装しない。
+- 安全の部署集計は記録時所属snapshot、人員・管理系は現在所属と画面に明示。
+- 分析結果から社員・期限・資格・勤務・車両・運行安全へ直接戻れる。
+- `scripts/verify-management-analysis-v200.js` をCIへ追加し、PostgreSQL上で実クエリと権限隔離を検証。
+- 実DB検証により既存 `safety-analysis-store.js` の月別alias `month` 構文問題を発見し修正。
