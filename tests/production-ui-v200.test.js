@@ -32,6 +32,13 @@ test('production shell covers primary server-backed operational views',()=>{
   assert.equal(html.includes('1001'),false);
 });
 
+test('session identity includes employee id and runtime data mode for self-service views',()=>{
+  const me=fs.readFileSync(path.join(__dirname,'..','api','v1','me.js'),'utf8');
+  assert.ok(me.includes('employee_id:user.employee_id'));
+  assert.ok(me.includes("stagingFixturesAllowed()?'fictional-staging-fixtures':'postgres'"));
+  assert.equal(me.includes("data_mode:'fictional-staging-fixtures'"),false);
+});
+
 test('credential view uses current employee credentials endpoint and does not expose unsupported document creation',()=>{
   assert.ok(js.includes("'/employees/'+encodeURIComponent(employeeId)+'/credentials'"));
   assert.equal(js.includes("api('/credentials?employee_id="),false);
