@@ -7,6 +7,7 @@ function src(...parts){return fs.readFileSync(path.join(__dirname,'..',...parts)
 const store=src('api','_lib','workflow-store.js');
 const draft=src('api','v1','drafts','[kind].js');
 const handoffAck=src('api','v1','handoffs','[id]','acknowledge.js');
+const handoffTargets=src('api','v1','handoffs','targets.js');
 
 test('drafts are isolated by authenticated owner and version protected after creation',()=>{
   assert.ok(store.includes('where owner_user_id=$1 and kind=$2'));
@@ -38,4 +39,15 @@ test('retired self-service workflow handlers remain physically removed',()=>{
   for(const dead of ['listApplications','createApplication','updateApplication','listNotices','saveNotice','markNoticeRead','listConfirmations','saveConfirmation','respondConfirmation']){
     assert.equal(store.includes(dead),false,dead)
   }
+});
+
+
+test('handoff target discovery only returns active managers authorized for the employee scope',()=>{
+  assert.ok(store.includes('async function listHandoffTargets'));
+  assert.ok(store.includes("u.state='active'"));
+  assert.ok(store.includes("u.id<>$1"));
+  assert.ok(store.includes("u.role_level in ('full','scoped')"));
+  assert.ok(store.includes('s.office=$2 and s.department=$3'));
+  assert.ok(handoffTargets.includes("requireFeaturePermission(user,'handoffs','edit')"));
+  assert.ok(handoffTargets.includes('listHandoffTargets(user,employeeId)'));
 });
