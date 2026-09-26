@@ -202,6 +202,33 @@ Supports employee, three-digit car number, date range, risk level, cause side an
 
 Near misses remain analysis/safety-learning records and do not require a manager-owned response workflow. The optional `car_no` field uses the same three-digit company car number as accident, complaint and vehicle records.
 
+Each near-miss record stores its intake source:
+
+- `system`: entered directly in the management system
+- `paper`: transcribed by an authorized manager from a paper report
+- `google_form`: imported automatically from the Google Form response sheet
+
+The monthly two-report quota counts valid records from all three sources together. Source type must never change quota eligibility by itself.
+
+### POST /api/v1/integrations/google-form/near-misses/import
+
+Server/internal integration endpoint. It is not a normal browser form endpoint.
+
+The importer reads configured Google Form response-sheet rows, maps them to the near-miss payload, and writes `source_type=google_form`.
+
+Idempotency requirements:
+
+- use the Google Form response ID as `source_ref` when available;
+- if the configured source has no stable response ID, use a documented deterministic source key derived from immutable response metadata;
+- the database unique constraint is the final duplicate-write guard;
+- a retry of the same response must return the existing record or a duplicate-safe result instead of creating another near miss.
+
+Import failures must not block successful rows in the same batch. Failed rows are recorded with source reference, safe error summary, attempt time, and retry state. The administrator UI shows only unresolved failures as **取込エラー N件**; successful imports require no manual transcription.
+
+The connector configuration, spreadsheet ID, sheet/range mapping, service credentials and secrets are server-side configuration only. They must not be embedded in browser JavaScript or returned through ordinary API responses.
+
+Paper intake remains available as a manager-entered path. Direct system entry remains available. Both write the same canonical near-miss table and audit trail as imported records.
+
 ## 6. Complaints
 
 ### GET /api/v1/complaints
