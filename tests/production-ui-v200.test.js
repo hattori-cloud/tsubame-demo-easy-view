@@ -278,8 +278,9 @@ test('employee and vehicle context is carried into new safety records without re
   assert.ok(js.includes('async function newNearMiss(context={})'));
   assert.ok(js.includes('async function newGuidance(context={})'));
   assert.ok(js.includes("const employee=knownEmployee||await resolveEmployeeReference"));
-  assert.ok(js.includes("formField('car_no','号車',context.carNo||p.car_no||'')"));
-  assert.ok(js.includes("cars.length===1?'担当号車 '"));
+  assert.ok(js.includes("formField('car_no','実際の乗車号車',context.carNo||p.car_no||'')"));
+  assert.ok(js.includes("const fixed=(ops?.vehicles?.items||[]).filter(v=>isBasicFixedVehicle(v,employee))"));
+  assert.ok(js.includes("基本固定車 "+ "'+fixed[0].car_no+'" +"号車を初期表示（実際の乗車号車へ変更可）"));
 });
 
 test('credential pages can update existing qualifications and document metadata with optimistic concurrency',()=>{
@@ -397,4 +398,38 @@ test('safety hub surfaces only editable server drafts with resume and discard ac
 test('home deadline metric labels the actual action window instead of saying 60 days',()=>{
   assert.ok(js.includes("metric('期限対応',deadlines?.summary?.total??'—','超過〜30日')"));
   assert.equal(js.includes("metric('期限対応',deadlines?.summary?.total??'—','60日以内')"),false);
+});
+
+
+test('taxi work patterns are clear company terms and legacy labels render compatibly',()=>{
+  for(const label of ['日勤','夜勤','隔勤','H勤'])assert.ok(js.includes("['"+label+"','"+label+"']"),label);
+  assert.ok(js.includes("'隔日勤務':'隔勤'"));
+  assert.ok(js.includes("'午後から隔日勤務':'H勤'"));
+  assert.ok(js.includes("'H勤務':'H勤'"));
+  assert.ok(js.includes("detail('勤務区分',workPatternDisplay(e.work_pattern))"));
+});
+
+test('taxi placement guidance is helpful but does not prohibit exceptions',()=>{
+  assert.ok(js.includes("訓練課は通常「日勤」です。"));
+  assert.ok(js.includes("1課・2課は通常「隔勤」または「H勤」です。"));
+  assert.ok(js.includes("3課は通常「日勤」または「夜勤」です。"));
+  assert.ok(js.includes("例外としてこのまま登録しますか？"));
+  assert.ok(js.includes('function confirmTaxiPlacement'));
+});
+
+test('basic fixed car is independent of work pattern and remains only an editable default for actual vehicle',()=>{
+  assert.ok(js.includes("function isBasicFixedVehicle(vehicle,employee)"));
+  assert.ok(js.includes("vehicle?.assignment_mode||'')==='dedicated'"));
+  assert.equal(js.includes("isBasicFixedVehicle(vehicle,employee)&&workPattern"),false);
+  assert.ok(js.includes("['dedicated','基本固定車']"));
+  assert.ok(js.includes('日勤・夜勤・隔勤・H勤のどの勤務区分でも設定できます'));
+  assert.ok(js.includes("formField('car_no','実際の乗車号車'"));
+  assert.ok(js.includes('基本固定車が入っていても変更できます'));
+  assert.ok(js.includes("function employeeSuggestedCar(employee,ops)"));
+});
+
+test('employee detail distinguishes basic fixed cars from other assigned cars',()=>{
+  assert.ok(js.includes("isBasicFixedVehicle(v,employee)?'基本固定車':'その他担当車'"));
+  assert.ok(js.includes('<h4>基本固定車・担当車</h4>'));
+  assert.ok(js.includes('vehicleAssignmentLabel(v.assignment_mode)'));
 });
