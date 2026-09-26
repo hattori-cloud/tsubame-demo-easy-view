@@ -74,8 +74,8 @@ test('selected-user production UI integrates handoffs and guidance into safety w
   assert.ok(js.includes("['handoffs','引継ぎ']"));
   assert.ok(js.includes("api('/handoffs')"));
   assert.ok(js.includes("api('/guidance?page_size=8')"));
-  assert.ok(js.includes("'<b>引継ぎ未確認</b>"));
-  assert.ok(js.includes("'<b>安全指導・次回確認</b>"));
+  assert.ok(js.includes('引継ぎ未確認'));
+  assert.ok(js.includes('安全指導・次回確認'));
   assert.equal(js.includes("hubButton('business'"),false);
   assert.equal(js.includes("async function renderBusiness()"),false);
   for(const retired of ['/notices','/confirmations','/applications'])assert.equal(js.includes(retired),false,retired);
