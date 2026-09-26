@@ -47,6 +47,12 @@ async function expectDenied(client,sql,label){
     await expectDenied(client,'delete from employees where false','runtime DELETE employees');
     await expectDenied(client,"update audit_logs set summary='forbidden' where false",'runtime UPDATE audit_logs');
     await expectDenied(client,'delete from record_histories where false','runtime DELETE record_histories');
+    for(const table of ['applications','notices','notice_reads','confirmations','confirmation_responses']){
+      await expectDenied(client,'select count(*) from '+table,'runtime SELECT retired '+table)
+    }
+    await expectDenied(client,"insert into notices(title,body) values('forbidden','forbidden')",'runtime INSERT retired notices');
+    await expectDenied(client,"update confirmations set title=title where false",'runtime UPDATE retired confirmations');
+    await client.query('select count(*) from handoffs');
     await client.query('reset role');
 
     await client.query('set role tsubame_maintenance');
@@ -69,6 +75,8 @@ async function expectDenied(client,sql,label){
       runtime_employee_delete_denied:true,
       runtime_audit_mutation_denied:true,
       runtime_work_import_rollback_delete_allowed:true,
+      runtime_retired_employee_workflows_denied:true,
+      runtime_manager_handoffs_readable:true,
       maintenance_auth_cleanup_allowed:true,
       maintenance_employee_delete_denied:true,
       maintenance_audit_mutation_denied:true,

@@ -49,6 +49,17 @@ alter function public.reject_append_only_mutation() owner to tsubame_migrator;
 grant usage on schema public to tsubame_app_runtime;
 grant select,insert,update on all tables in schema public to tsubame_app_runtime;
 
+-- Retired employee self-service workflow tables are kept for rollback/audit compatibility,
+-- but the production application runtime must not read or mutate them.
+-- Manager-to-manager handoffs remain active and are intentionally not included here.
+revoke select,insert,update,delete on
+  public.applications,
+  public.notices,
+  public.notice_reads,
+  public.confirmations,
+  public.confirmation_responses
+from tsubame_app_runtime;
+
 -- Runtime deletes are intentionally narrow.
 grant delete on public.user_scopes,public.user_feature_permissions,public.drafts,public.login_rate_limits,public.work_summary_monthly to tsubame_app_runtime;
 

@@ -100,6 +100,11 @@
 
 まず本番UI/権限から無効化し、利用しないことを確認後にschema cleanupを別migrationで判断する。
 
+追加の防御:
+- production runtime DB roleから applications / notices / notice_reads / confirmations / confirmation_responses の SELECT/INSERT/UPDATE/DELETE を剥奪する。
+- handoffs は管理者間引継ぎとしてruntime accessを維持する。
+- 旧テーブルは物理削除せず、rollback / audit互換用として当面保持する。
+
 ---
 
 ## 4. 引継ぎは「掲示」と分離する
