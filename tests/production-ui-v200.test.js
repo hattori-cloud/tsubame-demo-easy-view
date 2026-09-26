@@ -412,8 +412,9 @@ test('taxi work patterns are clear company terms and legacy labels render compat
 
 test('taxi placement guidance is helpful but does not prohibit exceptions',()=>{
   assert.ok(js.includes("訓練課は通常「日勤」です。"));
-  assert.ok(js.includes("1課・2課は通常「隔勤」または「H勤」です。"));
-  assert.ok(js.includes("3課は通常「日勤」または「夜勤」です。"));
+  assert.ok(js.includes("タクシー1課・2課は通常「隔勤」または「H勤」です。"));
+  assert.ok(js.includes("タクシー3課は通常「日勤」または「夜勤」です。"));
+  assert.ok(js.includes("taxi=dept.includes('タクシー')"));
   assert.ok(js.includes("例外としてこのまま登録しますか？"));
   assert.ok(js.includes('function confirmTaxiPlacement'));
 });
