@@ -6,7 +6,16 @@
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
   const fmtText=v=>v===null||v===undefined||v===''?'—':String(v);
-  const roleLabel=r=>r==='full'?'全社管理者':r==='scoped'?'担当範囲管理者':r==='self'?'本人':'—';
+  const roleLabel=r=>r==='full'?'全社管理者':r==='scoped'?'範囲指定利用者':r==='self'?'旧本人権限（本番不可）':'—';
+  const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',business:'notices_workflow'};
+  function featureLevel(feature){
+    if(!feature)return null;
+    if(state.me?.role_level==='full')return 'edit';
+    const p=(state.me?.permissions||[]).find(x=>x.feature===feature);
+    return p?.access_level||null
+  }
+  function canView(feature){return Boolean(featureLevel(feature))}
+  function canEdit(feature){return featureLevel(feature)==='edit'}
 
   async function api(path,{method='GET',body,headers={}}={}){
     const ctrl=new AbortController();
@@ -113,15 +122,10 @@
     $('authShell').hidden=true;$('appShell').hidden=false;
     $('sessionUser').innerHTML='<b>'+esc(state.me?.display_name||'利用者')+'</b><span>'+esc(roleLabel(state.me?.role_level))+'</span>';
     document.body.dataset.role=state.me?.role_level||'';
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
-    for(const view of ['accidents','complaints','vehicles','analysis']){
-      const button=$('nav').querySelector('[data-view="'+view+'"]');
-      if(button)button.hidden=!manager
+    for(const button of $('nav').querySelectorAll('[data-view]')){
+      const feature=VIEW_FEATURE[button.dataset.view];
+      button.hidden=feature?!canView(feature):false
     }
-    const workImport=$('nav').querySelector('[data-view="work-import"]');
-    if(workImport)workImport.hidden=state.me?.role_level!=='full';
-    const users=$('nav').querySelector('[data-view="users"]');
-    if(users)users.hidden=state.me?.role_level!=='full'
   }
 
   async function login(e){
@@ -198,14 +202,9 @@
   }
 
   async function renderHome(){
-    const requests=[
-      api('/deadlines?filter=action&page_size=8').then(x=>x.data).catch(()=>null)
-    ];
-    if(state.me?.role_level!=='self'){
-      requests.push(api('/accidents?page_size=5').then(x=>x.data).catch(()=>null));
-      requests.push(api('/complaints?page_size=5').then(x=>x.data).catch(()=>null))
-    }
-    const [deadlines,accidents,complaints]=await Promise.all(requests);
+    const deadlines=canView('deadlines')?await api('/deadlines?filter=action&page_size=8').then(x=>x.data).catch(()=>null):null;
+    const accidents=canView('accidents')?await api('/accidents?page_size=5').then(x=>x.data).catch(()=>null):null;
+    const complaints=canView('complaints')?await api('/complaints?page_size=5').then(x=>x.data).catch(()=>null):null;
     $('content').innerHTML=
       '<div class="hero"><div><span class="eyebrow">本番APIモード</span><h2>'+esc(state.me?.display_name||'')+' さん</h2><p>ブラウザ保存ではなく、サーバーの権限判定済みデータだけを表示しています。</p></div>'+
       '<div class="role-card"><span>権限</span><b>'+esc(roleLabel(state.me?.role_level))+'</b></div></div>'+
@@ -231,7 +230,7 @@
   async function renderEmployees(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
-    const add=state.me?.role_level==='full'?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
+    const add=canEdit('employees')?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'社員',add)+(data.items.length?'<div class="cards">'+data.items.map(e=>
       '<button class="record employee" data-employee-id="'+esc(e.id)+'"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
       '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><span>'+esc(e.lifecycle_status||'—')+'</span></div></button>'
@@ -245,7 +244,7 @@
       const e=data.employee;
       $('dialogTitle').textContent=e.name||'社員詳細';
       const employeeActions=[];
-      if(state.me?.role_level==='full'||state.me?.role_level==='scoped')employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
+      if(canEdit('employees'))employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
       state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
@@ -272,7 +271,7 @@
   async function renderAccidents(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/accidents?'+sp);
-    const add='<button class="small-primary" data-action="new-accident">＋ 事故登録</button>';
+    const add=canEdit('accidents')?'<button class="small-primary" data-action="new-accident">＋ 事故登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'事故',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span><button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
@@ -282,7 +281,7 @@
   async function renderComplaints(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/complaints?'+sp);
-    const add='<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>';
+    const add=canEdit('complaints')?'<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'苦情',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span><button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
@@ -292,7 +291,7 @@
   async function renderVehicles(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/vehicles?'+sp);
-    const add='<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>';
+    const add=canEdit('vehicles')?'<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'車両',add)+(data.items.length?'<div class="cards">'+data.items.map(v=>
       '<div class="record"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+'</span></div>'+
       '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span><button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
@@ -303,7 +302,7 @@
   async function renderNearMisses(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/near-misses?'+sp);
-    const add='<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>';
+    const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span></div></div>'
@@ -327,8 +326,7 @@
   async function renderCredentialEmployee(employeeId){
     const {data}=await api('/employees/'+encodeURIComponent(employeeId)+'/credentials');
     state.credentialEmployeeId=employeeId;
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
-    const actions=manager?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button>':'';
+    const actions=canEdit('credentials_documents')?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button>':'';
     const back=state.me?.role_level==='self'?'':'<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
     const qs=data.qualifications||[],docs=data.documents||[];
     $('content').innerHTML=
@@ -572,9 +570,7 @@
   }
 
   async function renderSafetyAnalysis(){
-    if(state.me?.role_level==='self'){
-      $('content').innerHTML='<div class="empty">安全分析は管理者のみ利用できます。</div>';return
-    }
+    if(!canView('safety_analysis')){$('content').innerHTML='<div class="empty">安全分析の利用権限がありません。</div>';return}
     const sp=new URLSearchParams();
     for(const [k,v] of Object.entries(state.analysisFilters||{}))if(v)sp.set(k,v);
     const {data}=await api('/analysis/safety-summary'+(sp.toString()?'?'+sp.toString():''));
@@ -622,10 +618,7 @@
   }
 
   async function renderWorkImport(){
-    if(state.me?.role_level!=='full'){
-      $('content').innerHTML='<div class="empty">勤務取込は全社管理者のみ利用できます。</div>';
-      return
-    }
+    if(!canView('work_import')){$('content').innerHTML='<div class="empty">勤務取込の利用権限がありません。</div>';return}
     const current=state.workImport;
     const p=current?.preflight||null,batch=current?.batch||null,result=current?.result||null;
     const issueList=p?.blocking_issues?.length
