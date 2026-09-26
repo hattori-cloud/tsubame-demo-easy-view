@@ -355,6 +355,7 @@
       if(action==='new-near-miss')return newNearMiss();
       if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
       if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
+      if(action==='new-qualification')return newQualification()
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
@@ -366,6 +367,24 @@
       if(action==='complete-complaint')return terminalAction('complaint','complete',d.record);
       if(action==='reopen-complaint')return terminalAction('complaint','reopen',d.record)
     }catch(err){showError(err,'操作')}
+  }
+
+  async function newQualification(){
+    if(!state.credentialEmployeeId||state.me?.role_level==='self')return;
+    const fields=
+      formField('name','資格名','','text','required')+
+      formField('certificate_no','証明番号')+
+      formField('expiry','有効期限','','date')+
+      formSelect('evidence_requirement','証憑要否',[['unset','未設定'],['required','必要'],['not_required','不要']],'unset');
+    openRecordForm('資格登録',fields,async fd=>{
+      await api('/qualifications',{method:'POST',body:{
+        employee_id:state.credentialEmployeeId,
+        name:fdText(fd,'name'),
+        certificate_no:nullable(fdText(fd,'certificate_no')),
+        expiry:nullable(fdText(fd,'expiry')),
+        evidence_requirement:fdText(fd,'evidence_requirement')||'unset'
+      }})
+    })
   }
 
   async function newEmployee(){
