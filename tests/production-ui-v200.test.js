@@ -188,3 +188,13 @@ test('vehicle assignment UI uses searchable employee references instead of a hug
   assert.ok(js.includes("additional_employee_ids:additionalIds"));
   assert.ok(js.includes("headers:{'If-Match':"));
 });
+
+
+test('large employee population workflows use searchable references instead of a 100-row select cap',()=>{
+  assert.equal(js.includes('employeeChoices()'),false);
+  assert.equal(js.includes("api('/employees?page_size=100')"),false);
+  assert.ok(js.includes("formField('employee_ref','対象社員（社員番号または氏名）'"));
+  assert.ok(js.includes("resolveEmployeeReference(fdText(fd,'employee_ref'))"));
+  assert.ok(js.includes("formField('primary_employee','主担当（社員番号または氏名）'"));
+  assert.ok(js.includes("resolveEmployeeReference(primaryRef)"));
+});
