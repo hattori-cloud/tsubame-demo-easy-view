@@ -15,7 +15,8 @@ async function loadSessionByTokenHash(tokenHash){
   if(!session.rows[0])return null;
   const row=session.rows[0];
   const scopes=await query('select office,department from user_scopes where user_id=$1 order by office,department',[row.user_id]);
-  return {...row,scopes:scopes.rows}
+  const permissions=await query('select feature,access_level from user_feature_permissions where user_id=$1 order by feature',[row.user_id]);
+  return {...row,scopes:scopes.rows,permissions:permissions.rows}
 }
 async function findCredentialAccount(loginId){
   const r=await query(`
@@ -61,6 +62,7 @@ async function createSession({userId,mfaVerified=false,tokenHash,ttlSeconds=2880
      where u.id=$1
        and u.state='active'
        and e.lifecycle_status<>'retired'
+       and u.role_level<>'self'
        and (u.locked_until is null or u.locked_until<=now())
     returning id,user_id,mfa_verified,issued_at,expires_at
   `,[userId,tokenHash,Boolean(mfaVerified),String(ttlSeconds),userAgentHash,ipPrefixHash],client);
