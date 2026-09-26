@@ -293,3 +293,15 @@ test('credential pages can update existing qualifications and document metadata 
   assert.ok(js.includes("'If-Match':'"'+q.version+'"'"));
   assert.ok(js.includes("'If-Match':'"'+d.version+'"'"));
 });
+
+
+test('deadline view exposes explicit quick filters and labels the actual date window',()=>{
+  assert.ok(js.includes("deadlineFilter:'action'"));
+  assert.ok(js.includes("filterLabels={action:'要対応（超過〜30日）'"));
+  assert.ok(js.includes("['all60','60日全体']"));
+  assert.ok(js.includes("if(action==='deadline-filter')"));
+  assert.ok(js.includes("metric('表示件数'"));
+  assert.equal(js.includes("metric('全件',data.summary.total,'60日以内')"),false);
+  assert.ok(css.includes('.deadline-filters'));
+  assert.ok(css.includes('@media(max-width:390px){.deadline-filters'));
+});
