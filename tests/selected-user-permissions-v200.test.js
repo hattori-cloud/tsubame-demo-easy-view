@@ -1,0 +1,74 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+const src=(...p)=>fs.readFileSync(path.join(__dirname,'..',...p),'utf8');
+
+test('selected-user production model rejects legacy self login and account creation',()=>{
+  const login=src('api','v1','auth','login.js');
+  const authStore=src('api','_lib','auth-store.js');
+  const userStore=src('api','_lib','user-store.js');
+  assert.ok(login.includes("account.role_level!=='self'"));
+  assert.ok(authStore.includes("u.role_level<>'self'"));
+  assert.ok(userStore.includes("!['full','scoped'].includes(roleLevel)"));
+  assert.ok(userStore.includes("!['full','scoped'].includes(role)"));
+});
+
+test('scoped user permissions are default deny and distinguish view from edit',()=>{
+  const authz=src('api','_lib','authorization.js');
+  assert.ok(authz.includes("if(user.role_level==='full')return 'edit'"));
+  assert.ok(authz.includes("required==='edit'?level==='edit':Boolean(level)"));
+  assert.ok(authz.includes("'FEATURE_ACCESS_DENIED'"));
+  assert.ok(authz.includes("user.permissions||[]"))
+});
+
+test('central router maps business modules to feature permissions',()=>{
+  const router=src('api','router.js');
+  for(const feature of [
+    'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
+    'vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin'
+  ])assert.ok(router.includes("'"+feature+"'"),feature);
+  assert.ok(router.includes('enforceFeatureAccess'));
+  assert.ok(router.includes("return ['GET','HEAD','OPTIONS'].includes(method)?'view':'edit'"));
+  assert.ok(router.includes("download-ticket(?:\\/|$)/.test(path))return 'view'"))
+});
+
+test('production schema persists one permission per user-feature and readiness requires table',()=>{
+  const schema=src('docs','production-schema.sql');
+  const db=src('api','_lib','db.js');
+  assert.ok(schema.includes('create table user_feature_permissions'));
+  assert.ok(schema.includes("access_level text not null check (access_level in ('view','edit'))"));
+  assert.ok(schema.includes('unique (user_id, feature)'));
+  assert.ok(db.includes("to_regclass('public.user_feature_permissions')"));
+  assert.ok(db.includes('x.user_feature_permissions_ready'))
+});
+
+test('session and me endpoint carry feature permissions',()=>{
+  const store=src('api','_lib','auth-store.js');
+  const auth=src('api','_lib','auth.js');
+  const me=src('api','v1','me.js');
+  assert.ok(store.includes('from user_feature_permissions'));
+  assert.ok(auth.includes('permissions:session.permissions||[]'));
+  assert.ok(me.includes('permissions:user.permissions||[]'))
+});
+
+test('production UI uses permission presets and hides unavailable modules',()=>{
+  const ui=src('production-app.js');
+  assert.ok(ui.includes('PERMISSION_PRESETS'));
+  assert.ok(ui.includes("viewer:"));
+  assert.ok(ui.includes("manager:"));
+  assert.ok(ui.includes("safety:"));
+  assert.ok(ui.includes("button.hidden=feature?!canView(feature):false"));
+  assert.ok(ui.includes("canEdit('accidents')"));
+  assert.ok(ui.includes("canEdit('complaints')"));
+  assert.ok(ui.includes("canEdit('near_misses')"));
+  assert.ok(ui.includes("canEdit('credentials_documents')"));
+  assert.ok(ui.includes("canEdit('work_import')"))
+});
+
+test('password reset cannot be issued or completed for suspended/retired users',()=>{
+  const users=src('api','_lib','user-store.js');
+  assert.ok(users.includes("'USER_NOT_ACTIVE'"));
+  assert.ok(users.includes("u.state='active'"));
+  assert.ok(users.includes("e.lifecycle_status<>'retired'"))
+});
