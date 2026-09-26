@@ -205,6 +205,68 @@ Reopen is audited.
 
 Administrative correction only. No normal DELETE endpoint.
 
+### GET /api/v1/accidents/{id}/documents
+
+Returns only accident-linked document metadata the authenticated user is currently authorized to view.
+
+Roles:
+
+- `scene_photo`
+- `sketch`
+- `vehicle_damage`
+- `opponent_damage`
+- `police`
+- `estimate`
+- `other`
+
+The link is stored in `accident_documents`; document security/access rules remain authoritative. Linking a document to an accident must never widen the document's visibility.
+
+### POST /api/v1/accidents/{id}/documents
+
+Creates the accident-to-document link after both the accident and document have passed server-side authorization.
+
+Required:
+
+- scoped administrator with access to the accident employee,
+- document belongs to the same employee unless an explicit approved exception exists,
+- document category is `事故資料`,
+- role is from the allowed list,
+- current document lifecycle is linkable,
+- duplicate accident/document links are rejected safely.
+
+When an accident image or sketch is linked, the server may derive `evidence_status=present`; the link itself remains the source of truth for which files belong to the accident.
+
+### POST /api/v1/accidents/{id}/evidence/upload-ticket
+
+Convenience wrapper around the normal secure document upload flow for accident photos and PDFs.
+
+It must apply the same private-storage rules as `POST /api/v1/documents/upload-ticket`. The ticket additionally binds:
+
+- accident id,
+- employee id resolved from the accident,
+- document category `事故資料`,
+- evidence role,
+- expected type/size,
+- authenticated uploader.
+
+Finalization creates the document and `accident_documents` link in one transaction. A finalized document must not be left active but unlinked if the requested accident link fails.
+
+### POST /api/v1/accidents/{id}/report-export
+
+Generates the accident report server-side after current authorization is re-checked.
+
+For linked images, the server may embed only documents that are:
+
+- currently visible to the requesting user,
+- active,
+- malware state `clean`,
+- not archived or replaced by a newer active version,
+- marked for automatic report placement.
+
+The report generator reads private objects server-side. It must not place raw storage keys, permanent public URLs, or reusable signed URLs in the report HTML/PDF.
+
+The export result is streamed or exposed through a short-lived authorization and is audited as an accident-report export. If a linked image becomes inaccessible during generation, the report must show a safe missing/withheld placeholder rather than bypassing authorization.
+
 ## 5. Near misses
 
 ### GET /api/v1/near-misses
