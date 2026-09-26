@@ -90,6 +90,7 @@ test('Vercel private Blob adapter signs constrained operations and remains scan-
       throw new Error('unexpected fetch '+url+' '+options?.method)
     });
     const adapter=mod.getDocumentStorageAdapter();
+    assert.equal(await mod.probeDocumentStorageTransport(),true);
     const key='quarantine/0123456789abcdef0123456789abcdef';
     const uploadAuth=await adapter.createUploadAuthorization({storageKey:key,contentType:'application/pdf',sizeBytes:bytes.length,expiresSeconds:60});
     assert.equal(uploadAuth.method,'PUT');

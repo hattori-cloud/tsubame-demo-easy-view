@@ -4,6 +4,8 @@ process.env.TSUBAME_DB_SSL=process.env.TSUBAME_DB_SSL||'disable';
 
 const {backendReadiness}=require('../api/_lib/runtime-config');
 const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
+const {probeDocumentStorageTransport}=require('../api/_lib/document-storage');
+const {probeDocumentMalwareScanner}=require('../api/_lib/document-malware-scanner');
 
 (async()=>{
   const env=backendReadiness();
@@ -11,6 +13,8 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
     connected:false,core_schema_ready:false,audit_append_only_ready:false,capacity_ready:false,
     auth_rate_limit_ready:false,work_import_ready:false,runtime_role_ready:false
   };
+  const storageLive=env.document_storage_transport_ready?await probeDocumentStorageTransport():false;
+  const scannerLive=env.document_malware_scanner_ready?await probeDocumentMalwareScanner():false;
   const blockers=[];
   if(!env.auth_env_present)blockers.push('auth_env');
   if(!env.database_env_present)blockers.push('database_env');
@@ -23,7 +27,9 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
   if(!db.runtime_role_ready)blockers.push('runtime_db_role');
   if(!env.document_storage_env_present)blockers.push('document_storage_env');
   if(!env.document_storage_transport_ready)blockers.push('document_storage_transport');
+  else if(!storageLive)blockers.push('document_storage_live_probe');
   if(!env.document_malware_scanner_ready)blockers.push('document_malware_scanner');
+  else if(!scannerLive)blockers.push('document_malware_scanner_live_probe');
   if(!env.original_document_pipeline_ready)blockers.push('original_document_pipeline');
   if(!env.production_business_activation_requested)blockers.push('production_activation_flag');
 
@@ -41,7 +47,9 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
       runtime_db_role:db.runtime_role_ready,
       document_storage_env:env.document_storage_env_present,
       document_storage_transport:env.document_storage_transport_ready,
+      document_storage_live_probe:storageLive,
       document_malware_scanner:env.document_malware_scanner_ready,
+      document_malware_scanner_live_probe:scannerLive,
       original_document_pipeline:env.original_document_pipeline_ready,
       production_activation_requested:env.production_business_activation_requested,
       production_business_data_enabled:env.production_business_data_enabled

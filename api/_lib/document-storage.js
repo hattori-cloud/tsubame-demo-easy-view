@@ -217,11 +217,20 @@ async function ciReadDownload(downloadToken){
   if(!obj||obj.state!=='active')throw problem(409,'DOCUMENT_OBJECT_NOT_ACTIVE','有効な原本を確認できません');
   return Buffer.from(obj.bytes)
 }
+async function probeDocumentStorageTransport(){
+  try{
+    const provider=providerName();
+    if(provider===CI_PROVIDER)return !isProductionRuntime();
+    if(provider!==VERCEL_PRIVATE_PROVIDER||!documentStorageTransportReady())return false;
+    const signed=await signedBlobUrl(randomStorageKey(),'head',{expiresSeconds:30});
+    return /^https:\/\//i.test(String(signed.url||''))
+  }catch(_){return false}
+}
 function resetCiStorage(){memoryObjects.clear();memoryUploadAuth.clear();memoryDownloadAuth.clear()}
 function resetTestOverrides(){blobSdkOverride=null;fetchOverride=null}
 
 module.exports={
-  providerName,adapterReady,getDocumentStorageAdapter,encryptTicket,decryptTicket,randomStorageKey,
+  providerName,adapterReady,getDocumentStorageAdapter,probeDocumentStorageTransport,encryptTicket,decryptTicket,randomStorageKey,
   validateUploadRequest,maxUploadBytes,
   _test:{
     ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,readPrivateBlob,
