@@ -8108,6 +8108,10 @@ function openAccidentEdit(id){
  organizeCurrentFormSections({order:[3,2,0,1],open:[3,2],primary:[3,2]});
  faep.value=[...faep.options].some(x=>x.value===a.phase)?a.phase:'調査中';
  faeoprepair.value=accidentRepairLabel(a.opponentRepair);faeownrepair.value=accidentRepairLabel(a.companyRepair);
+ faeweather.value=[...faeweather.options].some(x=>x.value===(a.weather||'未設定'))?(a.weather||'未設定'):'その他';
+ faepolice.value=[...faepolice.options].some(x=>x.value===(a.policeStatus||'未確認'))?(a.policeStatus||'未確認'):'未確認';
+ faeevidence.value=[...faeevidence.options].some(x=>x.value===(a.evidenceStatus||'未確認'))?(a.evidenceStatus||'未確認'):'未確認';
+ faereportstatus.value=[...faereportstatus.options].some(x=>x.value===(a.reportSheetStatus||'未着手'))?(a.reportSheetStatus||'未着手'):'未着手';
  fsave.onclick=()=>{
   if(!guardEmployeeEdit(a.employee_no,'事故記録'))return;
   let nextCause=faec.value.trim(),nextPrevention=faer.value.trim(),nextHistory=faeh.value.trim();
@@ -8122,7 +8126,10 @@ function openAccidentEdit(id){
   Object.assign(a,{time:faetime.value,vehicle:normalizeVehicleNumberInput(faevehicle.value)||'未設定',operationState:faeoperation.value.trim()||'未設定',
    district:faedistrict.value.trim()||'未設定',accidentType:faetype.value.trim()||'未設定',faultRate:fault,
    opponentRepair:faeoprepair.value,opponentRepairCost:opCost,companyRepair:faeownrepair.value,companyRepairCost:ownCost,
-   address:faeaddr.value.trim(),summary:faesummary.value.trim(),phase:faep.value,due:faed.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:faena.value.trim(),
+   address:faeaddr.value.trim(),summary:faesummary.value.trim(),
+   weather:faeweather.value,opponentSummary:faeopponent.value.trim(),onsiteActions:faeonsite.value.trim(),roadCondition:faeroad.value.trim(),
+   damageInjurySummary:faedamage.value.trim(),policeStatus:faepolice.value,evidenceStatus:faeevidence.value,reportSheetStatus:faereportstatus.value,
+   phase:faep.value,due:faed.value,ownerId:ownerSel.id,owner:ownerSel.name,nextAction:faena.value.trim(),
    cause:nextCause||'未登録',prevention:nextPrevention||'未登録',responseHistory:nextHistory});
   if(previousPhase!=='完了'&&a.phase==='完了'){let reviewer=currentAccidentReviewer();a.completedDate=TODAY;a.finalReviewerId=reviewer.id;a.finalReviewerName=reviewer.name;a.finalReviewerScope=reviewer.scope}
   else if(previousPhase==='完了'&&a.phase!=='完了'){a.completedDate='';a.finalReviewerId='';a.finalReviewerName='';a.finalReviewerScope=''}
