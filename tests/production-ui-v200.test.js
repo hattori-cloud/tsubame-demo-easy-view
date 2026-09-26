@@ -489,3 +489,9 @@ test('vehicle detail shows readable basic fixed-car and driver assignment histor
   assert.ok(js.includes("reason:nullable(fdText(fd,'reason'))"));
   assert.ok(css.includes('.edit-grid>.wide{grid-column:1/-1}'));
 });
+
+
+test('employee detail deadline empty state labels the same action window as the API filter',()=>{
+  assert.ok(js.includes('超過〜30日の要対応期限はありません。'));
+  assert.equal(js.includes('60日以内に要対応の期限はありません。'),false);
+});
