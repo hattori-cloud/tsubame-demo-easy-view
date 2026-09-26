@@ -51,6 +51,19 @@ async function rowsToMap(client,sql){
     const integrity=(await client.query(`
       select
         (select count(*)::int from (select employee_no from employees group by employee_no having count(*)>1) x) as duplicate_current_employee_no,
+        (select count(*)::int from employee_number_history h left join employees e on e.id=h.employee_id where e.id is null) as orphan_employee_number_history,
+        (select count(*)::int from (
+          select employee_no from (
+            select id as employee_id,employee_no from employees
+            union all select employee_id,old_employee_no as employee_no from employee_number_history
+            union all select employee_id,new_employee_no as employee_no from employee_number_history
+          ) n group by employee_no having count(distinct employee_id)>1
+        ) x) as employee_number_cross_employee_reuse,
+        (select count(*)::int from employees e join lateral (
+          select h.new_employee_no from employee_number_history h
+           where h.employee_id=e.id
+           order by h.changed_at desc,h.id desc limit 1
+        ) latest on true where latest.new_employee_no<>e.employee_no) as employee_number_latest_mismatch,
         (select count(*)::int from users u left join employees e on e.id=u.employee_id where e.id is null) as orphan_users,
         (select count(*)::int from qualifications q left join employees e on e.id=q.employee_id where e.id is null) as orphan_qualifications,
         (select count(*)::int from documents d left join employees e on e.id=d.employee_id where e.id is null) as orphan_documents,
