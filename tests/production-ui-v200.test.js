@@ -476,3 +476,16 @@ test('employee transition history shows shift beside office department and lifec
   assert.ok(js.includes("workPatternDisplay(before.work_pattern)"));
   assert.ok(js.includes("workPatternDisplay(after.work_pattern)"));
 });
+
+
+test('vehicle detail shows readable basic fixed-car and driver assignment history',()=>{
+  assert.ok(js.includes('function vehicleAssignmentHistoryHtml(history)'));
+  assert.ok(js.includes('基本固定車・担当履歴'));
+  assert.ok(js.includes("vehicleHistoryPrimary(x,'before')"));
+  assert.ok(js.includes("vehicleHistoryPrimary(x,'after')"));
+  assert.ok(js.includes('afterHtml:vehicleAssignmentHistoryHtml(history)'));
+  assert.ok(js.includes('vehicleAssignmentHistoryHtml(history);'));
+  assert.ok(js.includes("formArea('reason','変更理由（任意）'"));
+  assert.ok(js.includes("reason:nullable(fdText(fd,'reason'))"));
+  assert.ok(css.includes('.edit-grid>.wide{grid-column:1/-1}'));
+});
