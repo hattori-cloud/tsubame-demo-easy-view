@@ -8,6 +8,8 @@ const store=src('api','_lib','management-analysis-store.js');
 const handler=src('api','v1','analysis','management-summary.js');
 const router=src('api','router.js');
 
+test('management analysis store parses cleanly',()=>assert.doesNotThrow(()=>new Function(store)));
+
 test('management analysis combines current workforce operations with snapshot-based safety analysis',()=>{
   assert.ok(store.includes("const {safetySummary}=require('./safety-analysis-store')"));
   assert.ok(store.includes('workforce_basis'));
