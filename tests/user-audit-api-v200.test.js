@@ -22,8 +22,9 @@ test('new users are linked to immutable employee id and receive one-time setup i
 });
 
 test('management account creation and access changes enforce MFA policy',()=>{
-  assert.ok(store.includes("const mfaRequired=roleLevel!=='self'"));
-  assert.ok(store.includes("const mfaRequired=role!=='self'"));
+  assert.ok(store.includes('本番利用者は全社管理者または範囲指定管理者'))
+  assert.ok(store.includes("const mfaRequired=true"));
+  assert.ok(store.includes("const mfaRequired=true"));
   assert.ok(users.includes("actor.role_level!=='full'||!identity.mfa"));
   assert.ok(access.includes('MFA_REQUIRED'));
 });
