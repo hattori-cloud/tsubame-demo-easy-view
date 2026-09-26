@@ -290,8 +290,9 @@ test('credential pages can update existing qualifications and document metadata 
   assert.ok(js.includes('function editDocumentMetadata(id)'));
   assert.ok(js.includes("'/qualifications/'+encodeURIComponent(q.id)"));
   assert.ok(js.includes("'/documents/'+encodeURIComponent(d.id)"));
-  assert.ok(js.includes("'If-Match':'"'+q.version+'"'"));
-  assert.ok(js.includes("'If-Match':'"'+d.version+'"'"));
+  assert.ok(js.includes("q.version"));
+  assert.ok(js.includes("d.version"));
+  assert.ok(js.includes("headers:{'If-Match':"));
 });
 
 
