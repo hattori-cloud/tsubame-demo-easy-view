@@ -3,6 +3,7 @@
 const {query}=require('./db');
 const {scopeSql}=require('./employee-store');
 const {hasFeaturePermission}=require('./authorization');
+const {vehicleScopeSql}=require('./vehicle-store');
 const {safetySummary}=require('./safety-analysis-store');
 
 function currentWhere(user,filters={},alias='e'){
@@ -95,6 +96,175 @@ async function workSummary(user,filters){
            coalesce(avg(scoped.overtime_hours),0)::numeric(10,1) average_overtime_hours
       from latest left join scoped on scoped.month_start=latest.month_start
      group by latest.month_start
+  `,params);
+  return r.rows[0]||{}
+}
+async function vehicleSummary(user,filters){
+  const params=[],where=[vehicleScopeSql(user,params,'v'),'v.archived_at is null'];
+  const employeeFilters=[];
+  if(filters.office){params.push(String(filters.office));employeeFilters.push('ve.office=
+  const {params,where}=currentWhere(user,filters);
+  const actionExpr=deadlines
+    ?`count(*) filter(where e.lifecycle_status<>'retired' and ((e.license_expiry is not null and e.license_expiry<=current_date+60) or (e.health_check_due is not null and e.health_check_due<=current_date+60) or (e.aptitude_due is not null and e.aptitude_due<=current_date+60)))::int`
+    :'null::int';
+  const r=await query(`
+    select e.office,e.department,
+           count(*)::int total,
+           count(*) filter(where e.lifecycle_status='active')::int active,
+           count(*) filter(where e.lifecycle_status='leave')::int leave_count,
+           count(*) filter(where e.lifecycle_status='retirement_planned')::int retirement_planned,
+           ${actionExpr} as deadline_action_employees
+      from employees e where ${where.join(' and ')}
+     group by e.office,e.department
+     order by e.office,e.department
+  `,params);
+  return r.rows
+}
+async function crossSignals(user,filters,{deadlines=false,assets=false}={}){
+  const {params,where}=currentWhere(user,filters);
+  const period=safetyWindow(params,filters,'x.event_date');
+  const safetyExists=`exists(
+    select 1 from (
+      select a.employee_id,a.occurred_on event_date from accidents a where a.archived_at is null
+      union all select n.employee_id,n.occurred_on from near_misses n where n.archived_at is null
+      union all select c.employee_id,coalesce(c.occurrence_date,c.responded_on) from complaints c where c.archived_at is null
+    ) x where x.employee_id=e.id and ${period}
+  )`;
+  const deadlineExpr=deadlines
+    ?`count(*) filter(where e.lifecycle_status='active' and ${safetyExists} and ((e.license_expiry is not null and e.license_expiry<=current_date+60) or (e.health_check_due is not null and e.health_check_due<=current_date+60) or (e.aptitude_due is not null and e.aptitude_due<=current_date+60)))::int`
+    :'null::int';
+  const assetExpr=assets
+    ?`count(*) filter(where e.lifecycle_status='retirement_planned' and exists(select 1 from assets a where a.employee_id=e.id and a.status<>'returned'))::int`
+    :'null::int';
+  const r=await query(`
+    select count(*) filter(where e.lifecycle_status='active' and e.hired_on>=current_date-interval '12 months' and ${safetyExists})::int new_hire_with_safety,
+           ${deadlineExpr} as safety_and_deadline_action,
+           ${assetExpr} as retirement_planned_with_assets
+      from employees e where ${where.join(' and ')}
+  `,params);
+  return r.rows[0]||{}
+}
+async function managementSummary(user,identity,filters={}){
+  const safety=await safetySummary(user,filters);
+  const access={
+    employees:hasFeaturePermission(user,'employees','view'),
+    deadlines:hasFeaturePermission(user,'deadlines','view'),
+    credentials:hasFeaturePermission(user,'credentials_documents','view'),
+    assets_training:hasFeaturePermission(user,'assets_training','view'),
+    vehicles:hasFeaturePermission(user,'vehicles','view'),
+    work_import:hasFeaturePermission(user,'work_import','view')
+  };
+  const [workforce,deadlines,credentials,support,vehicles,work,departments,signals]=await Promise.all([
+    access.employees?workforceSummary(user,filters):Promise.resolve(null),
+    access.deadlines?coreDeadlineSummary(user,filters):Promise.resolve(null),
+    access.credentials?credentialSummary(user,filters):Promise.resolve(null),
+    access.assets_training?supportSummary(user,filters):Promise.resolve(null),
+    access.vehicles?vehicleSummary(user,filters):Promise.resolve(null),
+    access.work_import?workSummary(user,filters):Promise.resolve(null),
+    access.employees?departmentSummary(user,filters,{deadlines:access.deadlines}):Promise.resolve([]),
+    access.employees?crossSignals(user,filters,{deadlines:access.deadlines,assets:access.assets_training}):Promise.resolve(null)
+  ]);
+  return {
+    filters:safety.filters,
+    access,
+    workforce,deadlines,credentials,support,vehicles,work,signals,departments,
+    safety,
+    notes:{
+      workforce_basis:'人員・期限・資格・教育・貸与品・勤務は現在所属で集計します。',
+      safety_basis:'事故・苦情・ヒヤリの部署集計は記録時所属snapshotで集計します。',
+      cross_basis:'横断確認は人数の把握用です。個人順位・危険人物判定・退職予測には使用しません。'
+    }
+  }
+}
+module.exports={managementSummary,workforceSummary,coreDeadlineSummary,credentialSummary,supportSummary,vehicleSummary,workSummary,departmentSummary,crossSignals,currentWhere};
++params.length)}
+  if(filters.department){params.push(String(filters.department));employeeFilters.push('ve.department=
+  const {params,where}=currentWhere(user,filters);
+  const actionExpr=deadlines
+    ?`count(*) filter(where e.lifecycle_status<>'retired' and ((e.license_expiry is not null and e.license_expiry<=current_date+60) or (e.health_check_due is not null and e.health_check_due<=current_date+60) or (e.aptitude_due is not null and e.aptitude_due<=current_date+60)))::int`
+    :'null::int';
+  const r=await query(`
+    select e.office,e.department,
+           count(*)::int total,
+           count(*) filter(where e.lifecycle_status='active')::int active,
+           count(*) filter(where e.lifecycle_status='leave')::int leave_count,
+           count(*) filter(where e.lifecycle_status='retirement_planned')::int retirement_planned,
+           ${actionExpr} as deadline_action_employees
+      from employees e where ${where.join(' and ')}
+     group by e.office,e.department
+     order by e.office,e.department
+  `,params);
+  return r.rows
+}
+async function crossSignals(user,filters,{deadlines=false,assets=false}={}){
+  const {params,where}=currentWhere(user,filters);
+  const period=safetyWindow(params,filters,'x.event_date');
+  const safetyExists=`exists(
+    select 1 from (
+      select a.employee_id,a.occurred_on event_date from accidents a where a.archived_at is null
+      union all select n.employee_id,n.occurred_on from near_misses n where n.archived_at is null
+      union all select c.employee_id,coalesce(c.occurrence_date,c.responded_on) from complaints c where c.archived_at is null
+    ) x where x.employee_id=e.id and ${period}
+  )`;
+  const deadlineExpr=deadlines
+    ?`count(*) filter(where e.lifecycle_status='active' and ${safetyExists} and ((e.license_expiry is not null and e.license_expiry<=current_date+60) or (e.health_check_due is not null and e.health_check_due<=current_date+60) or (e.aptitude_due is not null and e.aptitude_due<=current_date+60)))::int`
+    :'null::int';
+  const assetExpr=assets
+    ?`count(*) filter(where e.lifecycle_status='retirement_planned' and exists(select 1 from assets a where a.employee_id=e.id and a.status<>'returned'))::int`
+    :'null::int';
+  const r=await query(`
+    select count(*) filter(where e.lifecycle_status='active' and e.hired_on>=current_date-interval '12 months' and ${safetyExists})::int new_hire_with_safety,
+           ${deadlineExpr} as safety_and_deadline_action,
+           ${assetExpr} as retirement_planned_with_assets
+      from employees e where ${where.join(' and ')}
+  `,params);
+  return r.rows[0]||{}
+}
+async function managementSummary(user,identity,filters={}){
+  const safety=await safetySummary(user,filters);
+  const access={
+    employees:hasFeaturePermission(user,'employees','view'),
+    deadlines:hasFeaturePermission(user,'deadlines','view'),
+    credentials:hasFeaturePermission(user,'credentials_documents','view'),
+    assets_training:hasFeaturePermission(user,'assets_training','view'),
+    work_import:hasFeaturePermission(user,'work_import','view')
+  };
+  const [workforce,deadlines,credentials,support,work,departments,signals]=await Promise.all([
+    access.employees?workforceSummary(user,filters):Promise.resolve(null),
+    access.deadlines?coreDeadlineSummary(user,filters):Promise.resolve(null),
+    access.credentials?credentialSummary(user,filters):Promise.resolve(null),
+    access.assets_training?supportSummary(user,filters):Promise.resolve(null),
+    access.work_import?workSummary(user,filters):Promise.resolve(null),
+    access.employees?departmentSummary(user,filters,{deadlines:access.deadlines}):Promise.resolve([]),
+    access.employees?crossSignals(user,filters,{deadlines:access.deadlines,assets:access.assets_training}):Promise.resolve(null)
+  ]);
+  return {
+    filters:safety.filters,
+    access,
+    workforce,deadlines,credentials,support,work,signals,departments,
+    safety,
+    notes:{
+      workforce_basis:'人員・期限・資格・教育・貸与品・勤務は現在所属で集計します。',
+      safety_basis:'事故・苦情・ヒヤリの部署集計は記録時所属snapshotで集計します。',
+      cross_basis:'横断確認は人数の把握用です。個人順位・危険人物判定・退職予測には使用しません。'
+    }
+  }
+}
+module.exports={managementSummary,workforceSummary,coreDeadlineSummary,credentialSummary,supportSummary,workSummary,departmentSummary,crossSignals,currentWhere};
++params.length)}
+  if(employeeFilters.length)where.push(`exists(
+    select 1 from employees ve
+     where (ve.id=v.primary_employee_id or exists(select 1 from vehicle_users vu where vu.vehicle_id=v.id and vu.employee_id=ve.id and vu.ended_on is null))
+       and ${employeeFilters.join(' and ')}
+  )`);
+  const r=await query(`
+    select count(*)::int total,
+           count(*) filter(where v.status='active')::int active,
+           count(*) filter(where v.status<>'inactive' and v.inspection_due<current_date)::int inspection_overdue,
+           count(*) filter(where v.status<>'inactive' and v.inspection_due<=current_date+60)::int inspection_due_60,
+           count(*) filter(where v.status<>'inactive' and v.next_maintenance_due is not null and v.next_maintenance_due<current_date)::int maintenance_overdue,
+           count(*) filter(where v.status<>'inactive' and v.next_maintenance_due is not null and v.next_maintenance_due<=current_date+60)::int maintenance_due_60
+      from vehicles v where ${where.join(' and ')}
   `,params);
   return r.rows[0]||{}
 }
