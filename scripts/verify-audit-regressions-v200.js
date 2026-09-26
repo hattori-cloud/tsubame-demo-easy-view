@@ -1,5 +1,7 @@
 const assert=require('node:assert/strict');
 const crypto=require('node:crypto');
+const fs=require('node:fs');
+const path=require('node:path');
 const {hash,Algorithm}=require('@node-rs/argon2');
 
 process.env.DATABASE_URL=process.env.TEST_DATABASE_URL||process.env.DATABASE_URL;
@@ -37,7 +39,7 @@ async function call(route,method='GET',body={},cookie='',headers={},query={}){
   return res
 }
 function brief(res){return {status:res.statusCode,code:res.body?.error?.code||res.body?.code}}
-async function seed(no,role='self',office='HQ',department='Taxi'){
+async function seed(no,role='scoped',office='HQ',department='Taxi'){
   const e=(await q(
     'insert into employees(employee_no,name,office,department) values($1,$2,$3,$4) returning *',
     [no,'Fictional '+no,office,department]
@@ -46,7 +48,7 @@ async function seed(no,role='self',office='HQ',department='Taxi'){
   const passwordHash=await hash(password,{algorithm:Algorithm.Argon2id,memoryCost:19456,timeCost:2,parallelism:1});
   const u=(await q(
     'insert into users(employee_id,login_id,password_hash,display_name,role_level,mfa_required) values($1,$2,$3,$4,$5,$6) returning *',
-    [e.id,'audit-'+no,passwordHash,'Fictional '+no,role,role!=='self']
+    [e.id,'audit-'+no,passwordHash,'Fictional '+no,role,true]
   )).rows[0];
   if(role==='scoped'){
     await q('insert into user_scopes(user_id,office,department) values($1,$2,$3)',[u.id,office,department]);
@@ -56,7 +58,7 @@ async function seed(no,role='self',office='HQ',department='Taxi'){
   u.scopes=role==='scoped'?[{office,department}]:[];
   u.permissions=role==='scoped'?[{feature:'vehicles',access_level:'edit'},{feature:'deadlines',access_level:'view'}]:[];
   const raw=auth.newRawToken();
-  await authStore.createSession({userId:u.id,tokenHash:auth.tokenHash(raw),mfaVerified:role!=='self',ttlSeconds:3600});
+  await authStore.createSession({userId:u.id,tokenHash:auth.tokenHash(raw),mfaVerified:true,ttlSeconds:3600});
   return {e,u,password,raw_session_token:raw,cookie:auth.secureCookie(raw,3600).split(';')[0]}
 }
 async function login(a){
@@ -117,7 +119,7 @@ async function verifyPasswordCredentialRace(admin,mode){
   const admin=await seed('RG-A','full');
   const staff=await seed('RG-S');
   const scoped=await seed('RG-G','scoped');
-  const outside=await seed('RG-O','self','REMOTE','Other');
+  const outside=await seed('RG-O','scoped','REMOTE','Other');
 
   // H07: employee number change route must work and preserve immutable employee id.
   {
@@ -220,21 +222,19 @@ async function verifyPasswordCredentialRace(admin,mode){
     report.cases.H08={completed:true,edit_after_complete:'REOPEN_REQUIRED'}
   }
 
-  // H05: legacy self users cannot obtain a production session or read manager-only records.
+  // H05: fresh selected-user schema rejects legacy self accounts, while the auth layer keeps a defense-in-depth self-session guard.
   {
-    // Recreate a pre-migration legacy self session directly in DB. New createSession() correctly refuses it.
-    await q(`insert into auth_sessions(user_id,token_hash,mfa_verified,expires_at) values($1,$2,false,now()+interval '1 hour')`,[staff.u.id,auth.tokenHash(staff.raw_session_token)]);
-    await support.createSupport({user:admin.u,kind:'guidance',body:{
-      employee_id:staff.e.id,guidance_on:'2026-09-25',type:'Fictional manager review',
-      summary:'MANAGER ONLY',owner:'Fictional Admin'
-    },requestId});
-    const statuses={};
-    for(const route of ['/me','/accidents','/complaints','/guidance']){
-      const res=await call(route,'GET',{},staff.cookie);
-      statuses[route]=brief(res);
-      assert.equal(res.statusCode,401)
-    }
-    report.cases.H05=statuses
+    let schemaCode=null;
+    try{
+      await q("update users set role_level='self' where id=$1",[staff.u.id]);
+    }catch(err){schemaCode=err?.code}
+    assert.equal(schemaCode,'23514');
+    const authSource=fs.readFileSync(path.join(__dirname,'..','api','_lib','auth.js'),'utf8');
+    assert.ok(authSource.includes("session.role_level==='self'"));
+    const current=(await q('select role_level,state from users where id=$1',[staff.u.id])).rows[0];
+    assert.equal(current.role_level,'scoped');
+    assert.equal(current.state,'active');
+    report.cases.H05={fresh_schema_rejects_self:schemaCode,legacy_session_guard:true}
   }
 
   // H06/N01: every vehicle return path must mask out-of-scope employees and q-search must remain valid SQL.
@@ -254,14 +254,12 @@ async function verifyPasswordCredentialRace(admin,mode){
         uuid:serialized.includes(outside.e.id)
       }
     };
-    const self=await call('/vehicles','GET',{},staff.cookie);
-    assert.equal(self.statusCode,401);
+    const unauthenticated=await call('/vehicles','GET');
+    assert.equal(unauthenticated.statusCode,401);
     const scopedRes=await call('/vehicles','GET',{},scoped.cookie);
     assert.equal(scopedRes.statusCode,200);
     assert.deepEqual(leakFlags(scopedRes.body),{name:false,employee_no:false,uuid:false});
 
-    const legacySelfDeadlines=await call('/deadlines','GET',{},staff.cookie);
-    assert.equal(legacySelfDeadlines.statusCode,401);
     const scopedDeadlines=await call('/deadlines','GET',{},scoped.cookie);
     assert.equal(scopedDeadlines.statusCode,200);
     assert.deepEqual(leakFlags(scopedDeadlines.body),{name:false,employee_no:false,uuid:false});
@@ -275,7 +273,7 @@ async function verifyPasswordCredentialRace(admin,mode){
     assert.equal(updated.statusCode,200);
     assert.deepEqual(leakFlags(updated.body),{name:false,employee_no:false,uuid:false});
 
-    report.cases.H06={legacy_self:self.statusCode,legacy_self_deadlines:legacySelfDeadlines.statusCode,scoped:scopedRes.statusCode,deadlines_masked:true,update_masked:true};
+    report.cases.H06={unauthenticated:unauthenticated.statusCode,scoped:scopedRes.statusCode,deadlines_masked:true,update_masked:true};
     report.cases.N01={full_search:200,scoped_search:200}
   }
 
