@@ -246,3 +246,73 @@ GitHub Actions:
 
 特に原本アダプターは未完成であり、production業務APIはそのreadinessがfalseの間は有効化できない。
 実社員情報・実PDF/画像/スキャン原本は引き続き投入禁止。
+
+
+## 2026-09-26 監査後統合・95%準備更新
+
+**統合先端固定点:**  
+`cbe5a5ec64941f32b9e56d3e3d609d4ec098da9b`
+
+### 今回統合・強化した事項
+
+- 再々監査後のO01/O02修正を `post-audit-v200-prod-readiness` へ統合
+  - 苦情完了条件を「クレームランク・指導内容・次回対応内容」に統一
+  - 320px幅で苦情詳細モーダルがviewportを押し広げないよう修正
+  - O01/O02専用回帰テストを統合
+- production routerのlive DB readinessについて、共有login rate limiter・勤務取込永続化・runtime最小権限DBロールまでテストで固定
+- migration reconciliationを強化
+  - employee_number_history孤児を失敗扱い
+  - 最新履歴new_employee_noと現在employee_noの不一致を失敗扱い
+  - 別社員への社員番号再利用は会社ルール未確定のため自動失敗にせず警告として報告
+- 本番API画面 `/production` を現行v200 API契約へ接続
+  - ID＋現在社員番号＋パスワード、MFA、Cookie session
+  - 社員・期限・事故・苦情・車両・ヒヤリ・安全分析・利用者管理等をserver APIで表示
+  - browser localStorage/sessionStorageへ業務データを保存しない
+  - 勤務取込は旧再送方式を使用せず、preflight batch → If-Match commit → conflict-safe rollback方式へ統一
+  - 資格・書類閲覧は社員別credentials APIへ統一
+  - private原本ストレージ本番接続前の電子原本新規登録UIは非公開
+- 苦情詳細GETをserver-side scope判定付きで追加
+- `/me` にemployee_idを追加し、本人self-service導線を成立
+- `/me.data_mode` を環境に応じて `fictional-staging-fixtures` / `postgres` と正しく返却
+
+### CI / Vercel確認
+
+- `b99fa3a5...` O01/O02統合: GitHub Actions success
+- `b1b6eb2...` production DB readiness gate test強化: success
+- `9a8b653...` employee number history migration reconciliation: success
+- `fa8d2d9...` employee number reuse警告扱い調整: success
+- `13bd1a3d...` production API shell: GitHub Actions success
+- `13bd1a3d...` Vercel preview: **READY**
+- `bf018bfd...` / `9d90656c...` 苦情詳細GET: success
+- `bf34cf49...` 苦情詳細回帰テスト: success
+- `7358e493...` /me production identity修正: success
+- `cbe5a5ec...` self-service identity回帰テスト: success
+
+### 現在の再分類
+
+**コード側でほぼ解消済み**
+- shared PostgreSQL login rate limiter
+- runtime最小権限DBロール
+- 勤務取込 preflight / commit / history / rollback
+- migration reconciliation基盤
+- 本番API画面
+- O01 / O02
+- production fail-closed gate
+- Vercel preview配備
+
+**実環境接続が必要で未完了**
+- private原本storageのproduction実アダプター
+- quarantine / malware scan / clean後有効化の実プロバイダー接続
+- 原本object storageのbackup / restore / SHA-256実照合
+- 実会社auth / MFA / 本番PostgreSQL / private storage環境変数・資格情報接続
+- 実社員データのmigration manifest作成と最終reconciliation
+- PC / 390px / 320px実ブラウザUAT
+- VPN / 複数端末 / 複数利用者実機UAT
+- 最新統合SHAと最終Vercel deployment metadataの一致確認
+
+### 現時点の判断
+
+コード・DB/API・本番画面を含む**本番準備実装はおおむね95%水準**。
+ただし本番稼働承認は、上記「実環境接続が必要で未完了」の項目が完了するまで行わない。
+
+実社員情報・実PDF/画像/スキャン原本は引き続き投入禁止。
