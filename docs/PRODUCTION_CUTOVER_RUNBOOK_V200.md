@@ -19,7 +19,7 @@
 - 業務責任者: 本番開始/延期判断
 - システム責任者: アプリ・DB・storage構成承認
 - DB担当: PostgreSQL、backup/restore
-- network担当: VPN/IP/社内アクセス
+- network担当: 社内LAN/Wi-Fi固定グローバルIP/CIDR、Vercel Trusted IPs / Firewall
 - identity担当: account/MFA
 - storage担当: private original storage/secondary backup
 - scanner担当: malware scanner
@@ -92,6 +92,27 @@
 - restore SHA-256 verification
 - live synthetic backup/restore probe
 
+### 1-6 社内ネットワーク限定
+
+本番は社内LAN / 社内Wi-Fiだけを許可する。
+
+必須:
+- 本社・府中など、利用対象拠点の固定グローバルIP/CIDRをシステム会社と確定
+- Vercel Trusted IPs / Firewallでproductionの静的画面・APIを入口遮断
+- アプリ側 `TSUBAME_INTERNAL_NETWORK_CIDRS` でも同じCIDRをallowlist
+- Vercelでは `x-forwarded-for` が上書きされる前提でアプリ側送信元IPを判定
+- CIDR未設定ならproduction activation不可
+- 許可外IPには本番APIの存在を詳しく返さず404
+
+明示的に許可しない:
+- 自宅回線
+- モバイル回線
+- テザリング
+- 社外Wi-Fi
+- 社外VPN
+
+VPNは本番アクセス手段として使用しない。UATでは「VPN経由でも拒否される」ことを確認する。
+
 ## 2. production activation前チェック
 
 production business data activation flagは、以下がすべて完了するまでONにしない。
@@ -113,6 +134,8 @@ production business data activation flagは、以下がすべて完了するま�
 - original pipeline ready
 - separate-domain backup ready
 - encrypted backup synthetic restore probe
+- internal network CIDR configured
+- Vercel edge trusted IP protection verified
 - activation flag
 
 1つでもblockerがあれば本番開始しない。
@@ -136,7 +159,7 @@ readiness出力にsecret値が含まれていないことも確認する。
 ### 権限
 - full
 - scoped
-- self
+- legacy selfは本番利用不可（旧sessionも401）
 - office × department越境拒否
 - strict document MFA
 - owner/handoff範囲外拒否
@@ -261,7 +284,7 @@ negative:
 - 全社管理者
 - タクシー部門管理者
 - 別部門管理者
-- self利用者
+- 閲覧専用scoped利用者
 
 を各1名以上選び、本番データで閲覧中心の確認を行う。
 
@@ -299,7 +322,8 @@ GO条件:
 - original backup/restore合格
 - migration reconciliation合格
 - PC/390px/320px UAT合格
-- VPN/複数端末/複数利用者合格
+- 社内LAN/Wi-Fiからの複数端末/複数利用者合格
+- 自宅回線・モバイル回線・テザリング・社外VPNが拒否されること
 - 管理者権限確認
 - rollback手順確認
 

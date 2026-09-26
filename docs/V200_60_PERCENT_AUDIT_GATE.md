@@ -47,7 +47,7 @@
 - [x] full admin implicit edit
 - [x] central routerで業務APIを共通guard
 - [x] 未分類business routeをテストで検出
-- [ ] 主要APIのscope越境を大監査で実DB確認
+- [x] 主要APIのscope越境を大監査で実DB確認
 
 ### D. 見やすさ・分かりやすさ
 - [x] viewer / manager / safety / customプリセット
@@ -83,8 +83,8 @@
 - [x] production起動禁止
 - [x] empty dedicated DB必須
 - [x] 5年負荷条件を固定
-- [ ] 実PostgreSQLで5年実走success
-- [ ] 5年実走JSONを大監査資料へ添付
+- [x] 実PostgreSQLで5年実走success
+- [x] 5年実走JSONを大監査資料へ添付
 
 標準5年負荷:
 - 初期310名
@@ -150,3 +150,28 @@ Critical / Highを修正し、Mediumは本番前必須かを分類する。
 
 デモはproduction承認ではない。
 実社員情報・実原本は使用しない。
+
+
+## 60%コード節目の判定
+
+**到達済み。**
+
+修正済み監査固定点:
+`197480ab30dcbfa05fd7103d81e06d02be7939e1`
+
+GitHub Actions run:
+`36215987334`
+
+- Node回帰: **378 / 378 pass / 0 fail**
+- PostgreSQL 16実適用: success
+- 最小権限: success
+- work-import transaction/rollback: success
+- migration reconciliation: success
+- optimistic concurrency: success
+- DB dump/restore: success
+- external audit regression: success
+- private original contract: success
+- encrypted secondary backup/restore: success
+- 5年間架空運用: success
+
+コード側60%節目は到達したが、実社内CIDR投入、Vercel edge protection、PC/390px/320px実ブラウザUAT、CODEX差分監査は別途完了させる。
