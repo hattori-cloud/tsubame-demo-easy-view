@@ -61,3 +61,9 @@ test('document creation verifies linked qualification belongs to the same employ
   assert.ok(store.includes('id=$1 and employee_id=$2 and archived_at is null'));
   assert.ok(store.includes('[qualificationId,employee.id]'));
 });
+
+
+test('credential reads include editable retention review metadata so UI does not erase unseen values',()=>{
+  assert.ok(store.includes('d.retention_until,d.retention_review_note,d.storage_state'));
+  assert.ok(store.includes("'retention_review_note'"));
+});
