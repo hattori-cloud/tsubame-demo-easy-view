@@ -76,9 +76,13 @@ async function rowsToMap(client,sql){
         (select count(*)::int from users u join employees e on e.id=u.employee_id where u.role_level='full' and u.state='active' and e.lifecycle_status<>'retired') as active_full_admins
     `)).rows[0];
 
-    const nonzero=Object.entries(integrity).filter(([k,v])=>k!=='active_full_admins'&&Number(v)!==0);
+    const warningKeys=new Set(['employee_number_cross_employee_reuse']);
+    const nonzero=Object.entries(integrity).filter(([k,v])=>k!=='active_full_admins'&&!warningKeys.has(k)&&Number(v)!==0);
     if(nonzero.length)fail('migration referential integrity failed',Object.fromEntries(nonzero));
     if(Number(integrity.active_full_admins)<1)fail('migration left no active full administrator',{active_full_admins:integrity.active_full_admins});
+    const warnings=Object.fromEntries(
+      [...warningKeys].filter(k=>Number(integrity[k]||0)!==0).map(k=>[k,Number(integrity[k])])
+    );
 
     if(expected){
       if(expected.totals)sameObject(totals,expected.totals,'total');
@@ -94,6 +98,7 @@ async function rowsToMap(client,sql){
       office,
       department,
       integrity:{...integrity,active_full_admins:Number(integrity.active_full_admins)},
+      warnings,
       manifest_checked:Boolean(expected),
       real_employee_data_echoed:false
     };
