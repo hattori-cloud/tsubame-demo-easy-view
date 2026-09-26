@@ -18,14 +18,14 @@ function featureForPath(path){
   if(/^\/analysis(?:\/|$)/.test(path))return 'safety_analysis';
   if(/^\/work-import(?:\/|$)/.test(path))return 'work_import';
   if(/^\/(assets|training)(?:\/|$)/.test(path))return 'assets_training';
-  if(/^\/(notices|confirmations|handoffs|applications)(?:\/|$)/.test(path))return 'notices_workflow';
+  if(/^\/handoffs(?:\/|$)/.test(path))return 'handoffs';
   if(/^\/audit-logs(?:\/|$)/.test(path))return 'audit_logs';
   if(/^\/users(?:\/|$)/.test(path))return 'user_admin';
   return null
 }
+function retiredSelectedUserPath(path){return /^\/(?:notices|confirmations|applications)(?:\/|$)/.test(String(path||''))}
 function requiredFeatureAccess(req,path){
   if(/^\/documents\/[^/]+\/download-ticket(?:\/|$)/.test(path))return 'view';
-  if(/^\/notices\/[^/]+\/read(?:\/|$)/.test(path))return 'view';
   const method=String(req?.method||'GET').toUpperCase();
   return ['GET','HEAD','OPTIONS'].includes(method)?'view':'edit'
 }
@@ -155,6 +155,11 @@ module.exports=async function handler(req,res){
       return res.status(404).json(errorBody('NOT_FOUND','対象データが見つかりません',networkId))
     }
   }
+  if(isProductionRuntime() && retiredSelectedUserPath(path)){
+    const id=requestId(req);
+    applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
+    return res.status(404).json(errorBody('NOT_FOUND','対象データが見つかりません',id))
+  }
   if(isProductionRuntime() && path!=='/health'){
     const id=requestId(req);
     applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
@@ -186,3 +191,4 @@ module.exports.ROUTES=ROUTES;
 module.exports.featureForPath=featureForPath;
 module.exports.requiredFeatureAccess=requiredFeatureAccess;
 module.exports.allowedDraftKinds=allowedDraftKinds;
+module.exports.retiredSelectedUserPath=retiredSelectedUserPath;

@@ -18,7 +18,8 @@ function sourceFeature(source){
   if(/^analysis\//.test(s))return 'safety_analysis';
   if(/^work-import\//.test(s))return 'work_import';
   if(/^assets\//.test(s)||/^training\//.test(s))return 'assets_training';
-  if(/^notices\//.test(s)||/^confirmations\//.test(s)||/^handoffs\//.test(s)||/^applications\//.test(s))return 'notices_workflow';
+  if(/^handoffs\//.test(s))return 'handoffs';
+  if(/^notices\//.test(s)||/^confirmations\//.test(s)||/^applications\//.test(s))return 'retired_selected_user';
   if(/^audit-logs\//.test(s))return 'audit_logs';
   if(/^users\//.test(s))return 'user_admin';
   if(/^auth\//.test(s)||s==='health.js'||s==='me.js'||s==='secure-probe.js'||s==='staging-readiness.js')return 'exempt';
@@ -46,10 +47,7 @@ test('central path classifier covers representative paths for every feature',()=
     '/work-import/preflight':'work_import',
     '/assets/a1':'assets_training',
     '/training/t1':'assets_training',
-    '/notices':'notices_workflow',
-    '/confirmations/c1':'notices_workflow',
-    '/handoffs/h1':'notices_workflow',
-    '/applications/a1':'notices_workflow',
+    '/handoffs/h1':'handoffs',
     '/audit-logs':'audit_logs',
     '/users/u1/access':'user_admin'
   };
@@ -59,8 +57,7 @@ test('central path classifier covers representative paths for every feature',()=
 test('GET is view and business mutation is edit except explicit view interactions',()=>{
   assert.equal(router.requiredFeatureAccess({method:'GET'},'/accidents/a1'),'view');
   assert.equal(router.requiredFeatureAccess({method:'PATCH'},'/accidents/a1'),'edit');
-  assert.equal(router.requiredFeatureAccess({method:'POST'},'/documents/d1/download-ticket'),'view');
-  assert.equal(router.requiredFeatureAccess({method:'POST'},'/notices/n1/read'),'view')
+  assert.equal(router.requiredFeatureAccess({method:'POST'},'/documents/d1/download-ticket'),'view')
 });
 
 
@@ -70,4 +67,15 @@ test('mixed draft listing is explicitly filtered by permitted draft kinds',()=>{
   assert.ok(routerSource.includes('allowedDraftKinds'));
   assert.ok(routerSource.includes('_tsubameAllowedDraftKinds'));
   assert.ok(draftSource.includes("drafts.filter(d=>allowed.includes(d.kind))"));
+});
+
+
+test('employee self-service communication routes are retired from production while handoffs remain active',()=>{
+  assert.equal(router.retiredSelectedUserPath('/notices'),true);
+  assert.equal(router.retiredSelectedUserPath('/notices/n1/read'),true);
+  assert.equal(router.retiredSelectedUserPath('/confirmations/c1/respond'),true);
+  assert.equal(router.retiredSelectedUserPath('/applications/a1'),true);
+  assert.equal(router.retiredSelectedUserPath('/handoffs'),false);
+  assert.equal(router.featureForPath('/notices'),null);
+  assert.equal(router.featureForPath('/handoffs'),'handoffs')
 });

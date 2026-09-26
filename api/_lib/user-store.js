@@ -6,7 +6,7 @@ function assertFullAdmin(user){if(!user||user.role_level!=='full')throw problem(
 function assertVersion(row,expected){if(Number(row.version)!==Number(expected))throw problem(409,'VERSION_CONFLICT','別の利用者が先に更新しています。最新データを読み直してください')}
 const FEATURE_CODES=new Set([
   'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
-  'vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin'
+  'vehicles','safety_analysis','work_import','assets_training','handoffs','audit_logs','user_admin'
 ]);
 function normalizePermissions(permissions){
   if(!Array.isArray(permissions))return [];

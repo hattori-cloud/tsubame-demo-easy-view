@@ -10,15 +10,16 @@
 ## 適用順序
 
 1. `docs/production-schema.sql`
-2. `docs/production-auth-hardening-v200.sql`
-3. `docs/production-capacity-v189.sql`
-4. `docs/production-work-import-v200.sql`
-5. `docs/production-role-grants-v200.sql`
+2. `docs/production-selected-user-workflow-v200.sql`
+3. `docs/production-auth-hardening-v200.sql`
+4. `docs/production-capacity-v189.sql`
+5. `docs/production-work-import-v200.sql`
+6. `docs/production-role-grants-v200.sql`
 
 順番を逆にしないでください。
 
 基準スキーマは社員、利用者、事故、ヒヤリ、苦情、資格、書類、監査等の本体テーブルを作成します。
-認証強化SQLは、全Vercel/serverless instanceで共有するログイン試行制限テーブルを追加します。
+指定利用者workflow SQLは、旧 `notices_workflow` 権限を管理者間の `handoffs` 権限へ安全に移し、掲示・一斉確認・本人申請を本番対象から分離します。\n認証強化SQLは、全Vercel/serverless instanceで共有するログイン試行制限テーブルを追加します。
 容量追加SQLは、月次ヒヤリ対象者スナップショットと大容量運用向け索引・ビューを追加します。
 
 ## 空DB試験の必須確認
@@ -89,7 +90,7 @@ SQLをその場で手修正して続行しないでください。
 
 ## 合格条件
 
-- 空DBに5ファイルを順番通り適用してerror 0
+- 空DBに6ファイルを順番通り適用してerror 0
 - schema/table/index/viewの件数確認
 - 制約違反が期待どおり拒否される
 - 月次ヒヤリcomplianceが zero / short / met / exempt を正しく返す

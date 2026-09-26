@@ -22,7 +22,7 @@ test('scoped feature permissions default deny unrelated modules',()=>{
 
 test('full administrator receives implicit edit for all declared business features',()=>{
   const user={role_level:'full',permissions:[]};
-  for(const feature of ['employees','deadlines','accidents','complaints','near_misses','credentials_documents','vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin']){
+  for(const feature of ['employees','deadlines','accidents','complaints','near_misses','credentials_documents','vehicles','safety_analysis','work_import','assets_training','handoffs','audit_logs','user_admin']){
     assert.equal(featureAccessLevel(user,feature),'edit',feature);
     assert.equal(hasFeaturePermission(user,feature,'edit'),true,feature)
   }

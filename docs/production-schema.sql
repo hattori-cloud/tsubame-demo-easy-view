@@ -76,7 +76,7 @@ create table user_feature_permissions (
   user_id uuid not null references users(id) on delete cascade,
   feature text not null check (feature in (
     'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
-    'vehicles','safety_analysis','work_import','assets_training','notices_workflow',
+    'vehicles','safety_analysis','work_import','assets_training','handoffs',
     'audit_logs','user_admin'
   )),
   access_level text not null check (access_level in ('view','edit')),

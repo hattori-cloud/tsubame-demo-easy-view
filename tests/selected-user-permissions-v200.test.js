@@ -26,7 +26,7 @@ test('central router maps business modules to feature permissions',()=>{
   const router=src('api','router.js');
   for(const feature of [
     'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
-    'vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin'
+    'vehicles','safety_analysis','work_import','assets_training','handoffs','audit_logs','user_admin'
   ])assert.ok(router.includes("'"+feature+"'"),feature);
   assert.ok(router.includes('enforceFeatureAccess'));
   assert.ok(router.includes("return ['GET','HEAD','OPTIONS'].includes(method)?'view':'edit'"));
@@ -80,4 +80,17 @@ test('common authentication rejects legacy self sessions plus suspended and reti
   assert.ok(auth.includes("session.employee_lifecycle_status==='retired'"));
   assert.ok(auth.includes("session.role_level==='self'"));
   assert.ok(auth.includes("throw new AuthError(401,'INVALID_SESSION'"))
+});
+
+
+test('selected-user model retires notices confirmations and applications but keeps handoffs',()=>{
+  const router=src('api','router.js');
+  const authz=src('api','_lib','authorization.js');
+  const users=src('api','_lib','user-store.js');
+  assert.ok(router.includes("return /^\\/(?:notices|confirmations|applications)"));
+  assert.ok(router.includes("return 'handoffs'"));
+  assert.ok(authz.includes("'handoffs'"));
+  assert.ok(users.includes("'handoffs'"));
+  assert.equal(authz.includes("'notices_workflow'"),false);
+  assert.equal(users.includes("'notices_workflow'"),false)
 });

@@ -14,7 +14,7 @@ function resolveCurrentUser(identity){
 }
 const FEATURE_CODES=new Set([
   'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
-  'vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin'
+  'vehicles','safety_analysis','work_import','assets_training','handoffs','audit_logs','user_admin'
 ]);
 function featureAccessLevel(user,feature){
   if(!user||!FEATURE_CODES.has(String(feature)))return null;

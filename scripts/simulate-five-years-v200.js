@@ -49,7 +49,7 @@ function featurePreset(kind){
   ];
   return [
     ['employees','edit'],['deadlines','view'],['accidents','edit'],['complaints','edit'],['near_misses','edit'],
-    ['credentials_documents','edit'],['vehicles','view'],['safety_analysis','view'],['notices_workflow','view']
+    ['credentials_documents','edit'],['vehicles','view'],['safety_analysis','view'],['handoffs','view']
   ]
 }
 async function batchInsert(table,columns,rows,chunkSize=500){
