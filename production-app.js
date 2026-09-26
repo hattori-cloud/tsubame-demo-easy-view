@@ -1365,7 +1365,6 @@
   }
 
   function editEmployee(e){
-    const work=workPatternOptions(e.work_pattern);
     const fields=
       formField('name','氏名',e.name,'text','required')+formField('furigana','フリガナ',e.furigana)+
       formField('position','職位',e.position)+
