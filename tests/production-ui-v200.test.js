@@ -148,3 +148,11 @@ test('analysis provides direct operational follow-up instead of ending at charts
   assert.ok(js.includes("hubButton('near-misses','ヒヤリを確認'"));
   assert.ok(js.includes("hubButton('complaints','苦情を確認'"));
 });
+
+
+test('safety records and vehicle records cross-link employees and car numbers',()=>{
+  assert.ok(js.includes('data-id="vehicles" data-q="'));
+  assert.ok(js.includes('>号車</button>'));
+  assert.ok(js.includes('>担当社員</button>'));
+  assert.ok(js.includes("data-action=\"open-employee\""));
+});
