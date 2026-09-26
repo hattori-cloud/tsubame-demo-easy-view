@@ -28,7 +28,7 @@
   function canEdit(feature){return featureLevel(feature)==='edit'}
   const FEATURE_OPTIONS=[
     ['employees','社員情報'],['deadlines','期限'],['accidents','事故'],['complaints','苦情'],['near_misses','ヒヤリ'],
-    ['credentials_documents','資格・書類'],['vehicles','車両'],['safety_analysis','安全分析'],['work_import','勤務取込'],
+    ['credentials_documents','資格・書類'],['vehicles','車両'],['safety_analysis','分析'],['work_import','勤務取込'],
     ['assets_training','貸与品・教育'],['handoffs','引継ぎ']
   ];
   const PERMISSION_PRESETS={
@@ -686,48 +686,76 @@
   }
 
   async function renderSafetyAnalysis(){
-    if(!canView('safety_analysis')){$('content').innerHTML='<div class="empty">安全分析の利用権限がありません。</div>';return}
+    if(!canView('safety_analysis')){$('content').innerHTML='<div class="empty">分析の利用権限がありません。</div>';return}
     const sp=new URLSearchParams();
     for(const [k,v] of Object.entries(state.analysisFilters||{}))if(v)sp.set(k,v);
-    const {data}=await api('/analysis/safety-summary'+(sp.toString()?'?'+sp.toString():''));
-    const a=data.analysis||{},k=a.kpis||{},t=a.totals||{},trend=a.trend||[],departments=a.departments||[];
+    const {data}=await api('/analysis/management-summary'+(sp.toString()?'?'+sp.toString():''));
+    const a=data.analysis||{},s=a.safety||{},k=s.kpis||{},t=s.totals||{},trend=s.trend||[],safetyDepartments=s.departments||[];
+    const workforce=a.workforce||null,deadlines=a.deadlines||null,credentials=a.credentials||null,support=a.support||null,work=a.work||null,signals=a.signals||null,departments=a.departments||[],access=a.access||{};
     const pct=v=>Number(v||0).toFixed(1)+'%';
+    const taskMetrics=[];
+    if(deadlines){taskMetrics.push(metric('期限超過社員',deadlines.employees_overdue||0,'免許・健診・適性'));taskMetrics.push(metric('60日以内期限',deadlines.employees_due_60||0,'対象社員数'))}
+    if(credentials){taskMetrics.push(metric('資格期限超過',credentials.qualifications_overdue||0,'資格'));taskMetrics.push(metric('書類要確認',credentials.documents_attention||0,'確認・差替・保存状態'))}
+    if(support){taskMetrics.push(metric('教育期限超過',support.training_overdue||0,'未完了'));taskMetrics.push(metric('貸与品返却超過',support.assets_overdue||0,'未返却'))}
+    if(work){taskMetrics.push(metric('残業60h以上',work.overtime_60_count||0,(work.month_start?String(work.month_start).slice(0,7):'最新月')))}
+    const currentHeader='<section class="panel"><div class="list-head"><div><b>集計の見方</b><span>現在の業務と過去の安全を分けて表示</span></div></div>'+
+      '<p class="sub">'+esc(a.notes?.workforce_basis||'')+'</p><p class="sub">'+esc(a.notes?.safety_basis||'')+'</p><p class="sub">'+esc(a.notes?.cross_basis||'')+'</p></section>';
+    const workforceHtml=workforce?'<section class="panel"><div class="list-head"><div><b>現在の人員状況</b><span>現在所属ベース</span></div></div>'+
+      '<div class="metric-grid">'+
+        metric('在籍',workforce.active||0,'active')+
+        metric('休職',workforce.leave_count||0,'leave')+
+        metric('退職予定',workforce.retirement_planned||0,'要引継ぎ')+
+        metric('直近12か月入社',workforce.hired_last_12m||0,'現在日基準')+
+      '</div></section>':'';
+    const taskHtml=taskMetrics.length?'<section class="panel"><div class="list-head"><div><b>今対応が必要なこと</b><span>権限のある項目のみ</span></div></div><div class="metric-grid">'+taskMetrics.join('')+'</div></section>':'';
+    const signalHtml=signals?'<section class="panel"><div class="list-head"><div><b>横断して確認する人数</b><span>順位付けではなく業務確認用</span></div></div>'+
+      '<div class="metric-grid">'+
+        metric('新入社員 × 安全記録',signals.new_hire_with_safety||0,'直近12か月入社 × 選択期間')+
+        (signals.safety_and_deadline_action===null||signals.safety_and_deadline_action===undefined?'':metric('安全記録 × 期限対応',signals.safety_and_deadline_action||0,'選択期間 × 現在60日以内'))+
+        (signals.retirement_planned_with_assets===null||signals.retirement_planned_with_assets===undefined?'':metric('退職予定 × 貸与品',signals.retirement_planned_with_assets||0,'返却確認'))+
+      '</div></section>':'';
+    const currentDeptHtml=departments.length?'<section class="panel"><div class="list-head"><div><b>現在所属別の人員・対応状況</b><span>'+esc(departments.length)+'区分</span></div></div>'+
+      '<div class="table-wrap"><table><thead><tr><th>事業所</th><th>部署</th><th>在籍</th><th>休職</th><th>退職予定</th>'+(access.deadlines?'<th>期限要対応</th>':'')+'</tr></thead><tbody>'+
+      departments.map(x=>'<tr><td>'+esc(x.office||'—')+'</td><td>'+esc(x.department||'—')+'</td><td>'+esc(x.active||0)+'</td><td>'+esc(x.leave_count||0)+'</td><td>'+esc(x.retirement_planned||0)+'</td>'+(access.deadlines?'<td>'+esc(x.deadline_action_employees||0)+'</td>':'')+'</tr>').join('')+
+      '</tbody></table></div></section>':'';
+    const next=[];
+    if(access.employees)next.push(hubButton('employees','社員を確認','対象社員・教育・貸与品へ'));
+    if(access.deadlines)next.push(hubButton('deadlines','期限を確認','超過・60日以内へ'));
+    if(access.credentials)next.push(hubButton('credentials','資格・書類を確認','資格期限・原本状態へ'));
+    if(access.work_import)next.push(hubButton('work-import','勤務を確認','最新取込・残業集計へ'));
+    if(canViewAny(NAV_FEATURES.safety))next.push(hubButton('safety','運行・安全を確認','事故・苦情・ヒヤリへ'));
     $('content').innerHTML=
-      '<section class="panel"><div class="list-head"><div><b>分析条件</b><span>記録時所属snapshotで集計</span></div></div>'+
+      '<section class="panel"><div class="list-head"><div><b>分析条件</b><span>安全は記録時所属、人員系は現在所属</span></div></div>'+
       '<div class="filter-grid">'+
         '<label>開始日<input id="analysisFrom" type="date" value="'+esc(a.filters?.from||'')+'"></label>'+
         '<label>終了日<input id="analysisTo" type="date" value="'+esc(a.filters?.to||'')+'"></label>'+
         '<label>事業所<input id="analysisOffice" value="'+esc(a.filters?.office||'')+'" placeholder="全事業所"></label>'+
         '<label>部署<input id="analysisDepartment" value="'+esc(a.filters?.department||'')+'" placeholder="全部署"></label>'+
       '</div><div class="dialog-actions"><button class="ghost light" data-action="analysis-clear">条件解除</button><button class="small-primary" data-action="analysis-apply">この条件で集計</button></div></section>'+
+      currentHeader+workforceHtml+taskHtml+signalHtml+currentDeptHtml+
+      '<section class="panel"><div class="list-head"><div><b>安全分析</b><span>記録時所属snapshot</span></div></div>'+
       '<div class="metric-grid">'+
         metric('事故',t.accidents||0,'対象期間')+
         metric('ヒヤリ',t.near_misses||0,'対象期間')+
         metric('苦情',t.complaints||0,'対象期間')+
         metric('未完了比率',pct(k.open_case_ratio),'事故・苦情')+
-      '</div>'+
-      '<div class="metric-grid">'+
+      '</div><div class="metric-grid">'+
         metric('高リスクヒヤリ',pct(k.high_risk_near_miss_ratio),'ヒヤリ内')+
         metric('平均修理費',Number(k.average_repair_cost||0).toLocaleString()+'円','事故平均')+
         metric('分析項目充足',pct(k.analysis_completeness_ratio),'原因・再発防止等')+
         metric('snapshot充足',pct(k.snapshot_completeness_ratio),'記録時所属')+
-      '</div>'+
-      '<section class="panel"><div class="list-head"><div><b>月別推移</b><span>'+esc(trend.length)+'か月</span></div></div>'+
+      '</div></section>'+
+      '<section class="panel"><div class="list-head"><div><b>安全記録 月別推移</b><span>'+esc(trend.length)+'か月</span></div></div>'+
       (trend.length?'<div class="table-wrap"><table><thead><tr><th>月</th><th>事故</th><th>ヒヤリ</th><th>苦情</th></tr></thead><tbody>'+
         trend.map(x=>'<tr><td>'+esc(x.month)+'</td><td>'+esc(x.accident)+'</td><td>'+esc(x.near_miss)+'</td><td>'+esc(x.complaint)+'</td></tr>').join('')+
         '</tbody></table></div>':empty())+'</section>'+
-      '<section class="panel"><div class="list-head"><div><b>部署別比較</b><span>'+esc(departments.length)+'区分</span></div></div>'+
-      '<p class="sub">'+esc(a.notes?.reference_per_100||'現在在籍人数を分母にした参考値です。')+'</p>'+
-      (departments.length?'<div class="table-wrap"><table><thead><tr><th>事業所</th><th>部署</th><th>事故</th><th>ヒヤリ</th><th>苦情</th><th>現在在籍</th><th>100人あたり参考</th></tr></thead><tbody>'+
-        departments.map(x=>'<tr><td>'+esc(x.office_snapshot||'—')+'</td><td>'+esc(x.department_snapshot||'—')+'</td><td>'+esc(x.accident_count)+'</td><td>'+esc(x.near_miss_count)+'</td><td>'+esc(x.complaint_count)+'</td><td>'+esc(x.active_employee_count)+'</td><td>'+esc(x.reference_per_100??'—')+'</td></tr>').join('')+
-        '</tbody></table></div>':empty())+'</section>'+ 
-      '<section class="panel"><div class="list-head"><div><b>分析から次の処理へ</b><span>数字を見て終わらせない</span></div></div><div class="hub-grid">'+
-      (canView('accidents')?hubButton('accidents','事故を確認','未完了・再発防止を確認'):'')+
-      (canView('near_misses')?hubButton('near-misses','ヒヤリを確認','高リスク・月次提出を確認'):'')+
-      (canView('complaints')?hubButton('complaints','苦情を確認','対応・指導・次回対応を確認'):'')+
-      '</div></section>'
+      '<section class="panel"><div class="list-head"><div><b>安全記録 部署別比較</b><span>'+esc(safetyDepartments.length)+'区分</span></div></div>'+
+      '<p class="sub">'+esc(s.notes?.reference_per_100||'現在在籍人数を分母にした参考値です。')+'</p>'+
+      (safetyDepartments.length?'<div class="table-wrap"><table><thead><tr><th>記録時事業所</th><th>記録時部署</th><th>事故</th><th>ヒヤリ</th><th>苦情</th><th>現在在籍</th><th>100人あたり参考</th></tr></thead><tbody>'+
+        safetyDepartments.map(x=>'<tr><td>'+esc(x.office_snapshot||'—')+'</td><td>'+esc(x.department_snapshot||'—')+'</td><td>'+esc(x.accident_count)+'</td><td>'+esc(x.near_miss_count)+'</td><td>'+esc(x.complaint_count)+'</td><td>'+esc(x.active_employee_count)+'</td><td>'+esc(x.reference_per_100??'—')+'</td></tr>').join('')+
+        '</tbody></table></div>':empty())+'</section>'+
+      (next.length?'<section class="panel"><div class="list-head"><div><b>分析から次の処理へ</b><span>数字を見て終わらせない</span></div></div><div class="hub-grid">'+next.join('')+'</div></section>':'')
   }
-
   async function applyAnalysisFilters(){
     state.analysisFilters={
       from:$('analysisFrom')?.value||'',
