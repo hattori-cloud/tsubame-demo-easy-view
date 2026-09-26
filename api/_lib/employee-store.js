@@ -62,7 +62,7 @@ async function createEmployee({user,body,requestId}){
       insert into employees(employee_no,name,furigana,office,department,position,taxi_section,team,employment_type,lifecycle_status,work_pattern,main_license,license_expiry,health_check_due,aptitude_due,safety_state,eligibility,hired_on)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
       returning *
-    `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||'日勤',body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
+    `,[no,name,body.furigana||null,office,department,body.position||null,body.taxi_section||null,body.team||null,body.employment_type||null,body.lifecycle_status||'active',body.work_pattern||null,body.main_license||null,body.license_expiry||null,body.health_check_due||null,body.aptitude_due||null,body.safety_state||null,body.eligibility||null,body.hired_on||null],client);
     const employee=r.rows[0];
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員登録','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[user.id,employee.id,requestId,no+' '+name],client);
     return employee
