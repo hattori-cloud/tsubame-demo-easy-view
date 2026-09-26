@@ -248,16 +248,16 @@ async function verifyPasswordCredentialRace(admin,mode){
       }
     };
     const self=await call('/vehicles','GET',{},staff.cookie);
-    assert.equal(self.statusCode,403);
+    assert.equal(self.statusCode,401);
     const scopedRes=await call('/vehicles','GET',{},scoped.cookie);
     assert.equal(scopedRes.statusCode,200);
     assert.deepEqual(leakFlags(scopedRes.body),{name:false,employee_no:false,uuid:false});
 
-    for(const actor of [staff,scoped]){
-      const deadlines=await call('/deadlines','GET',{},actor.cookie);
-      assert.equal(deadlines.statusCode,200);
-      assert.deepEqual(leakFlags(deadlines.body),{name:false,employee_no:false,uuid:false})
-    }
+    const legacySelfDeadlines=await call('/deadlines','GET',{},staff.cookie);
+    assert.equal(legacySelfDeadlines.statusCode,401);
+    const scopedDeadlines=await call('/deadlines','GET',{},scoped.cookie);
+    assert.equal(scopedDeadlines.statusCode,200);
+    assert.deepEqual(leakFlags(scopedDeadlines.body),{name:false,employee_no:false,uuid:false});
 
     for(const actor of [admin,scoped]){
       const searched=await call('/vehicles','GET',{},actor.cookie,{}, {q:'998'});
@@ -268,7 +268,7 @@ async function verifyPasswordCredentialRace(admin,mode){
     assert.equal(updated.statusCode,200);
     assert.deepEqual(leakFlags(updated.body),{name:false,employee_no:false,uuid:false});
 
-    report.cases.H06={self:self.statusCode,scoped:scopedRes.statusCode,deadlines_masked:true,update_masked:true};
+    report.cases.H06={legacy_self:self.statusCode,legacy_self_deadlines:legacySelfDeadlines.statusCode,scoped:scopedRes.statusCode,deadlines_masked:true,update_masked:true};
     report.cases.N01={full_search:200,scoped_search:200}
   }
 
