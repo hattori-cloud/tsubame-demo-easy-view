@@ -158,6 +158,7 @@ async function listNearMisses(user,filters={}){
   const r=await query(`select n.*,e.employee_no,e.name as employee_name,count(*) over()::int as _total from near_misses n join employees e on e.id=n.employee_id where ${where.join(' and ')} order by n.reported_on desc,n.id desc limit $${params.length-1} offset $${params.length}`,params);
   const total=r.rows[0]?Number(r.rows[0]._total):0;return {items:r.rows.map(({_total,...x})=>x),page,page_size:pageSize,total}
 }
+async function getNearMiss(user,id){requireSafetyManager(user);return scopedRecord(user,'near_misses',id,null)}
 async function createNearMiss({user,body,requestId}){
   if(!user)throw problem(403,'USER_REQUIRED','利用者を確認できません');
   return withTransaction(async client=>{
@@ -166,15 +167,23 @@ async function createNearMiss({user,body,requestId}){
     const occurred=String(body.occurred_on||'').trim(),reported=String(body.reported_on||'').trim(),summary=String(body.summary||'').trim();
     if(!occurred||!reported||!summary)throw problem(422,'REQUIRED_FIELDS','発生日・報告日・内容を入力してください');
     const no=businessNo('NEAR');
-    const r=await query(`insert into near_misses(report_no,employee_id,occurred_on,occurred_time,reported_on,car_no,summary,prevention,education,risk_level,cause_side,employee_no_at_report,office_at_report,department_at_report,employment_at_report,location_tags,situation_tags,road_tags,target_tags,internal_factors) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,$20::jsonb) returning *`,
-      [no,e.id,occurred,body.occurred_time||null,reported,body.car_no||null,summary,body.prevention||null,body.education||null,body.risk_level||null,body.cause_side||null,e.employee_no,e.office,e.department,e.employment_type||null,JSON.stringify(body.location_tags||[]),JSON.stringify(body.situation_tags||[]),JSON.stringify(body.road_tags||[]),JSON.stringify(body.target_tags||[]),JSON.stringify(body.internal_factors||[])],client);
-    await audit(client,{actorUserId:user.id,action:'ヒヤリ登録',entityType:'near_miss',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no});return r.rows[0]
+    const sourceType=String(body.source_type||'system').trim();
+    if(!['system','google_form','paper'].includes(sourceType))throw problem(422,'SOURCE_TYPE_INVALID','入力経路を確認してください');
+    const externalRef=String(body.external_ref||'').trim()||null;
+    if(sourceType!=='system'&&!externalRef)throw problem(422,'EXTERNAL_REF_REQUIRED','Googleフォーム・紙の取込には受付番号を入力してください');
+    if(externalRef){
+      const dup=await query(`select id,report_no from near_misses where source_type=$1 and external_ref=$2 and archived_at is null limit 1`,[sourceType,externalRef],client);
+      if(dup.rows[0])throw problem(409,'DUPLICATE_EXTERNAL_REF','同じ入力経路・受付番号のヒヤリが既に登録されています');
+    }
+    const r=await query(`insert into near_misses(report_no,employee_id,occurred_on,occurred_time,reported_on,car_no,summary,prevention,education,risk_level,cause_side,employee_no_at_report,office_at_report,department_at_report,employment_at_report,location_tags,situation_tags,road_tags,target_tags,internal_factors,source_type,external_ref) values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18::jsonb,$19::jsonb,$20::jsonb,$21,$22) returning *`,
+      [no,e.id,occurred,body.occurred_time||null,reported,body.car_no||null,summary,body.prevention||null,body.education||null,body.risk_level||null,body.cause_side||null,e.employee_no,e.office,e.department,e.employment_type||null,JSON.stringify(body.location_tags||[]),JSON.stringify(body.situation_tags||[]),JSON.stringify(body.road_tags||[]),JSON.stringify(body.target_tags||[]),JSON.stringify(body.internal_factors||[]),sourceType,externalRef],client);
+    await audit(client,{actorUserId:user.id,action:'ヒヤリ登録',entityType:'near_miss',entityId:r.rows[0].id,employeeId:e.id,requestId,summary:no+' / '+sourceType+(externalRef?' / '+externalRef:'')});return r.rows[0]
   })
 }
 async function updateNearMiss({user,id,body,expectedVersion,requestId}){
   requireSafetyManager(user);return withTransaction(async client=>{
     const before=await scopedRecord(user,'near_misses',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
-    const patch=editablePatch(body,['occurred_on','occurred_time','reported_on','car_no','summary','prevention','education','risk_level','cause_side','location_tags','situation_tags','road_tags','target_tags','internal_factors']);
+    const patch=editablePatch(body,['occurred_on','occurred_time','reported_on','car_no','summary','prevention','education','risk_level','cause_side','location_tags','situation_tags','road_tags','target_tags','internal_factors','source_type','external_ref']);
     for(const k of ['location_tags','situation_tags','road_tags','target_tags','internal_factors'])if(k in patch)patch[k]=JSON.stringify(patch[k]||[]);
     const keys=Object.keys(patch);if(!keys.length)return before;
     const params=[id],sets=keys.map(k=>{params.push(patch[k]);return `${k}=$${params.length}${k.endsWith('_tags')||k==='internal_factors'?'::jsonb':''}`});
@@ -250,4 +259,4 @@ async function archiveComplaint({user,id,expectedVersion,reason,requestId}){
     await history(client,{entityType:'complaint',entityId:id,employeeId:before.employee_id,actorUserId:user.id,action:'archive',before,after,reason});await audit(client,{actorUserId:user.id,action:'苦情アーカイブ',entityType:'complaint',entityId:id,employeeId:before.employee_id,requestId,summary:String(reason)});return after
   })
 }
-module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,getComplaint,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
+module.exports={managerAssigneeForEmployee,listAccidents,getAccident,createAccident,updateAccident,completeAccident,reopenAccident,archiveAccident,listNearMisses,getNearMiss,createNearMiss,updateNearMiss,archiveNearMiss,listComplaints,getComplaint,createComplaint,updateComplaint,completeComplaint,reopenComplaint,archiveComplaint,requireSafetyManager};
