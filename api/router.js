@@ -77,6 +77,7 @@ const ROUTES=[
   {pattern:/^\/employees\/([^\/]+)\/credentials\/?$/,keys:["id"],handler:require("./v1/employees/[id]/credentials.js"),source:"api/v1/employees/[id]/credentials.js"},
   {pattern:/^\/employees\/([^\/]+)\/employee-number\/?$/,keys:["id"],handler:require("./v1/employees/[id]/employee-number.js"),source:"api/v1/employees/[id]/employee-number.js"},
   {pattern:/^\/employees\/([^\/]+)\/transition\/?$/,keys:["id"],handler:require("./v1/employees/[id]/transition.js"),source:"api/v1/employees/[id]/transition.js"},
+  {pattern:/^\/handoffs\/targets\/?$/,keys:[],handler:require("./v1/handoffs/targets.js"),source:"api/v1/handoffs/targets.js"},
   {pattern:/^\/handoffs\/([^\/]+)\/acknowledge\/?$/,keys:["id"],handler:require("./v1/handoffs/[id]/acknowledge.js"),source:"api/v1/handoffs/[id]/acknowledge.js"},
   {pattern:/^\/near-miss-compliance\/targets\/([^\/]+)\/?$/,keys:["id"],handler:require("./v1/near-miss-compliance/targets/[id].js"),source:"api/v1/near-miss-compliance/targets/[id].js"},
   {pattern:/^\/near-misses\/([^\/]+)\/archive\/?$/,keys:["id"],handler:require("./v1/near-misses/[id]/archive.js"),source:"api/v1/near-misses/[id]/archive.js"},
