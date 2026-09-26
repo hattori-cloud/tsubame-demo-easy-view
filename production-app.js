@@ -395,7 +395,7 @@
       const employeeActions=[];
       if(canView('deadlines'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-deadlines">期限</button>');
       if(canView('credentials_documents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-credentials">資格・書類</button>');
-      if(canView('vehicles'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-vehicles">担当号車</button>');
+      if(canView('vehicles'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-vehicles">車両</button>');
       if(canView('accidents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-accidents">事故履歴</button>');
       if(canView('complaints'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-complaints">苦情履歴</button>');
       if(canView('near_misses'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-near">ヒヤリ履歴</button>');
@@ -438,7 +438,7 @@
     const deadlineRows=deadlines?.items||[],vehicleRows=vehicles?.items||[];
     const metrics=[
       deadlines?'<button class="support-stat '+((deadlines.summary?.overdue||0)?'danger':'')+'" data-dialog-action="open-employee-deadlines"><small>要対応期限</small><b>'+esc(deadlines.total||0)+'</b><span>超過 '+esc(deadlines.summary?.overdue||0)+'</span></button>':'',
-      vehicles?'<button class="support-stat" data-dialog-action="open-employee-vehicles"><small>担当号車</small><b>'+esc(vehicles.total||0)+'</b><span>車両へ</span></button>':'',
+      vehicles?'<button class="support-stat" data-dialog-action="open-employee-vehicles"><small>車両</small><b>'+esc(vehicles.total||0)+'</b><span>車両へ</span></button>':'',
       accidents?'<button class="support-stat" data-dialog-action="open-employee-accidents"><small>事故</small><b>'+esc(accidents.total||0)+'</b><span>履歴へ</span></button>':'',
       complaints?'<button class="support-stat" data-dialog-action="open-employee-complaints"><small>苦情</small><b>'+esc(complaints.total||0)+'</b><span>履歴へ</span></button>':'',
       near?'<button class="support-stat" data-dialog-action="open-employee-near"><small>ヒヤリ</small><b>'+esc(near.total||0)+'</b><span>履歴へ</span></button>':''
@@ -453,7 +453,7 @@
     if(!metrics&&!deadlineRows.length&&!vehicleRows.length)return '';
     return '<section class="employee-support employee-operational"><div class="support-head"><div><b>この社員の業務状況</b><span>期限・号車・安全履歴をここから追えます</span></div></div>'+
       (metrics?'<div class="support-stat-grid">'+metrics+'</div>':'')+
-      '<div class="support-grid"><div><h4>近い期限</h4>'+dueHtml+'</div><div><h4>担当号車</h4>'+vehicleHtml+'</div></div></section>'
+      '<div class="support-grid"><div><h4>近い期限</h4>'+dueHtml+'</div><div><h4>基本固定車・担当車</h4>'+vehicleHtml+'</div></div></section>'
   }
   function employeeQuickCreateHtml(employee,ops){
     const buttons=[];
@@ -613,7 +613,7 @@
     const add=canEdit('vehicles')?'<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'車両',add)+(data.items.length?'<div class="cards">'+data.items.map(v=>
       '<div class="record"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+'</span></div>'+
-      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span>'+(v.primary_employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(v.primary_employee_id)+'">担当社員</button>':'')+'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>'+esc(vehicleAssignmentLabel(v.assignment_mode))+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span>'+(v.primary_employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(v.primary_employee_id)+'">担当社員</button>':'')+'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
     $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'vehicles',q));
   }
@@ -1611,7 +1611,7 @@
     const primary=(v.users||[]).find(x=>x.role==='primary');
     const additional=(v.users||[]).filter(x=>x.role==='additional');
     const fields=
-      formSelect('assignment_mode','車両区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
+      formSelect('assignment_mode','車両の使い方',[['spare','予備車'],['shared','共用車'],['dedicated','基本固定車'],['loaner','代車・貸出']],v.assignment_mode||'spare')+
       formField('primary_employee','主担当（社員番号または氏名）',primary?.employee_no||v.primary_employee_no||'','text','placeholder="例：1001 または 安芸太郎"')+
       formNote('「基本固定車」は普段の基準車で、絶対固定ではありません。事故・修理・代車時は別号車に乗れます。')+
       formArea('additional_employees','追加担当（1行1名・社員番号推奨）',additional.map(x=>x.employee_no||x.name).join('\n'),'placeholder="1002&#10;1015"');
