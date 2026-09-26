@@ -64,7 +64,7 @@ module.exports=async function handler(req,res){
   }
 
   const locked=account.locked_until&&new Date(account.locked_until).getTime()>Date.now();
-  const allowed=account.state==='active'&&account.employee_lifecycle_status!=='retired'&&!locked&&String(account.employee_no)===employeeNo;
+  const allowed=account.state==='active'&&account.employee_lifecycle_status!=='retired'&&account.role_level!=='self'&&!locked&&String(account.employee_no)===employeeNo;
   let passwordOk=false;
   if(allowed){
     try{passwordOk=await verify(account.password_hash,password)}catch(_){passwordOk=false}
@@ -83,7 +83,7 @@ module.exports=async function handler(req,res){
         const current=await findCredentialAccountById(account.id,client,{forUpdate:true});
         const currentLocked=current?.locked_until&&new Date(current.locked_until).getTime()>Date.now();
         const credentialsStillCurrent=Boolean(
-          current&&current.state==='active'&&current.employee_lifecycle_status!=='retired'&&!currentLocked&&
+          current&&current.state==='active'&&current.employee_lifecycle_status!=='retired'&&current.role_level!=='self'&&!currentLocked&&
           String(current.employee_no)===employeeNo&&String(current.password_hash)===String(account.password_hash)
         );
         if(!credentialsStillCurrent){const e=new Error('credentials changed before MFA challenge issuance');e.code='CREDENTIALS_CHANGED';throw e}
@@ -104,7 +104,7 @@ module.exports=async function handler(req,res){
       const current=await findCredentialAccountById(account.id,client,{forUpdate:true});
       const currentLocked=current?.locked_until&&new Date(current.locked_until).getTime()>Date.now();
       const credentialsStillCurrent=Boolean(
-        current&&current.state==='active'&&current.employee_lifecycle_status!=='retired'&&!currentLocked&&
+        current&&current.state==='active'&&current.employee_lifecycle_status!=='retired'&&current.role_level!=='self'&&!currentLocked&&
         String(current.employee_no)===employeeNo&&String(current.password_hash)===String(account.password_hash)
       );
       if(!credentialsStillCurrent){const e=new Error('credentials changed before session issuance');e.code='CREDENTIALS_CHANGED';throw e}
