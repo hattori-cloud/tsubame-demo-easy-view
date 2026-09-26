@@ -88,3 +88,11 @@ test('capacity addendum does not redeclare columns owned by the canonical v200 s
   ];
   forbidden.forEach(text=>assert.equal(capacity.includes(text),false,text+' must remain owned by production-schema.sql'));
 });
+
+
+test('near-miss capacity migration adds source tracking and active duplicate protection',()=>{
+  assert.match(capacity,/add column if not exists source_type text not null default 'system'/i);
+  assert.match(capacity,/add column if not exists external_ref text/i);
+  assert.match(capacity,/near_misses_source_type_check/i);
+  assert.match(capacity,/create unique index if not exists near_misses_source_ref_unique/i);
+});
