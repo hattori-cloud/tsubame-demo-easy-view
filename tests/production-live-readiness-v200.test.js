@@ -29,3 +29,9 @@ test('production activation code requires backup readiness in addition to storag
   assert.ok(runtime.includes('originalDocumentPipelineReady() && documentBackupReady()'));
   assert.ok(runtime.includes('document_backup_ready:backup'));
 });
+
+
+test('production readiness requires office LAN / corporate Wi-Fi CIDRs',()=>{
+  assert.ok(source.includes("blockers.push('internal_network_cidrs')"));
+  assert.ok(source.includes('internal_network_cidrs:env.internal_network_cidrs_present'));
+});
