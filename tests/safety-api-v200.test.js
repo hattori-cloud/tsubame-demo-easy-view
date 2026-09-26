@@ -115,3 +115,20 @@ test('normal accident and complaint updates cannot bypass complete or reopen wor
   const complaintAllowed=complaintUpdate.match(/editablePatch\(body,\[([^\]]+)\]/);
   assert.ok(complaintAllowed);assert.equal(complaintAllowed[1].includes("'status'"),false);
 });
+
+
+test('near-miss detail supports scoped GET and versioned PATCH',()=>{
+  const route=src('api','v1','near-misses','[id].js');
+  assert.ok(route.includes("['GET','PATCH'].includes(req.method)"));
+  assert.ok(route.includes('getNearMiss(user'));
+  assert.ok(route.includes('parseIfMatchHeader'));
+});
+
+test('near-miss input source supports system google form and paper with duplicate reference protection',()=>{
+  assert.ok(store.includes("['system','google_form','paper']"));
+  assert.ok(store.includes('DUPLICATE_EXTERNAL_REF'));
+  assert.ok(store.includes('EXTERNAL_REF_REQUIRED'));
+  assert.ok(store.includes("source_type=$1 and external_ref=$2"));
+  const nearUpdate=store.slice(store.indexOf('async function updateNearMiss'),store.indexOf('async function archiveNearMiss'));
+  assert.ok(nearUpdate.includes("'source_type','external_ref'"));
+});
