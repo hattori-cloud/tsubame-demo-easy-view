@@ -40,8 +40,10 @@ test('production read shell covers primary operational views without embedding e
 });
 
 test('self users do not receive manager-only navigation controls',()=>{
-  assert.ok(js.includes("for(const view of ['accidents','complaints','vehicles'])"));
+  assert.ok(js.includes("for(const view of ['accidents','complaints','vehicles','analysis'])"));
   assert.ok(js.includes('button.hidden=!manager'));
+  assert.ok(js.includes("workImport.hidden=state.me?.role_level!=='full'"));
+  assert.ok(js.includes("users.hidden=state.me?.role_level!=='full'"));
 });
 
 test('production UI has explicit desktop 390px and 320px responsive rules',()=>{
