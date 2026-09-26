@@ -215,7 +215,7 @@ async function verifyPasswordCredentialRace(admin,mode){
     report.cases.H08={completed:true,edit_after_complete:'REOPEN_REQUIRED'}
   }
 
-  // H05: manager-only records are not readable by self users.
+  // H05: legacy self users cannot obtain a production session or read manager-only records.
   {
     await support.createSupport({user:admin.u,kind:'guidance',body:{
       employee_id:staff.e.id,guidance_on:'2026-09-25',type:'Fictional manager review',
@@ -225,7 +225,7 @@ async function verifyPasswordCredentialRace(admin,mode){
     for(const route of ['/accidents','/complaints','/guidance']){
       const res=await call(route,'GET',{},staff.cookie);
       statuses[route]=brief(res);
-      assert.equal(res.statusCode,403)
+      assert.equal(res.statusCode,401)
     }
     report.cases.H05=statuses
   }
