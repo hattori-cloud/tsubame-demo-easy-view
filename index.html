@@ -1731,6 +1731,10 @@ function ensureCredentialLinks(){
  if(sampleAccidentDoc&&!sampleAccidentDoc.linkedEntityId){
   sampleAccidentDoc.linkedEntityType='accident';sampleAccidentDoc.linkedEntityId='A-2026-001';sampleAccidentDoc.documentRole='scene_photo';changed=true
  }
+ DOCS.filter(d=>!d.archived&&d.linkedEntityType==='accident'&&d.linkedEntityId).forEach(d=>{
+  let a=A.find(x=>String(x.id)===String(d.linkedEntityId));
+  if(a&&(!a.evidenceStatus||a.evidenceStatus==='未確認'||a.evidenceStatus==='なし')){a.evidenceStatus='あり';changed=true}
+ })
  if(changed){localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v30DOCS',JSON.stringify(DOCS))}
 }
 function qualificationEvidenceDocument(q){
@@ -7262,6 +7266,7 @@ function openAccidentEvidenceForm(accidentId){
     linkedEntityType:'accident',linkedEntityId:String(a.id),documentRole:faedocrole.value,reportPlacement:faedocprint.value
   };
   touchRecord(rec,'document',true);DOCS.push(rec);
+  if(a.evidenceStatus!=='あり'){a.evidenceStatus='あり';touchRecord(a,'accident',false)}
   audit('事故資料紐付け',a.id+' / '+id+' / '+accidentDocumentRoleLabel(rec.documentRole)+' / '+rec.name,{employee_no:a.employee_no,entity_type:'document',entity_id:id});
   if(!save())return;closeForm();renderSafetyMutationViews();accidentDetail(a.id)
  };
