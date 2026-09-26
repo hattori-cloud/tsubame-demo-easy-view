@@ -1,7 +1,7 @@
 const {authenticateRequest,sendApiError}=require('../../_lib/auth');
 const {resolveCurrentUser}=require('../../_lib/authorization');
 const {applySecurityHeaders,requestId}=require('../../_lib/security');
-const {documentStorageAdapterReady}=require('../../_lib/runtime-config');
+const {originalDocumentPipelineReady}=require('../../_lib/runtime-config');
 const {getDocumentStorageAdapter,decryptTicket}=require('../../_lib/document-storage');
 const {reserveDocumentOriginal,activateDocumentOriginal}=require('../../_lib/document-original-store');
 
@@ -20,7 +20,10 @@ module.exports=async function handler(req,res){
   try{
     const identity=await authenticateRequest(req),user=resolveCurrentUser(identity),rid=requestId(req);
     if(!['full','scoped'].includes(user.role_level)){const e=new Error('書類原本確定は管理者のみ利用できます');e.status=403;e.code='MANAGER_REQUIRED';throw e}
-    if(!documentStorageAdapterReady()){const e=new Error('承認済みprivate原本ストレージアダプターが未接続です');e.status=503;e.code='DOCUMENT_STORAGE_ADAPTER_NOT_READY';throw e}
+    if(!originalDocumentPipelineReady()){
+      const e=new Error('private原本ストレージとマルウェアスキャンの安全確認パイプラインが未接続です');
+      e.status=503;e.code='DOCUMENT_ORIGINAL_PIPELINE_NOT_READY';throw e
+    }
 
     const claims=decryptTicket(req.body?.upload_ticket);
     if(claims.type!=='document_upload'||String(claims.user_id)!==String(user.id)){

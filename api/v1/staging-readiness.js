@@ -32,8 +32,10 @@ module.exports=async function handler(req,res){
     if(!dbProbe.work_import_ready)blockers.push('勤務集計commit/history/rollback DB構造');
     if(!dbProbe.runtime_role_ready)blockers.push('runtime DB least-privilege接続')
   }
-  if(!readiness.document_storage_env_present)blockers.push('private原本ストレージ接続');
-  if(!readiness.document_storage_adapter_ready)blockers.push('private原本ストレージ実アダプター');
+  if(!readiness.document_storage_env_present)blockers.push('private原本ストレージ接続設定');
+  if(!readiness.document_storage_transport_ready)blockers.push('private原本ストレージ実アダプター');
+  if(!readiness.document_malware_scanner_ready)blockers.push('原本マルウェアスキャナ');
+  if(!readiness.original_document_pipeline_ready)blockers.push('原本安全確認パイプライン');
 
   return res.status(200).json({
     service:'tsubame-staging-readiness',
@@ -50,7 +52,10 @@ module.exports=async function handler(req,res){
       work_import_persistence_ready:dbProbe.work_import_ready,
       runtime_db_role_ready:dbProbe.runtime_role_ready,
       database_vertical_slice_ready:databaseReady,
+      document_storage_transport_ready:readiness.document_storage_transport_ready,
       document_storage_adapter_ready:readiness.document_storage_adapter_ready,
+      document_malware_scanner_ready:readiness.document_malware_scanner_ready,
+      original_document_pipeline_ready:readiness.original_document_pipeline_ready,
       original_file_test_ready:Boolean(readiness.original_file_test_ready&&databaseReady)
     },
     blockers,

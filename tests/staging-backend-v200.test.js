@@ -18,6 +18,10 @@ function envSnapshot(){
     TSUBAME_MFA_ENCRYPTION_KEY:process.env.TSUBAME_MFA_ENCRYPTION_KEY,
     DATABASE_URL:process.env.DATABASE_URL,
     TSUBAME_DATABASE_URL:process.env.TSUBAME_DATABASE_URL,
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER,
+    TSUBAME_DOCUMENT_TICKET_SECRET:process.env.TSUBAME_DOCUMENT_TICKET_SECRET,
+    TSUBAME_DOCUMENT_BLOB_STORE_ID:process.env.TSUBAME_DOCUMENT_BLOB_STORE_ID,
+    VERCEL_OIDC_TOKEN:process.env.VERCEL_OIDC_TOKEN,
     BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN,
     TSUBAME_DOCUMENT_STORAGE_TOKEN:process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN
   }
@@ -62,20 +66,26 @@ test('backend readiness reports booleans without secret values',()=>{
     process.env.DATABASE_URL='postgres://secret-user:secret-password@example.invalid/db';
     process.env.TSUBAME_SESSION_SECRET='secret-session-signing-value-32chars-plus';
     process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,7).toString('base64');
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='secret-document-ticket-value-32chars-plus';
     process.env.BLOB_READ_WRITE_TOKEN='secret-storage-token';
     const readiness=runtime.backendReadiness();
     assert.equal(readiness.auth_env_present,true);
     assert.equal(readiness.mfa_env_present,true);
     assert.equal(readiness.database_env_present,true);
     assert.equal(readiness.document_storage_env_present,true);
-    assert.equal(readiness.document_storage_adapter_ready,false);
+    assert.equal(readiness.document_storage_transport_ready,true);
+    assert.equal(readiness.document_storage_adapter_ready,true);
+    assert.equal(readiness.document_malware_scanner_ready,false);
+    assert.equal(readiness.original_document_pipeline_ready,false);
     assert.equal(readiness.fictional_fixtures_enabled,true);
     assert.equal(readiness.original_file_test_ready,false);
     const serialized=JSON.stringify(readiness);
     assert.equal(serialized.includes('secret-password'),false);
     assert.equal(serialized.includes('secret-storage-token'),false);
     assert.equal(serialized.includes('secret-audience-value'),false);
-    assert.equal(serialized.includes('secret-session-signing-value-32chars-plus'),false)
+    assert.equal(serialized.includes('secret-session-signing-value-32chars-plus'),false);
+    assert.equal(serialized.includes('secret-document-ticket-value-32chars-plus'),false)
   }finally{restoreEnv(saved)}
 });
 
@@ -98,7 +108,6 @@ test('staging readiness route is hidden in production and never returns secret e
   assert.equal(source.includes('process.env.BLOB_READ_WRITE_TOKEN'),false)
 });
 
-
 test('staging readiness verifies live database state instead of trusting env presence',()=>{
   const route=fs.readFileSync(path.join(__dirname,'..','api','v1','staging-readiness.js'),'utf8');
   const db=fs.readFileSync(path.join(__dirname,'..','api','_lib','db.js'),'utf8');
@@ -112,7 +121,6 @@ test('staging readiness verifies live database state instead of trusting env pre
   assert.ok(db.includes("record_histories_append_only_guard"));
   assert.ok(db.includes("to_regclass('public.near_miss_monthly_compliance')"));
 });
-
 
 test('legacy OIDC variables alone do not mark credential-session auth as ready',()=>{
   const saved=envSnapshot();
@@ -130,23 +138,22 @@ test('legacy OIDC variables alone do not mark credential-session auth as ready',
   }finally{restoreEnv(saved)}
 });
 
-
-test('production business activation remains closed until auth, database and original storage adapter are ready',()=>{
+test('production business activation remains closed when private transport exists but malware scanner is absent',()=>{
   const saved=envSnapshot();
   try{
     process.env.VERCEL_ENV='production';
     process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA='1';
-    delete process.env.DATABASE_URL;
-    delete process.env.TSUBAME_DATABASE_URL;
-    delete process.env.TSUBAME_SESSION_SECRET;
-    delete process.env.TSUBAME_MFA_ENCRYPTION_KEY;
-    assert.equal(runtime.productionBusinessActivationRequested(),true);
-    assert.equal(runtime.productionBusinessDataEnabled(),false);
     process.env.DATABASE_URL='postgres://example.invalid/db';
     process.env.TSUBAME_SESSION_SECRET='12345678901234567890123456789012';
     process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,9).toString('base64');
-    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present-but-adapter-not-implemented';
-    assert.equal(runtime.documentStorageAdapterReady(),false);
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present';
+    assert.equal(runtime.productionBusinessActivationRequested(),true);
+    assert.equal(runtime.documentStorageTransportReady(),true);
+    assert.equal(runtime.documentStorageAdapterReady(),true);
+    assert.equal(runtime.documentMalwareScannerReady(),false);
+    assert.equal(runtime.originalDocumentPipelineReady(),false);
     assert.equal(runtime.productionBusinessDataEnabled(),false);
     process.env.VERCEL_ENV='preview';
     assert.equal(runtime.productionBusinessDataEnabled(),false);

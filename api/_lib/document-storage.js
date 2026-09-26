@@ -1,10 +1,13 @@
 const crypto=require('crypto');
-const {isProductionRuntime}=require('./runtime-config');
+const {isProductionRuntime,documentStorageTransportReady}=require('./runtime-config');
 
 const CI_PROVIDER='ci-memory';
+const VERCEL_PRIVATE_PROVIDER='vercel-blob-private';
 const memoryObjects=new Map();
 const memoryUploadAuth=new Map();
 const memoryDownloadAuth=new Map();
+let blobSdkOverride=null;
+let fetchOverride=null;
 
 function problem(status,code,message){const e=new Error(message);e.status=status;e.code=code;return e}
 function providerName(){return String(process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER||'').trim().toLowerCase()}
@@ -82,13 +85,111 @@ function ciAdapter(){
     }
   }
 }
+function assertQuarantineKey(storageKey){
+  const key=String(storageKey||'');
+  if(!/^quarantine\/[0-9a-f]{32}$/.test(key))throw problem(400,'DOCUMENT_STORAGE_KEY_INVALID','原本保存キーを確認できません');
+  return key
+}
+async function blobSdk(){
+  if(blobSdkOverride)return blobSdkOverride;
+  try{return await import('@vercel/blob')}catch(_){
+    throw problem(503,'DOCUMENT_STORAGE_SDK_UNAVAILABLE','private原本ストレージSDKを利用できません')
+  }
+}
+function blobAuthOptions(){
+  const token=String(process.env.BLOB_READ_WRITE_TOKEN||process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN||'').trim();
+  if(token)return {token};
+  const oidcToken=String(process.env.VERCEL_OIDC_TOKEN||'').trim();
+  const storeId=String(process.env.TSUBAME_DOCUMENT_BLOB_STORE_ID||'').trim();
+  if(oidcToken&&storeId)return {oidcToken,storeId};
+  throw problem(503,'DOCUMENT_STORAGE_CREDENTIALS_NOT_CONFIGURED','private原本ストレージ認証が未設定です')
+}
+function httpFetch(url,options){
+  const fn=fetchOverride||globalThis.fetch;
+  if(typeof fn!=='function')throw problem(503,'DOCUMENT_STORAGE_FETCH_UNAVAILABLE','private原本ストレージ通信を利用できません');
+  return fn(url,options)
+}
+async function signedBlobUrl(storageKey,operation,{expiresSeconds=60,contentType=null,sizeBytes=null,useCache=false}={}){
+  const pathname=assertQuarantineKey(storageKey),sdk=await blobSdk(),validUntil=Date.now()+expiresSeconds*1000;
+  const issueOptions={
+    ...blobAuthOptions(),pathname,operations:[operation],validUntil
+  };
+  if(operation==='put'){
+    issueOptions.allowedContentTypes=[contentType];
+    issueOptions.maximumSizeInBytes=sizeBytes
+  }
+  const signed=await sdk.issueSignedToken(issueOptions);
+  const signOptions={operation,pathname,access:'private',validUntil};
+  if(operation==='put'){
+    signOptions.allowedContentTypes=[contentType];
+    signOptions.maximumSizeInBytes=sizeBytes;
+    signOptions.addRandomSuffix=false;
+    signOptions.allowOverwrite=false;
+    signOptions.cacheControlMaxAge=0
+  }
+  if(operation==='get')signOptions.useCache=Boolean(useCache);
+  const result=await sdk.presignUrl(signed,signOptions);
+  if(!result?.presignedUrl||!/^https:\/\//i.test(String(result.presignedUrl))){
+    throw problem(503,'DOCUMENT_STORAGE_SIGNING_FAILED','private原本ストレージの短時間URLを作成できません')
+  }
+  return {url:String(result.presignedUrl),validUntil}
+}
+async function inspectPrivateBlob(storageKey){
+  const key=assertQuarantineKey(storageKey);
+  const headSigned=await signedBlobUrl(key,'head',{expiresSeconds:60});
+  const head=await httpFetch(headSigned.url,{method:'HEAD',redirect:'error',cache:'no-store'});
+  if(!head?.ok)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
+  const contentType=String(head.headers?.get?.('content-type')||'').split(';')[0].trim().toLowerCase();
+  const contentLength=Number(head.headers?.get?.('content-length')||0);
+  const etag=String(head.headers?.get?.('etag')||'').replace(/^W\//,'').replace(/"/g,'');
+  if(!allowedContentTypes().has(contentType))throw problem(409,'DOCUMENT_CONTENT_TYPE_MISMATCH','保存済み原本の形式を確認できません');
+  if(!Number.isSafeInteger(contentLength)||contentLength<=0||contentLength>maxUploadBytes()){
+    throw problem(409,'DOCUMENT_SIZE_MISMATCH','保存済み原本のサイズを確認できません')
+  }
+  const getSigned=await signedBlobUrl(key,'get',{expiresSeconds:60,useCache:false});
+  const got=await httpFetch(getSigned.url,{method:'GET',redirect:'error',cache:'no-store'});
+  if(!got?.ok)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を読み込めません');
+  const bytes=Buffer.from(await got.arrayBuffer());
+  if(bytes.length!==contentLength)throw problem(409,'DOCUMENT_SIZE_MISMATCH','保存済み原本のサイズが一致しません');
+  const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
+  return {
+    storage_key:key,state:'quarantine',content_type:contentType,size_bytes:contentLength,
+    sha256,etag:etag||null,malware_status:'pending',malware_scanned_at:null
+  }
+}
+function vercelBlobAdapter(){
+  if(!documentStorageTransportReady())throw problem(503,'DOCUMENT_STORAGE_ADAPTER_NOT_READY','private原本ストレージ接続を確認できません');
+  return {
+    name:VERCEL_PRIVATE_PROVIDER,
+    async createUploadAuthorization({storageKey,contentType,sizeBytes,expiresSeconds=60}){
+      const signed=await signedBlobUrl(storageKey,'put',{expiresSeconds,contentType,sizeBytes});
+      return {method:'PUT',upload_url:signed.url,upload_token:null,expires_at:new Date(signed.validUntil).toISOString()}
+    },
+    async inspectQuarantine(storageKey){
+      return inspectPrivateBlob(storageKey)
+    },
+    async activate(storageKey){
+      const inspected=await inspectPrivateBlob(storageKey);
+      if(!inspected.etag)throw problem(409,'DOCUMENT_STORAGE_VERSION_MISSING','原本ストレージversionを確認できません');
+      // The blob stays at an opaque immutable quarantine key. Application DB state controls active access.
+      return {storage_key:storageKey,version_id:inspected.etag}
+    },
+    async createDownloadAuthorization({storageKey,expiresSeconds=60}){
+      const signed=await signedBlobUrl(storageKey,'get',{expiresSeconds,useCache:false});
+      return {download_url:signed.url,expires_at:new Date(signed.validUntil).toISOString()}
+    }
+  }
+}
 function getDocumentStorageAdapter(){
   const provider=providerName();
   if(provider===CI_PROVIDER)return ciAdapter();
+  if(provider===VERCEL_PRIVATE_PROVIDER)return vercelBlobAdapter();
   throw problem(503,'DOCUMENT_STORAGE_ADAPTER_NOT_READY','承認済みprivate原本ストレージアダプターが未接続です')
 }
 function adapterReady(){
-  return providerName()===CI_PROVIDER&&!isProductionRuntime()&&String(process.env.TSUBAME_DOCUMENT_TICKET_SECRET||'').length>=32
+  if(providerName()===CI_PROVIDER)return !isProductionRuntime()&&String(process.env.TSUBAME_DOCUMENT_TICKET_SECRET||'').length>=32;
+  if(providerName()===VERCEL_PRIVATE_PROVIDER)return documentStorageTransportReady();
+  return false
 }
 async function ciPutObject({uploadToken,body,contentType}){
   if(providerName()!==CI_PROVIDER||isProductionRuntime())throw problem(403,'CI_STORAGE_ONLY','CI原本アダプターは非本番専用です');
@@ -114,9 +215,13 @@ async function ciReadDownload(downloadToken){
   return Buffer.from(obj.bytes)
 }
 function resetCiStorage(){memoryObjects.clear();memoryUploadAuth.clear();memoryDownloadAuth.clear()}
+function resetTestOverrides(){blobSdkOverride=null;fetchOverride=null}
 
 module.exports={
   providerName,adapterReady,getDocumentStorageAdapter,encryptTicket,decryptTicket,randomStorageKey,
   validateUploadRequest,maxUploadBytes,
-  _test:{ciPutObject,ciReadDownload,resetCiStorage}
+  _test:{
+    ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,
+    setBlobSdk(v){blobSdkOverride=v},setFetch(v){fetchOverride=v},resetTestOverrides
+  }
 };

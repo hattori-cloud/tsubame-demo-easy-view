@@ -25,14 +25,35 @@ function documentStorageProvider(){
 function documentStorageTicketSecretPresent(){
   return String(process.env.TSUBAME_DOCUMENT_TICKET_SECRET||'').length>=32
 }
-function documentStorageEnvPresent(){
-  if(documentStorageProvider()==='ci-memory'&&isNonProductionRuntime())return documentStorageTicketSecretPresent();
+function documentStorageStaticTokenPresent(){
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN||process.env.TSUBAME_DOCUMENT_STORAGE_TOKEN)
 }
+function documentStorageOidcPresent(){
+  return Boolean(process.env.VERCEL_OIDC_TOKEN&&process.env.TSUBAME_DOCUMENT_BLOB_STORE_ID)
+}
+function documentStorageEnvPresent(){
+  const provider=documentStorageProvider();
+  if(provider==='ci-memory'&&isNonProductionRuntime())return documentStorageTicketSecretPresent();
+  if(provider==='vercel-blob-private')return Boolean(
+    documentStorageTicketSecretPresent()&&(documentStorageStaticTokenPresent()||documentStorageOidcPresent())
+  );
+  return false
+}
+function documentStorageTransportReady(){
+  return documentStorageEnvPresent()
+}
+function documentMalwareScannerReady(){
+  const provider=documentStorageProvider();
+  if(provider==='ci-memory'&&isNonProductionRuntime())return true;
+  // Production malware scanning remains fail-closed until an approved scanner adapter is implemented and audited.
+  return false
+}
 function documentStorageAdapterReady(){
-  // The CI adapter proves the provider-neutral contract only in non-production.
-  // Production remains fail-closed until an approved private provider adapter is implemented and audited.
-  return Boolean(documentStorageProvider()==='ci-memory'&&isNonProductionRuntime()&&documentStorageTicketSecretPresent())
+  // Compatibility name: this now means the private storage transport is usable.
+  return documentStorageTransportReady()
+}
+function originalDocumentPipelineReady(){
+  return Boolean(documentStorageTransportReady()&&documentMalwareScannerReady())
 }
 function stagingFixturesRequested(){
   return process.env.TSUBAME_ENABLE_STAGING_FIXTURES==='1'
@@ -44,29 +65,40 @@ function productionBusinessActivationRequested(){
   return process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA==='1'
 }
 function productionBusinessDataEnabled(){
-  return Boolean(isProductionRuntime() && productionBusinessActivationRequested() && authEnvPresent() && databaseEnvPresent() && documentStorageEnvPresent() && documentStorageAdapterReady())
+  return Boolean(
+    isProductionRuntime() && productionBusinessActivationRequested() &&
+    authEnvPresent() && databaseEnvPresent() && originalDocumentPipelineReady()
+  )
 }
 function backendReadiness(){
-  const auth=authEnvPresent(),mfa=mfaEnvPresent(),db=databaseEnvPresent(),storage=documentStorageEnvPresent(),storageAdapter=documentStorageAdapterReady(),fixtures=stagingFixturesAllowed();
+  const auth=authEnvPresent(),mfa=mfaEnvPresent(),db=databaseEnvPresent();
+  const storage=documentStorageEnvPresent(),storageTransport=documentStorageTransportReady();
+  const malwareScanner=documentMalwareScannerReady(),originalPipeline=originalDocumentPipelineReady();
+  const fixtures=stagingFixturesAllowed();
   return {
     environment:runtimeEnvironment(),
     auth_env_present:auth,
     mfa_env_present:mfa,
     database_env_present:db,
     document_storage_env_present:storage,
-    document_storage_adapter_ready:storageAdapter,
+    document_storage_transport_ready:storageTransport,
+    document_storage_adapter_ready:storageTransport,
+    document_malware_scanner_ready:malwareScanner,
+    original_document_pipeline_ready:originalPipeline,
     fictional_fixtures_enabled:fixtures,
     auth_probe_ready:auth,
     fictional_registry_ready:auth&&fixtures,
     database_vertical_slice_ready:auth&&db,
-    original_file_test_ready:auth&&db&&storage&&storageAdapter,
+    original_file_test_ready:auth&&db&&originalPipeline,
     production_business_activation_requested:productionBusinessActivationRequested(),
     production_business_data_enabled:productionBusinessDataEnabled()
   }
 }
 module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
-  authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,documentStorageProvider,documentStorageTicketSecretPresent,documentStorageEnvPresent,documentStorageAdapterReady,
+  authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,
+  documentStorageProvider,documentStorageTicketSecretPresent,documentStorageStaticTokenPresent,documentStorageOidcPresent,
+  documentStorageEnvPresent,documentStorageTransportReady,documentStorageAdapterReady,documentMalwareScannerReady,originalDocumentPipelineReady,
   stagingFixturesRequested,stagingFixturesAllowed,
   productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };

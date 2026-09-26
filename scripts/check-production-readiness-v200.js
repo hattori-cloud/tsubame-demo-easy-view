@@ -22,7 +22,9 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
   if(!db.work_import_ready)blockers.push('work_import_persistence');
   if(!db.runtime_role_ready)blockers.push('runtime_db_role');
   if(!env.document_storage_env_present)blockers.push('document_storage_env');
-  if(!env.document_storage_adapter_ready)blockers.push('document_storage_adapter');
+  if(!env.document_storage_transport_ready)blockers.push('document_storage_transport');
+  if(!env.document_malware_scanner_ready)blockers.push('document_malware_scanner');
+  if(!env.original_document_pipeline_ready)blockers.push('original_document_pipeline');
   if(!env.production_business_activation_requested)blockers.push('production_activation_flag');
 
   const report={
@@ -38,7 +40,9 @@ const {probeDatabaseReadiness,closePool}=require('../api/_lib/db');
       work_import_persistence:db.work_import_ready,
       runtime_db_role:db.runtime_role_ready,
       document_storage_env:env.document_storage_env_present,
-      document_storage_adapter:env.document_storage_adapter_ready,
+      document_storage_transport:env.document_storage_transport_ready,
+      document_malware_scanner:env.document_malware_scanner_ready,
+      original_document_pipeline:env.original_document_pipeline_ready,
       production_activation_requested:env.production_business_activation_requested,
       production_business_data_enabled:env.production_business_data_enabled
     },
