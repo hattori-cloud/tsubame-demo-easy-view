@@ -10,7 +10,7 @@ module.exports=async function handler(req,res){
     const user=resolveCurrentUser(identity);
     const id=requestId(req);applySecurityHeaders(res);res.setHeader('X-Request-Id',id);
     return res.status(200).json({
-      user:{id:user.id,employee_id:user.employee_id,display_name:user.display_name,role_level:user.role_level,safety_authority:user.safety_authority,scopes:user.scopes||[]},
+      user:{id:user.id,employee_id:user.employee_id,display_name:user.display_name,role_level:user.role_level,safety_authority:user.safety_authority,scopes:user.scopes||[],permissions:user.permissions||[]},
       identity:{subject:identity.subject,email:identity.email||''},
       data_mode:stagingFixturesAllowed()?'fictional-staging-fixtures':'postgres'
     })
