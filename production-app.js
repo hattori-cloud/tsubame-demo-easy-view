@@ -347,6 +347,34 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function newGuidance(){
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    if(!manager)return;
+    const employees=await employeeChoices();
+    const fields=
+      formSelect('employee_id','対象社員',employees,'','required')+
+      formField('guidance_on','指導日',new Date().toISOString().slice(0,10),'date','required')+
+      formField('type','指導区分','','text','required')+
+      formArea('summary','指導内容','','required')+
+      formField('owner','担当者',state.me?.display_name||'','text','required')+
+      formField('next_review','次回確認日','','date');
+    openRecordForm('指導登録',fields,async fd=>{
+      await api('/guidance',{method:'POST',body:{
+        employee_id:fdText(fd,'employee_id'),
+        guidance_on:fdText(fd,'guidance_on'),
+        type:fdText(fd,'type'),
+        summary:fdText(fd,'summary'),
+        owner:fdText(fd,'owner'),
+        next_review:nullable(fdText(fd,'next_review'))
+      }})
+    })
+  }
+
+  async function acknowledgeHandoff(id){
+    await api('/handoffs/'+encodeURIComponent(id)+'/acknowledge',{method:'POST'});
+    await renderBusiness()
+  }
+
   async function newApplication(){
     const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
     let fields='';
@@ -432,14 +460,15 @@
 
     const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
       '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span>'+
+      (x.status==='pending'&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     $('content').innerHTML=
       '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div><button class="small-primary" data-action="new-application">＋ 申請</button></div>'+applicationHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div></div>'+noticeHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div></div>'+confirmationHtml+'</section>'+
-      (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div></div>'+guidanceHtml+'</section>':'')+
+      (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div><button class="small-primary" data-action="new-guidance">＋ 指導登録</button></div>'+guidanceHtml+'</section>':'')+
       (manager?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
   }
 
@@ -687,7 +716,9 @@
       if(action==='respond-confirmation')return respondConfirmation(id);
       if(action==='application-approve')return decideApplication(id,'approved');
       if(action==='application-reject')return decideApplication(id,'rejected');
-      if(action==='application-cancel')return decideApplication(id,'cancelled')
+      if(action==='application-cancel')return decideApplication(id,'cancelled');
+      if(action==='new-guidance')return newGuidance();
+      if(action==='ack-handoff')return acknowledgeHandoff(id)
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
