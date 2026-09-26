@@ -53,11 +53,15 @@ async function listVehicles(user,filters={}){
 }
 async function getVehicle(user,id,client=null,{forUpdate=false}={}){
   requireVehicleManager(user);
-  const params=[id],scope=vehicleScopeSql(user,params,'v'),primaryScope=scopeSql(user,params,'e');
+  const params=[id],scope=vehicleScopeSql(user,params,'v'),primaryScope=scopeSql(user,params,'e'),assignedScope=scopeSql(user,params,'eu');
   const lock=forUpdate?' for update of v':'';
   const r=await query(`
     select v.id,v.car_no,v.model,v.service,v.status,v.assignment_mode,
            case when e.id is null then null else v.primary_employee_id end as primary_employee_id,
+           e.employee_no as primary_employee_no,e.name as primary_employee_name,
+           coalesce((select jsonb_agg(jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role) order by vu.role,eu.employee_no)
+                       from vehicle_users vu join employees eu on eu.id=vu.employee_id and (${assignedScope})
+                      where vu.vehicle_id=v.id and vu.ended_on is null),'[]'::jsonb) as users,
            v.inspection_due,v.next_maintenance_due,v.maintenance_note,v.archived_at,v.created_at,v.updated_at,v.version
       from vehicles v
  left join employees e on e.id=v.primary_employee_id and (${primaryScope})
@@ -84,11 +88,10 @@ async function updateVehicle({user,id,body,expectedVersion,requestId}){
   requireVehicleManager(user);
   return withTransaction(async client=>{
     const before=await getVehicle(user,id,client,{forUpdate:true});assertVersion(before,expectedVersion);
-    if(Object.prototype.hasOwnProperty.call(body||{},'primary_employee_id')||Object.prototype.hasOwnProperty.call(body||{},'additional_employee_ids'))throw problem(422,'USE_ASSIGNMENTS_ENDPOINT','乗務員割当は専用操作を使用してください');
-    const allowed=['model','service','status','assignment_mode','inspection_due','next_maintenance_due','maintenance_note'];
+    if(['primary_employee_id','additional_employee_ids','assignment_mode'].some(k=>Object.prototype.hasOwnProperty.call(body||{},k)))throw problem(422,'USE_ASSIGNMENTS_ENDPOINT','乗務員割当・車両区分は専用操作を使用してください');
+    const allowed=['model','service','status','inspection_due','next_maintenance_due','maintenance_note'];
     const patch={};for(const k of allowed)if(Object.prototype.hasOwnProperty.call(body||{},k))patch[k]=body[k]===undefined?null:body[k];
     const changed=Object.entries(patch).filter(([k,v])=>String(before[k]??'')!==String(v??''));if(!changed.length)return before;
-    if('assignment_mode' in patch&&!['dedicated','shared','spare','loaner'].includes(String(patch.assignment_mode)))throw problem(422,'INVALID_ASSIGNMENT_MODE','車両区分を確認してください');
     const params=[id],sets=changed.map(([k,v])=>{params.push(v);return `${k}=$${params.length}`});
     const rawAfter=(await query(`update vehicles set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,params,client)).rows[0];
     await query(`insert into record_histories(entity_type,entity_id,actor_user_id,action,before_data,after_data,reason) values('vehicle',$1,$2,'update',$3::jsonb,$4::jsonb,'車両情報更新')`,[id,user.id,JSON.stringify(Object.fromEntries(changed.map(([k])=>[k,before[k]]))),JSON.stringify(Object.fromEntries(changed))],client);
