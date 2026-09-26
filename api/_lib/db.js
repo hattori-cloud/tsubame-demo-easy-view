@@ -57,6 +57,7 @@ async function probeDatabaseReadiness(){
       select
         to_regclass('public.employees') is not null as employees_ready,
         to_regclass('public.users') is not null as users_ready,
+        to_regclass('public.user_feature_permissions') is not null as user_feature_permissions_ready,
         to_regclass('public.audit_logs') is not null as audit_logs_ready,
         to_regclass('public.record_histories') is not null as record_histories_ready,
         to_regclass('public.documents') is not null as documents_ready,
@@ -88,7 +89,7 @@ async function probeDatabaseReadiness(){
     const x=r.rows[0]||{};
     return {
       connected:true,
-      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready),
+      core_schema_ready:Boolean(x.employees_ready&&x.users_ready&&x.user_feature_permissions_ready&&x.audit_logs_ready&&x.record_histories_ready&&x.documents_ready&&x.purge_ready),
       audit_append_only_ready:Boolean(x.audit_guard_ready&&x.history_guard_ready),
       capacity_ready:Boolean(x.capacity_targets_ready&&x.capacity_view_ready),
       auth_rate_limit_ready:Boolean(x.auth_rate_limit_ready),
