@@ -318,3 +318,12 @@ test('full administrators can use audited employee transition and renumber workf
   assert.ok(js.includes("formArea('reason','変更理由'"));
   assert.ok(js.includes("headers:{'If-Match':"));
 });
+
+
+test('read-only vehicle users can still start permitted safety records without gaining vehicle edit rights',()=>{
+  assert.ok(js.includes("if(!canEdit('vehicles'))"));
+  assert.ok(js.includes("canEdit('accidents')?'<button type=\"button\" class=\"ghost light\" data-dialog-action=\"vehicle-new-accident\""));
+  assert.ok(js.includes("canEdit('near_misses')?'<button type=\"button\" class=\"ghost light\" data-dialog-action=\"vehicle-new-near\""));
+  assert.ok(js.includes("openReadOnlyDialog('車両 '+v.car_no+'号車'"));
+  assert.ok(js.includes("{actions:quick}"));
+});
