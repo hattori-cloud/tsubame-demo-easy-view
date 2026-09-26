@@ -173,7 +173,25 @@ Production original-file storage remains a blocking gate until staging proves al
 - physical purge requires a different approver,
 - staging restore reproduces the expected metadata/object set with matching hashes.
 
-## 11. Provider selection
+## 11. Accident evidence integration
+
+Accident photos, sketches, vehicle-damage images, police documents and repair estimates use the same protected document lifecycle as all other electronic originals.
+
+- The accident record stores no file bytes and no permanent object URL.
+- The relationship is stored separately through the accident-to-document link.
+- Linking a document to an accident never widens its document access level.
+- New accident evidence uses the normal quarantine → validation → malware scan → finalize flow.
+- Finalizing an accident-evidence upload and creating the accident link must be transactional.
+- Replacing evidence preserves the old version for history while the new active version becomes the report candidate.
+- The browser must not persist private/signed URLs in accident records, local storage, print templates or audit logs.
+- Accident report export re-authorizes the accident and every included document.
+- Only active, clean, authorized evidence may be embedded in an exported report.
+- A report must use a safe placeholder when an expected image is unavailable or withheld by current authorization.
+- Report generation and evidence view/download are audited separately.
+
+The shared demo remains metadata-only. Its print preview may show evidence names and placement boxes, but those are not proof that an original image was stored.
+
+## 12. Provider selection
 
 Provider choice is intentionally deferred until contract, cost, data-location, backup/restore and operational requirements are approved.
 
