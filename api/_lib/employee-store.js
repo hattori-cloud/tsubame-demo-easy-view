@@ -76,10 +76,10 @@ async function updateEmployee({user,employeeId,body,expectedVersion,requestId}){
     if(!before)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
     if(Number(before.version)!==Number(expectedVersion))throw problem(409,'VERSION_CONFLICT','別の利用者が先に更新しています。最新データを読み直してください');
     if(Object.prototype.hasOwnProperty.call(body||{},'employee_no'))throw problem(422,'USE_RENUMBER_ENDPOINT','社員番号変更は専用操作を使用してください');
-    if(['office','department','lifecycle_status','retired_on'].some(k=>Object.prototype.hasOwnProperty.call(body||{},k)))throw problem(422,'USE_TRANSITION_ENDPOINT','所属・在籍状態の変更は異動/退職操作を使用してください');
+    if(['office','department','work_pattern','lifecycle_status','retired_on'].some(k=>Object.prototype.hasOwnProperty.call(body||{},k)))throw problem(422,'USE_TRANSITION_ENDPOINT','所属・勤務区分・在籍状態の変更は専用操作を使用してください');
     const safetyKeys=['safety_state','eligibility'];
     if(safetyKeys.some(k=>Object.prototype.hasOwnProperty.call(body||{},k))&&user.role_level!=='full'&&!user.safety_authority)throw problem(403,'SAFETY_AUTHORITY_REQUIRED','安全判断項目の変更権限がありません');
-    const allowed=['name','furigana','position','taxi_section','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due','safety_state','eligibility','hired_on'];
+    const allowed=['name','furigana','position','taxi_section','team','employment_type','main_license','license_expiry','health_check_due','aptitude_due','safety_state','eligibility','hired_on'];
     const patch={};for(const k of allowed)if(Object.prototype.hasOwnProperty.call(body||{},k))patch[k]=body[k]===undefined?null:body[k];
     if('name' in patch&&!String(patch.name||'').trim())throw problem(422,'NAME_REQUIRED','氏名を入力してください');
     const changed=Object.entries(patch).filter(([k,v])=>String(before[k]??'')!==String(v??''));
