@@ -349,3 +349,12 @@ test('safety cases can create handoffs without entering internal user ids and re
   assert.ok(js.includes('function handoffCaseButton(x)'));
   assert.ok(js.includes('>案件を開く</button>'));
 });
+
+
+test('read-only accident and complaint users can create permitted handoffs without gaining case edit rights',()=>{
+  assert.ok(js.includes("if(!canEdit('accidents'))"));
+  assert.ok(js.includes("if(!canEdit('complaints'))"));
+  assert.ok(js.includes("canEdit('handoffs')?'<button type=\"button\" class=\"ghost light\" data-dialog-action=\"handoff-accident\""));
+  assert.ok(js.includes("canEdit('handoffs')?'<button type=\"button\" class=\"ghost light\" data-dialog-action=\"handoff-complaint\""));
+  assert.ok(js.includes("{actions:quick}"));
+});
