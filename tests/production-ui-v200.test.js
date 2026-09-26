@@ -495,3 +495,16 @@ test('employee detail deadline empty state labels the same action window as the 
   assert.ok(js.includes('超過〜30日の要対応期限はありません。'));
   assert.equal(js.includes('60日以内に要対応の期限はありません。'),false);
 });
+
+
+test('near-miss UI supports system google-form and paper sources without losing edit flow',()=>{
+  assert.ok(js.includes("function nearMissSourceLabel"));
+  assert.ok(js.includes("['google_form','Googleフォーム']"));
+  assert.ok(js.includes("['paper','紙']"));
+  assert.ok(js.includes("formField('external_ref','受付番号'"));
+  assert.ok(js.includes('同じ報告の二重登録を防げます'));
+  assert.ok(js.includes('data-action="edit-near-miss"'));
+  assert.ok(js.includes('async function editNearMiss(id)'));
+  assert.ok(js.includes('async function archiveNearMissRecord(record)'));
+  assert.ok(js.includes("data-dialog-action=\"archive-near-miss\""));
+});
