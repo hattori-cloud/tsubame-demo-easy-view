@@ -39,6 +39,27 @@ async function listHandoffs(user){
   const params=[],scope=scopeSql(user,params,'e');params.push(user.id);const uid=params.length;
   return (await query(`select h.* from handoffs h left join employees e on e.id=h.employee_id where h.to_user_id=$${uid} or h.from_user_id=$${uid} or (h.employee_id is not null and ${scope}) order by h.status,h.created_at desc limit 200`,params)).rows
 }
+async function listHandoffTargets(user,employeeId){
+  manager(user);
+  const employee=await employeeForUser(user,String(employeeId||''));
+  const r=await query(`
+    select u.id,u.display_name,u.role_level,ue.employee_no,ue.name as employee_name
+      from users u
+      join employees ue on ue.id=u.employee_id
+     where u.state='active'
+       and u.id<>$1
+       and u.role_level in ('full','scoped')
+       and (
+         u.role_level='full'
+         or exists(
+           select 1 from user_scopes s
+            where s.user_id=u.id and s.office=$2 and s.department=$3
+         )
+       )
+  order by case when u.role_level='full' then 0 else 1 end,u.display_name,u.id
+  `,[user.id,employee.office,employee.department]);
+  return r.rows
+}
 async function createHandoff({user,body,requestId}){
   manager(user);return withTransaction(async client=>{
     const employeeId=body.employee_id?String(body.employee_id):null;
@@ -64,4 +85,4 @@ async function acknowledgeHandoff({user,id,requestId}){
     await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'引継ぎ確認','handoff',$2,$3,'success',$4,'確認済み')`,[user.id,id,before.employee_id,requestId],client);return row
   })
 }
-module.exports={listDrafts,getDraft,saveDraft,deleteDraft,listHandoffs,createHandoff,acknowledgeHandoff};
+module.exports={listDrafts,getDraft,saveDraft,deleteDraft,listHandoffs,listHandoffTargets,createHandoff,acknowledgeHandoff};
