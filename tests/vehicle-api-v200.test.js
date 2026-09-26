@@ -59,3 +59,15 @@ test('vehicle assignment edits apply deltas instead of ending and reinserting un
   assert.ok(schema.includes('where ended_on is null;'));
   assert.equal(schema.includes('unique (vehicle_id, employee_id, role, assigned_on)'),false);
 });
+
+
+test('vehicle detail returns current scoped assignments for safe assignment editing',()=>{
+  assert.ok(store.includes("e.employee_no as primary_employee_no,e.name as primary_employee_name"));
+  assert.ok(store.includes("jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role)"));
+  assert.ok(store.includes("assignedScope=scopeSql(user,params,'eu')"));
+});
+
+test('general vehicle update cannot bypass the dedicated assignments endpoint',()=>{
+  assert.ok(store.includes("['primary_employee_id','additional_employee_ids','assignment_mode'].some"));
+  assert.ok(store.includes("const allowed=['model','service','status','inspection_due','next_maintenance_due','maintenance_note']"));
+});
