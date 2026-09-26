@@ -1027,11 +1027,11 @@
     return String(value||'').replace(/[１２３]/g,m=>({'１':'1','２':'2','３':'3'}[m]||m)).replace(/\s+/g,'')
   }
   function taxiPlacementWarning(department,workPattern){
-    const dept=normalizedTaxiDepartment(department),work=workPatternDisplay(workPattern);
+    const dept=normalizedTaxiDepartment(department),work=workPatternDisplay(workPattern),taxi=dept.includes('タクシー');
     if(!workPattern||work==='未設定')return '';
     if(dept.includes('訓練課')&&work!=='日勤')return '訓練課は通常「日勤」です。';
-    if((dept.includes('1課')||dept.includes('2課'))&&['日勤','夜勤'].includes(work))return '1課・2課は通常「隔勤」または「H勤」です。';
-    if(dept.includes('3課')&&['隔勤','H勤'].includes(work))return '3課は通常「日勤」または「夜勤」です。';
+    if(taxi&&(dept.includes('1課')||dept.includes('2課'))&&['日勤','夜勤'].includes(work))return 'タクシー1課・2課は通常「隔勤」または「H勤」です。';
+    if(taxi&&dept.includes('3課')&&['隔勤','H勤'].includes(work))return 'タクシー3課は通常「日勤」または「夜勤」です。';
     return ''
   }
   function confirmTaxiPlacement(department,workPattern){
