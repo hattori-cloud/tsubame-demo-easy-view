@@ -1723,7 +1723,14 @@ function ensureCredentialLinks(){
   if(d.archivedAt===undefined){d.archivedAt='';changed=true}
   if(d.archivedById===undefined){d.archivedById='';changed=true}
   if(d.archivedByName===undefined){d.archivedByName='';changed=true}
+  if(d.linkedEntityType===undefined){d.linkedEntityType='';changed=true}
+  if(d.linkedEntityId===undefined){d.linkedEntityId='';changed=true}
+  if(d.documentRole===undefined){d.documentRole='';changed=true}
  });
+ let sampleAccidentDoc=DOCS.find(d=>d.id==='D-1001-03'&&d.category==='事故資料');
+ if(sampleAccidentDoc&&!sampleAccidentDoc.linkedEntityId){
+  sampleAccidentDoc.linkedEntityType='accident';sampleAccidentDoc.linkedEntityId='A-2026-001';sampleAccidentDoc.documentRole='scene_photo';changed=true
+ }
  if(changed){localStorage.setItem('v28QUAL',JSON.stringify(QUAL));localStorage.setItem('v30DOCS',JSON.stringify(DOCS))}
 }
 function qualificationEvidenceDocument(q){
@@ -2198,7 +2205,7 @@ let GUIDANCE=safeStorageRead('v30GUIDANCE',null)||[
 let DOCS=safeStorageRead('v30DOCS',null)||[
  {id:'D-1001-01',employee_no:'1001',category:'資格証憑',name:'普通二種免許_サンプル.pdf',date:'2026-04-01',expiry:'2026-10-05',kind:'pdf'},
  {id:'D-1001-02',employee_no:'1001',category:'安全指導',name:'安全指導記録_2026-08.pdf',date:'2026-08-30',expiry:'',kind:'pdf'},
- {id:'D-1001-03',employee_no:'1001',category:'事故資料',name:'事故現場イメージ_2026-09.jpg',date:'2026-09-12',expiry:'',kind:'image'},
+ {id:'D-1001-03',employee_no:'1001',category:'事故資料',name:'事故現場イメージ_2026-09.jpg',date:'2026-09-12',expiry:'',kind:'image',linkedEntityType:'accident',linkedEntityId:'A-2026-001',documentRole:'scene_photo'},
  {id:'D-1029-01',employee_no:'1029',category:'退職手続',name:'貸与品返却確認書_サンプル.pdf',date:'2026-09-18',expiry:'',kind:'pdf'}
 ];
 let PROCEDURES=safeStorageRead('v30PROCEDURES',{});
