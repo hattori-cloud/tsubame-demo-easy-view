@@ -33,14 +33,15 @@ test('metadata-only document creation rejects categories that require an electro
   assert.ok(store.includes('ELECTRONIC_ORIGINAL_REQUIRED'));
 });
 
-test('original-file endpoints require the approved provider-neutral storage adapter',()=>{
+test('original-file endpoints require private transport and fail closed until the full safety pipeline is ready',()=>{
   assert.ok(upload.includes('documentStorageAdapterReady'));
   assert.ok(upload.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
   assert.ok(upload.includes('getDocumentStorageAdapter'));
   assert.ok(download.includes('DOCUMENT_NOT_ACTIVE'));
   assert.ok(download.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
   assert.ok(download.includes('createDownloadAuthorization'));
-  assert.ok(finalize.includes('DOCUMENT_STORAGE_ADAPTER_NOT_READY'));
+  assert.ok(finalize.includes('originalDocumentPipelineReady'));
+  assert.ok(finalize.includes('DOCUMENT_ORIGINAL_PIPELINE_NOT_READY'));
   assert.ok(finalize.includes('inspectQuarantine'));
   assert.ok(finalize.includes('DOCUMENT_MALWARE_NOT_CLEAN'));
 });
