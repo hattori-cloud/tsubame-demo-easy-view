@@ -94,3 +94,11 @@ test('selected-user model retires notices confirmations and applications but kee
   assert.equal(authz.includes("'notices_workflow'"),false);
   assert.equal(users.includes("'notices_workflow'"),false)
 });
+
+
+test('production permission presets use manager handoffs instead of retired notices workflow',()=>{
+  const ui=src('production-app.js');
+  assert.ok(ui.includes("['handoffs','引継ぎ']"));
+  assert.ok(ui.includes("{feature:'handoffs',access_level:'edit'}"));
+  assert.equal(ui.includes('notices_workflow'),false)
+});

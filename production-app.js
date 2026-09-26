@@ -7,7 +7,7 @@
   const fmtDate=v=>v?String(v).slice(0,10):'—';
   const fmtText=v=>v===null||v===undefined||v===''?'—':String(v);
   const roleLabel=r=>r==='full'?'全社管理者':r==='scoped'?'範囲指定利用者':r==='self'?'旧本人権限（本番不可）':'—';
-  const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',business:'notices_workflow'};
+  const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',business:'handoffs'};
   function featureLevel(feature){
     if(!feature)return null;
     if(state.me?.role_level==='full')return 'edit';
@@ -19,19 +19,19 @@
   const FEATURE_OPTIONS=[
     ['employees','社員情報'],['deadlines','期限'],['accidents','事故'],['complaints','苦情'],['near_misses','ヒヤリ'],
     ['credentials_documents','資格・書類'],['vehicles','車両'],['safety_analysis','安全分析'],['work_import','勤務取込'],
-    ['assets_training','貸与品・教育'],['notices_workflow','業務連絡']
+    ['assets_training','貸与品・教育'],['handoffs','引継ぎ']
   ];
   const PERMISSION_PRESETS={
     viewer:FEATURE_OPTIONS.filter(([f])=>f!=='work_import').map(([feature])=>({feature,access_level:'view'})),
     manager:[
       {feature:'employees',access_level:'edit'},{feature:'deadlines',access_level:'view'},{feature:'accidents',access_level:'edit'},
       {feature:'complaints',access_level:'edit'},{feature:'near_misses',access_level:'edit'},{feature:'credentials_documents',access_level:'edit'},
-      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'},{feature:'notices_workflow',access_level:'view'}
+      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'},{feature:'handoffs',access_level:'edit'}
     ],
     safety:[
       {feature:'employees',access_level:'view'},{feature:'deadlines',access_level:'view'},{feature:'accidents',access_level:'edit'},
       {feature:'complaints',access_level:'edit'},{feature:'near_misses',access_level:'edit'},{feature:'credentials_documents',access_level:'view'},
-      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'}
+      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'},{feature:'handoffs',access_level:'edit'}
     ]
   };
   function permissionMap(list){return Object.fromEntries((list||[]).map(x=>[x.feature,x.access_level]))}
@@ -213,7 +213,7 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理',business:'業務'}[view]||view;
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理',business:'引継ぎ'}[view]||view;
     $('searchWrap').hidden=['home','work-import','analysis','business'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
@@ -371,38 +371,6 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
-  async function newNotice(){
-    if(state.me?.role_level!=='full')return;
-    const fields=
-      formField('title','件名','','text','required')+
-      formArea('body','本文','','required')+
-      formSelect('state','公開状態',[['draft','下書き'],['published','公開']],'draft','required');
-    openRecordForm('お知らせ作成',fields,async fd=>{
-      await api('/notices',{method:'POST',body:{
-        title:fdText(fd,'title'),
-        body:fdText(fd,'body'),
-        state:fdText(fd,'state')
-      }})
-    })
-  }
-
-  async function newConfirmation(){
-    if(state.me?.role_level!=='full')return;
-    const fields=
-      formField('title','確認件名','','text','required')+
-      formArea('body','確認内容')+
-      formField('due','回答期限','','date')+
-      formSelect('state','状態',[['open','回答受付'],['draft','下書き']],'open','required');
-    openRecordForm('一斉確認作成',fields,async fd=>{
-      await api('/confirmations',{method:'POST',body:{
-        title:fdText(fd,'title'),
-        body:nullable(fdText(fd,'body')),
-        due:nullable(fdText(fd,'due')),
-        state:fdText(fd,'state')
-      }})
-    })
-  }
-
   async function newGuidance(){
     if(!canEdit('employees'))return;
     const employees=await employeeChoices();
@@ -430,81 +398,18 @@
     await renderBusiness()
   }
 
-  async function newApplication(){
-    const manager=canEdit('notices_workflow');
-    let fields='';
-    if(manager){
-      const employees=await employeeChoices();
-      fields+=formSelect('employee_id','対象社員',employees,'','required')
-    }
-    fields+=formField('type','申請種別','','text','required')+formArea('detail','申請内容','','required');
-    openRecordForm('申請登録',fields,async fd=>{
-      const body={type:fdText(fd,'type'),payload:{detail:fdText(fd,'detail')}};
-      if(manager)body.employee_id=fdText(fd,'employee_id');
-      await api('/applications',{method:'POST',body})
-    })
-  }
-
-  async function decideApplication(id,status){
-    const manager=canEdit('notices_workflow');
-    if(!manager)return;
-    const {data}=await api('/applications?page_size=100');
-    const item=(data.items||[]).find(x=>String(x.id)===String(id));
-    if(!item){const e=new Error('対象申請が見つかりません');e.code='APPLICATION_NOT_FOUND';throw e}
-    const label={approved:'承認',rejected:'却下',cancelled:'取消'}[status]||status;
-    if(!window.confirm('この申請を「'+label+'」にしますか？'))return;
-    await api('/applications/'+encodeURIComponent(id),{
-      method:'PATCH',
-      body:{status},
-      headers:{'If-Match':'"'+item.version+'"'}
-    });
-    await renderBusiness()
-  }
-
-  async function markNoticeRead(id){
-    await api('/notices/'+encodeURIComponent(id)+'/read',{method:'POST'});
-    await renderBusiness()
-  }
-
-  async function respondConfirmation(id){
-    const response=window.prompt('回答を入力してください');
-    if(!response||!response.trim())return;
-    await api('/confirmations/'+encodeURIComponent(id)+'/respond',{method:'POST',body:{response:response.trim()}});
-    await renderBusiness()
-  }
-
   async function renderBusiness(){
-    const manager=canEdit('notices_workflow');
     const canGuidance=canView('employees');
-    const requests=[
-      api('/applications?page_size=50').then(x=>x.data),
-      api('/notices').then(x=>x.data),
-      api('/confirmations').then(x=>x.data)
-    ];
-    if(canGuidance)requests.push(api('/guidance?page_size=50').then(x=>x.data));else requests.push(Promise.resolve(null));
-    if(canView('notices_workflow'))requests.push(api('/handoffs').then(x=>x.data));else requests.push(Promise.resolve(null));
-    const [applications,notices,confirmations,guidance,handoffs]=await Promise.all(requests);
-    const appItems=applications?.items||[],noticeItems=notices?.notices||[],confirmationItems=confirmations?.confirmations||[];
-    const guidanceItems=guidance?.items||[],handoffItems=handoffs?.handoffs||[];
+    const [handoffs,guidance]=await Promise.all([
+      canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null),
+      canGuidance?api('/guidance?page_size=50').then(x=>x.data):Promise.resolve(null)
+    ]);
+    const handoffItems=handoffs?.handoffs||[],guidanceItems=guidance?.items||[];
 
-    const applicationHtml=appItems.length?'<div class="cards">'+appItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span></div>'+
-      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.applied_at))+'</span>'+
-      (manager&&x.status==='submitted'
-        ?'<button class="success" data-action="application-approve" data-id="'+esc(x.id)+'">承認</button><button class="warning" data-action="application-reject" data-id="'+esc(x.id)+'">却下</button><button class="ghost light" data-action="application-cancel" data-id="'+esc(x.id)+'">取消</button>'
-        :'')+'</div></div>'
-    ).join('')+'</div>':empty();
-
-    const noticeHtml=noticeItems.length?'<div class="cards">'+noticeItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>'+esc(fmtDate(x.published_at||x.created_at))+'</span><span>'+(x.read?'既読':'未読')+'</span>'+
-      (!x.read&&x.state==='published'?'<button class="record-action" data-action="read-notice" data-id="'+esc(x.id)+'">既読にする</button>':'')+'</div></div>'
-    ).join('')+'</div>':empty();
-
-    const confirmationHtml=confirmationItems.length?'<div class="cards">'+confirmationItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>期限 '+esc(fmtDate(x.due))+'</span><span>'+esc(x.response||'未回答')+'</span>'+
-      (x.state==='open'&&canEdit('notices_workflow')?'<button class="record-action" data-action="respond-confirmation" data-id="'+esc(x.id)+'">回答</button>':'')+'</div></div>'
+    const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span>'+
+      (x.status==='pending'&&canEdit('handoffs')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
@@ -512,22 +417,10 @@
       '<div class="record-meta"><span>'+esc(fmtDate(x.guidance_on))+'</span><span>'+esc(x.owner||'担当未設定')+'</span><span>次回 '+esc(fmtDate(x.next_review))+'</span></div></div>'
     ).join('')+'</div>':empty();
 
-    const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span>'+
-      (x.status==='pending'&&canEdit('notices_workflow')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
-    ).join('')+'</div>':empty();
-
     $('content').innerHTML=
-      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div>'+(canEdit('notices_workflow')?'<button class="small-primary" data-action="new-application">＋ 申請</button>':'')+'</div>'+applicationHtml+'</section>'+
-      '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div>'+
-      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
-      '</div>'+noticeHtml+'</section>'+
-      '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div>'+
-      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
-      '</div>'+confirmationHtml+'</section>'+
-      (canGuidance?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')+
-      (canView('notices_workflow')?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
+      '<section class="panel"><div class="list-head"><div><b>管理者間の引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+
+      '<p class="mini">担当変更された未完了案件だけを確認します。全社員向けの掲示・一斉確認・本人申請は本番では使用しません。</p>'+handoffHtml+'</section>'+
+      (canGuidance?'<section class="panel"><div class="list-head"><div><b>安全指導</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')
   }
 
   async function renderUsers(q){
@@ -786,16 +679,8 @@
       if(action==='edit-user')return editUserAccess(id);
       if(action==='suspend-user')return changeUserState(id,'suspended');
       if(action==='reactivate-user')return changeUserState(id,'active');
-      if(action==='new-application')return newApplication();
-      if(action==='read-notice')return markNoticeRead(id);
-      if(action==='respond-confirmation')return respondConfirmation(id);
-      if(action==='application-approve')return decideApplication(id,'approved');
-      if(action==='application-reject')return decideApplication(id,'rejected');
-      if(action==='application-cancel')return decideApplication(id,'cancelled');
       if(action==='new-guidance')return newGuidance();
-      if(action==='ack-handoff')return acknowledgeHandoff(id);
-      if(action==='new-notice')return newNotice();
-      if(action==='new-confirmation')return newConfirmation()
+      if(action==='ack-handoff')return acknowledgeHandoff(id)
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){

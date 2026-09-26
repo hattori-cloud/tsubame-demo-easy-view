@@ -68,3 +68,13 @@ test('production files are explicit Vercel static routes',()=>{
   assert.ok(vercel.includes('"src": "production.css"'));
   assert.ok(vercel.includes('"src": "/production(?:\\\\.html)?"'));
 });
+
+
+test('selected-user production UI exposes handoffs but no employee self-service communication calls',()=>{
+  assert.ok(js.includes("business:'handoffs'"));
+  assert.ok(js.includes("['handoffs','引継ぎ']"));
+  assert.ok(js.includes("api('/handoffs')"));
+  for(const retired of ['/notices','/confirmations','/applications'])assert.equal(js.includes(retired),false,retired);
+  assert.equal(js.includes('notices_workflow'),false);
+  assert.ok(html.includes('data-view="business">引継ぎ</button>'))
+});
