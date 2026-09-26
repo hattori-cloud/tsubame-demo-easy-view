@@ -625,6 +625,10 @@
   }
 
 
+  function nearMissSourceLabel(value){
+    return {system:'システム',google_form:'Googleフォーム',paper:'紙'}[String(value||'system')]||String(value||'—')
+  }
+
   async function renderNearMisses(q){
     const page=currentPage('near-misses');
     const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
@@ -632,7 +636,7 @@
     const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+(canEdit('handoffs')&&x.employee_id?'<button class="record-action" data-action="new-handoff-near" data-id="'+esc(x.report_no||x.id)+'" data-q="'+esc(x.employee_id)+'">引継ぎ</button>':'')+'</div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(nearMissSourceLabel(x.source_type))+'</span><span>'+esc(x.car_no||'号車未設定')+'</span><button class="record-action" data-action="edit-near-miss" data-id="'+esc(x.id)+'">開く</button>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+(canEdit('handoffs')&&x.employee_id?'<button class="record-action" data-action="new-handoff-near" data-id="'+esc(x.report_no||x.id)+'" data-q="'+esc(x.employee_id)+'">引継ぎ</button>':'')+'</div></div>'
     ).join('')+'</div>':empty())
     $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'near-misses',q));
   }
@@ -1125,6 +1129,7 @@
       if(action==='new-vehicle')return newVehicle();
       if(action==='edit-vehicle')return editVehicle(id);
       if(action==='new-near-miss')return newNearMiss();
+      if(action==='edit-near-miss')return editNearMiss(id);
       if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
       if(action==='back-credentials'){state.credentialEmployeeId=null;state.credentialData=null;return renderCredentials($('searchInput').value.trim())}
       if(action==='new-qualification')return newQualification();
@@ -1171,6 +1176,7 @@
       if(action==='new-asset')return newAssetForEmployee(d.record);
       if(action==='edit-training')return editTrainingForEmployee(d.record,id);
       if(action==='edit-asset')return editAssetForEmployee(d.record,id);
+      if(action==='archive-near-miss')return archiveNearMissRecord(d.record);
       if(action==='handoff-accident')return createHandoffForm({caseType:'accident',caseId:d.record.accident_no||d.record.id,employeeId:d.record.employee_id,label:'事故 '+(d.record.accident_no||'')});
       if(action==='handoff-complaint')return createHandoffForm({caseType:'complaint',caseId:d.record.complaint_no||d.record.id,employeeId:d.record.employee_id,label:'苦情 '+(d.record.complaint_no||'')});
       if(action==='complete-accident')return terminalAction('accident','complete',d.record);
@@ -1572,6 +1578,9 @@
       formField('reported_on','報告日',p.reported_on||new Date().toISOString().slice(0,10),'date','required')+
       formField('car_no','実際の乗車号車',context.carNo||p.car_no||'')+
       formNote('基本固定車が入っていても変更できます。発生時に実際に乗っていた号車を記録してください。')+
+      formSelect('source_type','入力経路',[['system','システム'],['google_form','Googleフォーム'],['paper','紙']],p.source_type||'system')+
+      formField('external_ref','受付番号',p.external_ref||'','text','placeholder="Googleフォーム回答ID・紙の受付番号。システム入力は空欄可"')+
+      formNote('Googleフォーム・紙から転記する場合は受付番号を入れると、同じ報告の二重登録を防げます。')+
       formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']],p.risk_level||'')+
       formArea('summary','内容',p.summary||'','required')+
       formArea('prevention','再発防止',p.prevention||'')+
@@ -1583,6 +1592,8 @@
         occurred_time:nullable(fdText(fd,'occurred_time')),
         reported_on:fdText(fd,'reported_on'),
         car_no:nullable(fdText(fd,'car_no')),
+        source_type:fdText(fd,'source_type')||'system',
+        external_ref:nullable(fdText(fd,'external_ref')),
         risk_level:nullable(fdText(fd,'risk_level')),
         summary:fdText(fd,'summary'),
         prevention:nullable(fdText(fd,'prevention')),
@@ -1594,6 +1605,49 @@
       }
       await api('/near-misses',{method:'POST',body})
     },{draft:compatible?{kind:'near_miss',existing:draft,extra:draftExtraForEmployee(knownEmployee)}:null})
+  }
+
+  async function editNearMiss(id){
+    const {data}=await api('/near-misses/'+encodeURIComponent(id)),n=data.near_miss;
+    state.dialog={type:'near_miss',record:n};
+    const items=[
+      ['報告番号',n.report_no],['対象社員',n.employee_no_at_report],['発生日',fmtDate(n.occurred_on)],['報告日',fmtDate(n.reported_on)],
+      ['実際の乗車号車',n.car_no],['入力経路',nearMissSourceLabel(n.source_type)],['受付番号',n.external_ref],
+      ['リスク',n.risk_level],['内容',n.summary],['再発防止',n.prevention],['指導・教育',n.education]
+    ];
+    if(!canEdit('near_misses')){
+      return openReadOnlyDialog('ヒヤリ '+(n.report_no||''),items)
+    }
+    const fields=
+      formField('occurred_on','発生日',fmtDate(n.occurred_on),'date','required')+
+      formField('occurred_time','発生時刻',n.occurred_time||'','time')+
+      formField('reported_on','報告日',fmtDate(n.reported_on),'date','required')+
+      formField('car_no','実際の乗車号車',n.car_no||'')+
+      formSelect('source_type','入力経路',[['system','システム'],['google_form','Googleフォーム'],['paper','紙']],n.source_type||'system')+
+      formField('external_ref','受付番号',n.external_ref||'','text','placeholder="Googleフォーム回答ID・紙の受付番号。システム入力は空欄可"')+
+      formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']],n.risk_level||'')+
+      formArea('summary','内容',n.summary||'','required')+
+      formArea('prevention','再発防止',n.prevention||'')+
+      formArea('education','指導・教育',n.education||'');
+    const archive=state.me?.role_level==='full'?'<button type="button" class="warning" data-dialog-action="archive-near-miss">アーカイブ</button>':'';
+    openRecordForm('ヒヤリ '+(n.report_no||'')+' を編集',fields,async fd=>{
+      await api('/near-misses/'+encodeURIComponent(n.id),{method:'PATCH',body:{
+        occurred_on:fdText(fd,'occurred_on'),occurred_time:nullable(fdText(fd,'occurred_time')),
+        reported_on:fdText(fd,'reported_on'),car_no:nullable(fdText(fd,'car_no')),
+        source_type:fdText(fd,'source_type')||'system',external_ref:nullable(fdText(fd,'external_ref')),
+        risk_level:nullable(fdText(fd,'risk_level')),summary:fdText(fd,'summary'),
+        prevention:nullable(fdText(fd,'prevention')),education:nullable(fdText(fd,'education'))
+      },headers:{'If-Match':'"'+n.version+'"'}})
+    },{actions:archive})
+  }
+
+  async function archiveNearMissRecord(record){
+    if(state.me?.role_level!=='full')return;
+    const reason=window.prompt('アーカイブ理由を入力してください');
+    if(!String(reason||'').trim())return;
+    await api('/near-misses/'+encodeURIComponent(record.id)+'/archive',{method:'POST',body:{reason:String(reason).trim()},headers:{'If-Match':'"'+record.version+'"'}});
+    $('detailDialog').close();
+    await renderNearMisses($('searchInput').value.trim())
   }
 
   async function newVehicle(){
