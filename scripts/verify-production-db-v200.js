@@ -21,12 +21,14 @@ async function expectAppendOnly(client,sql,label){
   await client.connect();
   try{
     const base=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
+    const selectedUserWorkflow=fs.readFileSync(path.join(__dirname,'..','docs','production-selected-user-workflow-v200.sql'),'utf8');
     const authHardening=fs.readFileSync(path.join(__dirname,'..','docs','production-auth-hardening-v200.sql'),'utf8');
     const capacity=fs.readFileSync(path.join(__dirname,'..','docs','production-capacity-v189.sql'),'utf8');
     const workImport=fs.readFileSync(path.join(__dirname,'..','docs','production-work-import-v200.sql'),'utf8');
     const roleGrants=fs.readFileSync(path.join(__dirname,'..','docs','production-role-grants-v200.sql'),'utf8');
 
     await client.query(base);
+    await client.query(selectedUserWorkflow);
 
     const baseTables=await client.query("select count(*)::int as n from pg_tables where schemaname='public'");
     assert(baseTables.rows[0].n===29,'base schema table count expected 29, got '+baseTables.rows[0].n);
@@ -36,6 +38,7 @@ async function expectAppendOnly(client,sql,label){
         to_regclass('public.employees') is not null as employees_ready,
         to_regclass('public.users') is not null as users_ready,
         to_regclass('public.user_feature_permissions') is not null as user_feature_permissions_ready,
+        exists(select 1 from pg_constraint c join pg_class t on t.oid=c.conrelid where t.relname='user_feature_permissions' and c.conname='user_feature_permissions_feature_check' and pg_get_constraintdef(c.oid) like '%handoffs%' and pg_get_constraintdef(c.oid) not like '%notices_workflow%') as selected_user_workflow_ready,
         to_regclass('public.documents') is not null as documents_ready,
         to_regclass('public.document_purge_requests') is not null as purge_ready,
         exists(select 1 from information_schema.columns where table_schema='public' and table_name='documents' and column_name='content_sha256') as sha_ready,
@@ -198,6 +201,7 @@ async function expectAppendOnly(client,sql,label){
       append_only_enforced:true,
       full_admin_continuity_guard:true,
       mfa_challenge_single_use:true,
+      selected_user_workflow_ready:true,
       distributed_login_rate_limit_ready:true,
       least_privilege_roles_ready:true,
       work_import_persistence_ready:true,

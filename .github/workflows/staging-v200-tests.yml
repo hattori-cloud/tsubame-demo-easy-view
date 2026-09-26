@@ -47,6 +47,9 @@ jobs:
       - name: Apply and verify production PostgreSQL schema
         run: node scripts/verify-production-db-v200.js
 
+      - name: Verify selected-user workflow permission migration
+        run: node scripts/verify-selected-user-workflow-migration-v200.js
+
       - name: Verify distributed login rate limiter
         run: node scripts/verify-login-rate-limit-v200.js
 
@@ -97,6 +100,9 @@ jobs:
           docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/work" postgres:16 \
             psql -h 127.0.0.1 -U postgres -d tsubame_sim5 -v ON_ERROR_STOP=1 \
             -f /work/docs/production-schema.sql
+          docker run --rm --network host -e PGPASSWORD=postgres -v "$PWD:/work" postgres:16 \
+            psql -h 127.0.0.1 -U postgres -d tsubame_sim5 -v ON_ERROR_STOP=1 \
+            -f /work/docs/production-selected-user-workflow-v200.sql
           DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/tsubame_sim5 \
           TSUBAME_DB_SSL=disable \
           VERCEL_ENV=preview \
