@@ -8201,6 +8201,15 @@ function openAccidentEdit(id){
   if(fault!==''&&(Number(fault)<0||Number(fault)>100))return alert('過失率は0〜100で入力してください');
   if((opCost!==''&&Number(opCost)<0)||(ownCost!==''&&Number(ownCost)<0))return alert('修理代は0円以上で入力してください');
   if(!faeaddr.value.trim()||!faesummary.value.trim())return alert('事故場所と事故状況・概要は必須です');
+  let reportMissing=[];
+  if(!faeweather.value||faeweather.value==='未設定')reportMissing.push('天候');
+  if(!faeonsite.value.trim())reportMissing.push('事故発生時に取った措置');
+  if(!faeroad.value.trim())reportMissing.push('道路・現場状況');
+  if(!faedamage.value.trim())reportMissing.push('負傷・損傷状況');
+  if(!faepolice.value||faepolice.value==='未確認')reportMissing.push('警察対応');
+  if(!faeevidence.value||faeevidence.value==='未確認')reportMissing.push('写真・見取図');
+  if(faereportstatus.value==='完成'&&reportMissing.length)return alert('事故調査票を「完成」にするには、次の項目を確認してください。\n\n・'+reportMissing.join('\n・'));
+  if(faereportstatus.value==='未着手'&&(faeweather.value!=='未設定'||faeopponent.value.trim()||faeonsite.value.trim()||faeroad.value.trim()||faedamage.value.trim()||faepolice.value!=='未確認'||faeevidence.value!=='未確認'))faereportstatus.value='作成中';
   if(faep.value==='完了'){let missing=accidentCompletionMissing(nextCause,nextPrevention,nextHistory);if(missing.length)return alert('事故を完了にするには、次の項目を入力してください。\n\n・'+missing.join('\n・'))}
   if(!validateVehicleNumberValue(faevehicle.value))return;
   let previousPhase=a.phase,previousOwner=a.owner||'',ownerSel=resolveManagerSelection(faeo.value);if(!ownerSel.id)return alert('担当者を選択してください');
