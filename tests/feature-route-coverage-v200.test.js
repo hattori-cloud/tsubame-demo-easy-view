@@ -19,7 +19,6 @@ function sourceFeature(source){
   if(/^work-import\//.test(s))return 'work_import';
   if(/^assets\//.test(s)||/^training\//.test(s))return 'assets_training';
   if(/^handoffs\//.test(s))return 'handoffs';
-  if(/^notices\//.test(s)||/^confirmations\//.test(s)||/^applications\//.test(s))return 'retired_selected_user';
   if(/^audit-logs\//.test(s))return 'audit_logs';
   if(/^users\//.test(s))return 'user_admin';
   if(/^auth\//.test(s)||s==='health.js'||s==='me.js'||s==='secure-probe.js'||s==='staging-readiness.js')return 'exempt';
@@ -70,12 +69,16 @@ test('mixed draft listing is explicitly filtered by permitted draft kinds',()=>{
 });
 
 
-test('employee self-service communication routes are retired from production while handoffs remain active',()=>{
+test('employee self-service communication routes are retired at the router in every environment while handoffs remain active',()=>{
   assert.equal(router.retiredSelectedUserPath('/notices'),true);
   assert.equal(router.retiredSelectedUserPath('/notices/n1/read'),true);
   assert.equal(router.retiredSelectedUserPath('/confirmations/c1/respond'),true);
   assert.equal(router.retiredSelectedUserPath('/applications/a1'),true);
   assert.equal(router.retiredSelectedUserPath('/handoffs'),false);
   assert.equal(router.featureForPath('/notices'),null);
-  assert.equal(router.featureForPath('/handoffs'),'handoffs')
+  assert.equal(router.featureForPath('/handoffs'),'handoffs');
+  const sources=router.ROUTES.map(r=>r.source);
+  for(const retired of ['api/v1/notices/','api/v1/confirmations/','api/v1/applications/']){
+    assert.equal(sources.some(src=>src.startsWith(retired)),false,retired)
+  }
 });
