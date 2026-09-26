@@ -127,6 +127,16 @@ async function backupAndVerify({storageKey,storageVersionId,bytes,contentType,sh
   }
   return {backup_key:key,sha256:restored.sha256,size_bytes:restored.size_bytes,content_type:restored.content_type}
 }
+async function restoreVerifiedBackup({storageKey,storageVersionId,contentType,sizeBytes,sha256},adapter=getDocumentBackupAdapter()){
+  const key=backupObjectKey(storageKey,storageVersionId,sha256);
+  const restored=decryptBackup(await adapter.read(key));
+  if(restored.sha256!==normalizedHash(sha256)||
+     restored.size_bytes!==Number(sizeBytes)||
+     restored.content_type!==String(contentType)){
+    throw problem(409,'DOCUMENT_BACKUP_RESTORE_MISMATCH','バックアップ復元原本がDB記録と一致しません')
+  }
+  return {...restored,backup_key:key}
+}
 async function probeDocumentBackup(){
   if(!documentBackupReady())return false;
   const adapter=getDocumentBackupAdapter();
@@ -144,6 +154,6 @@ async function probeDocumentBackup(){
 }
 function resetTestState(){ciObjects.clear();fetchOverride=null}
 module.exports={
-  backupObjectKey,encryptBackup,decryptBackup,getDocumentBackupAdapter,backupAndVerify,probeDocumentBackup,
+  backupObjectKey,encryptBackup,decryptBackup,getDocumentBackupAdapter,backupAndVerify,restoreVerifiedBackup,probeDocumentBackup,
   _test:{setFetch(v){fetchOverride=v},reset:resetTestState,ciObjects}
 };

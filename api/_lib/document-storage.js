@@ -94,6 +94,24 @@ function ciAdapter(){
       if(!obj||obj.state!=='active')throw problem(409,'DOCUMENT_OBJECT_NOT_ACTIVE','有効な原本を確認できません');
       return {...obj,bytes:Buffer.from(obj.bytes)}
     },
+    async restoreObjectFromBackup({storageKey,bytes,contentType,sha256}){
+      const body=Buffer.isBuffer(bytes)?bytes:Buffer.from(bytes||[]);
+      validateStoredContentSignature(body,contentType);
+      const actual=crypto.createHash('sha256').update(body).digest('hex');
+      if(actual!==String(sha256))throw problem(409,'DOCUMENT_RESTORE_HASH_MISMATCH','復元原本のSHA-256が一致しません');
+      const existing=memoryObjects.get(storageKey);
+      if(existing){
+        const existingHash=crypto.createHash('sha256').update(existing.bytes).digest('hex');
+        if(existingHash!==actual)throw problem(409,'DOCUMENT_RESTORE_PRIMARY_CONFLICT','一次原本に異なる内容が存在するため上書きできません');
+        return {storage_key:storageKey,version_id:existing.version_id||null,restored:false,already_present:true}
+      }
+      const versionId=crypto.randomUUID();
+      memoryObjects.set(storageKey,{
+        storage_key:storageKey,state:'active',content_type:String(contentType),size_bytes:body.length,
+        sha256:actual,malware_status:'clean',malware_scanned_at:new Date().toISOString(),bytes:Buffer.from(body),version_id:versionId
+      });
+      return {storage_key:storageKey,version_id:versionId,restored:true,already_present:false}
+    },
     async activate(storageKey){
       const obj=memoryObjects.get(storageKey);
       if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
@@ -195,6 +213,30 @@ function vercelBlobAdapter(){
     async inspectQuarantine(storageKey){return inspectPrivateBlob(storageKey)},
     async readQuarantineForScan(storageKey){return readPrivateBlob(storageKey)},
     async readObjectForBackup(storageKey){return readPrivateBlob(storageKey)},
+    async restoreObjectFromBackup({storageKey,bytes,contentType,sha256}){
+      const body=Buffer.isBuffer(bytes)?bytes:Buffer.from(bytes||[]);
+      validateStoredContentSignature(body,contentType);
+      const actual=crypto.createHash('sha256').update(body).digest('hex');
+      if(actual!==String(sha256))throw problem(409,'DOCUMENT_RESTORE_HASH_MISMATCH','復元原本のSHA-256が一致しません');
+      try{
+        const existing=await readPrivateBlob(storageKey);
+        if(existing.sha256!==actual)throw problem(409,'DOCUMENT_RESTORE_PRIMARY_CONFLICT','一次原本に異なる内容が存在するため上書きできません');
+        return {storage_key:storageKey,version_id:existing.etag||null,restored:false,already_present:true}
+      }catch(err){
+        if(err?.code!=='DOCUMENT_QUARANTINE_OBJECT_MISSING')throw err
+      }
+      const signed=await signedBlobUrl(storageKey,'put',{expiresSeconds:60,contentType,sizeBytes:body.length});
+      const put=await httpFetch(signed.url,{
+        method:'PUT',redirect:'error',cache:'no-store',body,
+        headers:{'Content-Type':String(contentType),'Content-Length':String(body.length)}
+      });
+      if(!put?.ok)throw problem(503,'DOCUMENT_RESTORE_PRIMARY_WRITE_FAILED','一次原本ストレージへの復元に失敗しました');
+      const verified=await readPrivateBlob(storageKey);
+      if(verified.sha256!==actual||verified.size_bytes!==body.length||verified.content_type!==String(contentType)){
+        throw problem(409,'DOCUMENT_RESTORE_PRIMARY_VERIFY_FAILED','一次原本へ復元後の完全性確認に失敗しました')
+      }
+      return {storage_key:storageKey,version_id:verified.etag||null,restored:true,already_present:false}
+    },
     async activate(storageKey){
       const inspected=await inspectPrivateBlob(storageKey);
       if(!inspected.etag)throw problem(409,'DOCUMENT_STORAGE_VERSION_MISSING','原本ストレージversionを確認できません');
@@ -224,6 +266,7 @@ async function ciPutObject({uploadToken,body,contentType}){
   const bytes=Buffer.isBuffer(body)?body:Buffer.from(body||[]);
   if(bytes.length!==Number(auth.sizeBytes))throw problem(422,'UPLOAD_SIZE_MISMATCH','アップロードサイズが一致しません');
   if(String(contentType||'').toLowerCase()!==String(auth.contentType))throw problem(422,'UPLOAD_TYPE_MISMATCH','アップロード形式が一致しません');
+  if(memoryObjects.has(auth.storageKey))throw problem(409,'UPLOAD_OBJECT_EXISTS','同一原本保存キーは上書きできません');
   validateStoredContentSignature(bytes,auth.contentType);
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
   const obj={
@@ -257,6 +300,7 @@ module.exports={
   validateUploadRequest,maxUploadBytes,detectedContentType,validateStoredContentSignature,
   _test:{
     ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,readPrivateBlob,
+    ciDeleteObject(key){memoryObjects.delete(String(key))},
     setBlobSdk(v){blobSdkOverride=v},setFetch(v){fetchOverride=v},resetTestOverrides
   }
 };
