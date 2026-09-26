@@ -14,10 +14,11 @@ test('employee creation rejects current and historical employee number reuse',()
   assert.ok(store.includes("EMPLOYEE_NO_ALREADY_USED"));
 });
 
-test('general employee patch cannot change employee number assignment or lifecycle',()=>{
+test('general employee patch cannot change employee number assignment, shift, assignment or lifecycle',()=>{
   assert.ok(store.includes("USE_RENUMBER_ENDPOINT"));
   assert.ok(store.includes("USE_TRANSITION_ENDPOINT"));
-  assert.ok(store.includes("['office','department','lifecycle_status','retired_on']"));
+  assert.ok(store.includes("['office','department','work_pattern','lifecycle_status','retired_on']"));
+  assert.ok(store.includes('所属・勤務区分・在籍状態の変更は専用操作を使用してください'));
 });
 
 test('safety decision fields require explicit authority for scoped managers',()=>{
@@ -60,8 +61,15 @@ test('company-wide employee creation does not force taxi day shift defaults',()=
   assert.equal(store.includes("body.work_pattern||'日勤'"),false);
 });
 
-test('employee history exposes work pattern changes separately from lifecycle transitions',()=>{
+test('employee history exposes work pattern changes from both profile and transition history',()=>{
   assert.ok(store.includes("work_pattern_changes:workPatterns.rows"));
-  assert.ok(store.includes("action='profile_update'"));
+  assert.ok(store.includes("action in ('profile_update','employee_transition')"));
   assert.ok(store.includes("before_data ? 'work_pattern' or after_data ? 'work_pattern'"));
+});
+
+test('employee transition updates department and work pattern atomically with one version increment',()=>{
+  assert.ok(store.includes("work_pattern:target?.work_pattern===undefined?before.work_pattern"));
+  assert.ok(store.includes("update employees set office=$2,department=$3,work_pattern=$4,lifecycle_status=$5,retired_on=$6"));
+  assert.ok(store.includes("work_pattern:before.work_pattern"));
+  assert.ok(store.includes("JSON.stringify(next)"));
 });
