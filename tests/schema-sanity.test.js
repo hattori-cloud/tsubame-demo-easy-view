@@ -13,7 +13,7 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,22);
+  assert.equal(tables.length,23);
   assert.deepEqual(duplicates(tables),[])
 });
 
@@ -49,4 +49,13 @@ test('document storage lifecycle and purge approval are fail-closed',()=>{
   assert.match(sql,/create table document_purge_requests/i);
   assert.match(sql,/approved_by_user_id <> requested_by_user_id/);
   assert.match(sql,/state in \('requested','approved','rejected','executed','failed','cancelled'\)/);
+});
+
+
+test('accident evidence links preserve document security boundaries',()=>{
+  assert.match(sql,/create table accident_documents/i);
+  assert.match(sql,/accident_id uuid not null references accidents\(id\) on delete cascade/i);
+  assert.match(sql,/document_id uuid not null references documents\(id\)/i);
+  assert.match(sql,/role in \('scene_photo','sketch','vehicle_damage','opponent_damage','police','estimate','other'\)/i);
+  assert.match(sql,/unique \(accident_id, document_id\)/i);
 });
