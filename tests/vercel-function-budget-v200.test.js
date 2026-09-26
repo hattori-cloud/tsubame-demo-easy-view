@@ -24,22 +24,16 @@ test('Vercel deploy exposes only one Node function entrypoint',()=>{
   assert.ok((vercel.routes||[]).some(x=>String(x.src).includes('/api/v1')&&String(x.dest).includes('/api/router.js')));
 });
 
-test('single router statically includes every active v1 handler and excludes retired self-service handlers',()=>{
+test('single router statically includes every active v1 handler and retired self-service files stay removed',()=>{
   const files=walk(path.join(root,'api','v1'));
   assert.ok(files.length>12,'test requires function count to exceed Hobby direct-entry budget');
   const retired=/^(applications|notices|confirmations)\//;
-  let retiredCount=0;
   for(const abs of files){
     const short=path.relative(path.join(root,'api','v1'),abs).split(path.sep).join('/');
+    assert.equal(retired.test(short),false,short+' is a retired self-service handler');
     const rel='./v1/'+short;
-    if(retired.test(short)){
-      retiredCount++;
-      assert.equal(router.includes('require('+JSON.stringify(rel)+')'),false,rel+' must stay retired from the single router');
-      continue;
-    }
     assert.ok(router.includes('require('+JSON.stringify(rel)+')'),rel+' missing from single router');
   }
-  assert.ok(retiredCount>=3,'retired self-service handlers should remain explicitly classified until file cleanup');
 });
 
 test('router restores dynamic route parameters',()=>{
