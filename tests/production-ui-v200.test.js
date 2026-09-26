@@ -200,7 +200,7 @@ test('vehicle assignment UI uses searchable employee references instead of a hug
   assert.ok(js.includes('async function resolveEmployeeReference'));
   assert.ok(js.includes("'/employees?page_size=20&q='"));
   assert.ok(js.includes('async function editVehicleAssignments'));
-  assert.ok(js.includes('担当乗務員・区分を変更'));
+  assert.ok(js.includes('担当乗務員・基本車両を変更'));
   assert.ok(js.includes("'/vehicles/'+encodeURIComponent(v.id)+'/assignments'"));
   assert.ok(js.includes("additional_employee_ids:additionalIds"));
   assert.ok(js.includes("headers:{'If-Match':"));
@@ -334,7 +334,8 @@ test('employee detail shows renumber and lifecycle history beside current data',
   assert.ok(js.includes('function employeeHistoryHtml(history)'));
   assert.ok(js.includes('history?.number_changes'));
   assert.ok(js.includes('history?.transitions'));
-  assert.ok(js.includes('社員番号変更と異動・在籍状態の変更履歴'));
+  assert.ok(js.includes('社員番号・所属/在籍・勤務区分の変更を確認'));
+  assert.ok(js.includes('history?.work_pattern_changes'));
   assert.ok(js.includes("employeeHistoryHtml(data.history)"));
 });
 
