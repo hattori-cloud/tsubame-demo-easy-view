@@ -64,7 +64,7 @@ async function authenticateRequest(req){
   const user={
     id:String(session.user_id),employee_id:session.employee_id||null,display_name:session.display_name,
     role_level:session.role_level,safety_authority:Boolean(session.safety_authority),state:session.state,
-    mfa_required:Boolean(session.mfa_required),scopes:session.scopes||[],
+    mfa_required:Boolean(session.mfa_required),scopes:session.scopes||[],permissions:session.permissions||[],
     employee_lifecycle_status:session.employee_lifecycle_status||null,employee_no:session.employee_no||null
   };
   return {subject:String(session.user_id),user_id:String(session.user_id),mfa:Boolean(session.mfa_verified),session_id:String(session.id),user}
