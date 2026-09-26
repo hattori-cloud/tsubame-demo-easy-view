@@ -156,3 +156,24 @@ test('safety records and vehicle records cross-link employees and car numbers',(
   assert.ok(js.includes('>担当社員</button>'));
   assert.ok(js.includes("data-action=\"open-employee\""));
 });
+
+
+test('employee detail is an operational hub for deadlines vehicles and safety history',()=>{
+  assert.ok(js.includes('function employeeOperationalHtml'));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-deadlines\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-vehicles\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-vehicle\""));
+  assert.ok(js.includes("'/deadlines?filter=action&page_size=6&q='"));
+  assert.ok(js.includes("'/vehicles?page_size=6&q='"));
+  assert.ok(js.includes("'/accidents?page_size=1&q='"));
+  assert.ok(js.includes("'/complaints?page_size=1&q='"));
+  assert.ok(js.includes("'/near-misses?page_size=1&q='"));
+  assert.ok(css.includes('.support-stat-grid'));
+  assert.ok(css.includes('@media(max-width:390px){.support-stat-grid'));
+});
+
+test('deadline rows lead directly to the employee or vehicle that must be handled',()=>{
+  assert.ok(js.includes("x.type==='vehicle_inspection'||x.type==='vehicle_maintenance'"));
+  assert.ok(js.includes('data-action="edit-vehicle" data-id="'));
+  assert.ok(js.includes('data-action="open-employee" data-id="'));
+});
