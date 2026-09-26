@@ -177,3 +177,14 @@ test('deadline rows lead directly to the employee or vehicle that must be handle
   assert.ok(js.includes('data-action="edit-vehicle" data-id="'));
   assert.ok(js.includes('data-action="open-employee" data-id="'));
 });
+
+
+test('vehicle assignment UI uses searchable employee references instead of a huge employee dropdown',()=>{
+  assert.ok(js.includes('async function resolveEmployeeReference'));
+  assert.ok(js.includes("'/employees?page_size=20&q='"));
+  assert.ok(js.includes('async function editVehicleAssignments'));
+  assert.ok(js.includes('担当乗務員・区分を変更'));
+  assert.ok(js.includes("'/vehicles/'+encodeURIComponent(v.id)+'/assignments'"));
+  assert.ok(js.includes("additional_employee_ids:additionalIds"));
+  assert.ok(js.includes("'If-Match':'"'+v.version+'"'"));
+});
