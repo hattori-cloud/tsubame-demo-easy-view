@@ -12,6 +12,26 @@ function resolveCurrentUser(identity){
   if(user.mfa_required&&!identity?.mfa)throw new AuthError(403,'MFA_REQUIRED','管理者アカウントはMFA確認が必要です');
   return user
 }
+const FEATURE_CODES=new Set([
+  'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
+  'vehicles','safety_analysis','work_import','assets_training','notices_workflow','audit_logs','user_admin'
+]);
+function featureAccessLevel(user,feature){
+  if(!user||!FEATURE_CODES.has(String(feature)))return null;
+  if(user.role_level==='full')return 'edit';
+  const row=(user.permissions||[]).find(p=>p.feature===feature);
+  return row&&['view','edit'].includes(row.access_level)?row.access_level:null
+}
+function hasFeaturePermission(user,feature,required='view'){
+  const level=featureAccessLevel(user,feature);
+  return required==='edit'?level==='edit':Boolean(level)
+}
+function requireFeaturePermission(user,feature,required='view'){
+  if(!hasFeaturePermission(user,feature,required)){
+    throw new AuthError(403,'FEATURE_ACCESS_DENIED','この機能を利用する権限がありません')
+  }
+  return user
+}
 function canAccessEmployee(user,employee){
   if(!user||!employee)return false;
   if(user.role_level==='full')return true;
@@ -39,4 +59,4 @@ function listStagingEmployeesForUser(user,query={}){
   const total=rows.length,start=(page-1)*pageSize;
   return {items:rows.slice(start,start+pageSize),page,page_size:pageSize,total}
 }
-module.exports={resolveCurrentUser,canAccessEmployee,requireEmployeeAccess,getStagingEmployeeForUser,listStagingEmployeesForUser};
+module.exports={resolveCurrentUser,canAccessEmployee,requireEmployeeAccess,getStagingEmployeeForUser,listStagingEmployeesForUser,featureAccessLevel,hasFeaturePermission,requireFeaturePermission,FEATURE_CODES};
