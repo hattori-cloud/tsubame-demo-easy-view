@@ -80,10 +80,20 @@ test('accident and complaint owners must be active managers authorized for the e
 test('accident and complaint reads are manager-only at the server layer',()=>{
   const accidentList=store.slice(store.indexOf('async function listAccidents'),store.indexOf('async function getAccident'));
   const accidentGet=store.slice(store.indexOf('async function getAccident'),store.indexOf('async function createAccident'));
-  const complaintList=store.slice(store.indexOf('async function listComplaints'),store.indexOf('async function createComplaint'));
+  const complaintList=store.slice(store.indexOf('async function listComplaints'),store.indexOf('async function getComplaint'));
+  const complaintGet=store.slice(store.indexOf('async function getComplaint'),store.indexOf('async function createComplaint'));
   assert.ok(accidentList.includes('requireSafetyManager(user)'));
   assert.ok(accidentGet.includes('requireSafetyManager(user)'));
   assert.ok(complaintList.includes('requireSafetyManager(user)'));
+  assert.ok(complaintGet.includes('requireSafetyManager(user)'));
+});
+
+test('complaint detail route supports authorized GET and versioned PATCH',()=>{
+  const route=src('api','v1','complaints','[id].js');
+  assert.ok(route.includes("req.method==='GET'"));
+  assert.ok(route.includes("req.method==='PATCH'"));
+  assert.ok(route.includes('getComplaint(user,id)'));
+  assert.ok(route.includes('parseIfMatchHeader'));
 });
 
 test('safety mutations lock the record row before version comparison',()=>{
