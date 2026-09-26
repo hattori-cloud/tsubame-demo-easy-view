@@ -5,6 +5,7 @@ on:
     branches:
       - staging-v200-backend
       - post-audit-v200-prod-readiness
+      - post-audit-v200-hardening-next
 
 permissions:
   contents: read
