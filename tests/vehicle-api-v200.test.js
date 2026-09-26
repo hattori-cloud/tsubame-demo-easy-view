@@ -63,7 +63,7 @@ test('vehicle assignment edits apply deltas instead of ending and reinserting un
 
 test('vehicle detail returns current scoped assignments for safe assignment editing',()=>{
   assert.ok(store.includes("e.employee_no as primary_employee_no,e.name as primary_employee_name"));
-  assert.ok(store.includes("jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'role',vu.role)"));
+  assert.ok(store.includes("jsonb_build_object('employee_id',vu.employee_id,'employee_no',eu.employee_no,'name',eu.name,'work_pattern',eu.work_pattern,'role',vu.role)"));
   assert.ok(store.includes("assignedScope=scopeSql(user,params,'eu')"));
 });
 
