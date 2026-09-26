@@ -7,6 +7,7 @@ function src(...parts){return fs.readFileSync(path.join(__dirname,'..',...parts)
 const store=src('api','_lib','vehicle-store.js');
 const schema=src('docs','production-schema.sql');
 const assignment=src('api','v1','vehicles','[id]','assignments.js');
+const detailRoute=src('api','v1','vehicles','[id].js');
 
 test('vehicle production schema includes model and three-digit car number',()=>{
   assert.match(schema,/create table vehicles[\s\S]*car_no text not null unique check \(car_no ~ '\^\[0-9\]\{3\}\$'\)[\s\S]*model text/i);
@@ -78,4 +79,22 @@ test('vehicle assignment data exposes work pattern only as context, not as a fix
   assert.ok(store.includes("'work_pattern',eu.work_pattern"));
   assert.equal(store.includes("work_pattern='隔勤'"),false);
   assert.equal(store.includes("work_pattern='日勤'"),false);
+});
+
+
+test('vehicle detail exposes scoped assignment history with readable current employee lookup',()=>{
+  assert.ok(store.includes('async function getVehicleAssignmentHistory'));
+  assert.ok(store.includes("action='assignments_change'"));
+  assert.ok(store.includes("select id,employee_no,name from employees where id=any($1::uuid[])"));
+  assert.ok(store.includes('before_primary:'));
+  assert.ok(store.includes('after_primary:'));
+  assert.ok(detailRoute.includes('getVehicleAssignmentHistory'));
+  assert.ok(detailRoute.includes('{vehicle,assignment_history}'));
+});
+
+test('vehicle assignment history keeps snapshots and optional change reason',()=>{
+  assert.ok(store.includes("select vu.employee_id,vu.role,e.employee_no,e.name from vehicle_users"));
+  assert.ok(store.includes("employee_no:primary.employee_no,name:primary.name"));
+  assert.ok(store.includes("reason=String(body.reason||'').trim()||'車両担当変更'"));
+  assert.ok(store.includes("JSON.stringify({assignment_mode:before.assignment_mode,primary_employee_id:before.primary_employee_id,users:beforeUsers})"));
 });
