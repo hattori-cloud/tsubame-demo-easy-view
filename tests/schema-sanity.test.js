@@ -13,7 +13,8 @@ function duplicates(values){
 
 test('production schema declares each table once',()=>{
   const tables=[...sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?([a-z0-9_]+)/gi)].map(m=>m[1]);
-  assert.equal(tables.length,28);
+  assert.equal(tables.length,29)
+  assert.ok(tables.includes('user_feature_permissions'));
   assert.deepEqual(duplicates(tables),[])
 });
 
