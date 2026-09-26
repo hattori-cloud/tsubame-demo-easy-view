@@ -380,3 +380,21 @@ test('employee-scoped safety forms do not mix a draft saved for another employee
   assert.ok(js.includes("const compatible=!knownEmployee||!draft||String(draft.payload?.employee_id||'')===String(knownEmployee.id)"));
   assert.ok(js.includes('draftExtraForEmployee(knownEmployee)'));
 });
+
+
+test('safety hub surfaces only editable server drafts with resume and discard actions',()=>{
+  assert.ok(js.includes("canDraft=canEdit('accidents')||canEdit('complaints')||canEdit('near_misses')"));
+  assert.ok(js.includes("canDraft?api('/drafts')"));
+  assert.ok(js.includes('保存中の下書き'));
+  assert.ok(js.includes('自分の下書きのみ'));
+  assert.ok(js.includes('data-action="resume-draft"'));
+  assert.ok(js.includes('data-action="discard-draft"'));
+  assert.ok(js.includes('async function resumeSafetyDraft(kind)'));
+  assert.ok(js.includes('async function discardSafetyDraft(kind)'));
+  assert.ok(js.includes("window.confirm('この下書きを破棄しますか？')"));
+});
+
+test('home deadline metric labels the actual action window instead of saying 60 days',()=>{
+  assert.ok(js.includes("metric('期限対応',deadlines?.summary?.total??'—','超過〜30日')"));
+  assert.equal(js.includes("metric('期限対応',deadlines?.summary?.total??'—','60日以内')"),false);
+});
