@@ -84,6 +84,7 @@ const ROUTES=[
   {pattern:/^\/users\/([^\/]+)\/reactivate\/?$/,keys:["id"],handler:require("./v1/users/[id]/reactivate.js"),source:"api/v1/users/[id]/reactivate.js"},
   {pattern:/^\/users\/([^\/]+)\/suspend\/?$/,keys:["id"],handler:require("./v1/users/[id]/suspend.js"),source:"api/v1/users/[id]/suspend.js"},
   {pattern:/^\/vehicles\/([^\/]+)\/assignments\/?$/,keys:["id"],handler:require("./v1/vehicles/[id]/assignments.js"),source:"api/v1/vehicles/[id]/assignments.js"},
+  {pattern:/^\/analysis\/management-summary\/?$/,keys:[],handler:require("./v1/analysis/management-summary.js"),source:"api/v1/analysis/management-summary.js"},
   {pattern:/^\/analysis\/safety-summary\/?$/,keys:[],handler:require("./v1/analysis/safety-summary.js"),source:"api/v1/analysis/safety-summary.js"},
   {pattern:/^\/auth\/login\/?$/,keys:[],handler:require("./v1/auth/login.js"),source:"api/v1/auth/login.js"},
   {pattern:/^\/auth\/logout\/?$/,keys:[],handler:require("./v1/auth/logout.js"),source:"api/v1/auth/logout.js"},
