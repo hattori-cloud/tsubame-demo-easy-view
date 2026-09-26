@@ -7400,7 +7400,10 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
    <div class="acc-v50-box"><label>完了日</label><b>${esc(a.completedDate||(a.phase==='完了'?'未記録':'未完了'))}</b></div>
    <div class="acc-v50-box"><label>最終確認者</label><b>${esc(a.finalReviewerName||(a.phase==='完了'?'未記録':'-'))}</b></div>
  </div></div></details>
- <details class="detail-fold"><summary>場所・添付資料</summary><div class="detail-fold-body"><div class="section"><h3>事故場所</h3><div>${esc(a.address||'未設定')}<br>${a.address?`<a class="map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}" target="_blank" rel="noopener">Googleマップで開く</a>`:''}</div></div><div class="section"><h3>添付資料</h3><div><button class="btn soft" onclick="showPreview()">事故現場イメージ</button></div></div></div></details>`;
+ <details class="detail-fold"><summary>場所・事故資料（${accidentDocuments(a).length}件）</summary><div class="detail-fold-body">
+  <div class="section"><h3>事故場所</h3><div>${esc(a.address||'未設定')}<br>${a.address?`<a class="map" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(a.address)}" target="_blank" rel="noopener">Googleマップで開く</a>`:''}</div></div>
+  <div class="section"><div class="list-summary"><div><h3 style="margin:0">事故資料</h3><div class="mini">現場写真・見取図・車両損傷・事故証明・見積などを事故番号に紐づけます。</div></div>${canEditEmployee(a.employee_no)?`<button class="btn primary" onclick="openAccidentEvidenceForm('${a.id}')">＋ 事故資料を紐づける</button>`:''}</div>${accidentEvidenceSummaryHtml(a)}</div>
+ </div></details>`;
  showDetailModal()
 }
 function appendAccidentHistory(id){appendCaseNote('事故',id,'accQuickHistory')}
