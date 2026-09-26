@@ -1,0 +1,34 @@
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const path=require('node:path');
+
+const html=fs.readFileSync(path.join(__dirname,'..','index.html'),'utf8');
+const sql=fs.readFileSync(path.join(__dirname,'..','docs','production-schema.sql'),'utf8');
+const api=fs.readFileSync(path.join(__dirname,'..','docs','api-contract.md'),'utf8');
+
+test('accident edit flow contains investigation report fields',()=>{
+  ['faeweather','faepolice','faeopponent','faeonsite','faeroad','faedamage','faeevidence','faereportstatus']
+    .forEach(id=>assert.match(html,new RegExp('id="'+id+'"')));
+});
+
+test('existing accident records receive safe report-sheet defaults',()=>{
+  assert.match(html,/\['weather','未設定'\]/);
+  assert.match(html,/\['policeStatus','未確認'\]/);
+  assert.match(html,/\['evidenceStatus','未確認'\]/);
+  assert.match(html,/\['reportSheetStatus','未着手'\]/);
+});
+
+test('accident report-sheet values are persisted and visible',()=>{
+  assert.match(html,/opponentSummary:faeopponent\.value\.trim\(\)/);
+  assert.match(html,/onsiteActions:faeonsite\.value\.trim\(\)/);
+  assert.match(html,/roadCondition:faeroad\.value\.trim\(\)/);
+  assert.match(html,/damageInjurySummary:faedamage\.value\.trim\(\)/);
+  assert.match(html,/事故報告・調査票/);
+});
+
+test('production schema and API contract include report-sheet fields',()=>{
+  ['weather','opponent_summary','onsite_actions','road_condition','damage_injury_summary','police_status','evidence_status','report_sheet_status']
+    .forEach(name=>assert.match(sql,new RegExp('\\b'+name+'\\b')));
+  assert.match(api,/follow-up accident investigation fields/i);
+});
