@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,credentialData:null,employeeSupport:null,employeeOperational:null,workImport:null,analysisFilters:{},userItems:[],pages:{}};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,credentialData:null,employeeSupport:null,employeeOperational:null,workImport:null,analysisFilters:{},userItems:[],pages:{},deadlineFilter:'action'};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -529,11 +529,16 @@
   }
 
   async function renderDeadlines(q){
-    const page=currentPage('deadlines');
-    const sp=new URLSearchParams({filter:'action',page_size:'50',page:String(page)});if(q)sp.set('q',q);
+    const page=currentPage('deadlines'),filter=state.deadlineFilter||'action';
+    const sp=new URLSearchParams({filter,page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/deadlines?'+sp);
+    const filterLabels={action:'要対応（超過〜30日）',over:'期限超過',today:'本日',within30:'本日〜30日',60:'31〜60日',all60:'超過〜60日'};
+    const filterButtons=[['action','要対応'],['over','超過'],['today','本日'],['within30','30日以内'],['60','31〜60日'],['all60','60日全体']].map(([v,l])=>
+      '<button class="'+(filter===v?'small-primary':'ghost light')+'" data-action="deadline-filter" data-id="'+v+'">'+l+'</button>'
+    ).join('');
     $('content').innerHTML=
-      '<div class="metric-grid compact">'+metric('全件',data.summary.total,'60日以内')+metric('超過',data.summary.overdue,'期限超過')+metric('本日',data.summary.today,'本日期限')+metric('7日以内',data.summary.within7,'近日')+'</div>'+
+      '<section class="panel compact-panel"><div class="list-head"><div><b>期限の表示条件</b><span>'+esc(filterLabels[filter]||filter)+'</span></div></div><div class="dialog-actions deadline-filters">'+filterButtons+'</div></section>'+
+      '<div class="metric-grid compact">'+metric('表示件数',data.summary.total,filterLabels[filter]||filter)+metric('超過',data.summary.overdue,'現在の表示内')+metric('本日',data.summary.today,'現在の表示内')+metric('7日以内',data.summary.within7,'現在の表示内')+'</div>'+
       listHeader(data.total,'期限')+(data.items.length?'<div class="cards">'+data.items.map(x=>
         '<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div>'+
         '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+deadlineTargetButton(x)+'</div></div>'
@@ -943,6 +948,7 @@
       if(action==='open-filtered-view')return loadView(id,{q,resetPage:true});
       if(action==='list-page')return loadView(state.view,{q,page:Number(id)||1});
       if(action==='deadline-target')return openDeadlineTarget(id,q);
+      if(action==='deadline-filter'){state.deadlineFilter=id||'action';state.pages.deadlines=1;return renderDeadlines($('searchInput').value.trim())}
       if(action==='open-employee')return employeeDetail(id);
       if(action==='home-search')return runHomeSearch();
       if(action==='new-employee')return newEmployee();
