@@ -178,8 +178,8 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理'}[view]||view;
-    $('searchWrap').hidden=['home','work-import','analysis'].includes(view);
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理',business:'業務'}[view]||view;
+    $('searchWrap').hidden=['home','work-import','analysis','business'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
       if(view==='home')await renderHome();
@@ -193,6 +193,7 @@
       else if(view==='work-import')await renderWorkImport()
       else if(view==='analysis')await renderSafetyAnalysis()
       else if(view==='users')await renderUsers(opts.q||'')
+      else if(view==='business')await renderBusiness()
     }catch(err){$('content').innerHTML='';showError(err,'データ取得')}finally{state.loading=false}
   }
 
