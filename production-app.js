@@ -16,6 +16,37 @@
   }
   function canView(feature){return Boolean(featureLevel(feature))}
   function canEdit(feature){return featureLevel(feature)==='edit'}
+  const FEATURE_OPTIONS=[
+    ['employees','社員情報'],['deadlines','期限'],['accidents','事故'],['complaints','苦情'],['near_misses','ヒヤリ'],
+    ['credentials_documents','資格・書類'],['vehicles','車両'],['safety_analysis','安全分析'],['work_import','勤務取込'],
+    ['assets_training','貸与品・教育'],['notices_workflow','業務連絡']
+  ];
+  const PERMISSION_PRESETS={
+    viewer:FEATURE_OPTIONS.filter(([f])=>f!=='work_import').map(([feature])=>({feature,access_level:'view'})),
+    manager:[
+      {feature:'employees',access_level:'edit'},{feature:'deadlines',access_level:'view'},{feature:'accidents',access_level:'edit'},
+      {feature:'complaints',access_level:'edit'},{feature:'near_misses',access_level:'edit'},{feature:'credentials_documents',access_level:'edit'},
+      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'},{feature:'notices_workflow',access_level:'view'}
+    ],
+    safety:[
+      {feature:'employees',access_level:'view'},{feature:'deadlines',access_level:'view'},{feature:'accidents',access_level:'edit'},
+      {feature:'complaints',access_level:'edit'},{feature:'near_misses',access_level:'edit'},{feature:'credentials_documents',access_level:'view'},
+      {feature:'vehicles',access_level:'view'},{feature:'safety_analysis',access_level:'view'}
+    ]
+  };
+  function permissionMap(list){return Object.fromEntries((list||[]).map(x=>[x.feature,x.access_level]))}
+  function permissionFields(current=[]){
+    const m=permissionMap(current);
+    return FEATURE_OPTIONS.map(([feature,label])=>formSelect('perm_'+feature,label,[['','利用しない'],['view','閲覧'],['edit','閲覧・編集']],m[feature]||'')).join('')
+  }
+  function permissionsFromForm(fd,preset){
+    if(preset&&preset!=='custom')return (PERMISSION_PRESETS[preset]||[]).map(x=>({...x}));
+    return FEATURE_OPTIONS.map(([feature])=>({feature,access_level:fdText(fd,'perm_'+feature)})).filter(x=>['view','edit'].includes(x.access_level))
+  }
+  function permissionSummary(list){
+    const counts={view:0,edit:0};for(const p of list||[])if(counts[p.access_level]!==undefined)counts[p.access_level]++;
+    return '閲覧 '+counts.view+' / 編集 '+counts.edit
+  }
 
   async function api(path,{method='GET',body,headers={}}={}){
     const ctrl=new AbortController();
@@ -514,7 +545,7 @@
     state.userItems=data.items||[];
     $('content').innerHTML=listHeader(data.total,'利用者')+(state.userItems.length?'<div class="cards">'+state.userItems.map(u=>
       '<div class="record"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.login_id)+' / 社員番号 '+esc(u.employee_no)+'</span>'+
-      '<p>'+esc(u.employee_name||'')+' / '+esc(roleLabel(u.role_level))+' / '+esc(u.state)+'</p></div>'+
+      '<p>'+esc(u.employee_name||'')+' / '+esc(roleLabel(u.role_level))+' / '+esc(u.state)+' / '+esc(permissionSummary(u.permissions))+'</p></div>'+
       '<div class="record-meta"><span>MFA '+esc(u.mfa_enrolled_at?'登録済':'未登録')+'</span><span>セッション '+esc(u.active_sessions||0)+'</span>'+
       '<button class="record-action" data-action="edit-user" data-id="'+esc(u.id)+'">権限</button>'+
       (u.state==='active'
@@ -540,15 +571,18 @@
     const u=state.userItems.find(x=>String(x.id)===String(id));
     if(!u)return;
     const fields=
-      formSelect('role_level','権限',[['self','本人'],['scoped','担当範囲管理者'],['full','全社管理者']],u.role_level,'required')+
-      formSelect('safety_authority','安全管理権限',[['false','なし'],['true','あり']],String(Boolean(u.safety_authority)))+
-      formArea('scopes','担当範囲（scopedのみ）',userScopesText(u.scopes),'placeholder="本社 | タクシー課&#10;府中 | タクシー課"');
+      formSelect('role_level','利用者区分',[['scoped','範囲指定利用者'],['full','全社管理者']],u.role_level,'required')+
+      formSelect('permission_preset','権限プリセット',[['custom','現在設定を個別調整'],['viewer','閲覧中心'],['manager','管理担当'],['safety','安全管理']],'custom')+
+      formSelect('safety_authority','安全判断権限',[['false','なし'],['true','あり']],String(Boolean(u.safety_authority)))+
+      formArea('scopes','担当範囲（範囲指定利用者）',userScopesText(u.scopes),'placeholder="本社 | タクシー1課&#10;府中 | タクシー2課"')+
+      permissionFields(u.permissions);
     openRecordForm('利用者権限 '+u.display_name,fields,async fd=>{
       const role=fdText(fd,'role_level');
       const scopes=role==='scoped'?parseUserScopes(fdText(fd,'scopes')):[];
+      const permissions=role==='scoped'?permissionsFromForm(fd,fdText(fd,'permission_preset')):[];
       await api('/users/'+encodeURIComponent(u.id)+'/access',{
         method:'PATCH',
-        body:{role_level:role,safety_authority:fdText(fd,'safety_authority')==='true',scopes},
+        body:{role_level:role,safety_authority:fdText(fd,'safety_authority')==='true',scopes,permissions},
         headers:{'If-Match':'"'+u.version+'"'}
       })
     })
@@ -780,19 +814,22 @@
     const fields=
       formField('login_id','ログインID','','text','required maxlength="128"')+
       formField('display_name','表示名',employee.name||'','text','required')+
-      formSelect('role_level','権限',[['self','本人'],['scoped','担当範囲管理者'],['full','全社管理者']],'self','required')+
-      formSelect('safety_authority','安全管理権限',[['false','なし'],['true','あり']],'false')+
-      formArea('scopes','担当範囲（scopedのみ）','','placeholder="本社 | タクシー課&#10;府中 | タクシー課"');
+      formSelect('role_level','利用者区分',[['scoped','範囲指定利用者'],['full','全社管理者']],'scoped','required')+
+      formSelect('permission_preset','権限プリセット',[['viewer','閲覧中心（推奨）'],['manager','管理担当'],['safety','安全管理'],['custom','カスタム']],'viewer')+
+      formSelect('safety_authority','安全判断権限',[['false','なし'],['true','あり']],'false')+
+      formArea('scopes','担当範囲（範囲指定利用者）','','placeholder="本社 | タクシー1課&#10;府中 | タクシー2課"')+
+      permissionFields(PERMISSION_PRESETS.viewer);
     openRecordForm('利用者アカウント発行',fields,async fd=>{
       const role=fdText(fd,'role_level');
       const scopes=role==='scoped'?parseUserScopes(fdText(fd,'scopes')):[];
+      const permissions=role==='scoped'?permissionsFromForm(fd,fdText(fd,'permission_preset')):[];
       const {data}=await api('/users',{method:'POST',body:{
         employee_id:employee.id,
         login_id:fdText(fd,'login_id'),
         display_name:fdText(fd,'display_name'),
         role_level:role,
         safety_authority:fdText(fd,'safety_authority')==='true',
-        scopes
+        scopes,permissions
       }});
       window.prompt('初期設定トークンです。30分以内に本人へ安全な方法で渡してください。\nこの画面を閉じると再表示できません。',data.setup_token||'')
     })
