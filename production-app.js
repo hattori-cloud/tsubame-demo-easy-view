@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,employeeSupport:null,workImport:null,analysisFilters:{},userItems:[]};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,employeeSupport:null,employeeOperational:null,workImport:null,analysisFilters:{},userItems:[],pages:{}};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -136,9 +136,9 @@
     $('logoutBtn').addEventListener('click',logout);
     $('nav').addEventListener('click',e=>{
       const b=e.target.closest('[data-view]');if(!b)return;
-      loadView(b.dataset.view)
+      loadView(b.dataset.view,{resetPage:true})
     });
-    $('searchForm').addEventListener('submit',e=>{e.preventDefault();loadView(state.view,{q:$('searchInput').value.trim()})});
+    $('searchForm').addEventListener('submit',e=>{e.preventDefault();loadView(state.view,{q:$('searchInput').value.trim(),resetPage:true})});
     $('refreshBtn').addEventListener('click',()=>loadView(state.view,{q:$('searchInput').value.trim()}));
     $('content').addEventListener('click',e=>{
       const action=e.target.closest('[data-action]');
@@ -224,6 +224,8 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     if(view==='business')view='safety';
+    if(opts.resetPage)state.pages[view]=1;
+    if(opts.page)state.pages[view]=Math.max(1,Number(opts.page)||1);
     state.loading=true;state.view=view;navActive(view);clearError();
     $('viewTitle').textContent={home:'ホーム',employees:'社員',work:'期限・勤務',deadlines:'期限',accidents:'事故',complaints:'苦情',safety:'運行・安全',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'分析',admin:'管理',users:'利用者管理',audit:'監査ログ'}[view]||view;
     $('searchWrap').hidden=['home','work','safety','admin','work-import','analysis'].includes(view);
@@ -308,15 +310,27 @@
 
   function listHeader(total,label,action=''){return '<div class="list-head"><div><b>'+esc(label)+'</b><span>'+esc(total)+'件</span></div>'+action+'</div>'}
   function empty(){return '<div class="empty">該当データはありません。</div>'}
+  function currentPage(view){return Math.max(1,Number(state.pages[view])||1)}
+  function paginationHtml(data,view,q=''){
+    const total=Number(data?.total||0),size=Math.max(1,Number(data?.page_size||50)),page=Math.max(1,Number(data?.page||currentPage(view))),pages=Math.max(1,Math.ceil(total/size));
+    state.pages[view]=Math.min(page,pages);
+    if(total<=size)return '';
+    const start=(page-1)*size+1,end=Math.min(total,page*size);
+    return '<div class="list-pager"><button class="ghost light" data-action="list-page" data-id="'+(page-1)+'" data-q="'+esc(q)+'" '+(page<=1?'disabled':'')+'>← 前へ</button>'+
+      '<span>'+esc(start)+'〜'+esc(end)+'件 / '+esc(total)+'件　'+esc(page)+' / '+esc(pages)+'ページ</span>'+
+      '<button class="ghost light" data-action="list-page" data-id="'+(page+1)+'" data-q="'+esc(q)+'" '+(page>=pages?'disabled':'')+'>次へ →</button></div>'
+  }
 
   async function renderEmployees(q){
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('employees');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
     const add=state.me?.role_level==='full'?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'社員',add)+(data.items.length?'<div class="cards">'+data.items.map(e=>
       '<button class="record employee" data-employee-id="'+esc(e.id)+'"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
       '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><span>'+esc(e.lifecycle_status||'—')+'</span></div></button>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'employees',q));
   }
 
   async function employeeDetail(id){
@@ -461,7 +475,8 @@
   }
 
   async function renderDeadlines(q){
-    const sp=new URLSearchParams({filter:'action',page_size:'100'});if(q)sp.set('q',q);
+    const page=currentPage('deadlines');
+    const sp=new URLSearchParams({filter:'action',page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/deadlines?'+sp);
     $('content').innerHTML=
       '<div class="metric-grid compact">'+metric('全件',data.summary.total,'60日以内')+metric('超過',data.summary.overdue,'期限超過')+metric('本日',data.summary.today,'本日期限')+metric('7日以内',data.summary.within7,'近日')+'</div>'+
@@ -470,57 +485,68 @@
         '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+
         (x.type==='vehicle_inspection'||x.type==='vehicle_maintenance'?'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(x.source_id)+'">号車</button>':x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'deadlines',q));
   }
 
   async function renderAccidents(q){
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('accidents');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/accidents?'+sp);
     const add=canEdit('accidents')?'<button class="small-primary" data-action="new-accident">＋ 事故登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'事故',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'<button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'accidents',q));
   }
 
   async function renderComplaints(q){
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('complaints');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/complaints?'+sp);
     const add=canEdit('complaints')?'<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'苦情',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'<button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'complaints',q));
   }
 
   async function renderVehicles(q){
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('vehicles');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/vehicles?'+sp);
     const add=canEdit('vehicles')?'<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'車両',add)+(data.items.length?'<div class="cards">'+data.items.map(v=>
       '<div class="record"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+'</span></div>'+
       '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span>'+(v.primary_employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(v.primary_employee_id)+'">担当社員</button>':'')+'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'vehicles',q));
   }
 
 
   async function renderNearMisses(q){
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('near-misses');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/near-misses?'+sp);
     const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
       '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'</div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'near-misses',q));
   }
 
   async function renderCredentials(q){
     if(state.credentialEmployeeId)return renderCredentialEmployee(state.credentialEmployeeId);
-    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const page=currentPage('credentials');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
     $('content').innerHTML=listHeader(data.total,'資格・書類の対象社員')+(data.items.length?'<div class="cards">'+data.items.map(e=>
       '<div class="record"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
       '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><button class="record-action" data-action="show-credentials" data-id="'+esc(e.id)+'">資格・書類を見る</button></div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'credentials',q));
   }
 
   async function renderCredentialEmployee(employeeId){
@@ -575,7 +601,8 @@
     if(state.me?.role_level!=='full'){
       $('content').innerHTML='<div class="empty">利用者管理は全社管理者のみ利用できます。</div>';return
     }
-    const sp=new URLSearchParams({page_size:'100'});if(q)sp.set('q',q);
+    const page=currentPage('users');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/users?'+sp);
     state.userItems=data.items||[];
     $('content').innerHTML=listHeader(data.total,'利用者')+(state.userItems.length?'<div class="cards">'+state.userItems.map(u=>
@@ -588,6 +615,7 @@
         :'<button class="success" data-action="reactivate-user" data-id="'+esc(u.id)+'">再開</button>')+
       '</div></div>'
     ).join('')+'</div>':empty())
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'users',q));
   }
 
   function userScopesText(scopes){
@@ -640,7 +668,8 @@
 
   async function renderAuditLogs(q){
     if(state.me?.role_level!=='full'){$('content').innerHTML='<div class="empty">監査ログは全社管理者のみ利用できます。</div>';return}
-    const sp=new URLSearchParams({page_size:'100'});if(q)sp.set('q',q);
+    const page=currentPage('audit');
+    const sp=new URLSearchParams({page_size:'50',page:String(page)});if(q)sp.set('q',q);
     const {data}=await api('/audit-logs?'+sp);
     $('content').innerHTML=
       '<section class="panel"><div class="list-head"><div><b>監査ログ</b><span>'+esc(data.total)+'件</span></div></div><p class="sub">利用者・社員・安全案件などの重要操作を、照会IDと一緒に追跡できます。検索欄から操作名・概要・照会IDを探せます。</p>'+
@@ -648,6 +677,7 @@
         '<div class="record"><div><b>'+esc(x.action)+'</b><span>'+esc(x.actor_name||'システム')+' / '+esc(fmtDate(x.occurred_at))+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><span>'+esc(x.entity_type||'—')+'</span><span>'+esc(x.result||'—')+'</span><span>照会ID '+esc(x.request_id||'—')+'</span>'+
         (x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員詳細</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())+'</section>'
+    $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'audit',q));
   }
 
   async function renderSafetyAnalysis(){
@@ -820,8 +850,9 @@
 
   async function handleAction(action,id,q=''){
     try{
-      if(action==='open-view')return loadView(id);
-      if(action==='open-filtered-view')return loadView(id,{q});
+      if(action==='open-view')return loadView(id,{resetPage:true});
+      if(action==='open-filtered-view')return loadView(id,{q,resetPage:true});
+      if(action==='list-page')return loadView(state.view,{q,page:Number(id)||1});
       if(action==='open-employee')return employeeDetail(id);
       if(action==='home-search')return runHomeSearch();
       if(action==='new-employee')return newEmployee();
@@ -851,13 +882,13 @@
   async function handleDialogAction(action,id){
     const d=state.dialog;if(!d)return;
     try{
-      if(action==='open-employee-deadlines'){$('detailDialog').close();return loadView('deadlines',{q:d.record.employee_no})}
+      if(action==='open-employee-deadlines'){$('detailDialog').close();return loadView('deadlines',{q:d.record.employee_no,resetPage:true})}
       if(action==='open-employee-credentials'){state.credentialEmployeeId=d.record.id;$('detailDialog').close();return loadView('credentials')}
-      if(action==='open-employee-vehicles'){$('detailDialog').close();return loadView('vehicles',{q:d.record.employee_no})}
+      if(action==='open-employee-vehicles'){$('detailDialog').close();return loadView('vehicles',{q:d.record.employee_no,resetPage:true})}
       if(action==='open-employee-vehicle'){$('detailDialog').close();return editVehicle(id)}
-      if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no})}
-      if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no})}
-      if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no})}
+      if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no,resetPage:true})}
+      if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no,resetPage:true})}
+      if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no,resetPage:true})}
       if(action==='edit-vehicle-assignments')return editVehicleAssignments(d.record);
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
