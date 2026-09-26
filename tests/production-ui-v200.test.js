@@ -28,11 +28,11 @@ test('production auth shell covers password, MFA and logout',()=>{
 });
 
 test('production shell covers primary server-backed operational views',()=>{
-  for(const p of ['/employees','/deadlines','/accidents','/complaints','/vehicles','/near-misses','/analysis/safety-summary','/users'])assert.ok(js.includes(p),p);
+  for(const p of ['/employees','/deadlines','/accidents','/complaints','/vehicles','/near-misses','/analysis/safety-summary','/users','/audit-logs'])assert.ok(js.includes(p),p);
   assert.equal(html.includes('1001'),false);
 });
 
-test('session identity includes employee id and runtime data mode for self-service views',()=>{
+test('session identity includes immutable employee id and runtime data mode for selected users',()=>{
   const me=fs.readFileSync(path.join(__dirname,'..','api','v1','me.js'),'utf8');
   assert.ok(me.includes('employee_id:user.employee_id'));
   assert.ok(me.includes("stagingFixturesAllowed()?'fictional-staging-fixtures':'postgres'"));
@@ -70,14 +70,17 @@ test('production files are explicit Vercel static routes',()=>{
 });
 
 
-test('selected-user production UI exposes handoffs but no employee self-service communication calls',()=>{
-  assert.ok(js.includes("business:'handoffs'"));
+test('selected-user production UI integrates handoffs and guidance into safety without self-service communication calls',()=>{
   assert.ok(js.includes("['handoffs','引継ぎ']"));
   assert.ok(js.includes("api('/handoffs')"));
+  assert.ok(js.includes("api('/guidance?page_size=8')"));
+  assert.ok(js.includes("'<b>引継ぎ未確認</b>"));
+  assert.ok(js.includes("'<b>安全指導・次回確認</b>"));
+  assert.equal(js.includes("hubButton('business'"),false);
+  assert.equal(js.includes("async function renderBusiness()"),false);
   for(const retired of ['/notices','/confirmations','/applications'])assert.equal(js.includes(retired),false,retired);
   assert.equal(js.includes('notices_workflow'),false);
   assert.ok(html.includes('data-view="safety">運行・安全</button>'));
-  assert.ok(js.includes("hubButton('business','引継ぎ・指導'"))
 });
 
 
@@ -87,13 +90,18 @@ test('production top navigation is reduced to the same seven manager-focused are
   for(const retired of ['>事故</button>','>苦情</button>','>ヒヤリ</button>','>資格・書類</button>','>勤務取込</button>','>利用者管理</button>','>引継ぎ</button>'])assert.equal(nav.includes(retired),false,retired);
 });
 
-test('production grouped navigation keeps child APIs accessible from hubs and employee detail',()=>{
+test('production grouped navigation keeps child APIs connected as end-to-end task paths',()=>{
   assert.ok(js.includes("const NAV_PARENT={deadlines:'work'"));
+  assert.ok(js.includes("users:'admin',audit:'admin'"));
   assert.ok(js.includes("async function renderWorkHub()"));
   assert.ok(js.includes("async function renderSafetyHub()"));
   assert.ok(js.includes("async function renderAdminHub()"));
   assert.ok(js.includes("data-action=\"open-view\""));
   assert.ok(js.includes("data-dialog-action=\"open-employee-credentials\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-accidents\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-complaints\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-near\""));
+  assert.ok(js.includes("data-action=\"open-employee\""));
   assert.ok(css.includes('.hub-grid'));
 });
 
@@ -110,4 +118,33 @@ test('training and loaned assets are integrated into employee detail instead of 
   const nav=(html.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0];
   assert.equal(nav.includes('教育'),false);
   assert.equal(nav.includes('貸与品'),false);
+});
+
+
+test('home is an operational starting point with permission-aware cross search',()=>{
+  assert.ok(js.includes('id="homeGlobalSearch"'));
+  assert.ok(js.includes('async function runHomeSearch()'));
+  for(const endpoint of ['/employees?page_size=6&q=','/vehicles?page_size=6&q=','/accidents?page_size=6&q=','/complaints?page_size=6&q=','/near-misses?page_size=6&q='])assert.ok(js.includes(endpoint),endpoint);
+  assert.ok(js.includes("data-action=\"home-search\""));
+  assert.ok(js.includes("data-action=\"open-filtered-view\""));
+});
+
+test('management keeps work import in work flow and uses management for users and audit',()=>{
+  assert.ok(js.includes("hubButton('users','利用者・権限'"));
+  assert.ok(js.includes("hubButton('audit','監査ログ'"));
+  assert.ok(js.includes("async function renderAuditLogs(q)"));
+  const adminStart=js.indexOf('async function renderAdminHub()');
+  const adminEnd=js.indexOf('async function renderDeadlines',adminStart);
+  const admin=js.slice(adminStart,adminEnd);
+  assert.equal(admin.includes("hubButton('work-import'"),false);
+  const workStart=js.indexOf('async function renderWorkHub()');
+  const workEnd=js.indexOf('async function renderSafetyHub()',workStart);
+  assert.ok(js.slice(workStart,workEnd).includes("hubButton('work-import'"));
+});
+
+test('analysis provides direct operational follow-up instead of ending at charts',()=>{
+  assert.ok(js.includes('分析から次の処理へ'));
+  assert.ok(js.includes("hubButton('accidents','事故を確認'"));
+  assert.ok(js.includes("hubButton('near-misses','ヒヤリを確認'"));
+  assert.ok(js.includes("hubButton('complaints','苦情を確認'"));
 });
