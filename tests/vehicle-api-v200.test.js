@@ -71,3 +71,11 @@ test('general vehicle update cannot bypass the dedicated assignments endpoint',(
   assert.ok(store.includes("['primary_employee_id','additional_employee_ids','assignment_mode'].some"));
   assert.ok(store.includes("const allowed=['model','service','status','inspection_due','next_maintenance_due','maintenance_note']"));
 });
+
+
+test('vehicle assignment data exposes work pattern only as context, not as a fixed-car rule',()=>{
+  assert.ok(store.includes('e.work_pattern as primary_work_pattern'));
+  assert.ok(store.includes("'work_pattern',eu.work_pattern"));
+  assert.equal(store.includes("work_pattern='隔勤'"),false);
+  assert.equal(store.includes("work_pattern='日勤'"),false);
+});
