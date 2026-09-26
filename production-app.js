@@ -347,6 +347,54 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function renderBusiness(){
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const requests=[
+      api('/applications?page_size=50').then(x=>x.data),
+      api('/notices').then(x=>x.data),
+      api('/confirmations').then(x=>x.data)
+    ];
+    if(manager){
+      requests.push(api('/guidance?page_size=50').then(x=>x.data));
+      requests.push(api('/handoffs').then(x=>x.data))
+    }
+    const [applications,notices,confirmations,guidance,handoffs]=await Promise.all(requests);
+    const appItems=applications?.items||[],noticeItems=notices?.notices||[],confirmationItems=confirmations?.confirmations||[];
+    const guidanceItems=guidance?.items||[],handoffItems=handoffs?.handoffs||[];
+
+    const applicationHtml=appItems.length?'<div class="cards">'+appItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span></div>'+
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.applied_at))+'</span></div></div>'
+    ).join('')+'</div>':empty();
+
+    const noticeHtml=noticeItems.length?'<div class="cards">'+noticeItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>'+esc(fmtDate(x.published_at||x.created_at))+'</span><span>'+(x.read?'既読':'未読')+'</span></div></div>'
+    ).join('')+'</div>':empty();
+
+    const confirmationHtml=confirmationItems.length?'<div class="cards">'+confirmationItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>期限 '+esc(fmtDate(x.due))+'</span><span>'+esc(x.response||'未回答')+'</span></div></div>'
+    ).join('')+'</div>':empty();
+
+    const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary||'')+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(fmtDate(x.guidance_on))+'</span><span>'+esc(x.owner||'担当未設定')+'</span><span>次回 '+esc(fmtDate(x.next_review))+'</span></div></div>'
+    ).join('')+'</div>':empty();
+
+    const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span></div></div>'
+    ).join('')+'</div>':empty();
+
+    $('content').innerHTML=
+      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div></div>'+applicationHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div></div>'+noticeHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div></div>'+confirmationHtml+'</section>'+
+      (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div></div>'+guidanceHtml+'</section>':'')+
+      (manager?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
+  }
+
   async function renderUsers(q){
     if(state.me?.role_level!=='full'){
       $('content').innerHTML='<div class="empty">利用者管理は全社管理者のみ利用できます。</div>';return
