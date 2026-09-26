@@ -7451,6 +7451,7 @@ function nearDetail(id){
   <div class="detail-primary-item"><label>危険度</label>${badge(n.riskLevel||'未設定')}</div>
   <div class="detail-primary-item"><label>原因側</label><b>${esc(n.causeSide||'未設定')}</b></div>
   <div class="detail-primary-item"><label>記入日</label><b>${esc(n.reportDate||'未設定')}</b></div>
+  <div class="detail-primary-item"><label>登録経路</label>${nearSourceBadge(n.sourceType||'system')}<div class="mini">${n.sourceType==='google_form'?'自動取込':'管理者入力'}</div></div>
  </div></div>
  <div class="section"><h3>ヒヤリハット内容</h3><div class="acc-v50-text">${esc(n.summary||'未登録')}</div></div>
  <div class="section"><h3>改善・今後の対策</h3><div class="acc-v50-text">${esc(n.prevention||'未登録')}</div></div>
