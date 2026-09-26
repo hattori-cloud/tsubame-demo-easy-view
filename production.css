@@ -34,3 +34,7 @@
 
 .form-note{border:1px solid #dfe4e8;border-radius:10px;background:#f7f9fa;padding:10px 12px;font-size:12px;line-height:1.6;color:#53616c}
 .form-note strong{color:#25323b}
+
+.edit-grid>.wide{grid-column:1/-1}
+.edit-grid .employee-support.wide{margin:0}
+@media(max-width:560px){.edit-grid>.wide{grid-column:auto}}
