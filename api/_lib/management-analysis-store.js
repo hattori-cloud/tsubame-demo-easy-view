@@ -102,7 +102,25 @@ async function workSummary(user,filters){
 async function vehicleSummary(user,filters){
   const params=[],where=[vehicleScopeSql(user,params,'v'),'v.archived_at is null'];
   const employeeFilters=[];
-  if(filters.office){params.push(String(filters.office));employeeFilters.push('ve.office=
+  if(filters.office){params.push(String(filters.office));employeeFilters.push('ve.office=$'+params.length)}
+  if(filters.department){params.push(String(filters.department));employeeFilters.push('ve.department=$'+params.length)}
+  if(employeeFilters.length)where.push(`exists(
+    select 1 from employees ve
+     where (ve.id=v.primary_employee_id or exists(select 1 from vehicle_users vu where vu.vehicle_id=v.id and vu.employee_id=ve.id and vu.ended_on is null))
+       and ${employeeFilters.join(' and ')}
+  )`);
+  const r=await query(`
+    select count(*)::int total,
+           count(*) filter(where v.status='active')::int active,
+           count(*) filter(where v.status<>'inactive' and v.inspection_due<current_date)::int inspection_overdue,
+           count(*) filter(where v.status<>'inactive' and v.inspection_due<=current_date+60)::int inspection_due_60,
+           count(*) filter(where v.status<>'inactive' and v.next_maintenance_due is not null and v.next_maintenance_due<current_date)::int maintenance_overdue,
+           count(*) filter(where v.status<>'inactive' and v.next_maintenance_due is not null and v.next_maintenance_due<=current_date+60)::int maintenance_due_60
+      from vehicles v where ${where.join(' and ')}
+  `,params);
+  return r.rows[0]||{}
+}
+async function departmentSummary(user,filters,{deadlines=false}={}){
   const {params,where}=currentWhere(user,filters);
   const actionExpr=deadlines
     ?`count(*) filter(where e.lifecycle_status<>'retired' and ((e.license_expiry is not null and e.license_expiry<=current_date+60) or (e.health_check_due is not null and e.health_check_due<=current_date+60) or (e.aptitude_due is not null and e.aptitude_due<=current_date+60)))::int`
