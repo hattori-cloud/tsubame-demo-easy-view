@@ -30,7 +30,7 @@ async function listCredentials(user,identity,employeeId){
   const qualifications=(await query(`select * from qualifications where employee_id=$1 and archived_at is null order by expiry nulls last,name,id`,[employee.id])).rows;
   const params=[employee.id],visible=documentVisibilitySql(user,identity,params,'d');
   const documents=(await query(`
-    select d.id,d.employee_id,d.qualification_id,d.category,d.name,d.kind,d.registered_on,d.expiry,d.status,d.security_class,d.access_level,d.original_handling,d.verification_required,d.paper_location,d.retention_until,d.storage_state,d.malware_scan_status,d.verified_by_user_id,d.replaced_from_document_id,d.replaced_by_document_id,d.archived_at,d.created_at,d.updated_at,d.version
+    select d.id,d.employee_id,d.qualification_id,d.category,d.name,d.kind,d.registered_on,d.expiry,d.status,d.security_class,d.access_level,d.original_handling,d.verification_required,d.paper_location,d.retention_until,d.retention_review_note,d.storage_state,d.malware_scan_status,d.verified_by_user_id,d.replaced_from_document_id,d.replaced_by_document_id,d.archived_at,d.created_at,d.updated_at,d.version
       from documents d
      where d.employee_id=$1 and d.archived_at is null and ${visible}
   order by d.expiry nulls last,d.registered_on desc,d.id
