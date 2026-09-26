@@ -443,3 +443,11 @@ test('employee detail shows basic fixed car next to shift without exposing it wh
   assert.ok(js.includes("canView('vehicles')?detail('基本固定車'"));
   assert.ok(js.includes("fixed.map(v=>String(v.car_no||'')+'号車')"));
 });
+
+
+test('active employee UI uses office and department without a duplicate taxi-section field',()=>{
+  assert.ok(js.includes("formField('department','所属部署'"));
+  assert.ok(js.includes("detail('所属部署',e.department)"));
+  assert.equal(js.includes("formField('taxi_section','タクシー課区分'"),false);
+  assert.equal(js.includes("detail('タクシー課区分',e.taxi_section)"),false);
+});
