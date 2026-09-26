@@ -242,8 +242,8 @@
       '<div class="metric-grid">'+
       metric('期限対応',deadlines?.summary?.total??'—','60日以内')+
       metric('期限超過',deadlines?.summary?.overdue??'—','要確認')+
-      metric('事故一覧',accidents?.total??(state.me?.role_level==='self'?'権限外':'—'),'担当範囲')+
-      metric('苦情一覧',complaints?.total??(state.me?.role_level==='self'?'権限外':'—'),'担当範囲')+
+      metric('事故一覧',accidents?.total??'—','担当範囲')+
+      metric('苦情一覧',complaints?.total??'—','担当範囲')+
       '</div>'+
       '<section class="panel"><h3>安全な本番接続</h3><div class="check-grid">'+
       check('Cookieセッション','HttpOnly / Secure / SameSite=Strict')+
@@ -261,7 +261,7 @@
   async function renderEmployees(q){
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
-    const add=canEdit('employees')?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
+    const add=state.me?.role_level==='full'?'<button class="small-primary" data-action="new-employee">＋ 社員登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'社員',add)+(data.items.length?'<div class="cards">'+data.items.map(e=>
       '<button class="record employee" data-employee-id="'+esc(e.id)+'"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
       '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><span>'+esc(e.lifecycle_status||'—')+'</span></div></button>'
@@ -341,10 +341,6 @@
   }
 
   async function renderCredentials(q){
-    if(state.me?.role_level==='self'){
-      state.credentialEmployeeId=state.me.employee_id;
-      return renderCredentialEmployee(state.credentialEmployeeId)
-    }
     if(state.credentialEmployeeId)return renderCredentialEmployee(state.credentialEmployeeId);
     const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
     const {data}=await api('/employees?'+sp);
@@ -358,7 +354,7 @@
     const {data}=await api('/employees/'+encodeURIComponent(employeeId)+'/credentials');
     state.credentialEmployeeId=employeeId;
     const actions=canEdit('credentials_documents')?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button>':'';
-    const back=state.me?.role_level==='self'?'':'<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
+    const back='<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
     const qs=data.qualifications||[],docs=data.documents||[];
     $('content').innerHTML=
       '<div class="hero"><div><span class="eyebrow">資格・書類</span><h2>'+esc(data.employee.name)+'</h2><p>社員番号 '+esc(data.employee.employee_no)+'</p></div><div class="dialog-actions">'+back+actions+'</div></div>'+
@@ -408,8 +404,7 @@
   }
 
   async function newGuidance(){
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
-    if(!manager)return;
+    if(!canEdit('employees'))return;
     const employees=await employeeChoices();
     const fields=
       formSelect('employee_id','対象社員',employees,'','required')+
@@ -436,7 +431,7 @@
   }
 
   async function newApplication(){
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const manager=canEdit('notices_workflow');
     let fields='';
     if(manager){
       const employees=await employeeChoices();
@@ -451,7 +446,7 @@
   }
 
   async function decideApplication(id,status){
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const manager=canEdit('notices_workflow');
     if(!manager)return;
     const {data}=await api('/applications?page_size=100');
     const item=(data.items||[]).find(x=>String(x.id)===String(id));
@@ -479,16 +474,15 @@
   }
 
   async function renderBusiness(){
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const manager=canEdit('notices_workflow');
+    const canGuidance=canView('employees');
     const requests=[
       api('/applications?page_size=50').then(x=>x.data),
       api('/notices').then(x=>x.data),
       api('/confirmations').then(x=>x.data)
     ];
-    if(manager){
-      requests.push(api('/guidance?page_size=50').then(x=>x.data));
-      requests.push(api('/handoffs').then(x=>x.data))
-    }
+    if(canGuidance)requests.push(api('/guidance?page_size=50').then(x=>x.data));else requests.push(Promise.resolve(null));
+    if(canView('notices_workflow'))requests.push(api('/handoffs').then(x=>x.data));else requests.push(Promise.resolve(null));
     const [applications,notices,confirmations,guidance,handoffs]=await Promise.all(requests);
     const appItems=applications?.items||[],noticeItems=notices?.notices||[],confirmationItems=confirmations?.confirmations||[];
     const guidanceItems=guidance?.items||[],handoffItems=handoffs?.handoffs||[];
@@ -527,13 +521,13 @@
     $('content').innerHTML=
       '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div><button class="small-primary" data-action="new-application">＋ 申請</button></div>'+applicationHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div>'+
-      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
+      (canEdit('notices_workflow')?'<button class="small-primary" data-action="new-notice">＋ お知らせ</button>':'')+
       '</div>'+noticeHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div>'+
-      (state.me?.role_level==='full'?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
+      (canEdit('notices_workflow')?'<button class="small-primary" data-action="new-confirmation">＋ 一斉確認</button>':'')+
       '</div>'+confirmationHtml+'</section>'+
-      (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div><button class="small-primary" data-action="new-guidance">＋ 指導登録</button></div>'+guidanceHtml+'</section>':'')+
-      (manager?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
+      (canGuidance?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')+
+      (canView('notices_workflow')?'<section class="panel"><div class="list-head"><div><b>引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')
   }
 
   async function renderUsers(q){
@@ -666,8 +660,8 @@
         p.preview.map(x=>'<tr><td>'+esc(x.employee_no)+'</td><td>'+esc(x.month)+'</td><td>'+esc(x.restraint)+'</td><td>'+esc(x.remaining)+'</td><td>'+esc(x.overtime)+'</td><td>'+esc(x.last_posted)+'</td></tr>').join('')+
         '</tbody></table></div>'
       :'';
-    const canCommit=Boolean(p?.can_commit&&batch?.id&&batch?.state==='preflight');
-    const canRollback=Boolean(batch?.id&&batch?.state==='committed');
+    const canCommit=Boolean(canEdit('work_import')&&p?.can_commit&&batch?.id&&batch?.state==='preflight');
+    const canRollback=Boolean(canEdit('work_import')&&batch?.id&&batch?.state==='committed');
     const preflight=p?'<section class="panel"><div class="list-head"><div><b>前チェック結果</b><span>'+esc(p.row_count)+'行</span></div>'+
       (canCommit?'<button class="small-primary" data-action="work-import-commit">このbatchを確定</button>':'')+'</div>'+
       '<div class="metric-grid compact">'+
@@ -836,7 +830,7 @@
   }
 
   async function newQualification(){
-    if(!state.credentialEmployeeId||state.me?.role_level==='self')return;
+    if(!state.credentialEmployeeId||!canEdit('credentials_documents'))return;
     const fields=
       formField('name','資格名','','text','required')+
       formField('certificate_no','証明番号')+
@@ -1005,7 +999,7 @@
   }
 
   async function newNearMiss(){
-    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const manager=canEdit('near_misses');
     let fields='';
     if(manager){
       const employees=await employeeChoices();
