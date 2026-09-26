@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null,analysisFilters:{}};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null,analysisFilters:{},userItems:[]};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -119,7 +119,9 @@
       if(button)button.hidden=!manager
     }
     const workImport=$('nav').querySelector('[data-view="work-import"]');
-    if(workImport)workImport.hidden=state.me?.role_level!=='full'
+    if(workImport)workImport.hidden=state.me?.role_level!=='full';
+    const users=$('nav').querySelector('[data-view="users"]');
+    if(users)users.hidden=state.me?.role_level!=='full'
   }
 
   async function login(e){
@@ -176,7 +178,7 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析'}[view]||view;
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理'}[view]||view;
     $('searchWrap').hidden=['home','work-import','analysis'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
@@ -190,6 +192,7 @@
       else if(view==='credentials')await renderCredentials(opts.q||'')
       else if(view==='work-import')await renderWorkImport()
       else if(view==='analysis')await renderSafetyAnalysis()
+      else if(view==='users')await renderUsers(opts.q||'')
     }catch(err){$('content').innerHTML='';showError(err,'データ取得')}finally{state.loading=false}
   }
 
