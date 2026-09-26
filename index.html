@@ -1253,6 +1253,11 @@ main{max-width:1400px;margin:auto;padding:26px 28px}.page{display:none}.page.act
 <div id="accTableView" class="table-card"><div class="tablewrap"><table><thead><tr><th>発生日</th><th>番号</th><th>乗務員</th><th>号車</th><th>概要・次回対応</th><th>進捗</th><th>操作</th></tr></thead><tbody id="accbody"></tbody></table></div><div id="accPager"></div></div><div id="accMobileList" class="safety-mobile-list"></div></div>
 
 <div class="tabpane" id="safe-near">
+<div class="near-quota-card" id="nearIntakeCard">
+ <div class="near-quota-head"><div><h3>ヒヤリ受付・取込</h3><div class="mini">Googleフォームは自動取込、紙だけ管理者が補完入力、システム直接入力も同じ台帳へ集約します。</div></div><div class="near-quota-controls"><button class="btn soft" onclick="openNearImportStatus()">取込状況を見る</button><button class="btn primary" onclick="openNearForm()">＋ 直接入力</button></div></div>
+ <div id="nearIntakeSummary"></div>
+ <div class="near-quota-note">月2件集計は提出経路に関係なく合算します。Googleフォームは回答IDで二重取込を防ぎ、失敗した回答だけ「取込エラー」に残す設計です。</div>
+</div>
 <div class="near-quota-card">
  <div class="near-quota-head"><div><h3>タクシー課乗務員｜月2件 提出状況</h3><div class="mini">乗務員ごとに0件・1件・2件以上を確認します。部署全体の総件数だけでは判定しません。</div></div><div class="near-quota-controls"><input id="nearQuotaMonth" type="month" aria-label="ヒヤリ提出状況の対象月" onchange="renderNearQuotaSummary()"><button class="btn primary" onclick="openNearQuotaCenter('unmet')">未達者を見る</button></div></div>
  <div id="nearQuotaSummary"></div>
@@ -1580,7 +1585,35 @@ function clearVehicleSearch(){
  if(q)q.value='';if(d)d.value='';if(s)s.value='';VEHICLE_QUICK_FILTER='all';renderVehicles()
 }
 let N=safeStorageRead('v46NEAR',null)||[{id:'H-001',date:'2026-09-16',employee_no:'1008',driver:'己斐 彩',summary:'後退時に歩行者へ接近（架空）',action:'面談予定'}];
+let NEAR_IMPORT_ERRORS=safeStorageRead('v201NEAR_IMPORT_ERRORS',[])||[];
 let NEAR_QUOTA_TARGETS=safeStorageRead('v197NEAR_QUOTA_TARGETS',{})||{};
+const NEAR_SOURCE_LABELS={system:'システム直接',paper:'紙から入力',google_form:'Googleフォーム'};
+let NEAR_SOURCE_FILTER='';
+function nearSourceLabel(v){return NEAR_SOURCE_LABELS[v]||'不明'}
+function nearSourceBadge(v){let tone=v==='google_form'?'ok':v==='paper'?'warn':'';return '<span class="badge '+tone+'">'+esc(nearSourceLabel(v))+'</span>'}
+function renderNearIntakeSummary(){
+ let el=document.getElementById('nearIntakeSummary');if(!el)return;
+ let scoped=scopedNearMisses(),counts={google_form:0,paper:0,system:0};
+ scoped.forEach(n=>{let k=n.sourceType||'system';counts[k]=(counts[k]||0)+1});
+ let errors=NEAR_IMPORT_ERRORS.filter(x=>!x.resolved).length;
+ el.innerHTML='<div class="near-quota-kpis">'+
+  '<button class="near-quota-kpi" onclick="setNearSourceFilter(\'google_form\')"><small>Googleフォーム</small><b>'+counts.google_form+'</b><span>自動取込</span></button>'+
+  '<button class="near-quota-kpi" onclick="setNearSourceFilter(\'paper\')"><small>紙</small><b>'+counts.paper+'</b><span>管理者補完</span></button>'+
+  '<button class="near-quota-kpi" onclick="setNearSourceFilter(\'system\')"><small>直接入力</small><b>'+counts.system+'</b><span>システム登録</span></button>'+
+  '<button class="near-quota-kpi '+(errors?'danger':'ok')+'" onclick="openNearImportStatus()"><small>取込エラー</small><b>'+errors+'</b><span>'+(errors?'確認が必要':'異常なし')+'</span></button>'+
+ '</div>'+
+ (NEAR_SOURCE_FILTER?'<div class="list-summary"><div><b>登録経路：'+esc(nearSourceLabel(NEAR_SOURCE_FILTER))+'</b><div class="mini">一覧をこの経路だけに絞り込んでいます。</div></div><button class="btn soft" onclick="setNearSourceFilter(\'\')">経路絞り込みを解除</button></div>':'')
+}
+function setNearSourceFilter(v){NEAR_SOURCE_FILTER=v||'';NEAR_PAGE=1;renderNear()}
+function openNearImportStatus(){
+ let errors=NEAR_IMPORT_ERRORS.filter(x=>!x.resolved);
+ dttl.textContent='Googleフォーム取込状況';
+ dbody.innerHTML='<div class="detail-alert ok"><b>運用方針</b><div class="mini">回答先スプレッドシートから自動取込し、回答IDで二重登録を防止します。正常分は管理者の転記不要です。</div></div>'+
+  '<div class="list-summary"><div><b>未解決の取込エラー '+errors.length+'件</b><div class="mini">本番接続後は、失敗した回答だけここに表示します。</div></div><span class="badge '+(errors.length?'danger':'ok')+'">'+(errors.length?'要確認':'正常')+'</span></div>'+
+  (errors.length?errors.map(x=>'<div class="notice"><div><b>'+esc(x.message||'取込に失敗しました')+'</b><div class="mini">'+esc(x.responseId||'回答ID未取得')+' / '+esc(x.occurredAt||'日時不明')+'</div></div><span class="badge danger">取込エラー</span></div>').join(''):'<div class="notice"><div><b>現在、未解決の取込エラーはありません。</b><div class="mini">Googleフォーム本番接続前は0件表示です。</div></div><span class="badge ok">OK</span></div>')+
+  '<div class="near-quota-note">Google側の認証情報・スプレッドシートID・列対応はサーバー側だけで管理し、ブラウザ側には置きません。</div>';
+ showDetailModal()
+}
 let C=safeStorageRead('v46COMPLAINT',null)||[{id:'C-001',date:'2026-09-14',employee_no:'1006',name:'江波 直子',summary:'言葉遣いについてのご意見（架空）',status:'対応中'}];
 function ensureComplaintFields(){
  let changed=false;
@@ -1641,7 +1674,7 @@ function ensureNearMissWorkflowFields(){
  let changed=false;
  N.forEach(n=>{
   [['locationTags',[]],['situationTags',[]],['roadTags',[]],['targetTags',[]],['internalFactors',[]]].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}});
-  [['reportDate',n.date||''],['time',''],['vehicle',''],['causeSide','未設定'],['riskLevel','未設定'],['education',''],['prevention','']].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}})
+  [['reportDate',n.date||''],['time',''],['vehicle',''],['causeSide','未設定'],['riskLevel','未設定'],['education',''],['prevention',''],['sourceType','system'],['externalResponseId',''],['externalSubmittedAt',''],['importedAt','']].forEach(([k,v])=>{if(n[k]===undefined){n[k]=v;changed=true}})
  });
  if(changed)localStorage.setItem('v46NEAR',JSON.stringify(N))
 }
@@ -7364,7 +7397,7 @@ function renderNearQuotaCenterRows(){
 
 let NEAR_MONTH='';
 function renderNear(){
- renderNearQuotaSummary();
+ renderNearQuotaSummary();renderNearIntakeSummary();
  let q=((document.getElementById('nearq')?.value)||'').trim().toLowerCase(),date=document.getElementById('nearDate')?.value||'',
  risk=document.getElementById('nearRisk')?.value||'',cause=document.getElementById('nearCause')?.value||'',
  all=scopedNearMisses().slice().sort((a,b)=>String(b.date).localeCompare(String(a.date)));
@@ -7372,7 +7405,7 @@ function renderNear(){
  let rows=all.filter(n=>{
   let text=[n.id,n.date,n.time,n.vehicle,n.employee_no,n.driver,n.summary,n.riskLevel,n.causeSide,n.education,n.prevention,...(n.locationTags||[]),...(n.situationTags||[]),...(n.roadTags||[]),...(n.targetTags||[]),...(n.internalFactors||[])].join(' ').toLowerCase();
   let quick=NEAR_FILTER==='all'||(NEAR_FILTER==='high'&&n.riskLevel==='高い')||(NEAR_FILTER==='today'&&n.date===TODAY)||(NEAR_FILTER==='attention'&&nearNeedsAnalysis(n));
-  return quick&&(!NEAR_MONTH||nearQuotaReportMonth(n)===NEAR_MONTH)&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
+  return quick&&(!NEAR_SOURCE_FILTER||String(n.sourceType||'system')===NEAR_SOURCE_FILTER)&&(!NEAR_MONTH||nearQuotaReportMonth(n)===NEAR_MONTH)&&(!date||n.date===date)&&(!risk||String(n.riskLevel||'未設定')===risk)&&(!cause||String(n.causeSide||'未設定')===cause)&&(!q||text.includes(q))
  });
  const nearPages=Math.max(1,Math.ceil(rows.length/NEAR_PER_PAGE));NEAR_PAGE=Math.min(Math.max(1,NEAR_PAGE),nearPages);const nearStart=(NEAR_PAGE-1)*NEAR_PER_PAGE,nearShown=rows.slice(nearStart,nearStart+NEAR_PER_PAGE);
  [['nearAllBtn','all'],['nearHighBtn','high'],['nearTodayBtn','today'],['nearAttentionBtn','attention']].forEach(([id,k])=>{let el=document.getElementById(id);if(el)el.classList.toggle('primary',NEAR_FILTER===k)});
