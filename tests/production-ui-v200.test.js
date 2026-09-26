@@ -78,3 +78,20 @@ test('selected-user production UI exposes handoffs but no employee self-service 
   assert.equal(js.includes('notices_workflow'),false);
   assert.ok(html.includes('data-view="business">引継ぎ</button>'))
 });
+
+
+test('production top navigation is reduced to the same seven manager-focused areas as the demo',()=>{
+  const nav=(html.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0];
+  for(const label of ['ホーム','社員','期限・勤務','運行・安全','分析','車両','管理'])assert.ok(nav.includes('>'+label+'</button>'),label);
+  for(const retired of ['>事故</button>','>苦情</button>','>ヒヤリ</button>','>資格・書類</button>','>勤務取込</button>','>利用者管理</button>','>引継ぎ</button>'])assert.equal(nav.includes(retired),false,retired);
+});
+
+test('production grouped navigation keeps child APIs accessible from hubs and employee detail',()=>{
+  assert.ok(js.includes("const NAV_PARENT={deadlines:'work'"));
+  assert.ok(js.includes("async function renderWorkHub()"));
+  assert.ok(js.includes("async function renderSafetyHub()"));
+  assert.ok(js.includes("async function renderAdminHub()"));
+  assert.ok(js.includes("data-action=\"open-view\""));
+  assert.ok(js.includes("data-dialog-action=\"open-employee-credentials\""));
+  assert.ok(css.includes('.hub-grid'));
+});

@@ -4,3 +4,10 @@
 @media(max-width:320px){.metric-grid{grid-template-columns:1fr}.toolbar{display:grid}.toolbar form{display:grid;grid-template-columns:1fr auto}.workspace h1{font-size:24px}}
 .small-primary,.record-action,.success,.warning{border:0;border-radius:8px;padding:8px 11px;font-weight:700;cursor:pointer}.small-primary,.record-action{background:#17202a;color:#fff}.success{background:#e7f6ec;color:#176232}.warning{background:#fff1d8;color:#7a5200}.list-head>div{display:flex;gap:10px;align-items:center}.edit-form{padding:18px}.edit-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.edit-grid label.wide{grid-column:1/-1}.edit-grid textarea{min-height:88px;resize:vertical;border:1px solid #cfd6dc;border-radius:9px;padding:10px 12px;font:inherit}.edit-grid select{width:100%;border:1px solid #cfd6dc;border-radius:9px;padding:10px 12px;background:white}.dialog-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;padding:0 18px 18px}.dialog-actions .ghost.light{color:#17202a;border:1px solid #ccd4da;background:white}.record-action{margin-left:4px}.record-meta .record-action{color:white}
 @media(max-width:560px){.edit-grid{grid-template-columns:1fr}.edit-grid label.wide{grid-column:auto}.dialog-actions{display:grid;grid-template-columns:1fr}.dialog-actions button{width:100%}.record-meta{align-items:flex-start}.list-head{align-items:center}.small-primary{white-space:nowrap}}
+
+.hub-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}
+.hub-card{border:1px solid #dfe4e8;border-radius:14px;background:#fff;padding:18px;text-align:left;display:grid;gap:5px;cursor:pointer;color:inherit}
+.hub-card:hover{border-color:#8f9aa4;box-shadow:0 5px 16px rgba(22,56,76,.08)}
+.hub-card span,.hub-card small{color:#64717b}.hub-card span{font-size:13px;font-weight:800}.hub-card b{font-size:18px}.hub-card small{font-size:12px;line-height:1.45}
+@media(max-width:780px){.hub-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:390px){.hub-grid{grid-template-columns:1fr}}

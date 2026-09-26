@@ -8,6 +8,16 @@
   const fmtText=v=>v===null||v===undefined||v===''?'—':String(v);
   const roleLabel=r=>r==='full'?'全社管理者':r==='scoped'?'範囲指定利用者':r==='self'?'旧本人権限（本番不可）':'—';
   const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',business:'handoffs'};
+  const NAV_FEATURES={
+    home:[],employees:['employees'],
+    work:['deadlines','credentials_documents','work_import'],
+    safety:['accidents','complaints','near_misses','employees','handoffs'],
+    analysis:['safety_analysis'],vehicles:['vehicles'],
+    admin:['user_admin','audit_logs']
+  };
+  const NAV_PARENT={deadlines:'work',credentials:'work','work-import':'work',accidents:'safety',complaints:'safety','near-misses':'safety',business:'safety',users:'admin'};
+  function navParent(view){return NAV_PARENT[view]||view}
+  function canViewAny(features){return !(features||[]).length||(features||[]).some(canView)}
   function featureLevel(feature){
     if(!feature)return null;
     if(state.me?.role_level==='full')return 'edit';
@@ -154,8 +164,7 @@
     $('sessionUser').innerHTML='<b>'+esc(state.me?.display_name||'利用者')+'</b><span>'+esc(roleLabel(state.me?.role_level))+'</span>';
     document.body.dataset.role=state.me?.role_level||'';
     for(const button of $('nav').querySelectorAll('[data-view]')){
-      const feature=VIEW_FEATURE[button.dataset.view];
-      button.hidden=feature?!canView(feature):false
+      button.hidden=!canViewAny(NAV_FEATURES[button.dataset.view]||[])
     }
   }
 
@@ -207,18 +216,22 @@
   }
 
   function navActive(view){
-    [...$('nav').querySelectorAll('[data-view]')].forEach(b=>b.classList.toggle('active',b.dataset.view===view))
+    const parent=navParent(view);
+    [...$('nav').querySelectorAll('[data-view]')].forEach(b=>b.classList.toggle('active',b.dataset.view===parent))
   }
 
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析',users:'利用者管理',business:'引継ぎ'}[view]||view;
-    $('searchWrap').hidden=['home','work-import','analysis','business'].includes(view);
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',work:'期限・勤務',deadlines:'期限',accidents:'事故',complaints:'苦情',safety:'運行・安全',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'分析',admin:'管理',users:'利用者管理',business:'引継ぎ'}[view]||view;
+    $('searchWrap').hidden=['home','work','safety','admin','work-import','analysis','business'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
       if(view==='home')await renderHome();
       else if(view==='employees')await renderEmployees(opts.q||'');
+      else if(view==='work')await renderWorkHub();
+      else if(view==='safety')await renderSafetyHub();
+      else if(view==='admin')await renderAdminHub();
       else if(view==='deadlines')await renderDeadlines(opts.q||'');
       else if(view==='accidents')await renderAccidents(opts.q||'');
       else if(view==='complaints')await renderComplaints(opts.q||'');
@@ -275,6 +288,7 @@
       const e=data.employee;
       $('dialogTitle').textContent=e.name||'社員詳細';
       const employeeActions=[];
+      if(canView('credentials_documents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-credentials">資格・書類</button>');
       if(canEdit('employees'))employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
@@ -287,6 +301,62 @@
     }catch(err){showError(err,'社員詳細')}
   }
   function detail(label,value){return '<div><span>'+esc(label)+'</span><b>'+esc(fmtText(value))+'</b></div>'}
+
+  function hubButton(view,title,note,value=''){
+    return '<button class="hub-card" data-action="open-view" data-id="'+esc(view)+'"><span>'+esc(title)+'</span><b>'+esc(value||'開く')+'</b><small>'+esc(note)+'</small></button>'
+  }
+
+  async function renderWorkHub(){
+    if(!canViewAny(NAV_FEATURES.work)){$('content').innerHTML='<div class="empty">期限・勤務を利用できる権限がありません。</div>';return}
+    let deadlines=null;
+    if(canView('deadlines'))deadlines=await api('/deadlines?filter=action&page_size=6').then(x=>x.data);
+    const shortcuts=[];
+    if(canView('deadlines'))shortcuts.push(hubButton('deadlines','期限','免許・資格・健診など',deadlines?.summary?.overdue?('超過 '+deadlines.summary.overdue+'件'):'期限を確認'));
+    if(canView('credentials_documents'))shortcuts.push(hubButton('credentials','資格・書類','社員ごとの資格と証憑を確認'));
+    if(canView('work_import'))shortcuts.push(hubButton('work-import','勤務取込','Excelの事前確認・確定・ロールバック'));
+    const rows=deadlines?.items||[];
+    $('content').innerHTML=
+      '<div class="hub-grid">'+shortcuts.join('')+'</div>'+
+      (canView('deadlines')?'<section class="panel"><div class="list-head"><div><b>優先して確認する期限</b><span>'+esc(rows.length)+'件表示</span></div><button class="record-action" data-action="open-view" data-id="deadlines">期限一覧へ</button></div>'+
+        (rows.length?'<div class="cards">'+rows.map(x=>'<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div><div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span></div></div>').join('')+'</div>':empty())+'</section>':'')
+  }
+
+  async function renderSafetyHub(){
+    if(!canViewAny(NAV_FEATURES.safety)){$('content').innerHTML='<div class="empty">運行・安全を利用できる権限がありません。</div>';return}
+    const [accidents,complaints,near,handoffs]=await Promise.all([
+      canView('accidents')?api('/accidents?page_size=1').then(x=>x.data):Promise.resolve(null),
+      canView('complaints')?api('/complaints?page_size=1').then(x=>x.data):Promise.resolve(null),
+      canView('near_misses')?api('/near-misses?page_size=1').then(x=>x.data):Promise.resolve(null),
+      canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null)
+    ]);
+    const shortcuts=[];
+    if(canView('accidents'))shortcuts.push(hubButton('accidents','事故','初報・対応・完了まで',String(accidents?.total??0)+'件'));
+    if(canView('complaints'))shortcuts.push(hubButton('complaints','苦情','対応・指導・再発防止',String(complaints?.total??0)+'件'));
+    if(canView('near_misses'))shortcuts.push(hubButton('near-misses','ヒヤリ','月次報告・危険傾向',String(near?.total??0)+'件'));
+    if(canView('handoffs')||canView('employees'))shortcuts.push(hubButton('business','引継ぎ・指導','管理者間の案件引継ぎと安全指導',String((handoffs?.handoffs||[]).filter(x=>x.status==='pending').length)+'件未確認'));
+    $('content').innerHTML='<div class="hub-grid">'+shortcuts.join('')+'</div>'+
+      '<section class="panel"><h3>使い方</h3><div class="check-grid">'+
+      check('事故','発生から完了・再開まで履歴を残します')+
+      check('苦情','ランク・対応・指導・次回対応を管理します')+
+      check('ヒヤリ','個人ランキングではなく共通リスクを改善に使います')+
+      check('引継ぎ','担当変更された未完了案件を管理者間で確認します')+
+      '</div></section>'
+  }
+
+  async function renderAdminHub(){
+    if(state.me?.role_level!=='full'){$('content').innerHTML='<div class="empty">管理は全社管理者のみ利用できます。</div>';return}
+    const shortcuts=[
+      hubButton('users','利用者・権限','指定利用者の追加・停止・担当範囲設定'),
+      canView('work_import')?hubButton('work-import','勤務取込','取込履歴・ロールバックを含む管理操作'):null
+    ].filter(Boolean);
+    $('content').innerHTML='<div class="hub-grid">'+shortcuts.join('')+'</div>'+
+      '<section class="panel"><h3>管理の原則</h3><div class="check-grid">'+
+      check('指定利用者のみ','一般社員にはログインアカウントを配布しません')+
+      check('最小権限','事業所・部署・機能・閲覧/編集を必要分だけ許可')+
+      check('社内ネット限定','本番は社内LAN・社内Wi-Fiからのみ利用')+
+      check('監査','権限変更・重要操作はサーバー側へ記録')+
+      '</div></section>'
+  }
 
   async function renderDeadlines(q){
     const sp=new URLSearchParams({filter:'action',page_size:'100'});if(q)sp.set('q',q);
@@ -659,6 +729,7 @@
 
   async function handleAction(action,id){
     try{
+      if(action==='open-view')return loadView(id);
       if(action==='new-employee')return newEmployee();
       if(action==='new-accident')return newAccident();
       if(action==='edit-accident')return editAccident(id);
@@ -686,6 +757,7 @@
   async function handleDialogAction(action){
     const d=state.dialog;if(!d)return;
     try{
+      if(action==='open-employee-credentials'){state.credentialEmployeeId=d.record.id;$('detailDialog').close();return loadView('credentials')}
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
       if(action==='complete-accident')return terminalAction('accident','complete',d.record);
