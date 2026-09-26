@@ -198,3 +198,16 @@ test('large employee population workflows use searchable references instead of a
   assert.ok(js.includes("formField('primary_employee','主担当（社員番号または氏名）'"));
   assert.ok(js.includes("resolveEmployeeReference(primaryRef)"));
 });
+
+
+test('large production lists paginate instead of silently stopping at the first 50 rows',()=>{
+  assert.ok(js.includes('function paginationHtml'));
+  assert.ok(js.includes("if(action==='list-page')"));
+  for(const view of ['employees','deadlines','accidents','complaints','vehicles','near-misses','credentials','users','audit']){
+    assert.ok(js.includes("paginationHtml(data,'"+view+"',q)"),view);
+  }
+  assert.ok(js.includes("page:String(page)"));
+  assert.ok(js.includes("resetPage:true"));
+  assert.ok(css.includes('.list-pager'));
+  assert.ok(css.includes('@media(max-width:390px){.list-pager'));
+});
