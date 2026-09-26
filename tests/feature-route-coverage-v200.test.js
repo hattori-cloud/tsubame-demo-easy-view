@@ -9,7 +9,9 @@ function sourceFeature(source){
   if(/^employees\/\[id\]\/credentials/.test(s)||/^qualifications\//.test(s)||/^documents\//.test(s)||s==='documents/index.js')return 'credentials_documents';
   if(/^employees\//.test(s)||s==='employees/index.js'||/^guidance\//.test(s)||s==='guidance/index.js')return 'employees';
   if(/^deadlines\//.test(s))return 'deadlines';
-  if(/^accidents\//.test(s)||/^drafts\/\[kind\]/.test(s))return 'accidents_or_draft';
+  if(/^accidents\//.test(s))return 'accidents';
+  if(s==='drafts/index.js')return 'drafts_multi';
+  if(/^drafts\/\[kind\]/.test(s))return 'draft_by_kind';
   if(/^complaints\//.test(s))return 'complaints';
   if(/^near-misses\//.test(s)||/^near-miss-compliance\//.test(s))return 'near_misses';
   if(/^vehicles\//.test(s))return 'vehicles';
@@ -19,7 +21,7 @@ function sourceFeature(source){
   if(/^notices\//.test(s)||/^confirmations\//.test(s)||/^handoffs\//.test(s)||/^applications\//.test(s))return 'notices_workflow';
   if(/^audit-logs\//.test(s))return 'audit_logs';
   if(/^users\//.test(s))return 'user_admin';
-  if(/^auth\//.test(s)||s==='health.js'||s==='me.js')return 'exempt';
+  if(/^auth\//.test(s)||s==='health.js'||s==='me.js'||s==='secure-probe.js'||s==='staging-readiness.js')return 'exempt';
   return null
 }
 
@@ -59,4 +61,13 @@ test('GET is view and business mutation is edit except explicit view interaction
   assert.equal(router.requiredFeatureAccess({method:'PATCH'},'/accidents/a1'),'edit');
   assert.equal(router.requiredFeatureAccess({method:'POST'},'/documents/d1/download-ticket'),'view');
   assert.equal(router.requiredFeatureAccess({method:'POST'},'/notices/n1/read'),'view')
+});
+
+
+test('mixed draft listing is explicitly filtered by permitted draft kinds',()=>{
+  const routerSource=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','api','router.js'),'utf8');
+  const draftSource=require('node:fs').readFileSync(require('node:path').join(__dirname,'..','api','v1','drafts','index.js'),'utf8');
+  assert.ok(routerSource.includes('allowedDraftKinds'));
+  assert.ok(routerSource.includes('_tsubameAllowedDraftKinds'));
+  assert.ok(draftSource.includes("drafts.filter(d=>allowed.includes(d.kind))"));
 });
