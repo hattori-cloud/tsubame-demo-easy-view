@@ -178,7 +178,10 @@ async function readPrivateBlob(storageKey){
   const key=assertQuarantineKey(storageKey);
   const headSigned=await signedBlobUrl(key,'head',{expiresSeconds:60});
   const head=await httpFetch(headSigned.url,{method:'HEAD',redirect:'error',cache:'no-store'});
-  if(!head?.ok)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
+  if(!head?.ok){
+    if(Number(head?.status)===404)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
+    throw problem(503,'DOCUMENT_STORAGE_READ_FAILED','private原本ストレージの状態確認に失敗しました')
+  }
   const contentType=String(head.headers?.get?.('content-type')||'').split(';')[0].trim().toLowerCase();
   const contentLength=Number(head.headers?.get?.('content-length')||0);
   const etag=String(head.headers?.get?.('etag')||'').replace(/^W\//,'').replace(/"/g,'');
@@ -188,7 +191,10 @@ async function readPrivateBlob(storageKey){
   }
   const getSigned=await signedBlobUrl(key,'get',{expiresSeconds:60,useCache:false});
   const got=await httpFetch(getSigned.url,{method:'GET',redirect:'error',cache:'no-store'});
-  if(!got?.ok)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を読み込めません');
+  if(!got?.ok){
+    if(Number(got?.status)===404)throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を読み込めません');
+    throw problem(503,'DOCUMENT_STORAGE_READ_FAILED','private原本ストレージからの読込に失敗しました')
+  }
   const bytes=Buffer.from(await got.arrayBuffer());
   if(bytes.length!==contentLength)throw problem(409,'DOCUMENT_SIZE_MISMATCH','保存済み原本のサイズが一致しません');
   validateStoredContentSignature(bytes,contentType);
