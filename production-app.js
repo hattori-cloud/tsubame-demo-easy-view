@@ -340,6 +340,56 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function renderSafetyAnalysis(){
+    if(state.me?.role_level==='self'){
+      $('content').innerHTML='<div class="empty">安全分析は管理者のみ利用できます。</div>';return
+    }
+    const sp=new URLSearchParams();
+    for(const [k,v] of Object.entries(state.analysisFilters||{}))if(v)sp.set(k,v);
+    const {data}=await api('/analysis/safety-summary'+(sp.toString()?'?'+sp.toString():''));
+    const a=data.analysis||{},k=a.kpis||{},t=a.totals||{},trend=a.trend||[],departments=a.departments||[];
+    const pct=v=>Number(v||0).toFixed(1)+'%';
+    $('content').innerHTML=
+      '<section class="panel"><div class="list-head"><div><b>分析条件</b><span>記録時所属snapshotで集計</span></div></div>'+
+      '<div class="filter-grid">'+
+        '<label>開始日<input id="analysisFrom" type="date" value="'+esc(a.filters?.from||'')+'"></label>'+
+        '<label>終了日<input id="analysisTo" type="date" value="'+esc(a.filters?.to||'')+'"></label>'+
+        '<label>事業所<input id="analysisOffice" value="'+esc(a.filters?.office||'')+'" placeholder="全事業所"></label>'+
+        '<label>部署<input id="analysisDepartment" value="'+esc(a.filters?.department||'')+'" placeholder="全部署"></label>'+
+      '</div><div class="dialog-actions"><button class="ghost light" data-action="analysis-clear">条件解除</button><button class="small-primary" data-action="analysis-apply">この条件で集計</button></div></section>'+
+      '<div class="metric-grid">'+
+        metric('事故',t.accidents||0,'対象期間')+
+        metric('ヒヤリ',t.near_misses||0,'対象期間')+
+        metric('苦情',t.complaints||0,'対象期間')+
+        metric('未完了比率',pct(k.open_case_ratio),'事故・苦情')+
+      '</div>'+
+      '<div class="metric-grid">'+
+        metric('高リスクヒヤリ',pct(k.high_risk_near_miss_ratio),'ヒヤリ内')+
+        metric('平均修理費',Number(k.average_repair_cost||0).toLocaleString()+'円','事故平均')+
+        metric('分析項目充足',pct(k.analysis_completeness_ratio),'原因・再発防止等')+
+        metric('snapshot充足',pct(k.snapshot_completeness_ratio),'記録時所属')+
+      '</div>'+
+      '<section class="panel"><div class="list-head"><div><b>月別推移</b><span>'+esc(trend.length)+'か月</span></div></div>'+
+      (trend.length?'<div class="table-wrap"><table><thead><tr><th>月</th><th>事故</th><th>ヒヤリ</th><th>苦情</th></tr></thead><tbody>'+
+        trend.map(x=>'<tr><td>'+esc(x.month)+'</td><td>'+esc(x.accident)+'</td><td>'+esc(x.near_miss)+'</td><td>'+esc(x.complaint)+'</td></tr>').join('')+
+        '</tbody></table></div>':empty())+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>部署別比較</b><span>'+esc(departments.length)+'区分</span></div></div>'+
+      '<p class="sub">'+esc(a.notes?.reference_per_100||'現在在籍人数を分母にした参考値です。')+'</p>'+
+      (departments.length?'<div class="table-wrap"><table><thead><tr><th>事業所</th><th>部署</th><th>事故</th><th>ヒヤリ</th><th>苦情</th><th>現在在籍</th><th>100人あたり参考</th></tr></thead><tbody>'+
+        departments.map(x=>'<tr><td>'+esc(x.office_snapshot||'—')+'</td><td>'+esc(x.department_snapshot||'—')+'</td><td>'+esc(x.accident_count)+'</td><td>'+esc(x.near_miss_count)+'</td><td>'+esc(x.complaint_count)+'</td><td>'+esc(x.active_employee_count)+'</td><td>'+esc(x.reference_per_100??'—')+'</td></tr>').join('')+
+        '</tbody></table></div>':empty())+'</section>'
+  }
+
+  async function applyAnalysisFilters(){
+    state.analysisFilters={
+      from:$('analysisFrom')?.value||'',
+      to:$('analysisTo')?.value||'',
+      office:$('analysisOffice')?.value.trim()||'',
+      department:$('analysisDepartment')?.value.trim()||''
+    };
+    await renderSafetyAnalysis()
+  }
+
   async function renderWorkImport(){
     if(state.me?.role_level!=='full'){
       $('content').innerHTML='<div class="empty">勤務取込は全社管理者のみ利用できます。</div>';
@@ -459,7 +509,9 @@
       if(action==='new-original-document')return newOriginalDocument();
       if(action==='work-import-preflight')return workImportPreflight();
       if(action==='work-import-commit')return workImportCommit();
-      if(action==='work-import-rollback')return workImportRollback(id)
+      if(action==='work-import-rollback')return workImportRollback(id);
+      if(action==='analysis-apply')return applyAnalysisFilters();
+      if(action==='analysis-clear'){state.analysisFilters={};return renderSafetyAnalysis()}
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
