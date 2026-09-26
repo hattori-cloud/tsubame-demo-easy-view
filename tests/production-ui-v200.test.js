@@ -306,3 +306,15 @@ test('deadline view exposes explicit quick filters and labels the actual date wi
   assert.ok(css.includes('.deadline-filters'));
   assert.ok(css.includes('@media(max-width:390px){.deadline-filters'));
 });
+
+
+test('full administrators can use audited employee transition and renumber workflows from employee detail',()=>{
+  assert.ok(js.includes('data-dialog-action="transition-employee"'));
+  assert.ok(js.includes('data-dialog-action="renumber-employee"'));
+  assert.ok(js.includes('function transitionEmployeeForm(employee)'));
+  assert.ok(js.includes('function changeEmployeeNumberForm(employee)'));
+  assert.ok(js.includes("'/employees/'+encodeURIComponent(employee.id)+'/transition'"));
+  assert.ok(js.includes("'/employees/'+encodeURIComponent(employee.id)+'/employee-number'"));
+  assert.ok(js.includes("formArea('reason','変更理由'"));
+  assert.ok(js.includes("headers:{'If-Match':"));
+});
