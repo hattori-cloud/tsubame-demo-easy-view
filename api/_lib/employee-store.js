@@ -37,6 +37,14 @@ async function getEmployeeForUser(user,id){
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象データが見つかりません');
   return r.rows[0]
 }
+async function getEmployeeHistoryForUser(user,id){
+  const employee=await getEmployeeForUser(user,id);
+  const [numbers,transitions]=await Promise.all([
+    query(`select old_employee_no,new_employee_no,reason,changed_at from employee_number_history where employee_id=$1 order by changed_at desc limit 20`,[employee.id]),
+    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='employee_transition' order by occurred_at desc limit 20`,[employee.id])
+  ]);
+  return {number_changes:numbers.rows,transitions:transitions.rows}
+}
 function requireEmployeeManager(user){
   if(!user||!['full','scoped'].includes(user.role_level))throw problem(403,'MANAGER_REQUIRED','社員情報の更新は管理者のみ実行できます');
   return user
@@ -134,4 +142,4 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     return updated
   })
 }
-module.exports={listEmployeesForUser,getEmployeeForUser,createEmployee,updateEmployee,changeEmployeeNumber,transitionEmployee,scopeSql,requireEmployeeManager};
+module.exports={listEmployeesForUser,getEmployeeForUser,getEmployeeHistoryForUser,createEmployee,updateEmployee,changeEmployeeNumber,transitionEmployee,scopeSql,requireEmployeeManager};
