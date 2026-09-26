@@ -67,12 +67,16 @@ function ciAdapter(){
     async inspectQuarantine(storageKey){
       const obj=memoryObjects.get(storageKey);
       if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
-      return {...obj}
+      return {...obj,bytes:undefined}
+    },
+    async readQuarantineForScan(storageKey){
+      const obj=memoryObjects.get(storageKey);
+      if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
+      return {...obj,bytes:Buffer.from(obj.bytes)}
     },
     async activate(storageKey){
       const obj=memoryObjects.get(storageKey);
       if(!obj||obj.state!=='quarantine')throw problem(409,'DOCUMENT_QUARANTINE_OBJECT_MISSING','隔離中の原本を確認できません');
-      if(obj.malware_status!=='clean')throw problem(409,'DOCUMENT_MALWARE_NOT_CLEAN','安全確認済み原本だけを有効化できます');
       obj.state='active';obj.version_id=crypto.randomUUID();memoryObjects.set(storageKey,obj);
       return {storage_key:storageKey,version_id:obj.version_id}
     },
@@ -111,9 +115,7 @@ function httpFetch(url,options){
 }
 async function signedBlobUrl(storageKey,operation,{expiresSeconds=60,contentType=null,sizeBytes=null,useCache=false}={}){
   const pathname=assertQuarantineKey(storageKey),sdk=await blobSdk(),validUntil=Date.now()+expiresSeconds*1000;
-  const issueOptions={
-    ...blobAuthOptions(),pathname,operations:[operation],validUntil
-  };
+  const issueOptions={...blobAuthOptions(),pathname,operations:[operation],validUntil};
   if(operation==='put'){
     issueOptions.allowedContentTypes=[contentType];
     issueOptions.maximumSizeInBytes=sizeBytes
@@ -134,7 +136,7 @@ async function signedBlobUrl(storageKey,operation,{expiresSeconds=60,contentType
   }
   return {url:String(result.presignedUrl),validUntil}
 }
-async function inspectPrivateBlob(storageKey){
+async function readPrivateBlob(storageKey){
   const key=assertQuarantineKey(storageKey);
   const headSigned=await signedBlobUrl(key,'head',{expiresSeconds:60});
   const head=await httpFetch(headSigned.url,{method:'HEAD',redirect:'error',cache:'no-store'});
@@ -154,8 +156,12 @@ async function inspectPrivateBlob(storageKey){
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
   return {
     storage_key:key,state:'quarantine',content_type:contentType,size_bytes:contentLength,
-    sha256,etag:etag||null,malware_status:'pending',malware_scanned_at:null
+    sha256,etag:etag||null,malware_status:'pending',malware_scanned_at:null,bytes
   }
+}
+async function inspectPrivateBlob(storageKey){
+  const obj=await readPrivateBlob(storageKey);
+  return {...obj,bytes:undefined}
 }
 function vercelBlobAdapter(){
   if(!documentStorageTransportReady())throw problem(503,'DOCUMENT_STORAGE_ADAPTER_NOT_READY','private原本ストレージ接続を確認できません');
@@ -165,13 +171,11 @@ function vercelBlobAdapter(){
       const signed=await signedBlobUrl(storageKey,'put',{expiresSeconds,contentType,sizeBytes});
       return {method:'PUT',upload_url:signed.url,upload_token:null,expires_at:new Date(signed.validUntil).toISOString()}
     },
-    async inspectQuarantine(storageKey){
-      return inspectPrivateBlob(storageKey)
-    },
+    async inspectQuarantine(storageKey){return inspectPrivateBlob(storageKey)},
+    async readQuarantineForScan(storageKey){return readPrivateBlob(storageKey)},
     async activate(storageKey){
       const inspected=await inspectPrivateBlob(storageKey);
       if(!inspected.etag)throw problem(409,'DOCUMENT_STORAGE_VERSION_MISSING','原本ストレージversionを確認できません');
-      // The blob stays at an opaque immutable quarantine key. Application DB state controls active access.
       return {storage_key:storageKey,version_id:inspected.etag}
     },
     async createDownloadAuthorization({storageKey,expiresSeconds=60}){
@@ -199,10 +203,9 @@ async function ciPutObject({uploadToken,body,contentType}){
   if(bytes.length!==Number(auth.sizeBytes))throw problem(422,'UPLOAD_SIZE_MISMATCH','アップロードサイズが一致しません');
   if(String(contentType||'').toLowerCase()!==String(auth.contentType))throw problem(422,'UPLOAD_TYPE_MISMATCH','アップロード形式が一致しません');
   const sha256=crypto.createHash('sha256').update(bytes).digest('hex');
-  const malwareStatus=bytes.toString('utf8',0,Math.min(bytes.length,64)).startsWith('CI-MALWARE-BLOCK')?'blocked':'clean';
   const obj={
     storage_key:auth.storageKey,state:'quarantine',content_type:auth.contentType,size_bytes:bytes.length,
-    sha256,malware_status:malwareStatus,malware_scanned_at:new Date().toISOString(),bytes
+    sha256,malware_status:'pending',malware_scanned_at:null,bytes
   };
   memoryObjects.set(auth.storageKey,obj);memoryUploadAuth.delete(uploadToken);
   return {...obj,bytes:undefined}
@@ -221,7 +224,7 @@ module.exports={
   providerName,adapterReady,getDocumentStorageAdapter,encryptTicket,decryptTicket,randomStorageKey,
   validateUploadRequest,maxUploadBytes,
   _test:{
-    ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,
+    ciPutObject,ciReadDownload,resetCiStorage,inspectPrivateBlob,readPrivateBlob,
     setBlobSdk(v){blobSdkOverride=v},setFetch(v){fetchOverride=v},resetTestOverrides
   }
 };

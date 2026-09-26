@@ -107,6 +107,8 @@ test('Vercel private Blob adapter signs constrained operations and remains scan-
     assert.match(inspected.sha256,/^[0-9a-f]{64}$/);
     assert.equal(inspected.malware_status,'pending');
     assert.equal(inspected.malware_scanned_at,null);
+    const scanRead=await adapter.readQuarantineForScan(key);
+    assert.deepEqual(scanRead.bytes,bytes);
 
     const downloadAuth=await adapter.createDownloadAuthorization({storageKey:key,expiresSeconds:60});
     assert.equal(downloadAuth.download_url,'https://blob.invalid/get');

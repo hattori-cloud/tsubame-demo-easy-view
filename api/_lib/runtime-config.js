@@ -42,14 +42,29 @@ function documentStorageEnvPresent(){
 function documentStorageTransportReady(){
   return documentStorageEnvPresent()
 }
+function malwareScannerProvider(){
+  const explicit=String(process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_PROVIDER||'').trim().toLowerCase();
+  if(explicit)return explicit;
+  if(documentStorageProvider()==='ci-memory'&&isNonProductionRuntime())return 'ci-memory';
+  return ''
+}
+function malwareScannerEndpointValid(){
+  try{
+    const u=new URL(String(process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_URL||''));
+    return u.protocol==='https:'&&Boolean(u.hostname)
+  }catch(_){return false}
+}
 function documentMalwareScannerReady(){
-  const provider=documentStorageProvider();
-  if(provider==='ci-memory'&&isNonProductionRuntime())return true;
-  // Production malware scanning remains fail-closed until an approved scanner adapter is implemented and audited.
-  return false
+  const provider=malwareScannerProvider();
+  if(provider==='ci-memory')return isNonProductionRuntime();
+  if(provider!=='private-https')return false;
+  return Boolean(
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_APPROVED==='1' &&
+    malwareScannerEndpointValid() &&
+    String(process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_TOKEN||'').length>=32
+  )
 }
 function documentStorageAdapterReady(){
-  // Compatibility name: this now means the private storage transport is usable.
   return documentStorageTransportReady()
 }
 function originalDocumentPipelineReady(){
@@ -98,7 +113,8 @@ module.exports={
   runtimeEnvironment,isProductionRuntime,isNonProductionRuntime,
   authEnvPresent,mfaEnvPresent,legacyOidcEnvPresent,databaseEnvPresent,
   documentStorageProvider,documentStorageTicketSecretPresent,documentStorageStaticTokenPresent,documentStorageOidcPresent,
-  documentStorageEnvPresent,documentStorageTransportReady,documentStorageAdapterReady,documentMalwareScannerReady,originalDocumentPipelineReady,
+  documentStorageEnvPresent,documentStorageTransportReady,documentStorageAdapterReady,
+  malwareScannerProvider,malwareScannerEndpointValid,documentMalwareScannerReady,originalDocumentPipelineReady,
   stagingFixturesRequested,stagingFixturesAllowed,
   productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };

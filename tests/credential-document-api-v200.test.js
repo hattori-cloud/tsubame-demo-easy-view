@@ -42,7 +42,8 @@ test('original-file endpoints require private transport and fail closed until th
   assert.ok(download.includes('createDownloadAuthorization'));
   assert.ok(finalize.includes('originalDocumentPipelineReady'));
   assert.ok(finalize.includes('DOCUMENT_ORIGINAL_PIPELINE_NOT_READY'));
-  assert.ok(finalize.includes('inspectQuarantine'));
+  assert.ok(finalize.includes('readQuarantineForScan'));
+  assert.ok(finalize.includes('getDocumentMalwareScanner'));
   assert.ok(finalize.includes('DOCUMENT_MALWARE_NOT_CLEAN'));
 });
 

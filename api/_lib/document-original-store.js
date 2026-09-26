@@ -49,35 +49,92 @@ async function reserveDocumentOriginal({user,identity,claims,inspection,requestI
       throw problem(409,'ELECTRONIC_ORIGINAL_NOT_ALLOWED','この書類区分は電子原本アップロード対象ではありません')
     }
     const qualificationId=await validateQualification(employee.id,claims.qualification_id||null,client);
-    try{
-      const row=(await query(`
-        insert into documents(
-          employee_id,qualification_id,category,name,kind,registered_on,expiry,status,
-          security_class,access_level,original_handling,verification_required,paper_location,retention_until,
-          original_filename,content_type,size_bytes,storage_key,storage_state,uploaded_at,uploaded_by_user_id,
-          content_sha256,malware_scan_status,malware_scanned_at
-        ) values(
-          $1,$2,$3,$4,$5,$6,$7,$8,
-          $9,$10,$11,$12,$13,$14,
-          $15,$16,$17,$18,'quarantine',now(),$19,
-          $20,'clean',$21
-        ) returning *
-      `,[
-        employee.id,qualificationId,claims.category,claims.name,claims.kind||null,claims.registered_on,
-        claims.expiry||null,claims.status||'pending',policy.security_class,policy.access_level,policy.original_handling,
-        policy.verification_required,claims.paper_location||null,claims.retention_until||null,
-        claims.original_filename,inspection.content_type,inspection.size_bytes,claims.storage_key,user.id,
-        inspection.sha256,inspection.malware_scanned_at
-      ],client)).rows[0];
+    const inserted=(await query(`
+      insert into documents(
+        employee_id,qualification_id,category,name,kind,registered_on,expiry,status,
+        security_class,access_level,original_handling,verification_required,paper_location,retention_until,
+        original_filename,content_type,size_bytes,storage_key,storage_state,uploaded_at,uploaded_by_user_id,
+        content_sha256,malware_scan_status,malware_scanned_at
+      ) values(
+        $1,$2,$3,$4,$5,$6,$7,$8,
+        $9,$10,$11,$12,$13,$14,
+        $15,$16,$17,$18,'quarantine',now(),$19,
+        $20,'pending',null
+      )
+      on conflict do nothing
+      returning *
+    `,[
+      employee.id,qualificationId,claims.category,claims.name,claims.kind||null,claims.registered_on,
+      claims.expiry||null,claims.status||'pending',policy.security_class,policy.access_level,policy.original_handling,
+      policy.verification_required,claims.paper_location||null,claims.retention_until||null,
+      claims.original_filename,inspection.content_type,inspection.size_bytes,claims.storage_key,user.id,
+      inspection.sha256
+    ],client)).rows[0];
+    if(inserted){
       await query(`
         insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary)
         values($1,'document_upload_received','document',$2,$3,'success',$4,$5)
-      `,[user.id,row.id,employee.id,requestId,claims.category+' / quarantine'],client);
-      return row
-    }catch(err){
-      if(String(err.code)==='23505')throw problem(409,'DOCUMENT_ALREADY_FINALIZED','この原本アップロードは既に確定処理されています');
-      throw err
+      `,[user.id,inserted.id,employee.id,requestId,claims.category+' / quarantine / scan pending'],client);
+      return inserted
     }
+    const existing=(await query(`
+      select * from documents
+       where storage_key=$1 and archived_at is null
+       limit 1
+       for update
+    `,[claims.storage_key],client)).rows[0];
+    if(!existing||
+       String(existing.uploaded_by_user_id)!==String(user.id)||
+       String(existing.employee_id)!==String(employee.id)||
+       String(existing.content_sha256)!==String(inspection.sha256)){
+      throw problem(409,'DOCUMENT_UPLOAD_CONFLICT','隔離原本の既存記録がアップロードticketと一致しません')
+    }
+    if(existing.storage_state==='active')throw problem(409,'DOCUMENT_ALREADY_FINALIZED','この原本アップロードは既に確定処理されています');
+    return existing
+  })
+}
+async function recordDocumentScanResult({user,identity,id,scan,requestId}){
+  return withTransaction(async client=>{
+    const params=[id],visible=documentVisibilitySql(user,identity,params,'d');
+    const before=(await query(`select d.* from documents d where d.id=$1 and d.archived_at is null and ${visible} for update`,params,client)).rows[0];
+    if(!before)throw problem(404,'NOT_FOUND','対象書類が見つかりません');
+    const policy=await policyForCategory(before.category,client);requireDocumentPrivilege(user,identity,policy);
+    if(before.storage_state==='active')throw problem(409,'DOCUMENT_ALREADY_FINALIZED','この原本アップロードは既に確定処理されています');
+    if(String(before.content_sha256)!==String(scan.sha256))throw problem(409,'DOCUMENT_SCAN_HASH_MISMATCH','スキャン結果と原本ハッシュが一致しません');
+    const verdict=String(scan.verdict||'error');
+    if(!['clean','blocked','error'].includes(verdict))throw problem(500,'DOCUMENT_SCAN_RESULT_INVALID','原本スキャン結果を確認できません');
+    const state=verdict==='blocked'?'blocked':'quarantine';
+    const after=(await query(`
+      update documents
+         set malware_scan_status=$2,malware_scanned_at=$3,storage_state=$4,updated_at=now(),version=version+1
+       where id=$1
+      returning *
+    `,[id,verdict,scan.scanned_at||new Date().toISOString(),state],client)).rows[0];
+    const safeMeta={
+      verdict,
+      engine:cleanText(scan.engine,120)||null,
+      signature_version:cleanText(scan.signature_version,120)||null,
+      error_code:cleanText(scan.error_code,120)||null
+    };
+    await query(`
+      insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason)
+      values('document',$1,$2,$3,'document_malware_scan',$4::jsonb,$5::jsonb,$6)
+    `,[
+      id,before.employee_id,user.id,
+      JSON.stringify({storage_state:before.storage_state,malware_scan_status:before.malware_scan_status}),
+      JSON.stringify({storage_state:after.storage_state,malware_scan_status:after.malware_scan_status}),
+      JSON.stringify(safeMeta)
+    ],client);
+    await query(`
+      insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary)
+      values($1,$2,'document',$3,$4,$5,$6,$7)
+    `,[
+      user.id,
+      verdict==='clean'?'document_malware_clean':verdict==='blocked'?'document_malware_blocked':'document_malware_error',
+      id,before.employee_id,verdict==='clean'?'success':'blocked',requestId,
+      before.category+' / '+verdict+(safeMeta.error_code?' / '+safeMeta.error_code:'')
+    ],client);
+    return after
   })
 }
 async function activateDocumentOriginal({user,identity,id,storageVersionId,requestId}){
@@ -116,4 +173,7 @@ async function auditDocumentDownload({user,documentId,employeeId,requestId,resul
     values($1,'document_download_authorized','document',$2,$3,$4,$5,$6)
   `,[user.id,documentId,employeeId,result,requestId,summary||'private short-lived authorization'])
 }
-module.exports={prepareDocumentUpload,reserveDocumentOriginal,activateDocumentOriginal,auditDocumentDownload};
+module.exports={
+  prepareDocumentUpload,reserveDocumentOriginal,recordDocumentScanResult,
+  activateDocumentOriginal,auditDocumentDownload
+};
