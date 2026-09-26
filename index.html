@@ -1726,6 +1726,7 @@ function ensureCredentialLinks(){
   if(d.linkedEntityType===undefined){d.linkedEntityType='';changed=true}
   if(d.linkedEntityId===undefined){d.linkedEntityId='';changed=true}
   if(d.documentRole===undefined){d.documentRole='';changed=true}
+  if(d.reportPlacement===undefined){d.reportPlacement=d.linkedEntityType==='accident'?'auto':'';changed=true}
  });
  let sampleAccidentDoc=DOCS.find(d=>d.id==='D-1001-03'&&d.category==='事故資料');
  if(sampleAccidentDoc&&!sampleAccidentDoc.linkedEntityId){
@@ -5426,7 +5427,7 @@ function openDocumentForm(no,idx=-1,qualificationId='',replaceFromId=''){
   if(fdsecurity.value==='厳格'&&fdaccess.value!=='全社管理者のみ')return alert('厳格書類は「全社管理者のみ」にしてください');
   if(['会社保管・紙原本','紙＋電子'].includes(fdorig.value)&&!fdpaper.value.trim()&&isFullCompanyAdmin())return alert('会社で紙原本を保管する場合は、保管場所を入力してください');
   let activeRule=documentRule(fdcat.value);
-  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value,originalHandling:fdorig.value,securityClass:fdsecurity.value,accessLevel:fdaccess.value,verificationRequired:d?.verificationRequired!==undefined?!!d.verificationRequired:source?.verificationRequired!==undefined?!!source.verificationRequired:!!activeRule.verificationRequired,paperLocation:fdpaper.value.trim(),retentionUntil:fdretain.value},id,action,target,oldStatus=d?.status||'';
+  let rec={employee_no:String(no),category:fdcat.value,name:fdname.value.trim(),date:fddate.value,expiry:fdexp.value,kind:fdkind.value,status:fdstatus.value,originalHandling:fdorig.value,securityClass:fdsecurity.value,accessLevel:fdaccess.value,verificationRequired:d?.verificationRequired!==undefined?!!d.verificationRequired:source?.verificationRequired!==undefined?!!source.verificationRequired:!!activeRule.verificationRequired,paperLocation:fdpaper.value.trim(),retentionUntil:fdretain.value,linkedEntityType:d?.linkedEntityType||source?.linkedEntityType||'',linkedEntityId:d?.linkedEntityId||source?.linkedEntityId||'',documentRole:d?.documentRole||source?.documentRole||'',reportPlacement:d?.reportPlacement||source?.reportPlacement||''},id,action,target,oldStatus=d?.status||'';
   if(d){id=d.id;Object.assign(d,rec);target=d;syncDocumentQualificationLink(d,fdqual.value);action='書類更新'}
   else{
    id=nextDocumentId(no);rec.id=id;rec.qualification_id='';rec.verifiedDate='';rec.verifiedById='';rec.verifiedByName='';rec.replacedFromDocumentId=source?.id||'';rec.replacedByDocumentId='';rec.archived=false;rec.archivedAt='';rec.archivedById='';rec.archivedByName='';DOCS.push(rec);target=rec;syncDocumentQualificationLink(rec,fdqual.value);action=source?'書類差替え登録':'書類登録';
@@ -7230,7 +7231,7 @@ const ACCIDENT_DOCUMENT_ROLES={
 function accidentDocumentRoleLabel(role){return ACCIDENT_DOCUMENT_ROLES[role]||'その他事故資料'}
 function accidentDocuments(a,role=''){
  if(!a)return [];
- return DOCS.filter(d=>!d.archived&&d.category==='事故資料'&&d.linkedEntityType==='accident'&&String(d.linkedEntityId)===String(a.id)&&(!role||d.documentRole===role)&&canViewDocumentRecord(d))
+ return DOCS.filter(d=>!d.archived&&!d.replacedByDocumentId&&d.category==='事故資料'&&d.linkedEntityType==='accident'&&String(d.linkedEntityId)===String(a.id)&&(!role||d.documentRole===role)&&canViewDocumentRecord(d))
    .sort((x,y)=>String(x.date||'').localeCompare(String(y.date||''))||String(x.id).localeCompare(String(y.id)));
 }
 function accidentEvidenceSummaryHtml(a){
