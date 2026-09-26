@@ -19,7 +19,7 @@ module.exports=async function handler(req,res){
       const passwordHash=await hash(unknownPassword,{algorithm:Algorithm.Argon2id,memoryCost:19456,timeCost:2,parallelism:1,outputLen:32});
       const user=await createUser({
         actor,employeeId:String(req.body?.employee_id||''),loginId:String(req.body?.login_id||''),displayName:String(req.body?.display_name||''),
-        roleLevel:String(req.body?.role_level||'self'),safetyAuthority:Boolean(req.body?.safety_authority),scopes:req.body?.scopes||[],
+        roleLevel:String(req.body?.role_level||'scoped'),safetyAuthority:Boolean(req.body?.safety_authority),scopes:req.body?.scopes||[],permissions:req.body?.permissions||[],
         passwordHash,resetTokenHash:tokenHash(setupToken),requestId:rid
       });
       applySecurityHeaders(res);res.setHeader('X-Request-Id',rid);res.setHeader('Cache-Control','no-store');res.setHeader('ETag','"'+user.version+'"');
