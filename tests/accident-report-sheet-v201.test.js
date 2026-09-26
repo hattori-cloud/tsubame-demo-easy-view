@@ -55,3 +55,31 @@ test('cannot mark investigation report complete while required fields are missin
   assert.match(html,/事故調査票を「完成」にするには/);
   assert.match(html,/faereportstatus\.value='作成中'/);
 });
+
+
+test('accident evidence metadata is linked by accident id',()=>{
+  assert.match(html,/const ACCIDENT_DOCUMENT_ROLES=/);
+  assert.match(html,/linkedEntityType:'accident'/);
+  assert.match(html,/linkedEntityId:String\(a\.id\)/);
+  assert.match(html,/documentRole:faedocrole\.value/);
+  assert.match(html,/reportPlacement:faedocprint\.value/);
+});
+
+test('linked accident evidence is shown and placed in report preview',()=>{
+  assert.match(html,/function accidentDocuments/);
+  assert.match(html,/function accidentEvidenceSummaryHtml/);
+  assert.match(html,/function accidentEvidencePrintHtml/);
+  assert.match(html,/事故資料を紐づける/);
+  assert.match(html,/共有デモ：実画像未接続/);
+});
+
+test('document replacement preserves accident evidence relation',()=>{
+  assert.match(html,/linkedEntityType:d\?\.linkedEntityType\|\|source\?\.linkedEntityType/);
+  assert.match(html,/!d\.replacedByDocumentId&&d\.category==='事故資料'/);
+});
+
+test('API contract secures accident evidence and report export',()=>{
+  assert.match(api,/accidents\/\{id\}\/evidence\/upload-ticket/);
+  assert.match(api,/accidents\/\{id\}\/report-export/);
+  assert.match(api,/must not place raw storage keys, permanent public URLs, or reusable signed URLs/i);
+});
