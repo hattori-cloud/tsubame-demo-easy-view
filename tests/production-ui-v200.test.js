@@ -96,3 +96,18 @@ test('production grouped navigation keeps child APIs accessible from hubs and em
   assert.ok(js.includes("data-dialog-action=\"open-employee-credentials\""));
   assert.ok(css.includes('.hub-grid'));
 });
+
+
+test('training and loaned assets are integrated into employee detail instead of a top-level menu',()=>{
+  assert.ok(js.includes("api('/training?employee_id='"));
+  assert.ok(js.includes("api('/assets?employee_id='"));
+  assert.ok(js.includes('function employeeSupportHtml'));
+  assert.ok(js.includes('function newTrainingForEmployee'));
+  assert.ok(js.includes('function editTrainingForEmployee'));
+  assert.ok(js.includes('function newAssetForEmployee'));
+  assert.ok(js.includes('function editAssetForEmployee'));
+  assert.ok(js.includes("canEdit('assets_training')"));
+  const nav=(html.match(/<nav id="nav">[\s\S]*?<\/nav>/)||[''])[0];
+  assert.equal(nav.includes('教育'),false);
+  assert.equal(nav.includes('貸与品'),false);
+});

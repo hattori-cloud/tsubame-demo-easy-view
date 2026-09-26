@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null,analysisFilters:{},userItems:[]};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,employeeSupport:null,workImport:null,analysisFilters:{},userItems:[]};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -150,7 +150,7 @@
       const close=e.target.closest('[data-dialog-close]');
       if(close){$('detailDialog').close();return}
       const action=e.target.closest('[data-dialog-action]');
-      if(action)handleDialogAction(action.dataset.dialogAction)
+      if(action)handleDialogAction(action.dataset.dialogAction,action.dataset.id||'')
     })
   }
 
@@ -284,8 +284,14 @@
   async function employeeDetail(id){
     clearError();
     try{
-      const {data}=await api('/employees/'+encodeURIComponent(id));
-      const e=data.employee;
+      const employeeRequest=api('/employees/'+encodeURIComponent(id));
+      const supportRequest=canView('assets_training')?Promise.all([
+        api('/training?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data),
+        api('/assets?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data)
+      ]):Promise.resolve([null,null]);
+      const [{data},support]=await Promise.all([employeeRequest,supportRequest]);
+      const e=data.employee,[training,assets]=support;
+      state.employeeSupport={training:training?.items||[],assets:assets?.items||[]};
       $('dialogTitle').textContent=e.name||'社員詳細';
       const employeeActions=[];
       if(canView('credentials_documents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-credentials">資格・書類</button>');
@@ -296,9 +302,25 @@
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
-        '</div>'+edit;
+        '</div>'+employeeSupportHtml(e,state.employeeSupport)+edit;
       $('detailDialog').showModal()
     }catch(err){showError(err,'社員詳細')}
+  }
+  function employeeSupportHtml(employee,support){
+    if(!canView('assets_training'))return '';
+    const training=support?.training||[],assets=support?.assets||[];
+    const edit=canEdit('assets_training');
+    const trainingRows=training.length?training.map(x=>
+      '<div class="support-row"><div><b>'+esc(x.course)+'</b><span>期限 '+esc(fmtDate(x.due))+' / '+esc(x.status||'open')+'</span></div>'+
+      (edit?'<button class="record-action" data-dialog-action="edit-training" data-id="'+esc(x.id)+'">更新</button>':'')+'</div>'
+    ).join(''):'<div class="empty compact-empty">安全教育の登録はありません。</div>';
+    const assetRows=assets.length?assets.map(x=>
+      '<div class="support-row"><div><b>'+esc(x.item)+'</b><span>管理番号 '+esc(x.asset_no)+' / 返却予定 '+esc(fmtDate(x.return_due))+' / '+esc(x.status||'loaned')+'</span></div>'+
+      (edit?'<button class="record-action" data-dialog-action="edit-asset" data-id="'+esc(x.id)+'">更新</button>':'')+'</div>'
+    ).join(''):'<div class="empty compact-empty">貸与品の登録はありません。</div>';
+    return '<section class="employee-support"><div class="support-head"><div><b>安全教育・貸与品</b><span>社員詳細にまとめて表示</span></div>'+
+      (edit?'<div><button class="ghost light" data-dialog-action="new-training">＋ 安全教育</button><button class="ghost light" data-dialog-action="new-asset">＋ 貸与品</button></div>':'')+
+      '</div><div class="support-grid"><div><h4>安全教育</h4>'+trainingRows+'</div><div><h4>貸与品</h4>'+assetRows+'</div></div></section>'
   }
   function detail(label,value){return '<div><span>'+esc(label)+'</span><b>'+esc(fmtText(value))+'</b></div>'}
 
@@ -754,17 +776,82 @@
       if(action==='ack-handoff')return acknowledgeHandoff(id)
     }catch(err){showError(err,'操作')}
   }
-  async function handleDialogAction(action){
+  async function handleDialogAction(action,id){
     const d=state.dialog;if(!d)return;
     try{
       if(action==='open-employee-credentials'){state.credentialEmployeeId=d.record.id;$('detailDialog').close();return loadView('credentials')}
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
+      if(action==='new-training')return newTrainingForEmployee(d.record);
+      if(action==='new-asset')return newAssetForEmployee(d.record);
+      if(action==='edit-training')return editTrainingForEmployee(d.record,id);
+      if(action==='edit-asset')return editAssetForEmployee(d.record,id);
       if(action==='complete-accident')return terminalAction('accident','complete',d.record);
       if(action==='reopen-accident')return terminalAction('accident','reopen',d.record);
       if(action==='complete-complaint')return terminalAction('complaint','complete',d.record);
       if(action==='reopen-complaint')return terminalAction('complaint','reopen',d.record)
     }catch(err){showError(err,'操作')}
+  }
+
+  function supportRecord(kind,id){
+    return (state.employeeSupport?.[kind]||[]).find(x=>String(x.id)===String(id))
+  }
+  function newTrainingForEmployee(employee){
+    if(!canEdit('assets_training'))return;
+    const fields=formField('course','教育・研修名','','text','required')+
+      formField('due','期限','','date')+
+      formSelect('status','状態',[['open','未完了'],['completed','完了']],'open');
+    openRecordForm('安全教育を登録',fields,async fd=>{
+      const status=fdText(fd,'status')||'open';
+      await api('/training',{method:'POST',body:{
+        employee_id:employee.id,course:fdText(fd,'course'),due:nullable(fdText(fd,'due')),status,
+        completed_at:status==='completed'?new Date().toISOString():null
+      }})
+    })
+  }
+  function editTrainingForEmployee(employee,id){
+    if(!canEdit('assets_training'))return;
+    const rec=supportRecord('training',id);if(!rec)return;
+    const fields=formField('course','教育・研修名',rec.course,'text','required')+
+      formField('due','期限',fmtDate(rec.due)==='—'?'':fmtDate(rec.due),'date')+
+      formSelect('status','状態',[['open','未完了'],['completed','完了']],rec.status||'open');
+    openRecordForm('安全教育を更新',fields,async fd=>{
+      const status=fdText(fd,'status')||'open';
+      await api('/training/'+encodeURIComponent(rec.id),{method:'PATCH',body:{
+        course:fdText(fd,'course'),due:nullable(fdText(fd,'due')),status,
+        completed_at:status==='completed'?(rec.completed_at||new Date().toISOString()):null
+      },headers:{'If-Match':'"'+rec.version+'"'}})
+    })
+  }
+  function newAssetForEmployee(employee){
+    if(!canEdit('assets_training'))return;
+    const fields=formField('item','貸与品','','text','required')+
+      formField('asset_no','管理番号','','text','required')+
+      formField('return_due','返却予定','','date')+
+      formSelect('status','状態',[['loaned','貸与中'],['returned','返却済']],'loaned');
+    openRecordForm('貸与品を登録',fields,async fd=>{
+      const status=fdText(fd,'status')||'loaned';
+      await api('/assets',{method:'POST',body:{
+        employee_id:employee.id,item:fdText(fd,'item'),asset_no:fdText(fd,'asset_no'),
+        return_due:nullable(fdText(fd,'return_due')),status,
+        returned_at:status==='returned'?new Date().toISOString():null
+      }})
+    })
+  }
+  function editAssetForEmployee(employee,id){
+    if(!canEdit('assets_training'))return;
+    const rec=supportRecord('assets',id);if(!rec)return;
+    const fields=formField('item','貸与品',rec.item,'text','required')+
+      formField('asset_no','管理番号',rec.asset_no,'text','required')+
+      formField('return_due','返却予定',fmtDate(rec.return_due)==='—'?'':fmtDate(rec.return_due),'date')+
+      formSelect('status','状態',[['loaned','貸与中'],['returned','返却済']],rec.status||'loaned');
+    openRecordForm('貸与品を更新',fields,async fd=>{
+      const status=fdText(fd,'status')||'loaned';
+      await api('/assets/'+encodeURIComponent(rec.id),{method:'PATCH',body:{
+        item:fdText(fd,'item'),asset_no:fdText(fd,'asset_no'),return_due:nullable(fdText(fd,'return_due')),status,
+        returned_at:status==='returned'?(rec.returned_at||new Date().toISOString()):null
+      },headers:{'If-Match':'"'+rec.version+'"'}})
+    })
   }
 
   async function createUserForEmployee(employee){
