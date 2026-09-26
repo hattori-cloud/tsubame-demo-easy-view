@@ -358,3 +358,25 @@ test('read-only accident and complaint users can create permitted handoffs witho
   assert.ok(js.includes("canEdit('handoffs')?'<button type=\"button\" class=\"ghost light\" data-dialog-action=\"handoff-complaint\""));
   assert.ok(js.includes("{actions:quick}"));
 });
+
+
+test('safety registration uses server drafts with optimistic concurrency and no browser persistence',()=>{
+  assert.ok(js.includes('async function loadSafetyDraft(kind)'));
+  assert.ok(js.includes('async function deleteSafetyDraft(kind)'));
+  assert.ok(js.includes('data-draft-save'));
+  assert.ok(js.includes("method:'PUT'"));
+  assert.ok(js.includes("headers=draftState?{'If-Match':"));
+  assert.ok(js.includes("loadSafetyDraft('accident')"));
+  assert.ok(js.includes("loadSafetyDraft('complaint')"));
+  assert.ok(js.includes("loadSafetyDraft('near_miss')"));
+  assert.ok(js.includes('下書き復元'));
+  assert.equal(js.includes('localStorage'),false);
+  assert.equal(js.includes('sessionStorage'),false);
+});
+
+test('employee-scoped safety forms do not mix a draft saved for another employee',()=>{
+  assert.ok(js.includes('function draftPayloadForContext(draft,employee)'));
+  assert.ok(js.includes("String(p.employee_id)!==String(employee.id)"));
+  assert.ok(js.includes("const compatible=!knownEmployee||!draft||String(draft.payload?.employee_id||'')===String(knownEmployee.id)"));
+  assert.ok(js.includes('draftExtraForEmployee(knownEmployee)'));
+});
