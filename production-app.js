@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,employeeSupport:null,employeeOperational:null,workImport:null,analysisFilters:{},userItems:[],pages:{}};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,credentialData:null,employeeSupport:null,employeeOperational:null,workImport:null,analysisFilters:{},userItems:[],pages:{}};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -315,6 +315,40 @@
 
   function listHeader(total,label,action=''){return '<div class="list-head"><div><b>'+esc(label)+'</b><span>'+esc(total)+'件</span></div>'+action+'</div>'}
   function empty(){return '<div class="empty">該当データはありません。</div>'}
+  function deadlineTargetButton(x){
+    const type=String(x.type||''),employeeId=String(x.employee_id||'');
+    let allowed=false,label='開く';
+    if(['vehicle_inspection','vehicle_maintenance'].includes(type)){allowed=canView('vehicles');label='号車'}
+    else if(['qualification','document'].includes(type)){allowed=canView('credentials_documents');label=canEdit('credentials_documents')?'該当データを更新':'資格・書類'}
+    else if(['training','asset'].includes(type)){allowed=canView('employees')&&canView('assets_training');label=canEdit('assets_training')?'該当データを更新':'社員詳細'}
+    else {allowed=canView('employees');label='社員'}
+    if(!allowed)return '';
+    return '<button class="record-action" data-action="deadline-target" data-id="'+esc(x.source_id||'')+'" data-q="'+esc(type+'|'+employeeId)+'">'+esc(label)+'</button>'
+  }
+  async function openDeadlineTarget(sourceId,target){
+    const [type,employeeId]=String(target||'').split('|');
+    if(['vehicle_inspection','vehicle_maintenance'].includes(type))return editVehicle(sourceId);
+    if(['qualification','document'].includes(type)){
+      state.credentialEmployeeId=employeeId;
+      await loadView('credentials');
+      if(canEdit('credentials_documents')){
+        if(type==='qualification')return editQualification(sourceId);
+        return editDocumentMetadata(sourceId)
+      }
+      return
+    }
+    if(['training','asset'].includes(type)){
+      await employeeDetail(employeeId);
+      const employee=state.dialog?.record;
+      if(!employee)return;
+      if(canEdit('assets_training')){
+        if(type==='training')return editTrainingForEmployee(employee,sourceId);
+        return editAssetForEmployee(employee,sourceId)
+      }
+      return
+    }
+    return employeeDetail(employeeId)
+  }
   function currentPage(view){return Math.max(1,Number(state.pages[view])||1)}
   function paginationHtml(data,view,q=''){
     const total=Number(data?.total||0),size=Math.max(1,Number(data?.page_size||50)),page=Math.max(1,Number(data?.page||currentPage(view))),pages=Math.max(1,Math.ceil(total/size));
@@ -447,7 +481,7 @@
     $('content').innerHTML=
       '<div class="hub-grid">'+shortcuts.join('')+'</div>'+
       (canView('deadlines')?'<section class="panel"><div class="list-head"><div><b>優先して確認する期限</b><span>'+esc(rows.length)+'件表示</span></div><button class="record-action" data-action="open-view" data-id="deadlines">期限一覧へ</button></div>'+
-        (rows.length?'<div class="cards">'+rows.map(x=>'<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div><div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span></div></div>').join('')+'</div>':empty())+'</section>':'')
+        (rows.length?'<div class="cards">'+rows.map(x=>'<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div><div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+deadlineTargetButton(x)+'</div></div>').join('')+'</div>':empty())+'</section>':'')
   }
 
   async function renderSafetyHub(){
@@ -502,8 +536,7 @@
       '<div class="metric-grid compact">'+metric('全件',data.summary.total,'60日以内')+metric('超過',data.summary.overdue,'期限超過')+metric('本日',data.summary.today,'本日期限')+metric('7日以内',data.summary.within7,'近日')+'</div>'+
       listHeader(data.total,'期限')+(data.items.length?'<div class="cards">'+data.items.map(x=>
         '<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div>'+
-        '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+
-        (x.type==='vehicle_inspection'||x.type==='vehicle_maintenance'?'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(x.source_id)+'">号車</button>':x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'</div></div>'
+        '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+deadlineTargetButton(x)+'</div></div>'
       ).join('')+'</div>':empty())
     $('content').insertAdjacentHTML('beforeend',paginationHtml(data,'deadlines',q));
   }
@@ -572,6 +605,7 @@
   async function renderCredentialEmployee(employeeId){
     const {data}=await api('/employees/'+encodeURIComponent(employeeId)+'/credentials');
     state.credentialEmployeeId=employeeId;
+    state.credentialData=data;
     const actions=canEdit('credentials_documents')?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button>':'';
     const back='<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
     const qs=data.qualifications||[],docs=data.documents||[];
@@ -580,13 +614,15 @@
       '<section class="panel"><div class="list-head"><div><b>資格</b><span>'+esc(qs.length)+'件</span></div></div>'+
       (qs.length?'<div class="cards">'+qs.map(q=>
         '<div class="record"><div><b>'+esc(q.name)+'</b><span>'+esc(q.certificate_no||'証明番号なし')+'</span></div>'+
-        '<div class="record-meta"><span>'+esc(q.status||'active')+'</span><span>期限 '+esc(fmtDate(q.expiry))+'</span><span>証憑 '+esc(q.evidence_requirement||'unset')+'</span></div></div>'
+        '<div class="record-meta"><span>'+esc(q.status||'active')+'</span><span>期限 '+esc(fmtDate(q.expiry))+'</span><span>証憑 '+esc(q.evidence_requirement||'unset')+'</span>'+
+        (canEdit('credentials_documents')?'<button class="record-action" data-action="edit-qualification" data-id="'+esc(q.id)+'">更新</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>書類</b><span>'+esc(docs.length)+'件</span></div></div>'+
       (docs.length?'<div class="cards">'+docs.map(d=>
         '<div class="record"><div><b>'+esc(d.name)+'</b><span>'+esc(d.category)+'</span></div>'+
         '<div class="record-meta"><span>'+esc(d.status)+'</span><span>期限 '+esc(fmtDate(d.expiry))+'</span><span>'+esc(d.original_handling)+'</span><span>'+esc(d.storage_state||'not_uploaded')+'</span>'+
-        (d.storage_state==='active'&&d.malware_scan_status==='clean'?'<button class="record-action" data-action="download-original" data-id="'+esc(d.id)+'">原本を開く</button>':'')+'</div></div>'
+        (d.storage_state==='active'&&d.malware_scan_status==='clean'?'<button class="record-action" data-action="download-original" data-id="'+esc(d.id)+'">原本を開く</button>':'')+
+        (canEdit('credentials_documents')?'<button class="record-action" data-action="edit-document" data-id="'+esc(d.id)+'">情報更新</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())+'</section>'
   }
 
@@ -906,6 +942,7 @@
       if(action==='open-view')return loadView(id,{resetPage:true});
       if(action==='open-filtered-view')return loadView(id,{q,resetPage:true});
       if(action==='list-page')return loadView(state.view,{q,page:Number(id)||1});
+      if(action==='deadline-target')return openDeadlineTarget(id,q);
       if(action==='open-employee')return employeeDetail(id);
       if(action==='home-search')return runHomeSearch();
       if(action==='new-employee')return newEmployee();
@@ -917,8 +954,10 @@
       if(action==='edit-vehicle')return editVehicle(id);
       if(action==='new-near-miss')return newNearMiss();
       if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
-      if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
+      if(action==='back-credentials'){state.credentialEmployeeId=null;state.credentialData=null;return renderCredentials($('searchInput').value.trim())}
       if(action==='new-qualification')return newQualification();
+      if(action==='edit-qualification')return editQualification(id);
+      if(action==='edit-document')return editDocumentMetadata(id);
       if(action==='download-original')return downloadOriginal(id);
       if(action==='work-import-preflight')return workImportPreflight();
       if(action==='work-import-commit')return workImportCommit();
@@ -1064,6 +1103,48 @@
         expiry:nullable(fdText(fd,'expiry')),
         evidence_requirement:fdText(fd,'evidence_requirement')||'unset'
       }})
+    })
+  }
+
+  function editQualification(id){
+    if(!canEdit('credentials_documents'))return;
+    const q=(state.credentialData?.qualifications||[]).find(x=>String(x.id)===String(id));if(!q)return;
+    const fields=
+      formField('name','資格名',q.name,'text','required')+
+      formField('certificate_no','証明番号',q.certificate_no)+
+      formField('expiry','有効期限',fmtDate(q.expiry)==='—'?'':fmtDate(q.expiry),'date')+
+      formSelect('status','状態',[['active','有効'],['expired','期限切れ'],['suspended','停止'],['inactive','無効']],q.status||'active')+
+      formSelect('evidence_requirement','証憑要否',[['unset','未設定'],['required','必要'],['not_required','不要']],q.evidence_requirement||'unset');
+    openRecordForm('資格を更新｜'+q.name,fields,async fd=>{
+      await api('/qualifications/'+encodeURIComponent(q.id),{method:'PATCH',body:{
+        name:fdText(fd,'name'),
+        certificate_no:nullable(fdText(fd,'certificate_no')),
+        expiry:nullable(fdText(fd,'expiry')),
+        status:fdText(fd,'status')||'active',
+        evidence_requirement:fdText(fd,'evidence_requirement')||'unset'
+      },headers:{'If-Match':'"'+q.version+'"'}})
+    })
+  }
+
+  function editDocumentMetadata(id){
+    if(!canEdit('credentials_documents'))return;
+    const d=(state.credentialData?.documents||[]).find(x=>String(x.id)===String(id));if(!d)return;
+    const fields=
+      formField('name','書類名',d.name,'text','required')+
+      formField('kind','種別',d.kind)+
+      formField('registered_on','登録日',fmtDate(d.registered_on)==='—'?'':fmtDate(d.registered_on),'date','required')+
+      formField('expiry','有効期限',fmtDate(d.expiry)==='—'?'':fmtDate(d.expiry),'date')+
+      formSelect('status','状態',[['pending','確認待ち'],['verified','確認済み'],['replacement_due','差替必要'],['replaced','差替済み'],['invalid','無効']],d.status||'pending')+
+      formField('paper_location','紙原本保管場所',d.paper_location)+
+      formField('retention_until','保存期限',fmtDate(d.retention_until)==='—'?'':fmtDate(d.retention_until),'date')+
+      formArea('retention_review_note','保存確認メモ',d.retention_review_note||'');
+    openRecordForm('書類情報を更新｜'+d.name,fields,async fd=>{
+      await api('/documents/'+encodeURIComponent(d.id),{method:'PATCH',body:{
+        name:fdText(fd,'name'),kind:nullable(fdText(fd,'kind')),registered_on:fdText(fd,'registered_on'),
+        expiry:nullable(fdText(fd,'expiry')),status:fdText(fd,'status')||'pending',
+        paper_location:nullable(fdText(fd,'paper_location')),retention_until:nullable(fdText(fd,'retention_until')),
+        retention_review_note:nullable(fdText(fd,'retention_review_note'))
+      },headers:{'If-Match':'"'+d.version+'"'}})
     })
   }
 
