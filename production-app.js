@@ -343,7 +343,8 @@
       '<section class="panel"><div class="list-head"><div><b>書類</b><span>'+esc(docs.length)+'件</span></div></div>'+
       (docs.length?'<div class="cards">'+docs.map(d=>
         '<div class="record"><div><b>'+esc(d.name)+'</b><span>'+esc(d.category)+'</span></div>'+
-        '<div class="record-meta"><span>'+esc(d.status)+'</span><span>期限 '+esc(fmtDate(d.expiry))+'</span><span>'+esc(d.original_handling)+'</span><span>'+esc(d.storage_state||'not_uploaded')+'</span></div></div>'
+        '<div class="record-meta"><span>'+esc(d.status)+'</span><span>期限 '+esc(fmtDate(d.expiry))+'</span><span>'+esc(d.original_handling)+'</span><span>'+esc(d.storage_state||'not_uploaded')+'</span>'+
+        (d.storage_state==='active'&&d.malware_scan_status==='clean'?'<button class="record-action" data-action="download-original" data-id="'+esc(d.id)+'">原本を開く</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())+'</section>'
   }
 
@@ -739,6 +740,7 @@
       if(action==='new-qualification')return newQualification();
       if(action==='new-document')return newDocumentMetadata();
       if(action==='new-original-document')return newOriginalDocument();
+      if(action==='download-original')return downloadOriginal(id);
       if(action==='work-import-preflight')return workImportPreflight();
       if(action==='work-import-commit')return workImportCommit();
       if(action==='work-import-rollback')return workImportRollback(id);
@@ -847,6 +849,18 @@
         retention_until:nullable(fdText(fd,'retention_until'))
       }})
     })
+  }
+
+  async function downloadOriginal(id){
+    const popup=window.open('about:blank','_blank','noopener,noreferrer');
+    try{
+      const {data}=await api('/documents/'+encodeURIComponent(id)+'/download-ticket');
+      if(popup)popup.location.href=data.download.url;
+      else window.open(data.download.url,'_blank','noopener,noreferrer')
+    }catch(err){
+      if(popup)popup.close();
+      throw err
+    }
   }
 
   async function sha256File(file){
