@@ -408,11 +408,26 @@
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
-        '</div>'+employeeOperationalHtml(e,state.employeeOperational)+employeeQuickCreateHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
+        '</div>'+employeeHistoryHtml(data.history)+employeeOperationalHtml(e,state.employeeOperational)+employeeQuickCreateHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
       $('detailDialog').showModal()
     }catch(err){showError(err,'社員詳細')}
   }
 
+  function employeeHistoryHtml(history){
+    const numbers=history?.number_changes||[],transitions=history?.transitions||[];
+    if(!numbers.length&&!transitions.length)return '';
+    const numberRows=numbers.length?numbers.map(x=>
+      '<div class="support-row"><div><b>社員番号 '+esc(x.old_employee_no)+' → '+esc(x.new_employee_no)+'</b><span>'+esc(fmtDate(x.changed_at))+' / '+esc(x.reason||'理由記録なし')+'</span></div></div>'
+    ).join(''):'<div class="empty compact-empty">社員番号変更履歴はありません。</div>';
+    const transitionRows=transitions.length?transitions.map(x=>{
+      const before=x.before_data||{},after=x.after_data||{};
+      const from=[before.office,before.department,before.lifecycle_status].filter(Boolean).join(' / ')||'—';
+      const to=[after.office,after.department,after.lifecycle_status].filter(Boolean).join(' / ')||'—';
+      return '<div class="support-row"><div><b>'+esc(from)+' → '+esc(to)+'</b><span>'+esc(fmtDate(x.occurred_at))+' / '+esc(x.reason||'理由記録なし')+'</span></div></div>'
+    }).join(''):'<div class="empty compact-empty">異動・在籍状態履歴はありません。</div>';
+    return '<section class="employee-support employee-history"><div class="support-head"><div><b>社員履歴</b><span>社員番号変更と異動・在籍状態の変更履歴</span></div></div>'+
+      '<div class="support-grid"><div><h4>社員番号</h4>'+numberRows+'</div><div><h4>異動・在籍状態</h4>'+transitionRows+'</div></div></section>'
+  }
   function employeeOperationalHtml(employee,ops){
     const deadlines=ops?.deadlines,vehicles=ops?.vehicles,accidents=ops?.accidents,complaints=ops?.complaints,near=ops?.near;
     const deadlineRows=deadlines?.items||[],vehicleRows=vehicles?.items||[];
