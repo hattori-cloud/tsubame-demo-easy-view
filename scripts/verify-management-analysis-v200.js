@@ -24,6 +24,23 @@ function assert(v,m){if(!v)throw new Error(m)}
     assert(a.support&&Number.isFinite(Number(a.support.assets_overdue)),'support aggregate missing');
     assert(a.work&&Object.prototype.hasOwnProperty.call(a.work,'overtime_60_count'),'work aggregate missing');
     assert(a.signals&&Number.isFinite(Number(a.signals.new_hire_with_safety)),'cross signal missing');
-    console.log(JSON.stringify({ok:true,sql_executed:true,individual_ranking:false,real_employee_data_used:false}))
+
+    const limitedUser={
+      id:'00000000-0000-0000-0000-000000000002',
+      role_level:'scoped',state:'active',
+      scopes:[{office:'本社',department:'総務課'}],
+      permissions:[{feature:'safety_analysis',access_level:'view'}]
+    };
+    const limited=await managementSummary(limitedUser,{mfa:true},{});
+    assert(limited.access.employees===false,'limited analysis leaked employee feature access');
+    assert(limited.access.deadlines===false,'limited analysis leaked deadline feature access');
+    assert(limited.access.credentials===false,'limited analysis leaked credential feature access');
+    assert(limited.access.assets_training===false,'limited analysis leaked asset/training feature access');
+    assert(limited.access.work_import===false,'limited analysis leaked work feature access');
+    assert(limited.workforce===null&&limited.deadlines===null&&limited.credentials===null&&limited.support===null&&limited.work===null,'limited analysis returned forbidden aggregates');
+    assert(Array.isArray(limited.departments)&&limited.departments.length===0,'limited analysis returned forbidden department aggregates');
+    assert(limited.signals===null,'limited analysis returned forbidden cross-domain signals');
+
+    console.log(JSON.stringify({ok:true,sql_executed:true,feature_isolation_verified:true,individual_ranking:false,real_employee_data_used:false}))
   }finally{await closePool()}
 })().catch(err=>{console.error(err.stack||err);process.exit(1)});
