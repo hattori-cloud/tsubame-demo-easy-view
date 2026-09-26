@@ -7205,6 +7205,76 @@ function safetyRecordContextHtml(kind,rec){
   '<div class="safety-detail-context-item"><label>状態</label>'+badge(state)+'</div>'+
  '</div>'
 }
+
+function accidentReportMissingFields(a){
+ let rows=[
+  ['天候',a?.weather&&a.weather!=='未設定'],
+  ['事故場所',String(a?.address||'').trim()],
+  ['事故状況',String(a?.summary||'').trim()],
+  ['事故発生時に取った措置',String(a?.onsiteActions||'').trim()],
+  ['道路・現場状況',String(a?.roadCondition||'').trim()],
+  ['負傷・損傷状況',String(a?.damageInjurySummary||'').trim()],
+  ['警察対応',a?.policeStatus&&a.policeStatus!=='未確認'],
+  ['写真・見取図',a?.evidenceStatus&&a.evidenceStatus!=='未確認']
+ ];
+ return rows.filter(x=>!x[1]).map(x=>x[0])
+}
+function accidentReportValue(v,fallback='未入力'){
+ let x=String(v??'').trim();
+ return x&&x!=='未登録'&&x!=='未設定'&&x!=='未確認'?x:fallback
+}
+function accidentReportMoney(v){
+ let x=String(v??'').trim();
+ if(!x)return '未確定';
+ let n=Number(x);return Number.isFinite(n)?n.toLocaleString('ja-JP')+'円':esc(x)
+}
+function openAccidentReportPrint(id){
+ let a=A.find(x=>x.id===id);
+ if(!a||!canAccess('accident','view',a.employee_no)){alert('現在の担当範囲ではこの事故報告書を表示できません');return}
+ let e=emp(a.employee_no),v=V.find(x=>String(x.plate||'')===String(a.vehicle||''))||V.find(x=>String(x.employee_no||'')===String(a.employee_no||''));
+ let missing=accidentReportMissingFields(a),fault=String(a.faultRate??'').trim(),otherFault=fault!==''&&Number.isFinite(Number(fault))?Math.max(0,100-Number(fault)):'';
+ let w=window.open('','_blank');
+ if(!w){alert('報告書画面を開けませんでした。ブラウザのポップアップ設定を確認してください。');return}
+ let page1=[
+  '<section class="page">',
+  '<h1>事故報告・調査票</h1>',
+  '<div class="meta">事故番号 '+esc(a.id)+'　／　作成状態 '+esc(a.reportSheetStatus||'未着手')+'</div>',
+  missing.length?'<div class="warning">未入力：'+missing.map(esc).join('・')+'</div>':'<div class="ok">主要項目入力済み</div>',
+  '<table><tr><th>発生日時</th><td>'+esc(accidentReportValue(a.date))+' '+esc(a.time||'')+'</td><th>天候</th><td>'+esc(accidentReportValue(a.weather))+'</td></tr>',
+  '<tr><th>発生場所</th><td colspan="3">'+esc(accidentReportValue(a.address))+'</td></tr>',
+  '<tr><th>乗務員</th><td>'+esc(a.employee_no||'')+' '+esc(a.driver||e?.name||'')+'</td><th>所属</th><td>'+esc((e?.branch||'')+' / '+(e?.dept||''))+'</td></tr>',
+  '<tr><th>号車</th><td>'+esc(a.vehicle||'未設定')+'</td><th>車種</th><td>'+esc(v?.model||'未登録')+'</td></tr>',
+  '<tr><th>運行状態</th><td>'+esc(accidentReportValue(a.operationState))+'</td><th>事故形態</th><td>'+esc(accidentReportValue(a.accidentType))+'</td></tr></table>',
+  '<h2>事故状況</h2><div class="writebox">'+esc(accidentReportValue(a.summary))+'</div>',
+  '<h2>相手方・関係者</h2><div class="writebox small">'+esc(accidentReportValue(a.opponentSummary))+'</div>',
+  '<h2>事故発生時に本人が取った措置</h2><div class="writebox small">'+esc(accidentReportValue(a.onsiteActions))+'</div>',
+  '<div class="cols"><div><h2>道路・現場状況</h2><div class="writebox medium">'+esc(accidentReportValue(a.roadCondition))+'</div></div>',
+  '<div><h2>負傷・損傷状況</h2><div class="writebox medium">'+esc(accidentReportValue(a.damageInjurySummary))+'</div></div></div>',
+  '<table><tr><th>警察対応</th><td>'+esc(accidentReportValue(a.policeStatus))+'</td><th>写真・見取図</th><td>'+esc(accidentReportValue(a.evidenceStatus))+'</td></tr></table>',
+  '<h2>現場見取図・写真貼付欄</h2><div class="diagram">必要に応じて印刷後に記入・貼付</div>',
+  '</section>'
+ ].join('');
+ let page2=[
+  '<section class="page">',
+  '<h1>事故処理・調査記録</h1>',
+  '<table><tr><th>事故番号</th><td>'+esc(a.id)+'</td><th>担当者</th><td>'+esc(a.owner||'未設定')+'</td></tr>',
+  '<tr><th>対応状況</th><td>'+esc(a.phase||'未設定')+'</td><th>フォロー期限</th><td>'+esc(a.due||'未設定')+'</td></tr>',
+  '<tr><th>自社過失</th><td>'+(fault!==''?esc(fault)+'%':'未設定')+'</td><th>相手過失</th><td>'+(otherFault!==''?esc(otherFault)+'%':'未設定')+'</td></tr>',
+  '<tr><th>相手修理</th><td>'+esc(a.opponentRepair||'未確定')+' / '+accidentReportMoney(a.opponentRepairCost)+'</td><th>自社修理</th><td>'+esc(a.companyRepair||'未確定')+' / '+accidentReportMoney(a.companyRepairCost)+'</td></tr></table>',
+  '<h2>次回対応</h2><div class="writebox small">'+esc(accidentReportValue(a.nextAction))+'</div>',
+  '<h2>原因</h2><div class="writebox medium">'+esc(accidentReportValue(a.cause))+'</div>',
+  '<h2>再発防止</h2><div class="writebox medium">'+esc(accidentReportValue(a.prevention))+'</div>',
+  '<h2>その後の処理状況・対応経過</h2><div class="writebox large">'+esc(accidentReportValue(a.responseHistory))+'</div>',
+  '<h2>車両損傷図・伝達事項</h2><div class="diagram large">必要に応じて印刷後に記入</div>',
+  '<div class="sign"><span>確認者：'+esc(a.finalReviewerName||'________________')+'</span><span>完了日：'+esc(a.completedDate||'____年__月__日')+'</span></div>',
+  '</section>'
+ ].join('');
+ let html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>'+esc(a.id)+' 事故報告書</title><style>'+
+  '@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#111;margin:0;font-size:11px}.page{min-height:277mm;page-break-after:always;padding:2mm}.page:last-child{page-break-after:auto}h1{text-align:center;font-size:24px;letter-spacing:.18em;margin:0 0 8px}h2{font-size:13px;margin:8px 0 3px}.meta{text-align:right;margin-bottom:5px}table{width:100%;border-collapse:collapse;margin:5px 0}th,td{border:1px solid #333;padding:5px;vertical-align:top}th{width:18%;background:#f2f2f2}.writebox{border:1px solid #333;min-height:36mm;padding:6px;white-space:pre-wrap}.writebox.small{min-height:20mm}.writebox.medium{min-height:28mm}.writebox.large{min-height:60mm}.cols{display:grid;grid-template-columns:1fr 1fr;gap:6px}.diagram{border:1px solid #333;height:60mm;display:flex;align-items:center;justify-content:center;color:#777}.diagram.large{height:75mm}.warning{border:2px solid #a33;padding:5px;margin:5px 0}.ok{border:1px solid #555;padding:5px;margin:5px 0}.sign{display:flex;justify-content:space-between;margin-top:12px;border-top:1px solid #333;padding-top:8px}.toolbar{position:sticky;top:0;background:white;padding:8px;border-bottom:1px solid #ccc;text-align:right}.toolbar button{font-size:14px;padding:8px 18px}.screen-note{margin-right:10px;color:#555}@media print{.toolbar{display:none}.page{padding:0}}'+
+  '</style></head><body><div class="toolbar"><span class="screen-note">印刷画面で「PDFに保存」も選べます。</span><button onclick="window.print()">印刷 / PDF保存</button></div>'+page1+page2+'</body></html>';
+ w.document.open();w.document.write(html);w.document.close();
+ audit('事故報告書表示',a.id+' '+a.driver,{employee_no:a.employee_no,entity_type:'accident',entity_id:a.id});
+}
 function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  if(PREVIEW_ROLE!=='管理者'){alert('事故詳細は管理者のみ確認できます');return}
  let a=A.find(x=>x.id===id);
@@ -7213,7 +7283,7 @@ function accidentDetail(id,backNo='',backPage=1,backFilter='all'){
  rememberRecentDetail('accident',a.id);
  dttl.textContent='事故詳細 '+a.id;
  dbody.innerHTML=`${backNo?`<div class="backbar"><button class="btn soft" onclick="employeeAccidents('${backNo}',${backPage},'${backFilter}')">← 事故履歴一覧へ戻る</button><button class="btn" onclick="employeeDetail('${backNo}')">社員詳細へ戻る</button></div>`:''}
- <div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('acc')">事故一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${a.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button>${canEditEmployee(a.employee_no)?`<button class="btn primary detail-edit" onclick="openAccidentEdit('${a.id}')">事故対応を修正</button>`:''}</div>
+ <div class="detail-actions">${detailBackButtonHtml()}<button class="btn soft detail-related" onclick="returnToSafetyList('acc')">事故一覧へ</button><button class="btn soft detail-related" onclick="employeeDetail('${a.employee_no}');setTimeout(()=>setEmployeeDetailTab('safety'),20)">社員詳細へ</button><button class="btn soft" onclick="openAccidentReportPrint('${a.id}')">報告書プレビュー・印刷</button>${canEditEmployee(a.employee_no)?`<button class="btn primary detail-edit" onclick="openAccidentEdit('${a.id}')">事故対応を修正</button>`:''}</div>
  ${safetyRecordContextHtml('事故',a)}
  ${caseActionPanelHtml('事故',a)}
  ${state==='over'?`<div class="detail-alert danger">フォロー期限を ${Math.abs(n)}日超過しています（${esc(a.due)}）</div>`:state==='today'?'<div class="detail-alert warn">フォロー期限は本日です。対応状況を確認してください。</div>':''}
