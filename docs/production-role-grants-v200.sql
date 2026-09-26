@@ -50,7 +50,7 @@ grant usage on schema public to tsubame_app_runtime;
 grant select,insert,update on all tables in schema public to tsubame_app_runtime;
 
 -- Runtime deletes are intentionally narrow.
-grant delete on public.user_scopes,public.drafts,public.login_rate_limits,public.work_summary_monthly to tsubame_app_runtime;
+grant delete on public.user_scopes,public.user_feature_permissions,public.drafts,public.login_rate_limits,public.work_summary_monthly to tsubame_app_runtime;
 
 -- Immutable evidence/audit tables are insert/select only at privilege level,
 -- in addition to database append-only triggers.
