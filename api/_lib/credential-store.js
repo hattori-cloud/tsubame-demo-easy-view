@@ -94,6 +94,7 @@ async function createDocumentMetadata({user,identity,body,requestId}){
       if(!linked.rows[0])throw problem(422,'QUALIFICATION_EMPLOYEE_MISMATCH','選択した資格は対象社員の有効な資格ではありません')
     }
     if(['electronic_original','paper_and_electronic'].includes(policy.original_handling))throw problem(409,'ELECTRONIC_ORIGINAL_REQUIRED','この書類区分は原本アップロード経路を使用してください');
+    if(policy.original_handling==='company_paper_original'&&!String(body.paper_location||'').trim())throw problem(422,'PAPER_LOCATION_REQUIRED','会社保管の紙原本は保管場所を入力してください');
     const row=(await query(`
       insert into documents(employee_id,qualification_id,category,name,kind,registered_on,expiry,status,security_class,access_level,original_handling,verification_required,paper_location,retention_until,storage_state)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'not_uploaded') returning *
