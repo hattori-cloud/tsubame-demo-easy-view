@@ -71,6 +71,19 @@ create table user_scopes (
   unique (user_id, office, department)
 );
 
+create table user_feature_permissions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  feature text not null check (feature in (
+    'employees','deadlines','accidents','complaints','near_misses','credentials_documents',
+    'vehicles','safety_analysis','work_import','assets_training','notices_workflow',
+    'audit_logs','user_admin'
+  )),
+  access_level text not null check (access_level in ('view','edit')),
+  created_at timestamptz not null default now(),
+  unique (user_id, feature)
+);
+
 create table auth_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
@@ -534,6 +547,7 @@ create index mfa_challenges_user_idx on mfa_challenges (user_id, expires_at desc
 create index users_employee_idx on users (employee_id);
 create index users_state_role_idx on users (state, role_level);
 create index user_scopes_scope_idx on user_scopes (office, department, user_id);
+create index user_feature_permissions_user_idx on user_feature_permissions (user_id, feature, access_level);
 
 create index qualifications_employee_idx on qualifications (employee_id, expiry, status);
 create index documents_employee_idx on documents (employee_id, category, status);
