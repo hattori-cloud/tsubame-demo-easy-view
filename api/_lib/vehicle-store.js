@@ -70,13 +70,35 @@ async function getVehicle(user,id,client=null,{forUpdate=false}={}){
   if(!r.rows[0])throw problem(404,'NOT_FOUND','対象車両が見つかりません');
   return r.rows[0]
 }
+async function getVehicleAssignmentHistory(user,id){
+  await getVehicle(user,id);
+  const h=await query(`select before_data,after_data,reason,occurred_at
+                         from record_histories
+                        where entity_type='vehicle' and entity_id=$1 and action='assignments_change'
+                     order by occurred_at desc limit 30`,[id]);
+  const ids=new Set();
+  for(const row of h.rows){
+    for(const side of [row.before_data||{},row.after_data||{}]){
+      if(side.primary_employee_id)ids.add(String(side.primary_employee_id));
+      for(const u of Array.isArray(side.users)?side.users:[])if(u.employee_id)ids.add(String(u.employee_id))
+    }
+  }
+  let employees=[];
+  if(ids.size)employees=(await query(`select id,employee_no,name from employees where id=any($1::uuid[])`,[[...ids]])).rows;
+  const byId=new Map(employees.map(e=>[String(e.id),e]));
+  return h.rows.map(row=>({
+    ...row,
+    before_primary:row.before_data?.primary_employee_id?byId.get(String(row.before_data.primary_employee_id))||null:null,
+    after_primary:row.after_data?.primary_employee_id?byId.get(String(row.after_data.primary_employee_id))||null:null
+  }))
+}
 async function createVehicle({user,body,requestId}){
   requireVehicleManager(user);
   return withTransaction(async client=>{
     const car=String(body.car_no||'').trim();if(!/^[0-9]{3}$/.test(car))throw problem(422,'INVALID_CAR_NO','号車は3桁で入力してください');
     const mode=String(body.assignment_mode||'dedicated');if(!['dedicated','shared','spare','loaner'].includes(mode))throw problem(422,'INVALID_ASSIGNMENT_MODE','車両区分を確認してください');
     const primary=body.primary_employee_id?await visibleEmployee(user,String(body.primary_employee_id),client):null;
-    if(mode==='dedicated'&&!primary)throw problem(422,'PRIMARY_EMPLOYEE_REQUIRED','専属車には主担当乗務員が必要です');
+    if(mode==='dedicated'&&!primary)throw problem(422,'PRIMARY_EMPLOYEE_REQUIRED','基本固定車には主担当乗務員が必要です');
     const inspection=String(body.inspection_due||'').trim();if(!inspection)throw problem(422,'INSPECTION_DUE_REQUIRED','車検期限を入力してください');
     const row=(await query(`insert into vehicles(car_no,model,service,status,assignment_mode,primary_employee_id,inspection_due,next_maintenance_due,maintenance_note) values($1,$2,$3,$4,$5,$6,$7,$8,$9) returning *`,[car,body.model||null,body.service||null,body.status||'active',mode,primary?.id||null,inspection,body.next_maintenance_due||null,body.maintenance_note||null],client)).rows[0];
     if(primary)await query(`insert into vehicle_users(vehicle_id,employee_id,role) values($1,$2,'primary')`,[row.id,primary.id],client);
@@ -110,9 +132,9 @@ async function updateVehicleAssignments({user,id,body,expectedVersion,requestId}
     const primary=primaryId?await visibleEmployee(user,primaryId,client):null;
     const extra=[];for(const eid of additional)extra.push(await visibleEmployee(user,eid,client));
     const mode=String(body.assignment_mode||before.assignment_mode);
-    if(mode==='dedicated'&&!primary)throw problem(422,'PRIMARY_EMPLOYEE_REQUIRED','専属車には主担当乗務員が必要です');
-    const beforeUsers=(await query(`select employee_id,role from vehicle_users where vehicle_id=$1 and ended_on is null order by role,employee_id`,[id],client)).rows;
-    const desiredUsers=[...(primary?[{employee_id:primary.id,role:'primary'}]:[]),...extra.map(e=>({employee_id:e.id,role:'additional'}))];
+    if(mode==='dedicated'&&!primary)throw problem(422,'PRIMARY_EMPLOYEE_REQUIRED','基本固定車には主担当乗務員が必要です');
+    const beforeUsers=(await query(`select vu.employee_id,vu.role,e.employee_no,e.name from vehicle_users vu join employees e on e.id=vu.employee_id where vu.vehicle_id=$1 and vu.ended_on is null order by vu.role,vu.employee_id`,[id],client)).rows;
+    const desiredUsers=[...(primary?[{employee_id:primary.id,employee_no:primary.employee_no,name:primary.name,role:'primary'}]:[]),...extra.map(e=>({employee_id:e.id,employee_no:e.employee_no,name:e.name,role:'additional'}))];
     const beforeKeys=new Set(beforeUsers.map(x=>String(x.employee_id)+'|'+String(x.role)));
     const desiredKeys=new Set(desiredUsers.map(x=>String(x.employee_id)+'|'+String(x.role)));
     for(const old of beforeUsers){
@@ -124,10 +146,10 @@ async function updateVehicleAssignments({user,id,body,expectedVersion,requestId}
       if(!beforeKeys.has(key))await query(`insert into vehicle_users(vehicle_id,employee_id,role) values($1,$2,$3)`,[id,next.employee_id,next.role],client)
     }
     const after=(await query(`update vehicles set primary_employee_id=$2,assignment_mode=$3,updated_at=now(),version=version+1 where id=$1 returning *`,[id,primary?.id||null,mode],client)).rows[0];
-    const afterUsers=desiredUsers;
-    await query(`insert into record_histories(entity_type,entity_id,actor_user_id,action,before_data,after_data,reason) values('vehicle',$1,$2,'assignments_change',$3::jsonb,$4::jsonb,'車両担当変更')`,[id,user.id,JSON.stringify({assignment_mode:before.assignment_mode,primary_employee_id:before.primary_employee_id,users:beforeUsers}),JSON.stringify({assignment_mode:mode,primary_employee_id:primary?.id||null,users:afterUsers})],client);
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'車両担当変更','vehicle',$2,$3,'success',$4,$5)`,[user.id,id,primary?.id||null,requestId,'主担当 '+(primary?.employee_no||'なし')+' / 追加 '+extra.length+'名'],client);
+    const afterUsers=desiredUsers,reason=String(body.reason||'').trim()||'車両担当変更';
+    await query(`insert into record_histories(entity_type,entity_id,actor_user_id,action,before_data,after_data,reason) values('vehicle',$1,$2,'assignments_change',$3::jsonb,$4::jsonb,$5)`,[id,user.id,JSON.stringify({assignment_mode:before.assignment_mode,primary_employee_id:before.primary_employee_id,users:beforeUsers}),JSON.stringify({assignment_mode:mode,primary_employee_id:primary?.id||null,users:afterUsers}),reason],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'車両担当変更','vehicle',$2,$3,'success',$4,$5)`,[user.id,id,primary?.id||null,requestId,'主担当 '+(primary?.employee_no||'なし')+' / 追加 '+extra.length+'名 / '+reason],client);
     return after
   })
 }
-module.exports={listVehicles,getVehicle,createVehicle,updateVehicle,updateVehicleAssignments,vehicleScopeSql,requireVehicleManager};
+module.exports={listVehicles,getVehicle,getVehicleAssignmentHistory,createVehicle,updateVehicle,updateVehicleAssignments,vehicleScopeSql,requireVehicleManager};
