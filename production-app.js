@@ -322,17 +322,27 @@
   async function employeeDetail(id){
     clearError();
     try{
-      const employeeRequest=api('/employees/'+encodeURIComponent(id));
-      const supportRequest=canView('assets_training')?Promise.all([
-        api('/training?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data),
-        api('/assets?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data)
-      ]):Promise.resolve([null,null]);
-      const [{data},support]=await Promise.all([employeeRequest,supportRequest]);
-      const e=data.employee,[training,assets]=support;
+      const {data}=await api('/employees/'+encodeURIComponent(id));
+      const e=data.employee,q=encodeURIComponent(e.employee_no||'');
+      const [support,deadlines,vehicles,accidents,complaints,near]=await Promise.all([
+        canView('assets_training')?Promise.all([
+          api('/training?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data),
+          api('/assets?employee_id='+encodeURIComponent(id)+'&page_size=20').then(x=>x.data)
+        ]):Promise.resolve([null,null]),
+        canView('deadlines')?api('/deadlines?filter=action&page_size=6&q='+q).then(x=>x.data).catch(()=>null):Promise.resolve(null),
+        canView('vehicles')?api('/vehicles?page_size=6&q='+q).then(x=>x.data).catch(()=>null):Promise.resolve(null),
+        canView('accidents')?api('/accidents?page_size=1&q='+q).then(x=>x.data).catch(()=>null):Promise.resolve(null),
+        canView('complaints')?api('/complaints?page_size=1&q='+q).then(x=>x.data).catch(()=>null):Promise.resolve(null),
+        canView('near_misses')?api('/near-misses?page_size=1&q='+q).then(x=>x.data).catch(()=>null):Promise.resolve(null)
+      ]);
+      const [training,assets]=support;
       state.employeeSupport={training:training?.items||[],assets:assets?.items||[]};
+      state.employeeOperational={deadlines,vehicles,accidents,complaints,near};
       $('dialogTitle').textContent=e.name||'社員詳細';
       const employeeActions=[];
+      if(canView('deadlines'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-deadlines">期限</button>');
       if(canView('credentials_documents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-credentials">資格・書類</button>');
+      if(canView('vehicles'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-vehicles">担当号車</button>');
       if(canView('accidents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-accidents">事故履歴</button>');
       if(canView('complaints'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-complaints">苦情履歴</button>');
       if(canView('near_misses'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-near">ヒヤリ履歴</button>');
@@ -343,9 +353,31 @@
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
         detail('雇用区分',e.employment_type)+detail('職位',e.position)+detail('乗務可否',e.safety_state)+detail('固定ID',e.id)+
-        '</div>'+employeeSupportHtml(e,state.employeeSupport)+edit;
+        '</div>'+employeeOperationalHtml(e,state.employeeOperational)+employeeSupportHtml(e,state.employeeSupport)+edit;
       $('detailDialog').showModal()
     }catch(err){showError(err,'社員詳細')}
+  }
+
+  function employeeOperationalHtml(employee,ops){
+    const deadlines=ops?.deadlines,vehicles=ops?.vehicles,accidents=ops?.accidents,complaints=ops?.complaints,near=ops?.near;
+    const deadlineRows=deadlines?.items||[],vehicleRows=vehicles?.items||[];
+    const metrics=[
+      deadlines?'<button class="support-stat '+((deadlines.summary?.overdue||0)?'danger':'')+'" data-dialog-action="open-employee-deadlines"><small>要対応期限</small><b>'+esc(deadlines.total||0)+'</b><span>超過 '+esc(deadlines.summary?.overdue||0)+'</span></button>':'',
+      vehicles?'<button class="support-stat" data-dialog-action="open-employee-vehicles"><small>担当号車</small><b>'+esc(vehicles.total||0)+'</b><span>車両へ</span></button>':'',
+      accidents?'<button class="support-stat" data-dialog-action="open-employee-accidents"><small>事故</small><b>'+esc(accidents.total||0)+'</b><span>履歴へ</span></button>':'',
+      complaints?'<button class="support-stat" data-dialog-action="open-employee-complaints"><small>苦情</small><b>'+esc(complaints.total||0)+'</b><span>履歴へ</span></button>':'',
+      near?'<button class="support-stat" data-dialog-action="open-employee-near"><small>ヒヤリ</small><b>'+esc(near.total||0)+'</b><span>履歴へ</span></button>':''
+    ].filter(Boolean).join('');
+    const dueHtml=deadlineRows.length?deadlineRows.slice(0,4).map(x=>
+      '<div class="support-row"><div><b>'+esc(x.label)+'</b><span>'+esc(fmtDate(x.due))+' / '+esc(x.action||'確認')+'</span></div><span class="due '+esc(x.due_state)+'">'+esc(x.days_remaining<0?'超過 '+Math.abs(x.days_remaining)+'日':x.days_remaining===0?'本日':x.days_remaining+'日後')+'</span></div>'
+    ).join(''):'<div class="empty compact-empty">60日以内に要対応の期限はありません。</div>';
+    const vehicleHtml=vehicleRows.length?vehicleRows.slice(0,4).map(v=>
+      '<div class="support-row"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+' / 車検 '+esc(fmtDate(v.inspection_due))+'</span></div><button class="record-action" data-dialog-action="open-employee-vehicle" data-id="'+esc(v.id)+'">車両</button></div>'
+    ).join(''):'<div class="empty compact-empty">現在の担当号車はありません。</div>';
+    if(!metrics&&!deadlineRows.length&&!vehicleRows.length)return '';
+    return '<section class="employee-support employee-operational"><div class="support-head"><div><b>この社員の業務状況</b><span>期限・号車・安全履歴をここから追えます</span></div></div>'+
+      (metrics?'<div class="support-stat-grid">'+metrics+'</div>':'')+
+      '<div class="support-grid"><div><h4>近い期限</h4>'+dueHtml+'</div><div><h4>担当号車</h4>'+vehicleHtml+'</div></div></section>'
   }
   function employeeSupportHtml(employee,support){
     if(!canView('assets_training'))return '';
@@ -435,7 +467,8 @@
       '<div class="metric-grid compact">'+metric('全件',data.summary.total,'60日以内')+metric('超過',data.summary.overdue,'期限超過')+metric('本日',data.summary.today,'本日期限')+metric('7日以内',data.summary.within7,'近日')+'</div>'+
       listHeader(data.total,'期限')+(data.items.length?'<div class="cards">'+data.items.map(x=>
         '<div class="record"><div><b>'+esc(x.label)+'</b><span>'+esc(x.employee_name||x.employee_no||'車両・共通')+'</span></div>'+
-        '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span></div></div>'
+        '<div class="record-meta"><span class="due '+esc(x.due_state)+'">'+esc(fmtDate(x.due))+'</span><span>'+esc(x.action)+'</span>'+
+        (x.type==='vehicle_inspection'||x.type==='vehicle_maintenance'?'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(x.source_id)+'">号車</button>':x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'</div></div>'
       ).join('')+'</div>':empty())
   }
 
@@ -822,7 +855,10 @@
   async function handleDialogAction(action,id){
     const d=state.dialog;if(!d)return;
     try{
+      if(action==='open-employee-deadlines'){$('detailDialog').close();return loadView('deadlines',{q:d.record.employee_no})}
       if(action==='open-employee-credentials'){state.credentialEmployeeId=d.record.id;$('detailDialog').close();return loadView('credentials')}
+      if(action==='open-employee-vehicles'){$('detailDialog').close();return loadView('vehicles',{q:d.record.employee_no})}
+      if(action==='open-employee-vehicle'){$('detailDialog').close();return editVehicle(id)}
       if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no})}
       if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no})}
       if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no})}
