@@ -42,7 +42,7 @@ async function getEmployeeHistoryForUser(user,id){
   const [numbers,transitions,workPatterns]=await Promise.all([
     query(`select old_employee_no,new_employee_no,reason,changed_at from employee_number_history where employee_id=$1 order by changed_at desc limit 20`,[employee.id]),
     query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='employee_transition' order by occurred_at desc limit 20`,[employee.id]),
-    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action='profile_update' and (before_data ? 'work_pattern' or after_data ? 'work_pattern') order by occurred_at desc limit 20`,[employee.id])
+    query(`select before_data,after_data,reason,occurred_at from record_histories where employee_id=$1 and entity_type='employee' and action in ('profile_update','employee_transition') and (before_data ? 'work_pattern' or after_data ? 'work_pattern') order by occurred_at desc limit 20`,[employee.id])
   ]);
   return {number_changes:numbers.rows,transitions:transitions.rows,work_pattern_changes:workPatterns.rows}
 }
@@ -118,14 +118,17 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
     if(!before)throw problem(404,'NOT_FOUND','対象社員が見つかりません');
     if(Number(before.version)!==Number(expectedVersion))throw problem(409,'VERSION_CONFLICT','別の利用者が先に更新しています。最新データを読み直してください');
     const next={
-      office:String(target?.office??before.office).trim(),department:String(target?.department??before.department).trim(),
-      lifecycle_status:String(target?.lifecycle_status??before.lifecycle_status).trim(),retired_on:target?.retired_on??before.retired_on
+      office:String(target?.office??before.office).trim(),
+      department:String(target?.department??before.department).trim(),
+      work_pattern:target?.work_pattern===undefined?before.work_pattern:(target.work_pattern||null),
+      lifecycle_status:String(target?.lifecycle_status??before.lifecycle_status).trim(),
+      retired_on:target?.retired_on??before.retired_on
     };
     if(!['active','leave','retirement_planned','retired'].includes(next.lifecycle_status))throw problem(422,'INVALID_LIFECYCLE_STATUS','在籍状態を確認してください');
     if(!next.office||!next.department)throw problem(422,'INVALID_ASSIGNMENT','事業所・部署を確認してください');
     if(next.lifecycle_status==='retired'&&!next.retired_on)next.retired_on=new Date().toISOString().slice(0,10);
-    const updated=(await query(`update employees set office=$2,department=$3,lifecycle_status=$4,retired_on=$5,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next.office,next.department,next.lifecycle_status,next.retired_on],client)).rows[0];
-    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
+    const updated=(await query(`update employees set office=$2,department=$3,work_pattern=$4,lifecycle_status=$5,retired_on=$6,updated_at=now(),version=version+1 where id=$1 returning *`,[employeeId,next.office,next.department,next.work_pattern,next.lifecycle_status,next.retired_on],client)).rows[0];
+    await query(`insert into record_histories(entity_type,entity_id,employee_id,actor_user_id,action,before_data,after_data,reason) values('employee',$1::uuid::text,$1::uuid,$2::uuid,'employee_transition',$3::jsonb,$4::jsonb,$5)`,[employeeId,actorUserId,JSON.stringify({office:before.office,department:before.department,work_pattern:before.work_pattern,lifecycle_status:before.lifecycle_status,retired_on:before.retired_on}),JSON.stringify(next),reason||handoffNote||''],client);
     if(next.lifecycle_status==='retired'){
       const accounts=await query('select id,state,role_level from users where employee_id=$1 order by id',[employeeId],client);
       const activeFull=accounts.rows.filter(u=>u.state==='active'&&u.role_level==='full').map(u=>u.id);
@@ -139,7 +142,7 @@ async function transitionEmployee({employeeId,target,reason,handoffNote,actorUse
         await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1,'退職連動利用者停止','user',$2,$3,'success',$4,$5)`,[actorUserId,u.id,employeeId,requestId,(changed.rows[0]?'active → suspended':'suspended維持')+' / sessions '+revoked.rows.length+'件失効 / 保留中認証を無効化'],client)
       }
     }
-    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員状態変更','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[actorUserId,employeeId,requestId,before.lifecycle_status+' → '+next.lifecycle_status],client);
+    await query(`insert into audit_logs(actor_user_id,action,entity_type,entity_id,employee_id,result,request_id,summary) values($1::uuid,'社員状態変更','employee',$2::uuid::text,$2::uuid,'success',$3,$4)`,[actorUserId,employeeId,requestId,(before.department||'—')+' / '+(before.work_pattern||'—')+' → '+(next.department||'—')+' / '+(next.work_pattern||'—')+' / '+before.lifecycle_status+' → '+next.lifecycle_status],client);
     return updated
   })
 }
