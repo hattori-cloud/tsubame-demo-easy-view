@@ -216,3 +216,49 @@ Before activation it verifies:
 - the approved scanner can actually scan a fixed synthetic, non-employee PDF and return `clean` with the same SHA-256.
 
 The live scanner probe never uses an employee document.
+
+
+## 14. Secondary backup adapter contract
+
+Production business activation now requires a separate original-document backup readiness gate in addition to primary private storage and malware scanning.
+
+The production backup contract requires:
+
+- provider `private-https`,
+- explicit company approval,
+- explicit confirmation that the destination is in a separate failure domain,
+- HTTPS endpoint with no embedded credentials, query string or fragment,
+- a dedicated backup authorization token,
+- a dedicated 32-byte backup encryption master key.
+
+Original bytes are encrypted with AES-256-GCM before leaving the application backup process. The backup object key is an HMAC-derived opaque identifier and does not expose the primary storage key, employee identity or original filename.
+
+Each encrypted backup envelope binds authenticated metadata for:
+- content type,
+- byte size,
+- source SHA-256.
+
+A restore is accepted only when:
+- AES-GCM authentication succeeds,
+- restored byte size matches,
+- restored SHA-256 matches,
+- restored magic bytes match the declared PDF/JPEG/PNG content type.
+
+The backup transport uses a fixed HTTPS endpoint and passes the opaque backup key in a header. Secrets are not placed in the URL.
+
+The source backup job selects only active, malware-clean, non-archived originals. Before writing a secondary copy, it reads the primary object and compares MIME, size and SHA-256 with the database row. Any mismatch aborts the backup run.
+
+## 15. Backup live readiness
+
+Production readiness does not treat backup environment variables as sufficient.
+
+The live backup probe:
+1. creates a synthetic non-employee PDF,
+2. encrypts it,
+3. writes it to the approved secondary provider,
+4. reads it back,
+5. authenticates/decrypts it,
+6. verifies MIME, size and SHA-256,
+7. removes the synthetic probe object.
+
+If the secondary provider is unavailable, restore verification fails, or the object cannot be removed after the probe, production readiness must not be considered complete. Real employee originals are never used by the live readiness probe.

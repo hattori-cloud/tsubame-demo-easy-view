@@ -22,3 +22,10 @@ test('production readiness report never echoes configured secret values',()=>{
   assert.equal(source.includes('TSUBAME_DOCUMENT_BACKUP_TOKEN'),false);
   assert.equal(source.includes('TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY'),false);
 });
+
+
+test('production activation code requires backup readiness in addition to storage and scanner',()=>{
+  const runtime=fs.readFileSync(path.join(__dirname,'..','api','_lib','runtime-config.js'),'utf8');
+  assert.ok(runtime.includes('originalDocumentPipelineReady() && documentBackupReady()'));
+  assert.ok(runtime.includes('document_backup_ready:backup'));
+});
