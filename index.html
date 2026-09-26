@@ -2121,7 +2121,7 @@ function ensureCoreRecordIds(){
 function coreRecordCollections(){
  return [
   ['employee',E],['accident',A],['vehicle',V],['near_miss',N],['complaint',C],
-  ['training',TR],['asset',AS],['qualification',QUAL],['guidance',GUIDANCE],['document',DOCS],['application',APPLICATIONS],['notice',NOTICES],['confirmation',CONFIRMATIONS]
+  ['training',TR],['asset',AS],['qualification',QUAL],['guidance',GUIDANCE],['document',DOCS]
  ]
 }
 function ensureStableEmployeeReferences(){
@@ -2136,7 +2136,7 @@ function ensureStableEmployeeReferences(){
    if(e?.system_id&&x.employee_id!==e.system_id){x.employee_id=e.system_id;changed=true}
   })
  };
- [A,V,N,C,TR,AS,QUAL,GUIDANCE,DOCS,APPLICATIONS].forEach(link);
+ [A,V,N,C,TR,AS,QUAL,GUIDANCE,DOCS].forEach(link);
  if(changed)save()
  return changed
 }
@@ -2923,9 +2923,9 @@ function qualityIssues(){
      if(expected&&v.service!==expected)issues.push({level:'bad',label:`車両 ${v.id}`,detail:'車両区分と担当社員の部署が一致しません'});
     }
    });
-   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['資格',QUAL],['面談・指導',GUIDANCE],['書類',DOCS],['申請',APPLICATIONS],['掲示',NOTICES],['確認依頼',CONFIRMATIONS],['引継ぎ',HANDOFFS]].forEach(([label,list])=>dup(list,x=>x.id,label+'ID'));
+   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['資格',QUAL],['面談・指導',GUIDANCE],['書類',DOCS],['引継ぎ',HANDOFFS]].forEach(([label,list])=>dup(list,x=>x.id,label+'ID'));
    const empSet=new Set(E.map(e=>String(e.no)));
-   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['面談・指導',GUIDANCE],['書類',DOCS],['資格',QUAL],['申請',APPLICATIONS]].forEach(([label,list])=>{
+   [['事故',A],['ヒヤリハット',N],['苦情',C],['車両',V],['安全指導',TR],['貸与品',AS],['面談・指導',GUIDANCE],['書類',DOCS],['資格',QUAL]].forEach(([label,list])=>{
      list.filter(x=>x.employee_no&&!empSet.has(String(x.employee_no))).forEach(x=>issues.push({level:'bad',label:`${label} ${x.id||x.name||''}`,detail:`存在しない社員番号 ${x.employee_no} に紐づいています`}))
    });
    const validHandoffStatus=new Set(['未確認','確認済み','取消']);
@@ -2979,7 +2979,6 @@ function qualityIssueTarget(x){
  if((m=label.match(/^車両\s+(V-[^\s]+)/)))return {kind:'vehicle',id:m[1],label:'車両を開く'};
  if((m=label.match(/^資格\s+(\d+)\s/)))return {kind:'qualification',id:m[1],label:'資格を開く'};
  if((m=label.match(/^書類\s+([^\s]+)/))){let d=DOCS.find(x=>String(x.id)===m[1]);if(d?.employee_no)return {kind:'document',id:String(d.employee_no),label:'書類を開く'}}
- if((m=label.match(/^申請\s+([^\s]+)/))&&APPLICATIONS.some(a=>String(a.id)===m[1]))return {kind:'application',id:m[1],label:'申請を開く'};
  return null
 }
 function qualityIssueNextAction(x,t){
@@ -2994,7 +2993,6 @@ function qualityIssueNextAction(x,t){
  if(cat==='workflow'){
   if(t?.kind==='accident')return '「事故対応を編集」から担当者・次回対応・期限・完了情報を補ってください。';
   if(t?.kind==='complaint')return '「苦情対応を編集」から担当者・ランク・次回対応・期限・完了情報を補ってください。';
-  if(t?.kind==='application')return '申請内容を確認し、対応できる場合は承認、修正が必要なら差戻ししてください。';
   return '担当・次回対応・期限・完了情報を確認し、不足している項目を補ってください。'
  }
  if(cat==='integrity')return '社員・資格・書類・車両などの紐付け先を確認し、誤った参照や重複を修正してください。';
@@ -3038,7 +3036,6 @@ function openQualityTarget(t,issue=null){
  else if(t.kind==='vehicle')vehicleDetail(t.id);
  else if(t.kind==='qualification')employeeQualification(t.id);
  else if(t.kind==='document')employeeDocuments(t.id);
- else if(t.kind==='application')applicationDetail(t.id);
  else return false;
  if(issue)requestAnimationFrame(()=>injectQualityActionGuide(issue,t));
  return true
