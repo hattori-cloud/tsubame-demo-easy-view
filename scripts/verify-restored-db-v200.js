@@ -21,6 +21,7 @@ async function expectAppendOnly(client,sql,label){
     const objects=await client.query(`
       select
         (select count(*)::int from pg_tables where schemaname='public') as tables,
+        to_regclass('public.user_feature_permissions') is not null as feature_permissions_ready,
         to_regclass('public.login_rate_limits') is not null as limiter_ready,
         to_regclass('public.work_import_batches') is not null as work_import_batches_ready,
         to_regclass('public.work_import_rows') is not null as work_import_rows_ready,
@@ -31,8 +32,8 @@ async function expectAppendOnly(client,sql,label){
         exists(select 1 from pg_trigger t join pg_class c on c.oid=t.tgrelid where c.relname='record_histories' and t.tgname='record_histories_append_only_guard' and not t.tgisinternal) as history_guard
     `);
     const o=objects.rows[0];
-    assert(Number(o.tables)===33,'restored table count expected 34, got '+o.tables);
-    assert(o.limiter_ready&&o.work_import_batches_ready&&o.work_import_rows_ready&&o.work_summary_ready&&o.targets_ready&&o.compliance_ready&&o.audit_guard&&o.history_guard,'restored schema protection missing: '+JSON.stringify(o));
+    assert(Number(o.tables)===34,'restored table count expected 34, got '+o.tables);
+    assert(o.feature_permissions_ready&&o.limiter_ready&&o.work_import_batches_ready&&o.work_import_rows_ready&&o.work_summary_ready&&o.targets_ready&&o.compliance_ready&&o.audit_guard&&o.history_guard,'restored schema protection missing: '+JSON.stringify(o));
 
     const counts=await client.query(`
       select
