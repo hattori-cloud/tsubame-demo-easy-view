@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null,workImport:null,analysisFilters:{}};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -114,7 +114,7 @@
     $('sessionUser').innerHTML='<b>'+esc(state.me?.display_name||'利用者')+'</b><span>'+esc(roleLabel(state.me?.role_level))+'</span>';
     document.body.dataset.role=state.me?.role_level||'';
     const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
-    for(const view of ['accidents','complaints','vehicles']){
+    for(const view of ['accidents','complaints','vehicles','analysis']){
       const button=$('nav').querySelector('[data-view="'+view+'"]');
       if(button)button.hidden=!manager
     }
@@ -176,8 +176,8 @@
   async function loadView(view,opts={}){
     if(state.loading)return;
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込'}[view]||view;
-    $('searchWrap').hidden=view==='home';
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',deadlines:'期限センター',accidents:'事故',complaints:'苦情',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'安全分析'}[view]||view;
+    $('searchWrap').hidden=['home','work-import','analysis'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
       if(view==='home')await renderHome();
@@ -189,6 +189,7 @@
       else if(view==='near-misses')await renderNearMisses(opts.q||'')
       else if(view==='credentials')await renderCredentials(opts.q||'')
       else if(view==='work-import')await renderWorkImport()
+      else if(view==='analysis')await renderSafetyAnalysis()
     }catch(err){$('content').innerHTML='';showError(err,'データ取得')}finally{state.loading=false}
   }
 
