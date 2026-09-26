@@ -29,12 +29,13 @@ async function expectAppendOnly(client,sql,label){
     await client.query(base);
 
     const baseTables=await client.query("select count(*)::int as n from pg_tables where schemaname='public'");
-    assert(baseTables.rows[0].n===28,'base schema table count expected 29, got '+baseTables.rows[0].n);
+    assert(baseTables.rows[0].n===29,'base schema table count expected 29, got '+baseTables.rows[0].n);
 
     const baseChecks=await client.query(`
       select
         to_regclass('public.employees') is not null as employees_ready,
         to_regclass('public.users') is not null as users_ready,
+        to_regclass('public.user_feature_permissions') is not null as user_feature_permissions_ready,
         to_regclass('public.documents') is not null as documents_ready,
         to_regclass('public.document_purge_requests') is not null as purge_ready,
         exists(select 1 from information_schema.columns where table_schema='public' and table_name='documents' and column_name='content_sha256') as sha_ready,
