@@ -272,7 +272,7 @@
       '<div class="hero"><div><span class="eyebrow">今日の業務</span><h2>'+esc(state.me?.display_name||'')+' さん</h2><p>探す → 開く → 処理する → 履歴・分析まで、ここを起点に進めます。</p></div>'+
       '<div class="role-card"><span>権限</span><b>'+esc(roleLabel(state.me?.role_level))+'</b></div></div>'+
       '<div class="metric-grid">'+
-      metric('期限対応',deadlines?.summary?.total??'—','60日以内')+
+      metric('期限対応',deadlines?.summary?.total??'—','超過〜30日')+
       metric('期限超過',deadlines?.summary?.overdue??'—','最優先')+
       metric('事故',accidents?.total??'—','担当範囲')+
       metric('苦情',complaints?.total??'—','担当範囲')+
@@ -503,15 +503,21 @@
 
   async function renderSafetyHub(){
     if(!canViewAny(NAV_FEATURES.safety)){$('content').innerHTML='<div class="empty">運行・安全を利用できる権限がありません。</div>';return}
-    const canGuidance=canView('employees');
-    const [accidents,complaints,near,handoffs,guidance]=await Promise.all([
+    const canGuidance=canView('employees'),canDraft=canEdit('accidents')||canEdit('complaints')||canEdit('near_misses');
+    const [accidents,complaints,near,handoffs,guidance,drafts]=await Promise.all([
       canView('accidents')?api('/accidents?page_size=1').then(x=>x.data):Promise.resolve(null),
       canView('complaints')?api('/complaints?page_size=1').then(x=>x.data):Promise.resolve(null),
       canView('near_misses')?api('/near-misses?page_size=1').then(x=>x.data):Promise.resolve(null),
       canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null),
-      canGuidance?api('/guidance?page_size=8').then(x=>x.data):Promise.resolve(null)
+      canGuidance?api('/guidance?page_size=8').then(x=>x.data):Promise.resolve(null),
+      canDraft?api('/drafts').then(x=>x.data).catch(()=>null):Promise.resolve(null)
     ]);
     const handoffItems=(handoffs?.handoffs||[]).filter(x=>x.status==='pending'),guidanceItems=guidance?.items||[];
+    const draftItems=(drafts?.drafts||[]).filter(x=>
+      (x.kind==='accident'&&canEdit('accidents'))||
+      (x.kind==='complaint'&&canEdit('complaints'))||
+      (x.kind==='near_miss'&&canEdit('near_misses'))
+    );
     const shortcuts=[];
     if(canView('accidents'))shortcuts.push(hubButton('accidents','事故','初報 → 対応 → 完了',String(accidents?.total??0)+'件'));
     if(canView('complaints'))shortcuts.push(hubButton('complaints','苦情','受付 → 指導 → 再発防止',String(complaints?.total??0)+'件'));
@@ -525,7 +531,14 @@
       '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.guidance_on))+'</span><span>次回 '+esc(fmtDate(x.next_review))+'</span>'+
       (x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員詳細</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
+    const draftLabels={accident:'事故',complaint:'苦情',near_miss:'ヒヤリ'};
+    const draftHtml=draftItems.length?'<div class="cards">'+draftItems.map(x=>
+      '<div class="record"><div><b>'+esc(draftLabels[x.kind]||x.kind)+'の下書き</b><span>保存 '+esc(fmtDate(x.saved_at))+'</span></div>'+
+      '<div class="record-meta"><button class="record-action" data-action="resume-draft" data-id="'+esc(x.kind)+'">再開</button><button class="warning" data-action="discard-draft" data-id="'+esc(x.kind)+'">破棄</button></div></div>'
+    ).join('')+'</div>':'';
+
     $('content').innerHTML='<div class="hub-grid">'+shortcuts.join('')+'</div>'+
+      (draftItems.length?'<section class="panel"><div class="list-head"><div><b>保存中の下書き</b><span>'+esc(draftItems.length)+'件 / 自分の下書きのみ</span></div></div>'+draftHtml+'</section>':'')+
       (canView('handoffs')?'<section class="panel"><div class="list-head"><div><b>引継ぎ未確認</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')+
       (canGuidance?'<section class="panel"><div class="list-head"><div><b>安全指導・次回確認</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')
   }
@@ -671,6 +684,18 @@
         next_review:nullable(fdText(fd,'next_review'))
       }})
     })
+  }
+
+  async function resumeSafetyDraft(kind){
+    if(kind==='accident'&&canEdit('accidents'))return newAccident();
+    if(kind==='complaint'&&canEdit('complaints'))return newComplaint();
+    if(kind==='near_miss'&&canEdit('near_misses'))return newNearMiss();
+    const e=new Error('この下書きを再開する編集権限がありません');e.code='DRAFT_EDIT_PERMISSION_REQUIRED';throw e
+  }
+  async function discardSafetyDraft(kind){
+    if(!window.confirm('この下書きを破棄しますか？'))return;
+    await deleteSafetyDraft(kind);
+    if(state.view==='safety')await renderSafetyHub()
   }
 
   function handoffCaseButton(x){
@@ -1053,6 +1078,8 @@
       if(action==='suspend-user')return changeUserState(id,'suspended');
       if(action==='reactivate-user')return changeUserState(id,'active');
       if(action==='new-guidance')return newGuidance();
+      if(action==='resume-draft')return resumeSafetyDraft(id);
+      if(action==='discard-draft')return discardSafetyDraft(id);
       if(action==='new-handoff-near')return createHandoffForm({caseType:'near_miss',caseId:id,employeeId:q,label:'ヒヤリ '+id});
       if(action==='ack-handoff')return acknowledgeHandoff(id)
     }catch(err){showError(err,'操作')}
