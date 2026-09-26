@@ -371,3 +371,51 @@ private Blob保管経路だけがreadyでも、production業務APIは有効化�
 - 実PDF/画像を使わない架空原本でのend-to-end UAT
 
 実社員原本は、上記が完了するまで投入禁止を継続する。
+
+
+## 2026-09-26 scanner隔離・live readiness強化
+
+**機能安定点:**  
+`59f042e4e2f7b9e08ce31c9b474d48184e6e9b9c`
+
+### 実装済み
+
+- 原本処理を `quarantine pending → scanner verdict → clean only activation` の3段階へ分離
+- blocked/errorでもdocuments行・SHA-256・scan時刻・監査/historyを保持
+- blockedは `storage_state=blocked` で通常閲覧不可
+- scanner errorはquarantine継続、active化不可
+- 同一upload ticketは短い有効期間内のtransient retryに対してidempotent
+- scanner adapterをprovider-neutral化
+- production scannerは明示的な会社承認flag + HTTPS endpoint + 長いtokenが揃わない限りreadyにならない
+- scanner送信情報を file bytes / MIME / SHA-256 / request id に限定
+- 社員名・社員番号・原本ファイル名をscanner adapterから送らない
+- scanner responseのSHA-256不一致、timeout、HTTP failure、malformed responseは必ずerror
+- private Blob live signing probe追加
+- scanner synthetic PDF live probe追加
+- production readinessがlive probe失敗をblocking扱い
+
+### CI実績
+
+- `7667d842...`: **success**
+  - Node回帰テスト
+  - PostgreSQL 16 schema/capacity
+  - runtime最小権限
+  - backup/restore
+  - 監査回帰
+  - 原本契約実DB試験
+  - pending → clean → active
+  - blocked → durable blocked DB state
+- `59f042e4...`: **success**
+  - private storage signing live-probe contract
+  - synthetic scanner live-probe contract
+
+### まだ実環境で必要
+
+- private Blob実ストア作成/接続
+- approved production scanner endpoint / contract / DPA・社内承認
+- 実資格情報でlive readinessを通す
+- secondary backup / restore / SHA-256照合
+- PC / 390px / 320px実ブラウザUAT
+- VPN / 複数端末 / 複数利用者UAT
+
+実社員情報・実原本の投入禁止は継続する。
