@@ -347,6 +347,33 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function newApplication(){
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    let fields='';
+    if(manager){
+      const employees=await employeeChoices();
+      fields+=formSelect('employee_id','対象社員',employees,'','required')
+    }
+    fields+=formField('type','申請種別','','text','required')+formArea('detail','申請内容','','required');
+    openRecordForm('申請登録',fields,async fd=>{
+      const body={type:fdText(fd,'type'),payload:{detail:fdText(fd,'detail')}};
+      if(manager)body.employee_id=fdText(fd,'employee_id');
+      await api('/applications',{method:'POST',body})
+    })
+  }
+
+  async function markNoticeRead(id){
+    await api('/notices/'+encodeURIComponent(id)+'/read',{method:'POST'});
+    await renderBusiness()
+  }
+
+  async function respondConfirmation(id){
+    const response=window.prompt('回答を入力してください');
+    if(!response||!response.trim())return;
+    await api('/confirmations/'+encodeURIComponent(id)+'/respond',{method:'POST',body:{response:response.trim()}});
+    await renderBusiness()
+  }
+
   async function renderBusiness(){
     const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
     const requests=[
@@ -369,12 +396,14 @@
 
     const noticeHtml=noticeItems.length?'<div class="cards">'+noticeItems.map(x=>
       '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>'+esc(fmtDate(x.published_at||x.created_at))+'</span><span>'+(x.read?'既読':'未読')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>'+esc(fmtDate(x.published_at||x.created_at))+'</span><span>'+(x.read?'既読':'未読')+'</span>'+
+      (!x.read&&x.state==='published'?'<button class="record-action" data-action="read-notice" data-id="'+esc(x.id)+'">既読にする</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     const confirmationHtml=confirmationItems.length?'<div class="cards">'+confirmationItems.map(x=>
       '<div class="record"><div><b>'+esc(x.title)+'</b><p>'+esc(x.body||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>期限 '+esc(fmtDate(x.due))+'</span><span>'+esc(x.response||'未回答')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(x.state)+'</span><span>期限 '+esc(fmtDate(x.due))+'</span><span>'+esc(x.response||'未回答')+'</span>'+
+      (x.state==='open'?'<button class="record-action" data-action="respond-confirmation" data-id="'+esc(x.id)+'">回答</button>':'')+'</div></div>'
     ).join('')+'</div>':empty();
 
     const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
@@ -388,7 +417,7 @@
     ).join('')+'</div>':empty();
 
     $('content').innerHTML=
-      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div></div>'+applicationHtml+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>申請</b><span>'+esc(applications?.total||0)+'件</span></div><button class="small-primary" data-action="new-application">＋ 申請</button></div>'+applicationHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>お知らせ</b><span>'+esc(noticeItems.length)+'件</span></div></div>'+noticeHtml+'</section>'+
       '<section class="panel"><div class="list-head"><div><b>一斉確認</b><span>'+esc(confirmationItems.length)+'件</span></div></div>'+confirmationHtml+'</section>'+
       (manager?'<section class="panel"><div class="list-head"><div><b>指導</b><span>'+esc(guidance?.total||0)+'件</span></div></div>'+guidanceHtml+'</section>':'')+
@@ -633,7 +662,10 @@
       if(action==='analysis-clear'){state.analysisFilters={};return renderSafetyAnalysis()}
       if(action==='edit-user')return editUserAccess(id);
       if(action==='suspend-user')return changeUserState(id,'suspended');
-      if(action==='reactivate-user')return changeUserState(id,'active')
+      if(action==='reactivate-user')return changeUserState(id,'active');
+      if(action==='new-application')return newApplication();
+      if(action==='read-notice')return markNoticeRead(id);
+      if(action==='respond-confirmation')return respondConfirmation(id)
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
