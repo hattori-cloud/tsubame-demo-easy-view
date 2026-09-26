@@ -451,7 +451,7 @@
     ].filter(Boolean).join('');
     const dueHtml=deadlineRows.length?deadlineRows.slice(0,4).map(x=>
       '<div class="support-row"><div><b>'+esc(x.label)+'</b><span>'+esc(fmtDate(x.due))+' / '+esc(x.action||'確認')+'</span></div><span class="due '+esc(x.due_state)+'">'+esc(x.days_remaining<0?'超過 '+Math.abs(x.days_remaining)+'日':x.days_remaining===0?'本日':x.days_remaining+'日後')+'</span></div>'
-    ).join(''):'<div class="empty compact-empty">60日以内に要対応の期限はありません。</div>';
+    ).join(''):'<div class="empty compact-empty">超過〜30日の要対応期限はありません。</div>';
     const vehicleHtml=vehicleRows.length?vehicleRows.slice(0,4).map(v=>{
       const label=isBasicFixedVehicle(v,employee)?'基本固定車':'その他担当車';
       return '<div class="support-row"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(label)+' / '+esc(v.model||v.service||'—')+' / 車検 '+esc(fmtDate(v.inspection_due))+'</span></div><button class="record-action" data-dialog-action="open-employee-vehicle" data-id="'+esc(v.id)+'">車両</button></div>'
