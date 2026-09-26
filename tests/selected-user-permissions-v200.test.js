@@ -72,3 +72,12 @@ test('password reset cannot be issued or completed for suspended/retired users',
   assert.ok(users.includes("u.state='active'"));
   assert.ok(users.includes("e.lifecycle_status<>'retired'"))
 });
+
+
+test('common authentication rejects legacy self sessions plus suspended and retired identities',()=>{
+  const auth=src('api','_lib','auth.js');
+  assert.ok(auth.includes("session.state!=='active'"));
+  assert.ok(auth.includes("session.employee_lifecycle_status==='retired'"));
+  assert.ok(auth.includes("session.role_level==='self'"));
+  assert.ok(auth.includes("throw new AuthError(401,'INVALID_SESSION'"))
+});

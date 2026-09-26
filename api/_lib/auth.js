@@ -62,6 +62,9 @@ async function authenticateRequest(req){
   if(!session)throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません');
   if(session.revoked_at)throw new AuthError(401,'SESSION_REVOKED','認証セッションは失効しています');
   if(new Date(session.expires_at).getTime()<=Date.now())throw new AuthError(401,'SESSION_EXPIRED','認証セッションの有効期限が切れています');
+  if(session.state!=='active'||session.employee_lifecycle_status==='retired'||session.role_level==='self'){
+    throw new AuthError(401,'INVALID_SESSION','認証セッションを確認できません')
+  }
   const user={
     id:String(session.user_id),employee_id:session.employee_id||null,display_name:session.display_name,
     role_level:session.role_level,safety_authority:Boolean(session.safety_authority),state:session.state,

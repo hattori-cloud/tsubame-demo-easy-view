@@ -57,7 +57,7 @@ async function seed(no,role='self',office='HQ',department='Taxi'){
   u.permissions=role==='scoped'?[{feature:'vehicles',access_level:'edit'},{feature:'deadlines',access_level:'view'}]:[];
   const raw=auth.newRawToken();
   await authStore.createSession({userId:u.id,tokenHash:auth.tokenHash(raw),mfaVerified:role!=='self',ttlSeconds:3600});
-  return {e,u,password,cookie:auth.secureCookie(raw,3600).split(';')[0]}
+  return {e,u,password,raw_session_token:raw,cookie:auth.secureCookie(raw,3600).split(';')[0]}
 }
 async function login(a){
   return call('/auth/login','POST',{login_id:a.u.login_id,employee_no:a.e.employee_no,password:a.password})
@@ -222,12 +222,14 @@ async function verifyPasswordCredentialRace(admin,mode){
 
   // H05: legacy self users cannot obtain a production session or read manager-only records.
   {
+    // Recreate a pre-migration legacy self session directly in DB. New createSession() correctly refuses it.
+    await q(`insert into auth_sessions(user_id,token_hash,mfa_verified,expires_at) values($1,$2,false,now()+interval '1 hour')`,[staff.u.id,auth.tokenHash(staff.raw_session_token)]);
     await support.createSupport({user:admin.u,kind:'guidance',body:{
       employee_id:staff.e.id,guidance_on:'2026-09-25',type:'Fictional manager review',
       summary:'MANAGER ONLY',owner:'Fictional Admin'
     },requestId});
     const statuses={};
-    for(const route of ['/accidents','/complaints','/guidance']){
+    for(const route of ['/me','/accidents','/complaints','/guidance']){
       const res=await call(route,'GET',{},staff.cookie);
       statuses[route]=brief(res);
       assert.equal(res.statusCode,401)
