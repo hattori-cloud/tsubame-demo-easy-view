@@ -339,6 +339,77 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function renderWorkImport(){
+    if(state.me?.role_level!=='full'){
+      $('content').innerHTML='<div class="empty">勤務取込は全社管理者のみ利用できます。</div>';
+      return
+    }
+    const {data:history}=await api('/work-import/history?page_size=30');
+    const current=state.workImport;
+    const p=current?.preflight||null;
+    const issueList=p?.blocking_issues?.length
+      ?'<div class="issue-box"><b>取込を止める問題</b>'+p.blocking_issues.map(x=>'<div>'+esc(typeof x==='string'?x:JSON.stringify(x))+'</div>').join('')+'</div>'
+      :'';
+    const warningList=p?.warnings?.length
+      ?'<div class="warning-box"><b>警告</b>'+p.warnings.map(x=>'<div>'+esc(typeof x==='string'?x:JSON.stringify(x))+'</div>').join('')+'</div>'
+      :'';
+    const preview=p?.preview?.length
+      ?'<div class="table-wrap"><table><thead><tr><th>社員番号</th><th>対象月</th><th>拘束</th><th>残時間</th><th>残業</th><th>最終計上日</th></tr></thead><tbody>'+
+        p.preview.map(x=>'<tr><td>'+esc(x.employee_no)+'</td><td>'+esc(x.month)+'</td><td>'+esc(x.restraint)+'</td><td>'+esc(x.remaining)+'</td><td>'+esc(x.overtime)+'</td><td>'+esc(x.last_posted)+'</td></tr>').join('')+
+        '</tbody></table></div>'
+      :'';
+    const preflight=p?'<section class="panel"><div class="list-head"><div><b>前チェック結果</b><span>'+esc(p.row_count)+'行</span></div>'+
+      (p.can_commit?'<button class="small-primary" data-action="work-import-commit">この内容で取込</button>':'')+'</div>'+
+      '<div class="metric-grid compact">'+
+        metric('対象行',p.row_count,'最大5,000行')+
+        metric('エラー',p.blocking_issue_count,'0件で取込可')+
+        metric('警告',p.warning_count,'要確認')+
+        metric('残業60h以上',p.overtime_60_count,'重点確認')+
+      '</div><div class="mini">ファイル '+esc(p.file_name)+' / SHA-256 '+esc(p.sha256.slice(0,16))+'… / シート '+esc(p.sheet)+'</div>'+
+      issueList+warningList+preview+'</section>':'';
+    const items=history.items||[];
+    const historyHtml=items.length?'<div class="cards">'+items.map(x=>
+      '<div class="record"><div><b>'+esc(x.file_name)+'</b><span>'+esc(x.sha256?.slice(0,16)||'')+'…</span><p>行 '+esc(x.row_count)+' / 新規 '+esc(x.inserted_count)+' / 更新 '+esc(x.updated_count)+' / 変更なし '+esc(x.unchanged_count)+'</p></div>'+
+      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.committed_at||x.created_at))+'</span>'+
+      (x.status==='committed'?'<button class="warning" data-action="work-import-rollback" data-id="'+esc(x.id)+'">ロールバック</button>':'')+
+      '</div></div>'
+    ).join('')+'</div>':empty();
+    $('content').innerHTML=
+      '<section class="panel"><h3>勤務集計Excel取込</h3><p class="sub">4MB以下・最大5,000行。まず前チェックを行い、内容確認後に保存します。</p>'+
+      '<div class="upload-row"><input id="workImportFile" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">'+
+      '<button class="small-primary" data-action="work-import-preflight">前チェック</button></div>'+
+      (current?.file?'<div class="mini">選択済み: '+esc(current.file.name)+' / '+esc(Math.round(current.file.size/1024))+'KB</div>':'')+
+      '</section>'+preflight+
+      '<section class="panel"><div class="list-head"><div><b>取込履歴</b><span>'+esc(history.total||0)+'件</span></div></div>'+historyHtml+'</section>'
+  }
+
+  async function workImportPreflight(){
+    const input=$('workImportFile'),file=input?.files?.[0]||state.workImport?.file;
+    if(!file){const e=new Error('Excelファイルを選択してください');e.code='WORK_FILE_REQUIRED';throw e}
+    if(file.size>4*1024*1024){const e=new Error('勤務取込ファイルは4MB以下にしてください');e.code='WORK_FILE_TOO_LARGE';throw e}
+    const {data}=await apiRaw('/work-import/preflight?file_name='+encodeURIComponent(file.name),{body:file});
+    state.workImport={file,preflight:data.preflight};
+    await renderWorkImport()
+  }
+
+  async function workImportCommit(){
+    const current=state.workImport;
+    if(!current?.file||!current?.preflight?.can_commit){const e=new Error('前チェックをやり直してください');e.code='WORK_PREFLIGHT_REQUIRED';throw e}
+    await apiRaw('/work-import/commit?file_name='+encodeURIComponent(current.file.name),{
+      body:current.file,
+      headers:{'X-Preflight-Sha256':current.preflight.sha256}
+    });
+    state.workImport=null;
+    await renderWorkImport()
+  }
+
+  async function workImportRollback(id){
+    const reason=window.prompt('ロールバック理由を入力してください');
+    if(!reason||reason.trim().length<3)return;
+    await api('/work-import/'+encodeURIComponent(id)+'/rollback',{method:'POST',body:{reason:reason.trim()}});
+    await renderWorkImport()
+  }
+
   function formField(name,label,value='',type='text',extra=''){
     return '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+extra+'></label>'
   }
@@ -384,7 +455,10 @@
       if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
       if(action==='new-qualification')return newQualification();
       if(action==='new-document')return newDocumentMetadata();
-      if(action==='new-original-document')return newOriginalDocument()
+      if(action==='new-original-document')return newOriginalDocument();
+      if(action==='work-import-preflight')return workImportPreflight();
+      if(action==='work-import-commit')return workImportCommit();
+      if(action==='work-import-rollback')return workImportRollback(id)
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
