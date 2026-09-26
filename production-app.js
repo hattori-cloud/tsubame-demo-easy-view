@@ -343,6 +343,70 @@
       ).join('')+'</div>':empty())+'</section>'
   }
 
+  async function renderUsers(q){
+    if(state.me?.role_level!=='full'){
+      $('content').innerHTML='<div class="empty">利用者管理は全社管理者のみ利用できます。</div>';return
+    }
+    const sp=new URLSearchParams({page_size:'100'});if(q)sp.set('q',q);
+    const {data}=await api('/users?'+sp);
+    state.userItems=data.items||[];
+    $('content').innerHTML=listHeader(data.total,'利用者')+(state.userItems.length?'<div class="cards">'+state.userItems.map(u=>
+      '<div class="record"><div><b>'+esc(u.display_name)+'</b><span>'+esc(u.login_id)+' / 社員番号 '+esc(u.employee_no)+'</span>'+
+      '<p>'+esc(u.employee_name||'')+' / '+esc(roleLabel(u.role_level))+' / '+esc(u.state)+'</p></div>'+
+      '<div class="record-meta"><span>MFA '+esc(u.mfa_enrolled_at?'登録済':'未登録')+'</span><span>セッション '+esc(u.active_sessions||0)+'</span>'+
+      '<button class="record-action" data-action="edit-user" data-id="'+esc(u.id)+'">権限</button>'+
+      (u.state==='active'
+        ?'<button class="warning" data-action="suspend-user" data-id="'+esc(u.id)+'">停止</button>'
+        :'<button class="success" data-action="reactivate-user" data-id="'+esc(u.id)+'">再開</button>')+
+      '</div></div>'
+    ).join('')+'</div>':empty())
+  }
+
+  function userScopesText(scopes){
+    return (scopes||[]).map(s=>String(s.office||'')+' | '+String(s.department||'')).join('\n')
+  }
+
+  function parseUserScopes(text){
+    return String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{
+      const parts=line.split('|').map(x=>x.trim());
+      if(parts.length!==2||!parts[0]||!parts[1]){const e=new Error('担当範囲は「事業所 | 部署」を1行ずつ入力してください');e.code='INVALID_SCOPE_FORMAT';throw e}
+      return {office:parts[0],department:parts[1]}
+    })
+  }
+
+  async function editUserAccess(id){
+    const u=state.userItems.find(x=>String(x.id)===String(id));
+    if(!u)return;
+    const fields=
+      formSelect('role_level','権限',[['self','本人'],['scoped','担当範囲管理者'],['full','全社管理者']],u.role_level,'required')+
+      formSelect('safety_authority','安全管理権限',[['false','なし'],['true','あり']],String(Boolean(u.safety_authority)))+
+      formArea('scopes','担当範囲（scopedのみ）',userScopesText(u.scopes),'placeholder="本社 | タクシー課&#10;府中 | タクシー課"');
+    openRecordForm('利用者権限 '+u.display_name,fields,async fd=>{
+      const role=fdText(fd,'role_level');
+      const scopes=role==='scoped'?parseUserScopes(fdText(fd,'scopes')):[];
+      await api('/users/'+encodeURIComponent(u.id)+'/access',{
+        method:'PATCH',
+        body:{role_level:role,safety_authority:fdText(fd,'safety_authority')==='true',scopes},
+        headers:{'If-Match':'"'+u.version+'"'}
+      })
+    })
+  }
+
+  async function changeUserState(id,target){
+    const u=state.userItems.find(x=>String(x.id)===String(id));
+    if(!u)return;
+    const label=target==='suspended'?'停止':'再開';
+    const reason=window.prompt('利用者を'+label+'する理由を入力してください');
+    if(!reason||!reason.trim())return;
+    const path=target==='suspended'?'suspend':'reactivate';
+    await api('/users/'+encodeURIComponent(u.id)+'/'+path,{
+      method:'POST',
+      body:{reason:reason.trim()},
+      headers:{'If-Match':'"'+u.version+'"'}
+    });
+    await renderUsers($('searchInput').value.trim())
+  }
+
   async function renderSafetyAnalysis(){
     if(state.me?.role_level==='self'){
       $('content').innerHTML='<div class="empty">安全分析は管理者のみ利用できます。</div>';return
@@ -515,6 +579,9 @@
       if(action==='work-import-rollback')return workImportRollback(id);
       if(action==='analysis-apply')return applyAnalysisFilters();
       if(action==='analysis-clear'){state.analysisFilters={};return renderSafetyAnalysis()}
+      if(action==='edit-user')return editUserAccess(id);
+      if(action==='suspend-user')return changeUserState(id,'suspended');
+      if(action==='reactivate-user')return changeUserState(id,'active')
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
