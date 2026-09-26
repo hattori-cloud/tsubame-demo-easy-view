@@ -1050,13 +1050,29 @@
   function isBasicFixedVehicle(vehicle,employee){
     return String(vehicle?.assignment_mode||'')==='dedicated'&&String(vehicle?.primary_employee_id||'')===String(employee?.id||'')
   }
+  function vehicleHistoryPrimary(row,side){
+    const current=row?.[side+'_primary'];
+    if(current)return [current.employee_no,current.name].filter(Boolean).join(' ')||'主担当あり';
+    const snap=(row?.[side+'_data']?.users||[]).find(x=>x.role==='primary');
+    if(snap)return [snap.employee_no,snap.name].filter(Boolean).join(' ')||'主担当あり（旧記録）';
+    return row?.[side+'_data']?.primary_employee_id?'主担当あり（旧記録）':'なし'
+  }
+  function vehicleAssignmentHistoryHtml(history){
+    const rows=history||[];
+    if(!rows.length)return '<section class="employee-support wide vehicle-history"><div class="support-head"><div><b>基本固定車・担当履歴</b><span>変更履歴はまだありません。</span></div></div></section>';
+    const html=rows.slice(0,8).map(x=>{
+      const before=vehicleAssignmentLabel(x.before_data?.assignment_mode),after=vehicleAssignmentLabel(x.after_data?.assignment_mode);
+      return '<div class="support-row"><div><b>'+esc(before)+' → '+esc(after)+'</b><span>主担当 '+esc(vehicleHistoryPrimary(x,'before'))+' → '+esc(vehicleHistoryPrimary(x,'after'))+' / '+esc(fmtDate(x.occurred_at))+'</span><p>'+esc(x.reason||'車両担当変更')+'</p></div></div>'
+    }).join('');
+    return '<section class="employee-support wide vehicle-history"><div class="support-head"><div><b>基本固定車・担当履歴</b><span>直近'+esc(rows.length)+'件</span></div></div>'+html+'</section>'
+  }
   function formFile(name,label,accept,extra=''){
     return '<label class="wide">'+esc(label)+'<input name="'+esc(name)+'" type="file" accept="'+esc(accept)+'" '+extra+'></label>'
   }
-  function openReadOnlyDialog(title,items,{actions=''}={}){
+  function openReadOnlyDialog(title,items,{actions='',afterHtml=''}={}){
     $('dialogTitle').textContent=title;
     $('dialogBody').innerHTML='<div class="detail-grid">'+items.map(([label,value])=>detail(label,value)).join('')+
-      '</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>閉じる</button></div>';
+      '</div>'+afterHtml+'<div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>閉じる</button></div>';
     $('detailDialog').showModal()
   }
 
@@ -1621,7 +1637,8 @@
       formSelect('assignment_mode','車両の使い方',[['spare','予備車'],['shared','共用車'],['dedicated','基本固定車'],['loaner','代車・貸出']],v.assignment_mode||'spare')+
       formField('primary_employee','主担当（社員番号または氏名）',primary?.employee_no||v.primary_employee_no||'','text','placeholder="例：1001 または 安芸太郎"')+
       formNote('「基本固定車」は普段の基準車で、絶対固定ではありません。事故・修理・代車時は別号車に乗れます。')+
-      formArea('additional_employees','追加担当（1行1名・社員番号推奨）',additional.map(x=>x.employee_no||x.name).join('\n'),'placeholder="1002&#10;1015"');
+      formArea('additional_employees','追加担当（1行1名・社員番号推奨）',additional.map(x=>x.employee_no||x.name).join('\n'),'placeholder="1002&#10;1015"')+
+      formArea('reason','変更理由（任意）','','placeholder="例：123号車修理のため基本固定車を変更"');
     state.dialog={type:'vehicle',record:v};
     openRecordForm('車両 '+v.car_no+'号車｜担当乗務員',fields,async fd=>{
       const mode=fdText(fd,'assignment_mode');
@@ -1633,14 +1650,14 @@
       const additionalIds=[...new Set(resolved.map(e=>String(e.id)).filter(id=>!primaryEmployee||id!==String(primaryEmployee.id)))];
       await api('/vehicles/'+encodeURIComponent(v.id)+'/assignments',{
         method:'POST',
-        body:{assignment_mode:mode,primary_employee_id:primaryEmployee?.id||null,additional_employee_ids:additionalIds},
+        body:{assignment_mode:mode,primary_employee_id:primaryEmployee?.id||null,additional_employee_ids:additionalIds,reason:nullable(fdText(fd,'reason'))},
         headers:{'If-Match':'"'+v.version+'"'}
       })
     })
   }
 
   async function editVehicle(id){
-    const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle;state.dialog={type:'vehicle',record:v};
+    const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle,history=data.assignment_history||[];state.dialog={type:'vehicle',record:v};
     if(!canEdit('vehicles')){
       const quick=
         (canEdit('accidents')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-accident">＋ この号車で事故</button>':'')+
@@ -1649,13 +1666,14 @@
         ['車種',v.model],['用途',v.service],['状態',v.status],['車両の使い方',vehicleAssignmentLabel(v.assignment_mode)],
         ['主担当',v.primary_employee_name?((v.primary_employee_no||'')+' '+v.primary_employee_name):'未設定'],
         ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
-      ],{actions:quick})
+      ],{actions:quick,afterHtml:vehicleAssignmentHistoryHtml(history)})
     }
     const fields=formField('model','車種',v.model)+formField('service','用途',v.service)+
       formSelect('status','状態',[['active','稼働'],['maintenance','整備'],['inactive','停止']],v.status||'active')+
       formField('inspection_due','車検期限',fmtDate(v.inspection_due)==='—'?'':fmtDate(v.inspection_due),'date','required')+
       formField('next_maintenance_due','次回整備',fmtDate(v.next_maintenance_due)==='—'?'':fmtDate(v.next_maintenance_due),'date')+
-      formArea('maintenance_note','整備メモ',v.maintenance_note);
+      formArea('maintenance_note','整備メモ',v.maintenance_note)+
+      vehicleAssignmentHistoryHtml(history);
     const actions='<button type="button" class="ghost light" data-dialog-action="edit-vehicle-assignments">担当乗務員・基本車両を変更</button>'+
       (canEdit('accidents')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-accident">＋ この号車で事故</button>':'')+
       (canEdit('near_misses')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-near">＋ この号車でヒヤリ</button>':'');
