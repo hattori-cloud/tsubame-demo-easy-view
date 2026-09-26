@@ -286,7 +286,7 @@ GitHub Actions:
 - `bf018bfd...` / `9d90656c...` 苦情詳細GET: success
 - `bf34cf49...` 苦情詳細回帰テスト: success
 - `7358e493...` /me production identity修正: success
-- `cbe5a5ec...` self-service identity回帰テスト: success
+- `cbe5a5ec...` selected-user identity回帰テスト: success
 
 ### 現在の再分類
 
@@ -470,3 +470,15 @@ runtime実装SHA:
 - 直近2時間runtime errors: **0**
 
 実社員情報・実原本投入禁止は継続。
+
+
+## 2026-09-26 指定利用者モデル整理
+
+- 一般社員向け `self` / 自分 / 掲示・申請の見える導線を廃止。
+- applications / notices / confirmations の旧APIルートを全環境で404化し、旧ハンドラ・専用CRUDコードも削除。
+- handoffs は管理者間引継ぎとして維持。
+- 新規DBは full / scoped のみ、MFA必須。
+- 既存旧selfは物理削除せず、ID保持のまま suspended scoped へ移行し、セッション・scope・feature permissionを失効／解除。
+- 旧workflowテーブルはrollback・監査互換のため当面保持。
+- 固定点 `51462fa2bf29904bc681ce99c4bca6e355132eb0` で通常回帰、PostgreSQL、backup/restore、外部監査、原本契約、5年架空運用simulationまで GitHub Actions success。
+- Vercel previewの新規生成はFreeプランのbuild rate limitにより一時制限中。コードCIとは分離して扱う。

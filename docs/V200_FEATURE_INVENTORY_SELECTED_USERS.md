@@ -18,6 +18,17 @@
 
 ---
 
+## 2026-09-26 実装済み
+
+- デモ／本番候補とも一般社員向け `self`、自分画面、掲示・申請の見える導線を除去。
+- `/applications` / `/notices` / `/confirmations` 系は中央routerから登録解除し、全環境で404。
+- 上記3系統の旧APIハンドラと専用workflow CRUDコードも削除済み。
+- `handoffs` は管理者間引継ぎとして独立して維持。
+- 新規本番DBの利用者ロールは `full / scoped` のみ。指定利用者はMFA必須。
+- 既存DBの旧 `self` 利用者は削除せず、user IDを保持したままセッション失効・scope/feature権限解除・`scoped + suspended` 化し監査記録を残す。
+- `applications / notices / notice_reads / confirmations / confirmation_responses` テーブルはrollback・過去監査互換のため当面保持し、物理DROPは別監査後に判断する。
+
+
 ## 1. 残す — 本番の中心機能
 
 | 機能 | 判断 | 理由 / 本番での役割 |
@@ -83,7 +94,7 @@
 
 ### 削除候補だが、すぐDB DROPしない
 
-既存の以下テーブル/APIは、画面から外した直後に物理削除しない。
+既存の以下テーブルは、画面・API実装から外しても直ちに物理削除しない。
 
 - applications
 - notices
@@ -109,11 +120,11 @@
 
 ## 4. 引継ぎは「掲示」と分離する
 
-現状、中央routerでは以下が同じfeature permissionに束ねられている。
+旧設計では以下が同じfeature permissionに束ねられていた。
 
 `notices / confirmations / handoffs / applications -> notices_workflow`
 
-新仕様ではこれは分離する。
+現在は handoffs を独立済みとし、旧3系統はrouter・runtimeコードから除去済み。
 
 ### 新しい方針
 
@@ -194,7 +205,7 @@ scoped利用者は、引継ぎを必要とする役割にだけ `view/edit` を�
 2. production/demoメニューから self / 掲示・申請を非表示
 3. 全体検索から掲示・申請を削除
 4. 一般社員向けself UIを削除
-5. notices / confirmations / applications APIをproduction routerで本番無効化
+5. notices / confirmations / applications APIを中央routerから登録解除し全環境で無効化
 6. 権限presetから `notices_workflow` を削除し `handoffs` へ置換
 7. 利用者管理UIを7メニュー構成へ合わせる
 8. CI / scope / permission regression

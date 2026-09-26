@@ -50,6 +50,9 @@ jobs:
       - name: Verify selected-user workflow permission migration
         run: node scripts/verify-selected-user-workflow-migration-v200.js
 
+      - name: Verify legacy self-account retirement migration
+        run: node scripts/verify-selected-user-account-retirement-v200.js
+
       - name: Verify distributed login rate limiter
         run: node scripts/verify-login-rate-limit-v200.js
 
