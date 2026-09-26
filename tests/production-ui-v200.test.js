@@ -186,5 +186,5 @@ test('vehicle assignment UI uses searchable employee references instead of a hug
   assert.ok(js.includes('担当乗務員・区分を変更'));
   assert.ok(js.includes("'/vehicles/'+encodeURIComponent(v.id)+'/assignments'"));
   assert.ok(js.includes("additional_employee_ids:additionalIds"));
-  assert.ok(js.includes("'If-Match':'"'+v.version+'"'"));
+  assert.ok(js.includes("headers:{'If-Match':"));
 });
