@@ -4,6 +4,44 @@ const {applySecurityHeaders,requestId,errorBody}=require('./_lib/security');
 const {isProductionRuntime,productionBusinessDataEnabled}=require('./_lib/runtime-config');
 const {probeDatabaseReadiness}=require('./_lib/db');
 const {requestFromInternalNetwork}=require('./_lib/network-access');
+const {authenticateRequest,sendApiError}=require('./_lib/auth');
+const {resolveCurrentUser,requireFeaturePermission}=require('./_lib/authorization');
+
+function featureForPath(path){
+  if(/^\/employees\/[^/]+\/credentials(?:\/|$)/.test(path)||/^\/qualifications(?:\/|$)/.test(path)||/^\/documents(?:\/|$)/.test(path))return 'credentials_documents';
+  if(/^\/employees(?:\/|$)/.test(path)||/^\/guidance(?:\/|$)/.test(path))return 'employees';
+  if(/^\/deadlines(?:\/|$)/.test(path))return 'deadlines';
+  if(/^\/accidents(?:\/|$)/.test(path)||/^\/drafts\/accident(?:\/|$)/.test(path))return 'accidents';
+  if(/^\/complaints(?:\/|$)/.test(path)||/^\/drafts\/complaint(?:\/|$)/.test(path))return 'complaints';
+  if(/^\/near-misses(?:\/|$)/.test(path)||/^\/near-miss-compliance(?:\/|$)/.test(path)||/^\/drafts\/near_miss(?:\/|$)/.test(path))return 'near_misses';
+  if(/^\/vehicles(?:\/|$)/.test(path))return 'vehicles';
+  if(/^\/analysis(?:\/|$)/.test(path))return 'safety_analysis';
+  if(/^\/work-import(?:\/|$)/.test(path))return 'work_import';
+  if(/^\/(assets|training)(?:\/|$)/.test(path))return 'assets_training';
+  if(/^\/(notices|confirmations|handoffs|applications)(?:\/|$)/.test(path))return 'notices_workflow';
+  if(/^\/audit-logs(?:\/|$)/.test(path))return 'audit_logs';
+  if(/^\/users(?:\/|$)/.test(path))return 'user_admin';
+  return null
+}
+function requiredFeatureAccess(req,path){
+  if(/^\/documents\/[^/]+\/download-ticket(?:\/|$)/.test(path))return 'view';
+  if(/^\/notices\/[^/]+\/read(?:\/|$)/.test(path))return 'view';
+  const method=String(req?.method||'GET').toUpperCase();
+  return ['GET','HEAD','OPTIONS'].includes(method)?'view':'edit'
+}
+async function enforceFeatureAccess(req,res,path){
+  const feature=featureForPath(path);
+  if(!feature)return null;
+  try{
+    const identity=await authenticateRequest(req);
+    const user=resolveCurrentUser(identity);
+    requireFeaturePermission(user,feature,requiredFeatureAccess(req,path));
+    return {identity,user,feature}
+  }catch(err){
+    sendApiError(req,res,err);
+    return false
+  }
+}
 
 // Vercel Hobby function-budget router: keep all v1 handlers as internal modules,
 // but deploy only this single Node function. Route params are restored onto req.query.
@@ -120,6 +158,8 @@ module.exports=async function handler(req,res){
     delete query.__path;
     route.keys.forEach((key,i)=>{try{query[key]=decodeURIComponent(m[i+1])}catch(_){query[key]=m[i+1]}});
     req.query=query;
+    const featureAccess=await enforceFeatureAccess(req,res,path);
+    if(featureAccess===false)return;
     return route.handler(req,res)
   }
   const id=requestId(req);
@@ -128,3 +168,5 @@ module.exports=async function handler(req,res){
 };
 
 module.exports.ROUTES=ROUTES;
+module.exports.featureForPath=featureForPath;
+module.exports.requiredFeatureAccess=requiredFeatureAccess;
