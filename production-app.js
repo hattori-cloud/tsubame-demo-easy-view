@@ -243,7 +243,10 @@
       const {data}=await api('/employees/'+encodeURIComponent(id));
       const e=data.employee;
       $('dialogTitle').textContent=e.name||'社員詳細';
-      const edit=(state.me?.role_level==='full'||state.me?.role_level==='scoped')?'<div class="dialog-actions"><button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button></div>':'';
+      const employeeActions=[];
+      if(state.me?.role_level==='full'||state.me?.role_level==='scoped')employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
+      if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
+      const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
       state.dialog={type:'employee',record:e,etag:'"'+e.version+'"'};
       $('dialogBody').innerHTML='<div class="detail-grid">'+
         detail('社員番号',e.employee_no)+detail('在籍状態',e.lifecycle_status)+detail('事業所',e.office)+detail('部署',e.department)+
@@ -588,11 +591,35 @@
     const d=state.dialog;if(!d)return;
     try{
       if(action==='edit-employee')return editEmployee(d.record);
+      if(action==='create-user-for-employee')return createUserForEmployee(d.record);
       if(action==='complete-accident')return terminalAction('accident','complete',d.record);
       if(action==='reopen-accident')return terminalAction('accident','reopen',d.record);
       if(action==='complete-complaint')return terminalAction('complaint','complete',d.record);
       if(action==='reopen-complaint')return terminalAction('complaint','reopen',d.record)
     }catch(err){showError(err,'操作')}
+  }
+
+  async function createUserForEmployee(employee){
+    if(state.me?.role_level!=='full'||!employee?.id)return;
+    const fields=
+      formField('login_id','ログインID','','text','required maxlength="128"')+
+      formField('display_name','表示名',employee.name||'','text','required')+
+      formSelect('role_level','権限',[['self','本人'],['scoped','担当範囲管理者'],['full','全社管理者']],'self','required')+
+      formSelect('safety_authority','安全管理権限',[['false','なし'],['true','あり']],'false')+
+      formArea('scopes','担当範囲（scopedのみ）','','placeholder="本社 | タクシー課&#10;府中 | タクシー課"');
+    openRecordForm('利用者アカウント発行',fields,async fd=>{
+      const role=fdText(fd,'role_level');
+      const scopes=role==='scoped'?parseUserScopes(fdText(fd,'scopes')):[];
+      const {data}=await api('/users',{method:'POST',body:{
+        employee_id:employee.id,
+        login_id:fdText(fd,'login_id'),
+        display_name:fdText(fd,'display_name'),
+        role_level:role,
+        safety_authority:fdText(fd,'safety_authority')==='true',
+        scopes
+      }});
+      window.prompt('初期設定トークンです。30分以内に本人へ安全な方法で渡してください。\nこの画面を閉じると再表示できません。',data.setup_token||'')
+    })
   }
 
   async function newQualification(){
