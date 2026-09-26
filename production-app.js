@@ -922,10 +922,10 @@
   function formFile(name,label,accept,extra=''){
     return '<label class="wide">'+esc(label)+'<input name="'+esc(name)+'" type="file" accept="'+esc(accept)+'" '+extra+'></label>'
   }
-  function openReadOnlyDialog(title,items){
+  function openReadOnlyDialog(title,items,{actions=''}={}){
     $('dialogTitle').textContent=title;
     $('dialogBody').innerHTML='<div class="detail-grid">'+items.map(([label,value])=>detail(label,value)).join('')+
-      '</div><div class="dialog-actions"><button type="button" class="ghost light" data-dialog-close>閉じる</button></div>';
+      '</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>閉じる</button></div>';
     $('detailDialog').showModal()
   }
 
@@ -1462,11 +1462,16 @@
 
   async function editVehicle(id){
     const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle;state.dialog={type:'vehicle',record:v};
-    if(!canEdit('vehicles'))return openReadOnlyDialog('車両 '+v.car_no+'号車',[
-      ['車種',v.model],['用途',v.service],['状態',v.status],['区分',v.assignment_mode],
-      ['主担当',v.primary_employee_name?((v.primary_employee_no||'')+' '+v.primary_employee_name):'未設定'],
-      ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
-    ]);
+    if(!canEdit('vehicles')){
+      const quick=
+        (canEdit('accidents')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-accident">＋ この号車で事故</button>':'')+
+        (canEdit('near_misses')?'<button type="button" class="ghost light" data-dialog-action="vehicle-new-near">＋ この号車でヒヤリ</button>':'');
+      return openReadOnlyDialog('車両 '+v.car_no+'号車',[
+        ['車種',v.model],['用途',v.service],['状態',v.status],['区分',v.assignment_mode],
+        ['主担当',v.primary_employee_name?((v.primary_employee_no||'')+' '+v.primary_employee_name):'未設定'],
+        ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
+      ],{actions:quick})
+    }
     const fields=formField('model','車種',v.model)+formField('service','用途',v.service)+
       formSelect('status','状態',[['active','稼働'],['maintenance','整備'],['inactive','停止']],v.status||'active')+
       formField('inspection_due','車検期限',fmtDate(v.inspection_due)==='—'?'':fmtDate(v.inspection_due),'date','required')+
