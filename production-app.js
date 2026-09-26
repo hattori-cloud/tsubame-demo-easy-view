@@ -400,7 +400,7 @@
       if(canView('complaints'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-complaints">苦情履歴</button>');
       if(canView('near_misses'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-near">ヒヤリ履歴</button>');
       if(canEdit('employees'))employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
-      if(state.me?.role_level==='full')employeeActions.push('<button class="ghost light" data-dialog-action="transition-employee">異動・在籍状態</button>');
+      if(state.me?.role_level==='full')employeeActions.push('<button class="ghost light" data-dialog-action="transition-employee">所属・勤務・在籍変更</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="ghost light" data-dialog-action="renumber-employee">社員番号変更</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
@@ -423,8 +423,8 @@
     ).join(''):'<div class="empty compact-empty">社員番号変更履歴はありません。</div>';
     const transitionRows=transitions.length?transitions.map(x=>{
       const before=x.before_data||{},after=x.after_data||{};
-      const from=[before.office,before.department,before.lifecycle_status].filter(Boolean).join(' / ')||'—';
-      const to=[after.office,after.department,after.lifecycle_status].filter(Boolean).join(' / ')||'—';
+      const from=[before.office,before.department,workPatternDisplay(before.work_pattern),before.lifecycle_status].filter(Boolean).join(' / ')||'—';
+      const to=[after.office,after.department,workPatternDisplay(after.work_pattern),after.lifecycle_status].filter(Boolean).join(' / ')||'—';
       return '<div class="support-row"><div><b>'+esc(from)+' → '+esc(to)+'</b><span>'+esc(fmtDate(x.occurred_at))+' / '+esc(x.reason||'理由記録なし')+'</span></div></div>'
     }).join(''):'<div class="empty compact-empty">異動・在籍状態履歴はありません。</div>';
     const workRows=workPatterns.length?workPatterns.map(x=>{
@@ -1370,36 +1370,39 @@
       formField('name','氏名',e.name,'text','required')+formField('furigana','フリガナ',e.furigana)+
       formField('position','職位',e.position)+
       formField('team','班',e.team)+formField('employment_type','雇用区分',e.employment_type)+
-      formSelect('work_pattern','勤務区分',work.options,work.value)+
-      formNote('勤務区分と基本固定車は別管理です。日勤でも基本固定車を持てます。事故・修理・代車時は実際に乗った号車を事故・ヒヤリ側で記録します。')+
+      formNote('勤務区分・所属・在籍状態は「所属・勤務・在籍変更」から変更します。基本固定車は勤務区分とは別管理です。')+
       formField('main_license','主免許',e.main_license)+
       formField('license_expiry','免許期限',fmtDate(e.license_expiry)==='—'?'':fmtDate(e.license_expiry),'date')+
       formField('health_check_due','健康診断期限',fmtDate(e.health_check_due)==='—'?'':fmtDate(e.health_check_due),'date')+
       formField('aptitude_due','適性診断期限',fmtDate(e.aptitude_due)==='—'?'':fmtDate(e.aptitude_due),'date');
     openRecordForm('社員情報を編集',fields,async fd=>{
       if(!confirmTaxiPlacement(e.department,fdText(fd,'work_pattern')))return;
-      const body={};for(const k of ['name','furigana','position','team','employment_type','work_pattern','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
+      const body={};for(const k of ['name','furigana','position','team','employment_type','main_license','license_expiry','health_check_due','aptitude_due'])body[k]=nullable(fdText(fd,k));
       await api('/employees/'+encodeURIComponent(e.id),{method:'PATCH',body,headers:{'If-Match':'"'+e.version+'"'}})
     })
   }
 
   function transitionEmployeeForm(employee){
     if(state.me?.role_level!=='full')return;
+    const work=workPatternOptions(employee.work_pattern);
     const fields=
       formField('office','事業所',employee.office,'text','required')+
       formField('department','所属部署',employee.department,'text','required')+
+      formSelect('work_pattern','勤務区分',work.options,work.value)+
+      formNote('所属と勤務区分を同時に変更できます。タクシーの基本配置と異なる場合も、確認後に例外登録できます。')+
       formSelect('lifecycle_status','在籍状態',[['active','在籍'],['leave','休職'],['retirement_planned','退職予定'],['retired','退職']],employee.lifecycle_status||'active','required')+
       formField('retired_on','退職日',fmtDate(employee.retired_on)==='—'?'':fmtDate(employee.retired_on),'date')+
-      formArea('reason','変更理由','','required placeholder="異動・休職・退職等の理由を入力"')+
+      formArea('reason','変更理由','','required placeholder="例：訓練課修了によりタクシー1課・隔勤へ移行"')+
       formArea('handoff_note','引継ぎメモ','','placeholder="必要な引継ぎ事項"');
-    openRecordForm('異動・在籍状態｜'+employee.name,fields,async fd=>{
-      if(!confirmTaxiPlacement(fdText(fd,'department'),employee.work_pattern))return;
+    openRecordForm('所属・勤務・在籍変更｜'+employee.name,fields,async fd=>{
+      if(!confirmTaxiPlacement(fdText(fd,'department'),fdText(fd,'work_pattern')))return;
       await api('/employees/'+encodeURIComponent(employee.id)+'/transition',{
         method:'POST',
         body:{
           target:{
             office:fdText(fd,'office'),
             department:fdText(fd,'department'),
+            work_pattern:nullable(fdText(fd,'work_pattern')),
             lifecycle_status:fdText(fd,'lifecycle_status'),
             retired_on:nullable(fdText(fd,'retired_on'))
           },
