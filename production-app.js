@@ -546,17 +546,17 @@
 
   async function newGuidance(){
     if(!canEdit('employees'))return;
-    const employees=await employeeChoices();
     const fields=
-      formSelect('employee_id','対象社員',employees,'','required')+
+      formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"')+
       formField('guidance_on','指導日',new Date().toISOString().slice(0,10),'date','required')+
       formField('type','指導区分','','text','required')+
       formArea('summary','指導内容','','required')+
       formField('owner','担当者',state.me?.display_name||'','text','required')+
       formField('next_review','次回確認日','','date');
     openRecordForm('指導登録',fields,async fd=>{
+      const employee=await resolveEmployeeReference(fdText(fd,'employee_ref'));
       await api('/guidance',{method:'POST',body:{
-        employee_id:fdText(fd,'employee_id'),
+        employee_id:employee.id,
         guidance_on:fdText(fd,'guidance_on'),
         type:fdText(fd,'type'),
         summary:fdText(fd,'summary'),
@@ -815,10 +815,6 @@
     };
     $('detailDialog').showModal()
   }
-  async function employeeChoices(){
-    const {data}=await api('/employees?page_size=100');
-    return data.items.map(e=>[e.id,e.employee_no+' '+e.name])
-  }
   function fdText(fd,name){return String(fd.get(name)||'').trim()}
   function nullable(v){const s=String(v||'').trim();return s||null}
 
@@ -1047,15 +1043,15 @@
   }
 
   async function newAccident(){
-    const employees=await employeeChoices();
-    const fields=formSelect('employee_id','対象社員',employees,'','required')+
+    const fields=formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"')+
       formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
       formField('car_no','号車')+formField('address','場所','','text','required')+
       formArea('summary','事故内容','','required')+formArea('cause','原因')+formArea('prevention','再発防止')+
       formArea('response_history','対応履歴')+formField('followup_due','フォロー期限','','date');
     openRecordForm('事故登録',fields,async fd=>{
+      const employee=await resolveEmployeeReference(fdText(fd,'employee_ref'));
       await api('/accidents',{method:'POST',body:{
-        employee_id:fdText(fd,'employee_id'),occurred_on:fdText(fd,'occurred_on'),car_no:nullable(fdText(fd,'car_no')),
+        employee_id:employee.id,occurred_on:fdText(fd,'occurred_on'),car_no:nullable(fdText(fd,'car_no')),
         address:fdText(fd,'address'),summary:fdText(fd,'summary'),cause:nullable(fdText(fd,'cause')),
         prevention:nullable(fdText(fd,'prevention')),response_history:nullable(fdText(fd,'response_history')),followup_due:nullable(fdText(fd,'followup_due'))
       }})
@@ -1087,15 +1083,15 @@
   }
 
   async function newComplaint(){
-    const employees=await employeeChoices();
-    const fields=formSelect('employee_id','対象社員',employees,'','required')+
+    const fields=formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"')+
       formField('responded_on','対応日',new Date().toISOString().slice(0,10),'date','required')+
       formArea('summary','苦情内容','','required')+
       formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],'unrated')+
       formArea('guidance_content','指導内容')+formArea('next_action','次回対応')+formField('followup_due','フォロー期限','','date');
     openRecordForm('苦情登録',fields,async fd=>{
+      const employee=await resolveEmployeeReference(fdText(fd,'employee_ref'));
       await api('/complaints',{method:'POST',body:{
-        employee_id:fdText(fd,'employee_id'),responded_on:fdText(fd,'responded_on'),summary:fdText(fd,'summary'),
+        employee_id:employee.id,responded_on:fdText(fd,'responded_on'),summary:fdText(fd,'summary'),
         rank:fdText(fd,'rank'),guidance_content:nullable(fdText(fd,'guidance_content')),
         next_action:nullable(fdText(fd,'next_action')),followup_due:nullable(fdText(fd,'followup_due'))
       }})
@@ -1145,8 +1141,7 @@
     const manager=canEdit('near_misses');
     let fields='';
     if(manager){
-      const employees=await employeeChoices();
-      fields+=formSelect('employee_id','対象社員',employees,'','required')
+      fields+=formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"')
     }
     fields+=formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
       formField('occurred_time','発生時刻','','time')+
@@ -1167,23 +1162,27 @@
         prevention:nullable(fdText(fd,'prevention')),
         education:nullable(fdText(fd,'education'))
       };
-      if(manager)body.employee_id=fdText(fd,'employee_id');
+      if(manager){
+        const employee=await resolveEmployeeReference(fdText(fd,'employee_ref'));
+        body.employee_id=employee.id
+      }
       await api('/near-misses',{method:'POST',body})
     })
   }
 
   async function newVehicle(){
-    const employees=await employeeChoices();
-    const options=[['','主担当なし'],...employees];
     const fields=formField('car_no','3桁号車','','text','required pattern="[0-9]{3}"')+
       formField('model','車種')+formField('service','用途')+
       formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],'spare')+
-      formSelect('primary_employee_id','主担当',options,'')+
+      formField('primary_employee','主担当（社員番号または氏名）','','text','placeholder="専属車は必須。例：1001 または 安芸太郎"')+
       formField('inspection_due','車検期限','','date','required')+formField('next_maintenance_due','次回整備','','date')+formArea('maintenance_note','整備メモ');
     openRecordForm('車両登録',fields,async fd=>{
+      const mode=fdText(fd,'assignment_mode'),primaryRef=fdText(fd,'primary_employee');
+      if(mode==='dedicated'&&!primaryRef){const err=new Error('専属車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
+      const primary=primaryRef?await resolveEmployeeReference(primaryRef):null;
       await api('/vehicles',{method:'POST',body:{
         car_no:fdText(fd,'car_no'),model:nullable(fdText(fd,'model')),service:nullable(fdText(fd,'service')),
-        assignment_mode:fdText(fd,'assignment_mode'),primary_employee_id:nullable(fdText(fd,'primary_employee_id')),
+        assignment_mode:mode,primary_employee_id:primary?.id||null,
         inspection_due:fdText(fd,'inspection_due'),next_maintenance_due:nullable(fdText(fd,'next_maintenance_due')),
         maintenance_note:nullable(fdText(fd,'maintenance_note'))
       }})
