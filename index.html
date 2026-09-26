@@ -7213,6 +7213,66 @@ function safetyRecordContextHtml(kind,rec){
  '</div>'
 }
 
+
+const ACCIDENT_DOCUMENT_ROLES={
+ scene_photo:'現場写真',
+ sketch:'現場見取図',
+ vehicle_damage:'車両損傷',
+ opponent_damage:'相手方損傷',
+ police:'警察・事故証明資料',
+ estimate:'見積・修理資料',
+ other:'その他事故資料'
+};
+function accidentDocumentRoleLabel(role){return ACCIDENT_DOCUMENT_ROLES[role]||'その他事故資料'}
+function accidentDocuments(a,role=''){
+ if(!a)return [];
+ return DOCS.filter(d=>!d.archived&&d.category==='事故資料'&&d.linkedEntityType==='accident'&&String(d.linkedEntityId)===String(a.id)&&(!role||d.documentRole===role)&&canViewDocumentRecord(d))
+   .sort((x,y)=>String(x.date||'').localeCompare(String(y.date||''))||String(x.id).localeCompare(String(y.id)));
+}
+function accidentEvidenceSummaryHtml(a){
+ let docs=accidentDocuments(a),counts={};
+ docs.forEach(d=>{let k=d.documentRole||'other';counts[k]=(counts[k]||0)+1});
+ let chips=Object.entries(counts).map(([k,n])=>'<span class="badge ok">'+esc(accidentDocumentRoleLabel(k))+' '+n+'件</span>').join(' ');
+ return '<div class="list-summary"><div><b>事故資料 '+docs.length+'件</b><div class="mini">'+(docs.length?'事故番号に紐づいた資料だけを表示しています。':'まだ事故資料は紐づいていません。')+'</div></div><div>'+chips+'</div></div>'+
+  (docs.length?docs.map(d=>'<div class="row"><div><b>'+esc(d.name)+'</b><div class="mini">'+esc(accidentDocumentRoleLabel(d.documentRole))+' / '+esc(d.date||'日付未設定')+' / '+esc(documentOperationalStatusLabel(d))+'</div></div><div class="toolbar"><button class="btn soft" onclick="documentPreview(\''+String(d.id).replaceAll("'","")+'\')">情報を見る</button></div></div>').join(''):'');
+}
+function openAccidentEvidenceForm(accidentId){
+ let a=A.find(x=>String(x.id)===String(accidentId));
+ if(!a||!guardEmployeeEdit(a.employee_no,'事故資料'))return;
+ let e=emp(a.employee_no),rule=documentRule('事故資料');
+ fttl.textContent='事故資料を紐づける';setFormSaveLabel('事故資料情報を保存する');setFormAfterSaveHint('事故詳細へ戻ります');
+ fbody.innerHTML='<div class="formnote"><b>'+esc(a.id)+' / '+esc(a.driver||e?.name||a.employee_no)+'</b><br>共有デモでは実画像ファイルを保存しません。ここでは事故番号との紐付け・資料種別・表示順の管理情報だけを登録します。本番では非公開ストレージへの安全なアップロードに置き換えます。</div>'+
+ '<div class="detail-alert warn"><b>原本ファイルは本番接続まで無効です。</b><div class="mini">事故写真をブラウザ内や公開URLへ保存しません。</div></div>'+
+ '<div class="formgrid">'+
+ '<div class="field"><label>資料種別<span class="req">必須</span></label><select id="faedocrole">'+Object.entries(ACCIDENT_DOCUMENT_ROLES).map(([k,v])=>'<option value="'+esc(k)+'">'+esc(v)+'</option>').join('')+'</select></div>'+
+ '<div class="field"><label>ファイル種別</label><select id="faedockind"><option value="image">画像</option><option value="pdf">PDF</option></select></div>'+
+ '<div class="field wide"><label>資料名<span class="req">必須</span></label><input id="faedocname" placeholder="例：現場写真_前方_01.jpg"></div>'+
+ '<div class="field"><label>撮影・登録日</label><input id="faedocdate" type="date" value="'+esc(a.date||TODAY)+'"></div>'+
+ '<div class="field"><label>報告書へ配置</label><select id="faedocprint"><option value="auto">自動</option><option value="none">報告書には載せない</option></select></div>'+
+ '</div>';
+ faedocrole.onchange=()=>{if(!faedocname.value.trim())faedocname.value=accidentDocumentRoleLabel(faedocrole.value)+'_'+String(a.id).replaceAll('/','-')};
+ fsave.onclick=()=>{
+  if(!guardEmployeeEdit(a.employee_no,'事故資料'))return;
+  if(!faedocname.value.trim())return alert('資料名を入力してください');
+  let id=nextDocumentId(a.employee_no),rec={
+    id,employee_no:String(a.employee_no),category:'事故資料',name:faedocname.value.trim(),date:faedocdate.value||a.date||TODAY,expiry:'',kind:faedockind.value,status:'確認待ち',
+    originalHandling:rule.originalHandling||'電子原本',securityClass:rule.securityClass||'要配慮',accessLevel:rule.accessLevel||'担当管理者まで',verificationRequired:!!rule.verificationRequired,
+    paperLocation:'',retentionUntil:'',qualification_id:'',verifiedDate:'',verifiedById:'',verifiedByName:'',replacedFromDocumentId:'',replacedByDocumentId:'',
+    archived:false,archivedAt:'',archivedById:'',archivedByName:'',
+    linkedEntityType:'accident',linkedEntityId:String(a.id),documentRole:faedocrole.value,reportPlacement:faedocprint.value
+  };
+  touchRecord(rec,'document',true);DOCS.push(rec);
+  audit('事故資料紐付け',a.id+' / '+id+' / '+accidentDocumentRoleLabel(rec.documentRole)+' / '+rec.name,{employee_no:a.employee_no,entity_type:'document',entity_id:id});
+  if(!save())return;closeForm();renderSafetyMutationViews();accidentDetail(a.id)
+ };
+ form.classList.add('show')
+}
+function accidentEvidencePrintHtml(a){
+ let docs=accidentDocuments(a).filter(d=>(d.reportPlacement||'auto')!=='none');
+ if(!docs.length)return '<div class="diagram">事故資料なし／必要に応じて印刷後に記入・貼付</div>';
+ let rows=docs.slice(0,8).map((d,i)=>'<div class="evidence-card"><b>'+(i+1)+'. '+esc(accidentDocumentRoleLabel(d.documentRole))+'</b><span>'+esc(d.name)+'</span><small>共有デモ：実画像未接続</small></div>').join('');
+ return '<div class="evidence-grid">'+rows+'</div>';
+}
 function accidentReportMissingFields(a){
  let rows=[
   ['天候',a?.weather&&a.weather!=='未設定'],
