@@ -32,3 +32,19 @@ test('production schema and API contract include report-sheet fields',()=>{
     .forEach(name=>assert.match(sql,new RegExp('\\b'+name+'\\b')));
   assert.match(api,/follow-up accident investigation fields/i);
 });
+
+
+test('accident report can be previewed and printed as two pages',()=>{
+  assert.match(html,/function openAccidentReportPrint/);
+  assert.match(html,/報告書プレビュー・印刷/);
+  assert.match(html,/事故処理・調査記録/);
+  assert.match(html,/印刷 \/ PDF保存/);
+  assert.match(html,/現場見取図・写真貼付欄/);
+  assert.match(html,/車両損傷図・伝達事項/);
+});
+
+test('accident detail warns about report fields still missing',()=>{
+  assert.match(html,/function accidentReportMissingFields/);
+  assert.match(html,/報告書の未入力/);
+  assert.match(html,/不足項目を入力/);
+});
