@@ -442,3 +442,31 @@ Vercel:
 - 制限解除後に固定SHAとdeployment metadata一致を確認する
 
 **運用判断:** 本番準備コードは大監査へ進める。実社員情報・実原本の投入は引き続き禁止。
+
+
+## 2026-09-26 原本hardening追加候補
+
+基準監査固定SHA:
+`909ded89fe489d738864185458deab46635ff15e`
+
+hardening検証SHA:
+`f76867997b9b11fa10c4204a8f71a2c5bfecc1d6`
+
+runtime実装SHA:
+`2ec5c50db74fbdccad91f612354843c48f09dae0`
+
+追加:
+- PDF/JPEG/PNG magic-byte実体検証
+- Content-Type偽装を `DOCUMENT_CONTENT_SIGNATURE_MISMATCH` で拒否
+- scanner error監査resultをblockedと分離
+- scanner endpointのURL埋込credential/query/fragmentを拒否
+- hardening branchをV200 Safety Tests対象へ追加
+
+検証:
+- GitHub Actions run `36209574679`: **337/337 pass / 0 fail**
+- PostgreSQL/restore/監査/原本契約を含む全step success
+- Vercel runtime SHA `2ec5c50db74fbdccad91f612354843c48f09dae0`: **READY**
+- deployment `dpl_2DJue4gvtFj6A4ZWnVkaYehh9jBH`
+- 直近2時間runtime errors: **0**
+
+実社員情報・実原本投入禁止は継続。

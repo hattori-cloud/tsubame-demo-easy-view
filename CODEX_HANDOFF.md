@@ -1,5 +1,12 @@
 # CODEX 引継ぎ資料 — つばめ交通 社員一元管理システム
 
+> **2026-09-26 原本hardening追加候補**  
+> 基準監査固定点は `909ded89fe489d738864185458deab46635ff15e` のまま保持。  
+> 追加hardening検証SHA: `f76867997b9b11fa10c4204a8f71a2c5bfecc1d6`、runtime実装SHA: `2ec5c50db74fbdccad91f612354843c48f09dae0`。  
+> MIME magic-byte検証、scanner error監査区別、scanner URL secret混入防止を追加。  
+> GitHub Actions: **337 / 337 pass / 0 fail**。Vercel Previewはruntime SHA `2ec5c50db74fbdccad91f612354843c48f09dae0` で **READY**、直近2時間runtime errors 0。  
+> 差分監査資料: `docs/audits/CODEX_HARDENING_DELTA_V200_20260926.md`  
+>
 > **2026-09-26 再々監査後・本番準備大監査固定点**  
 > 対象ブランチ: `post-audit-v200-prod-readiness`  
 > **監査固定SHA: `909ded89fe489d738864185458deab46635ff15e`**  
