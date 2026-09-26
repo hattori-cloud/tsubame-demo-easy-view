@@ -691,12 +691,13 @@
     for(const [k,v] of Object.entries(state.analysisFilters||{}))if(v)sp.set(k,v);
     const {data}=await api('/analysis/management-summary'+(sp.toString()?'?'+sp.toString():''));
     const a=data.analysis||{},s=a.safety||{},k=s.kpis||{},t=s.totals||{},trend=s.trend||[],safetyDepartments=s.departments||[];
-    const workforce=a.workforce||null,deadlines=a.deadlines||null,credentials=a.credentials||null,support=a.support||null,work=a.work||null,signals=a.signals||null,departments=a.departments||[],access=a.access||{};
+    const workforce=a.workforce||null,deadlines=a.deadlines||null,credentials=a.credentials||null,support=a.support||null,vehicles=a.vehicles||null,work=a.work||null,signals=a.signals||null,departments=a.departments||[],access=a.access||{};
     const pct=v=>Number(v||0).toFixed(1)+'%';
     const taskMetrics=[];
     if(deadlines){taskMetrics.push(metric('期限超過社員',deadlines.employees_overdue||0,'免許・健診・適性'));taskMetrics.push(metric('60日以内期限',deadlines.employees_due_60||0,'対象社員数'))}
     if(credentials){taskMetrics.push(metric('資格期限超過',credentials.qualifications_overdue||0,'資格'));taskMetrics.push(metric('書類要確認',credentials.documents_attention||0,'確認・差替・保存状態'))}
     if(support){taskMetrics.push(metric('教育期限超過',support.training_overdue||0,'未完了'));taskMetrics.push(metric('貸与品返却超過',support.assets_overdue||0,'未返却'))}
+    if(vehicles){taskMetrics.push(metric('車検超過',vehicles.inspection_overdue||0,'稼働・整備中'));taskMetrics.push(metric('整備予定超過',vehicles.maintenance_overdue||0,'稼働・整備中'))}
     if(work){taskMetrics.push(metric('残業60h以上',work.overtime_60_count||0,(work.month_start?String(work.month_start).slice(0,7):'最新月')))}
     const currentHeader='<section class="panel"><div class="list-head"><div><b>集計の見方</b><span>現在の業務と過去の安全を分けて表示</span></div></div>'+
       '<p class="sub">'+esc(a.notes?.workforce_basis||'')+'</p><p class="sub">'+esc(a.notes?.safety_basis||'')+'</p><p class="sub">'+esc(a.notes?.cross_basis||'')+'</p></section>';
@@ -722,6 +723,7 @@
     if(access.employees)next.push(hubButton('employees','社員を確認','対象社員・教育・貸与品へ'));
     if(access.deadlines)next.push(hubButton('deadlines','期限を確認','超過・60日以内へ'));
     if(access.credentials)next.push(hubButton('credentials','資格・書類を確認','資格期限・原本状態へ'));
+    if(access.vehicles)next.push(hubButton('vehicles','車両を確認','車検・整備・担当乗務員へ'));
     if(access.work_import)next.push(hubButton('work-import','勤務を確認','最新取込・残業集計へ'));
     if(canViewAny(NAV_FEATURES.safety))next.push(hubButton('safety','運行・安全を確認','事故・苦情・ヒヤリへ'));
     $('content').innerHTML=
