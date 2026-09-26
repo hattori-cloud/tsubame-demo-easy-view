@@ -1,5 +1,14 @@
 # CODEX 引継ぎ資料 — つばめ交通 社員一元管理システム
 
+> **2026-09-26 再々監査後・本番準備大監査固定点**  
+> 対象ブランチ: `post-audit-v200-prod-readiness`  
+> **監査固定SHA: `909ded89fe489d738864185458deab46635ff15e`**  
+> GitHub Actions: **334 / 334 pass / 0 fail**。PostgreSQL実適用、最小権限、backup/restore、監査回帰、原本pending→clean→active、blocked durable state、private storage/scanner live readiness contractまで合格。  
+> O01/O02はこのブランチへ統合済み。本番API画面、shared login rate limiter、勤務取込batch/rollback、migration reconciliation、Vercel Private Blob transport、provider-neutral malware scanner contractを含む。  
+> Vercelは `eef4858d...` までPreview READY。固定SHAはbuild rate limitで未配備のため、同一SHA deployment確認は実環境ゲートとして残す。  
+> 最新CODEX監査依頼: `docs/audits/CODEX_POST_AUDIT_PROD_READINESS_V200_20260926.md`  
+> 実社員情報・実PDF/画像/スキャン原本は、実環境ゲート完了まで投入禁止。  
+>
 更新日: 2026-09-25  
 対象リリース: **v200**  
 

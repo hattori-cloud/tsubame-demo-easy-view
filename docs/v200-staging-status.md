@@ -419,3 +419,26 @@ private Blob保管経路だけがreadyでも、production業務APIは有効化�
 - VPN / 複数端末 / 複数利用者UAT
 
 実社員情報・実原本の投入禁止は継続する。
+
+
+## 2026-09-26 再々監査後・本番準備監査固定点
+
+**監査固定SHA:**  
+`909ded89fe489d738864185458deab46635ff15e`
+
+このSHAをCODEX再監査のソース固定点とする。
+以後は監査依頼資料のみ追加し、機能コードを変更する場合は固定点を改めて更新する。
+
+GitHub Actions run `36208671483`:
+- **334 tests / 334 pass / 0 fail**
+- PostgreSQL実DB検証を含むworkflow成功
+- 原本契約実DB検証成功
+- private storage / scanner live readiness contract成功
+
+Vercel:
+- `eef4858d...` までPreview READY
+- 固定SHAはVercel build rate limitにより未配備
+- 固定SHAのVercel failureはコードbuild failureではなくdeployment quota
+- 制限解除後に固定SHAとdeployment metadata一致を確認する
+
+**運用判断:** 本番準備コードは大監査へ進める。実社員情報・実原本の投入は引き続き禁止。
