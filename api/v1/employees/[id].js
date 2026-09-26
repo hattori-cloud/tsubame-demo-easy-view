@@ -3,7 +3,7 @@ const {applySecurityHeaders,requestId}=require('../../_lib/security');
 const {setVersionEtag,parseIfMatchHeader}=require('../../_lib/concurrency');
 const {stagingFixturesAllowed}=require('../../_lib/runtime-config');
 const {resolveCurrentUser,getStagingEmployeeForUser}=require('../../_lib/authorization');
-const {getEmployeeForUser,updateEmployee}=require('../../_lib/employee-store');
+const {getEmployeeForUser,getEmployeeHistoryForUser,updateEmployee}=require('../../_lib/employee-store');
 
 module.exports=async function handler(req,res){
   try{
@@ -11,8 +11,9 @@ module.exports=async function handler(req,res){
     if(req.method==='GET'){
       const fixture=stagingFixturesAllowed();
       const employee=fixture?getStagingEmployeeForUser(user,targetId):await getEmployeeForUser(user,targetId);
+      const history=fixture?{number_changes:[],transitions:[]}:await getEmployeeHistoryForUser(user,targetId);
       applySecurityHeaders(res);res.setHeader('X-Request-Id',rid);setVersionEtag(res,employee.version);
-      return res.status(200).json({employee,data_mode:fixture?'fictional-staging-fixtures':'postgres'})
+      return res.status(200).json({employee,history,data_mode:fixture?'fictional-staging-fixtures':'postgres'})
     }
     if(req.method==='PATCH'){
       if(stagingFixturesAllowed()){const e=new Error('架空fixtureは読み取り専用です');e.status=409;e.code='FIXTURES_READ_ONLY';throw e}
