@@ -1636,7 +1636,9 @@ function ensureAccidentWorkflowFields(){
   if(a.nextAction===undefined){a.nextAction=a.phase==='完了'?'':'対応状況を確認';changed=true}
   [
    ['time',''],['operationState','未設定'],['district','未設定'],['accidentType','未設定'],['faultRate',''],
-   ['opponentRepair','未確定'],['opponentRepairCost',''],['companyRepair','未確定'],['companyRepairCost','']
+   ['opponentRepair','未確定'],['opponentRepairCost',''],['companyRepair','未確定'],['companyRepairCost',''],
+   ['weather','未設定'],['opponentSummary',''],['onsiteActions',''],['roadCondition',''],['damageInjurySummary',''],
+   ['policeStatus','未確認'],['evidenceStatus','未確認'],['reportSheetStatus','未着手']
   ].forEach(([k,v])=>{if(a[k]===undefined){a[k]=v;changed=true}});
   ['employeeChargeTarget','bonusDeductionAmount','bonusDeductionMonth','bonusDeductionStatus','bonusDeductionApprovedById','bonusDeductionApprovedByName','bonusDeductionApprovedAt','bonusDeductionNote'].forEach(k=>{
    if(Object.prototype.hasOwnProperty.call(a,k)){delete a[k];changed=true}
