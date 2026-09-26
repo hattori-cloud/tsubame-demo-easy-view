@@ -336,10 +336,6 @@ create table near_misses (
   version integer not null default 1 check (version >= 1)
 );
 
-create unique index near_misses_source_ref_unique
-  on near_misses(source_type,external_ref)
-  where external_ref is not null and archived_at is null;
-
 create table complaints (
   id uuid primary key default gen_random_uuid(),
   complaint_no text not null unique,
