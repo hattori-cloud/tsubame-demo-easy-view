@@ -37,6 +37,7 @@ module.exports=async function handler(req,res){
   if(!readiness.document_malware_scanner_ready)blockers.push('原本マルウェアスキャナ');
   if(!readiness.original_document_pipeline_ready)blockers.push('原本安全確認パイプライン');
   if(!readiness.document_backup_ready)blockers.push('原本別障害領域バックアップ');
+  if(!readiness.internal_network_cidrs_present)blockers.push('社内ネットワークCIDR');
 
   return res.status(200).json({
     service:'tsubame-staging-readiness',
@@ -58,6 +59,7 @@ module.exports=async function handler(req,res){
       document_malware_scanner_ready:readiness.document_malware_scanner_ready,
       original_document_pipeline_ready:readiness.original_document_pipeline_ready,
       document_backup_ready:readiness.document_backup_ready,
+      internal_network_cidrs_present:readiness.internal_network_cidrs_present,
       original_file_test_ready:Boolean(readiness.original_file_test_ready&&databaseReady)
     },
     blockers,

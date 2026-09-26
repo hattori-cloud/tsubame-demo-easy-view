@@ -102,13 +102,16 @@ function stagingFixturesRequested(){
 function stagingFixturesAllowed(){
   return stagingFixturesRequested() && isNonProductionRuntime()
 }
+function internalNetworkEnvPresent(){
+  return String(process.env.TSUBAME_INTERNAL_NETWORK_CIDRS||'').split(',').map(x=>x.trim()).filter(Boolean).length>0
+}
 function productionBusinessActivationRequested(){
   return process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA==='1'
 }
 function productionBusinessDataEnabled(){
   return Boolean(
     isProductionRuntime() && productionBusinessActivationRequested() &&
-    authEnvPresent() && databaseEnvPresent() && originalDocumentPipelineReady() && documentBackupReady()
+    authEnvPresent() && databaseEnvPresent() && originalDocumentPipelineReady() && documentBackupReady() && internalNetworkEnvPresent()
   )
 }
 function backendReadiness(){
@@ -128,6 +131,7 @@ function backendReadiness(){
     document_malware_scanner_ready:malwareScanner,
     original_document_pipeline_ready:originalPipeline,
     document_backup_ready:backup,
+    internal_network_cidrs_present:internalNetworkEnvPresent(),
     fictional_fixtures_enabled:fixtures,
     auth_probe_ready:auth,
     fictional_registry_ready:auth&&fixtures,
@@ -145,6 +149,6 @@ module.exports={
   malwareScannerProvider,malwareScannerEndpointValid,documentMalwareScannerReady,
   documentBackupProvider,documentBackupEndpointValid,documentBackupEncryptionKeyPresent,documentBackupReady,
   originalDocumentPipelineReady,
-  stagingFixturesRequested,stagingFixturesAllowed,
+  stagingFixturesRequested,stagingFixturesAllowed,internalNetworkEnvPresent,
   productionBusinessActivationRequested,productionBusinessDataEnabled,backendReadiness
 };

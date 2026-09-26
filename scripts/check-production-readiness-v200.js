@@ -34,6 +34,7 @@ const {probeDocumentBackup}=require('../api/_lib/document-backup');
   else if(!scannerLive)blockers.push('document_malware_scanner_live_probe');
   if(!env.original_document_pipeline_ready)blockers.push('original_document_pipeline');
   if(!env.document_backup_ready)blockers.push('document_backup');
+  if(!env.internal_network_cidrs_present)blockers.push('internal_network_cidrs');
   else if(!backupLive)blockers.push('document_backup_live_restore_probe');
   if(!env.production_business_activation_requested)blockers.push('production_activation_flag');
 
@@ -56,6 +57,7 @@ const {probeDocumentBackup}=require('../api/_lib/document-backup');
       document_malware_scanner_live_probe:scannerLive,
       original_document_pipeline:env.original_document_pipeline_ready,
       document_backup:env.document_backup_ready,
+      internal_network_cidrs:env.internal_network_cidrs_present,
       document_backup_live_restore_probe:backupLive,
       production_activation_requested:env.production_business_activation_requested,
       production_business_data_enabled:env.production_business_data_enabled

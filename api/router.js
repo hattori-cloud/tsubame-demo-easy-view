@@ -3,6 +3,7 @@
 const {applySecurityHeaders,requestId,errorBody}=require('./_lib/security');
 const {isProductionRuntime,productionBusinessDataEnabled}=require('./_lib/runtime-config');
 const {probeDatabaseReadiness}=require('./_lib/db');
+const {requestFromInternalNetwork}=require('./_lib/network-access');
 
 // Vercel Hobby function-budget router: keep all v1 handlers as internal modules,
 // but deploy only this single Node function. Route params are restored onto req.query.
@@ -94,6 +95,13 @@ function rawPath(req){
 
 module.exports=async function handler(req,res){
   const path=rawPath(req);
+  if(isProductionRuntime()){
+    const networkId=requestId(req);
+    applySecurityHeaders(res);res.setHeader('X-Request-Id',networkId);res.setHeader('Cache-Control','no-store');
+    if(!requestFromInternalNetwork(req)){
+      return res.status(404).json(errorBody('NOT_FOUND','対象データが見つかりません',networkId))
+    }
+  }
   if(isProductionRuntime() && path!=='/health'){
     const id=requestId(req);
     applySecurityHeaders(res);res.setHeader('X-Request-Id',id);res.setHeader('Cache-Control','no-store');
