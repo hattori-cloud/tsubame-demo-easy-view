@@ -7,7 +7,7 @@
   const fmtDate=v=>v?String(v).slice(0,10):'—';
   const fmtText=v=>v===null||v===undefined||v===''?'—':String(v);
   const roleLabel=r=>r==='full'?'全社管理者':r==='scoped'?'範囲指定利用者':r==='self'?'旧本人権限（本番不可）':'—';
-  const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',business:'handoffs'};
+  const VIEW_FEATURE={employees:'employees',deadlines:'deadlines',accidents:'accidents',complaints:'complaints',vehicles:'vehicles','near-misses':'near_misses',credentials:'credentials_documents','work-import':'work_import',analysis:'safety_analysis',users:'user_admin',audit:'audit_logs'};
   const NAV_FEATURES={
     home:[],employees:['employees'],
     work:['deadlines','credentials_documents','work_import'],
@@ -15,7 +15,7 @@
     analysis:['safety_analysis'],vehicles:['vehicles'],
     admin:['user_admin','audit_logs']
   };
-  const NAV_PARENT={deadlines:'work',credentials:'work','work-import':'work',accidents:'safety',complaints:'safety','near-misses':'safety',business:'safety',users:'admin'};
+  const NAV_PARENT={deadlines:'work',credentials:'work','work-import':'work',accidents:'safety',complaints:'safety','near-misses':'safety',users:'admin',audit:'admin'};
   function navParent(view){return NAV_PARENT[view]||view}
   function canViewAny(features){return !(features||[]).length||(features||[]).some(canView)}
   function featureLevel(feature){
@@ -142,10 +142,11 @@
     $('refreshBtn').addEventListener('click',()=>loadView(state.view,{q:$('searchInput').value.trim()}));
     $('content').addEventListener('click',e=>{
       const action=e.target.closest('[data-action]');
-      if(action){handleAction(action.dataset.action,action.dataset.id||'');return}
+      if(action){handleAction(action.dataset.action,action.dataset.id||'',action.dataset.q||'');return}
       const row=e.target.closest('[data-employee-id]');
       if(row)employeeDetail(row.dataset.employeeId)
     });
+    $('content').addEventListener('keydown',e=>{if(e.target?.id==='homeGlobalSearch'&&e.key==='Enter'){e.preventDefault();runHomeSearch()}});
     $('dialogBody').addEventListener('click',e=>{
       const close=e.target.closest('[data-dialog-close]');
       if(close){$('detailDialog').close();return}
@@ -222,9 +223,10 @@
 
   async function loadView(view,opts={}){
     if(state.loading)return;
+    if(view==='business')view='safety';
     state.loading=true;state.view=view;navActive(view);clearError();
-    $('viewTitle').textContent={home:'ホーム',employees:'社員',work:'期限・勤務',deadlines:'期限',accidents:'事故',complaints:'苦情',safety:'運行・安全',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'分析',admin:'管理',users:'利用者管理',business:'引継ぎ'}[view]||view;
-    $('searchWrap').hidden=['home','work','safety','admin','work-import','analysis','business'].includes(view);
+    $('viewTitle').textContent={home:'ホーム',employees:'社員',work:'期限・勤務',deadlines:'期限',accidents:'事故',complaints:'苦情',safety:'運行・安全',vehicles:'車両','near-misses':'ヒヤリ',credentials:'資格・書類','work-import':'勤務取込',analysis:'分析',admin:'管理',users:'利用者管理',audit:'監査ログ'}[view]||view;
+    $('searchWrap').hidden=['home','work','safety','admin','work-import','analysis'].includes(view);
     $('content').innerHTML='<div class="loading">読込中…</div>';
     try{
       if(view==='home')await renderHome();
@@ -241,29 +243,65 @@
       else if(view==='work-import')await renderWorkImport()
       else if(view==='analysis')await renderSafetyAnalysis()
       else if(view==='users')await renderUsers(opts.q||'')
-      else if(view==='business')await renderBusiness()
+      else if(view==='audit')await renderAuditLogs(opts.q||'')
     }catch(err){$('content').innerHTML='';showError(err,'データ取得')}finally{state.loading=false}
   }
 
   async function renderHome(){
-    const deadlines=canView('deadlines')?await api('/deadlines?filter=action&page_size=8').then(x=>x.data).catch(()=>null):null;
-    const accidents=canView('accidents')?await api('/accidents?page_size=5').then(x=>x.data).catch(()=>null):null;
-    const complaints=canView('complaints')?await api('/complaints?page_size=5').then(x=>x.data).catch(()=>null):null;
+    const [deadlines,accidents,complaints,handoffs]=await Promise.all([
+      canView('deadlines')?api('/deadlines?filter=action&page_size=8').then(x=>x.data).catch(()=>null):Promise.resolve(null),
+      canView('accidents')?api('/accidents?page_size=5').then(x=>x.data).catch(()=>null):Promise.resolve(null),
+      canView('complaints')?api('/complaints?page_size=5').then(x=>x.data).catch(()=>null):Promise.resolve(null),
+      canView('handoffs')?api('/handoffs').then(x=>x.data).catch(()=>null):Promise.resolve(null)
+    ]);
+    const pending=(handoffs?.handoffs||[]).filter(x=>x.status==='pending'&&String(x.to_user_id)===String(state.me?.id));
+    const quick=[];
+    if(canView('employees'))quick.push(hubButton('employees','社員','社員台帳・資格・教育・貸与品'));
+    if(canViewAny(NAV_FEATURES.work))quick.push(hubButton('work','期限・勤務','期限確認から勤務取込まで'));
+    if(canViewAny(NAV_FEATURES.safety))quick.push(hubButton('safety','運行・安全','事故・苦情・ヒヤリ・引継ぎ'));
+    if(canView('vehicles'))quick.push(hubButton('vehicles','車両','号車・担当・車検・整備'));
+    if(canView('safety_analysis'))quick.push(hubButton('analysis','分析','傾向から実務画面へ戻る'));
     $('content').innerHTML=
-      '<div class="hero"><div><span class="eyebrow">本番APIモード</span><h2>'+esc(state.me?.display_name||'')+' さん</h2><p>ブラウザ保存ではなく、サーバーの権限判定済みデータだけを表示しています。</p></div>'+
+      '<div class="hero"><div><span class="eyebrow">今日の業務</span><h2>'+esc(state.me?.display_name||'')+' さん</h2><p>探す → 開く → 処理する → 履歴・分析まで、ここを起点に進めます。</p></div>'+
       '<div class="role-card"><span>権限</span><b>'+esc(roleLabel(state.me?.role_level))+'</b></div></div>'+
       '<div class="metric-grid">'+
       metric('期限対応',deadlines?.summary?.total??'—','60日以内')+
-      metric('期限超過',deadlines?.summary?.overdue??'—','要確認')+
-      metric('事故一覧',accidents?.total??'—','担当範囲')+
-      metric('苦情一覧',complaints?.total??'—','担当範囲')+
+      metric('期限超過',deadlines?.summary?.overdue??'—','最優先')+
+      metric('事故',accidents?.total??'—','担当範囲')+
+      metric('苦情',complaints?.total??'—','担当範囲')+
       '</div>'+
-      '<section class="panel"><h3>安全な本番接続</h3><div class="check-grid">'+
-      check('Cookieセッション','HttpOnly / Secure / SameSite=Strict')+
-      check('権限','API側で毎回再判定')+
-      check('同時更新','version / If-Match')+
-      check('監査','サーバー側audit log')+
-      '</div></section>'
+      '<section class="panel"><div class="list-head"><div><b>社員・号車・案件をまとめて検索</b><span>権限のある範囲だけ検索</span></div></div>'+
+      '<div class="toolbar"><input id="homeGlobalSearch" placeholder="氏名 / 社員番号 / 号車 / 事故番号 / 苦情 / ヒヤリ" autocomplete="off"><button class="small-primary" data-action="home-search">検索</button></div>'+
+      '<div id="homeGlobalResults" class="cards"><div class="empty">検索語を入力すると、社員・車両・安全案件を横断して探します。</div></div></section>'+
+      (pending.length?'<section class="panel"><div class="list-head"><div><b>自分宛ての未確認引継ぎ</b><span>'+esc(pending.length)+'件</span></div></div><div class="cards">'+pending.slice(0,5).map(x=>
+        '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span><button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button></div></div>'
+      ).join('')+'</div></section>':'')+
+      '<section class="panel"><div class="list-head"><div><b>よく使う入口</b><span>業務の流れで配置</span></div></div><div class="hub-grid">'+quick.join('')+'</div></section>'
+  }
+
+  async function runHomeSearch(){
+    const input=$('homeGlobalSearch'),box=$('homeGlobalResults'),q=String(input?.value||'').trim();
+    if(!box)return;
+    if(!q){box.innerHTML='<div class="empty">検索語を入力してください。</div>';return}
+    box.innerHTML='<div class="loading">検索中…</div>';
+    const encoded=encodeURIComponent(q),jobs=[];
+    const add=(kind,promise)=>jobs.push(promise.then(data=>({kind,data})).catch(()=>({kind,data:null})));
+    if(canView('employees'))add('employees',api('/employees?page_size=6&q='+encoded).then(x=>x.data));
+    if(canView('vehicles'))add('vehicles',api('/vehicles?page_size=6&q='+encoded).then(x=>x.data));
+    if(canView('accidents'))add('accidents',api('/accidents?page_size=6&q='+encoded).then(x=>x.data));
+    if(canView('complaints'))add('complaints',api('/complaints?page_size=6&q='+encoded).then(x=>x.data));
+    if(canView('near_misses'))add('near',api('/near-misses?page_size=6&q='+encoded).then(x=>x.data));
+    const groups=await Promise.all(jobs),rows=[];
+    for(const g of groups){
+      for(const x of g.data?.items||[]){
+        if(g.kind==='employees')rows.push('<div class="record"><div><b>社員　'+esc(x.name)+'</b><span>社員番号 '+esc(x.employee_no)+' / '+esc(x.office||'—')+' / '+esc(x.department||'—')+'</span></div><div class="record-meta"><button class="record-action" data-action="open-employee" data-id="'+esc(x.id)+'">社員詳細</button></div></div>');
+        else if(g.kind==='vehicles')rows.push('<div class="record"><div><b>車両　'+esc(x.car_no)+'号車</b><span>'+esc(x.model||x.service||'—')+' / '+esc(x.primary_employee_name||'主担当なし')+'</span></div><div class="record-meta"><button class="record-action" data-action="edit-vehicle" data-id="'+esc(x.id)+'">車両詳細</button></div></div>');
+        else if(g.kind==='accidents')rows.push('<div class="record"><div><b>事故　'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(fmtDate(x.occurred_on))+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">事故を開く</button></div></div>');
+        else if(g.kind==='complaints')rows.push('<div class="record"><div><b>苦情　'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(fmtDate(x.responded_on))+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">苦情を開く</button></div></div>');
+        else if(g.kind==='near')rows.push('<div class="record"><div><b>ヒヤリ　'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(fmtDate(x.reported_on))+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><button class="record-action" data-action="open-filtered-view" data-id="near-misses" data-q="'+esc(q)+'">一覧で確認</button></div></div>');
+      }
+    }
+    box.innerHTML=rows.length?rows.join(''):'<div class="empty">該当する社員・号車・案件はありません。</div>'
   }
   function metric(label,value,note){return '<div class="metric"><span>'+esc(label)+'</span><b>'+esc(value)+'</b><small>'+esc(note)+'</small></div>'}
   function check(label,note){return '<div class="check"><b>✓ '+esc(label)+'</b><span>'+esc(note)+'</span></div>'}
@@ -295,6 +333,9 @@
       $('dialogTitle').textContent=e.name||'社員詳細';
       const employeeActions=[];
       if(canView('credentials_documents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-credentials">資格・書類</button>');
+      if(canView('accidents'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-accidents">事故履歴</button>');
+      if(canView('complaints'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-complaints">苦情履歴</button>');
+      if(canView('near_misses'))employeeActions.push('<button class="ghost light" data-dialog-action="open-employee-near">ヒヤリ履歴</button>');
       if(canEdit('employees'))employeeActions.push('<button class="small-primary" data-dialog-action="edit-employee">社員情報を編集</button>');
       if(state.me?.role_level==='full')employeeActions.push('<button class="small-primary" data-dialog-action="create-user-for-employee">利用者アカウント発行</button>');
       const edit=employeeActions.length?'<div class="dialog-actions">'+employeeActions.join('')+'</div>':'';
@@ -345,32 +386,39 @@
 
   async function renderSafetyHub(){
     if(!canViewAny(NAV_FEATURES.safety)){$('content').innerHTML='<div class="empty">運行・安全を利用できる権限がありません。</div>';return}
-    const [accidents,complaints,near,handoffs]=await Promise.all([
+    const canGuidance=canView('employees');
+    const [accidents,complaints,near,handoffs,guidance]=await Promise.all([
       canView('accidents')?api('/accidents?page_size=1').then(x=>x.data):Promise.resolve(null),
       canView('complaints')?api('/complaints?page_size=1').then(x=>x.data):Promise.resolve(null),
       canView('near_misses')?api('/near-misses?page_size=1').then(x=>x.data):Promise.resolve(null),
-      canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null)
+      canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null),
+      canGuidance?api('/guidance?page_size=8').then(x=>x.data):Promise.resolve(null)
     ]);
+    const handoffItems=(handoffs?.handoffs||[]).filter(x=>x.status==='pending'),guidanceItems=guidance?.items||[];
     const shortcuts=[];
-    if(canView('accidents'))shortcuts.push(hubButton('accidents','事故','初報・対応・完了まで',String(accidents?.total??0)+'件'));
-    if(canView('complaints'))shortcuts.push(hubButton('complaints','苦情','対応・指導・再発防止',String(complaints?.total??0)+'件'));
-    if(canView('near_misses'))shortcuts.push(hubButton('near-misses','ヒヤリ','月次報告・危険傾向',String(near?.total??0)+'件'));
-    if(canView('handoffs')||canView('employees'))shortcuts.push(hubButton('business','引継ぎ・指導','管理者間の案件引継ぎと安全指導',String((handoffs?.handoffs||[]).filter(x=>x.status==='pending').length)+'件未確認'));
+    if(canView('accidents'))shortcuts.push(hubButton('accidents','事故','初報 → 対応 → 完了',String(accidents?.total??0)+'件'));
+    if(canView('complaints'))shortcuts.push(hubButton('complaints','苦情','受付 → 指導 → 再発防止',String(complaints?.total??0)+'件'));
+    if(canView('near_misses'))shortcuts.push(hubButton('near-misses','ヒヤリ','報告 → 月次確認 → 改善',String(near?.total??0)+'件'));
+    if(canView('safety_analysis'))shortcuts.push(hubButton('analysis','安全分析','傾向を見て該当案件へ戻る'));
+    const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.slice(0,8).map(x=>
+      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'担当変更')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.created_at))+'</span>'+
+      (canEdit('handoffs')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
+    ).join('')+'</div>':empty();
+    const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
+      '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><span>'+esc(fmtDate(x.guidance_on))+'</span><span>次回 '+esc(fmtDate(x.next_review))+'</span>'+
+      (x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員詳細</button>':'')+'</div></div>'
+    ).join('')+'</div>':empty();
     $('content').innerHTML='<div class="hub-grid">'+shortcuts.join('')+'</div>'+
-      '<section class="panel"><h3>使い方</h3><div class="check-grid">'+
-      check('事故','発生から完了・再開まで履歴を残します')+
-      check('苦情','ランク・対応・指導・次回対応を管理します')+
-      check('ヒヤリ','個人ランキングではなく共通リスクを改善に使います')+
-      check('引継ぎ','担当変更された未完了案件を管理者間で確認します')+
-      '</div></section>'
+      (canView('handoffs')?'<section class="panel"><div class="list-head"><div><b>引継ぎ未確認</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+handoffHtml+'</section>':'')+
+      (canGuidance?'<section class="panel"><div class="list-head"><div><b>安全指導・次回確認</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')
   }
 
   async function renderAdminHub(){
     if(state.me?.role_level!=='full'){$('content').innerHTML='<div class="empty">管理は全社管理者のみ利用できます。</div>';return}
     const shortcuts=[
       hubButton('users','利用者・権限','指定利用者の追加・停止・担当範囲設定'),
-      canView('work_import')?hubButton('work-import','勤務取込','取込履歴・ロールバックを含む管理操作'):null
-    ].filter(Boolean);
+      hubButton('audit','監査ログ','誰が・いつ・何を操作したか確認')
+    ];
     $('content').innerHTML='<div class="hub-grid">'+shortcuts.join('')+'</div>'+
       '<section class="panel"><h3>管理の原則</h3><div class="check-grid">'+
       check('指定利用者のみ','一般社員にはログインアカウントを配布しません')+
@@ -397,7 +445,7 @@
     const add=canEdit('accidents')?'<button class="small-primary" data-action="new-accident">＋ 事故登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'事故',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span><button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'<button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -407,7 +455,7 @@
     const add=canEdit('complaints')?'<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'苦情',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span><button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'<button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -428,7 +476,7 @@
     const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'</div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -487,32 +535,7 @@
 
   async function acknowledgeHandoff(id){
     await api('/handoffs/'+encodeURIComponent(id)+'/acknowledge',{method:'POST'});
-    await renderBusiness()
-  }
-
-  async function renderBusiness(){
-    const canGuidance=canView('employees');
-    const [handoffs,guidance]=await Promise.all([
-      canView('handoffs')?api('/handoffs').then(x=>x.data):Promise.resolve(null),
-      canGuidance?api('/guidance?page_size=50').then(x=>x.data):Promise.resolve(null)
-    ]);
-    const handoffItems=handoffs?.handoffs||[],guidanceItems=guidance?.items||[];
-
-    const handoffHtml=handoffItems.length?'<div class="cards">'+handoffItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.case_type)+' / '+esc(x.case_id)+'</b><p>'+esc(x.note||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(x.status)+'</span><span>'+esc(fmtDate(x.created_at))+'</span>'+
-      (x.status==='pending'&&canEdit('handoffs')&&String(x.to_user_id)===String(state.me?.id)?'<button class="record-action" data-action="ack-handoff" data-id="'+esc(x.id)+'">確認済みにする</button>':'')+'</div></div>'
-    ).join('')+'</div>':empty();
-
-    const guidanceHtml=guidanceItems.length?'<div class="cards">'+guidanceItems.map(x=>
-      '<div class="record"><div><b>'+esc(x.type)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary||'')+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.guidance_on))+'</span><span>'+esc(x.owner||'担当未設定')+'</span><span>次回 '+esc(fmtDate(x.next_review))+'</span></div></div>'
-    ).join('')+'</div>':empty();
-
-    $('content').innerHTML=
-      '<section class="panel"><div class="list-head"><div><b>管理者間の引継ぎ</b><span>'+esc(handoffItems.length)+'件</span></div></div>'+
-      '<p class="mini">担当変更された未完了案件だけを確認します。全社員向けの掲示・一斉確認・本人申請は本番では使用しません。</p>'+handoffHtml+'</section>'+
-      (canGuidance?'<section class="panel"><div class="list-head"><div><b>安全指導</b><span>'+esc(guidance?.total||0)+'件</span></div>'+(canEdit('employees')?'<button class="small-primary" data-action="new-guidance">＋ 指導登録</button>':'')+'</div>'+guidanceHtml+'</section>':'')
+    if(state.view==='home')await renderHome();else await renderSafetyHub()
   }
 
   async function renderUsers(q){
@@ -582,6 +605,18 @@
     await renderUsers($('searchInput').value.trim())
   }
 
+  async function renderAuditLogs(q){
+    if(state.me?.role_level!=='full'){$('content').innerHTML='<div class="empty">監査ログは全社管理者のみ利用できます。</div>';return}
+    const sp=new URLSearchParams({page_size:'100'});if(q)sp.set('q',q);
+    const {data}=await api('/audit-logs?'+sp);
+    $('content').innerHTML=
+      '<section class="panel"><div class="list-head"><div><b>監査ログ</b><span>'+esc(data.total)+'件</span></div></div><p class="sub">利用者・社員・安全案件などの重要操作を、照会IDと一緒に追跡できます。検索欄から操作名・概要・照会IDを探せます。</p>'+
+      (data.items.length?'<div class="cards">'+data.items.map(x=>
+        '<div class="record"><div><b>'+esc(x.action)+'</b><span>'+esc(x.actor_name||'システム')+' / '+esc(fmtDate(x.occurred_at))+'</span><p>'+esc(x.summary||'')+'</p></div><div class="record-meta"><span>'+esc(x.entity_type||'—')+'</span><span>'+esc(x.result||'—')+'</span><span>照会ID '+esc(x.request_id||'—')+'</span>'+
+        (x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員詳細</button>':'')+'</div></div>'
+      ).join('')+'</div>':empty())+'</section>'
+  }
+
   async function renderSafetyAnalysis(){
     if(!canView('safety_analysis')){$('content').innerHTML='<div class="empty">安全分析の利用権限がありません。</div>';return}
     const sp=new URLSearchParams();
@@ -617,7 +652,12 @@
       '<p class="sub">'+esc(a.notes?.reference_per_100||'現在在籍人数を分母にした参考値です。')+'</p>'+
       (departments.length?'<div class="table-wrap"><table><thead><tr><th>事業所</th><th>部署</th><th>事故</th><th>ヒヤリ</th><th>苦情</th><th>現在在籍</th><th>100人あたり参考</th></tr></thead><tbody>'+
         departments.map(x=>'<tr><td>'+esc(x.office_snapshot||'—')+'</td><td>'+esc(x.department_snapshot||'—')+'</td><td>'+esc(x.accident_count)+'</td><td>'+esc(x.near_miss_count)+'</td><td>'+esc(x.complaint_count)+'</td><td>'+esc(x.active_employee_count)+'</td><td>'+esc(x.reference_per_100??'—')+'</td></tr>').join('')+
-        '</tbody></table></div>':empty())+'</section>'
+        '</tbody></table></div>':empty())+'</section>'+ 
+      '<section class="panel"><div class="list-head"><div><b>分析から次の処理へ</b><span>数字を見て終わらせない</span></div></div><div class="hub-grid">'+
+      (canView('accidents')?hubButton('accidents','事故を確認','未完了・再発防止を確認'):'')+
+      (canView('near_misses')?hubButton('near-misses','ヒヤリを確認','高リスク・月次提出を確認'):'')+
+      (canView('complaints')?hubButton('complaints','苦情を確認','対応・指導・次回対応を確認'):'')+
+      '</div></section>'
   }
 
   async function applyAnalysisFilters(){
@@ -749,9 +789,12 @@
   function fdText(fd,name){return String(fd.get(name)||'').trim()}
   function nullable(v){const s=String(v||'').trim();return s||null}
 
-  async function handleAction(action,id){
+  async function handleAction(action,id,q=''){
     try{
       if(action==='open-view')return loadView(id);
+      if(action==='open-filtered-view')return loadView(id,{q});
+      if(action==='open-employee')return employeeDetail(id);
+      if(action==='home-search')return runHomeSearch();
       if(action==='new-employee')return newEmployee();
       if(action==='new-accident')return newAccident();
       if(action==='edit-accident')return editAccident(id);
@@ -780,6 +823,9 @@
     const d=state.dialog;if(!d)return;
     try{
       if(action==='open-employee-credentials'){state.credentialEmployeeId=d.record.id;$('detailDialog').close();return loadView('credentials')}
+      if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no})}
+      if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no})}
+      if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no})}
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
       if(action==='new-training')return newTrainingForEmployee(d.record);
