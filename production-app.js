@@ -445,7 +445,7 @@
     const add=canEdit('accidents')?'<button class="small-primary" data-action="new-accident">＋ 事故登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'事故',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.accident_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'<button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.occurred_on))+'</span><span>'+esc(x.phase)+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'<button class="record-action" data-action="edit-accident" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -455,7 +455,7 @@
     const add=canEdit('complaints')?'<button class="small-primary" data-action="new-complaint">＋ 苦情登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'苦情',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.complaint_no)+'</b><span>'+esc(x.employee_name)+' / '+esc(x.employee_no)+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'<button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.responded_on))+'</span><span>'+esc(x.status)+'</span><span>'+esc(x.rank||'未判定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'<button class="record-action" data-action="edit-complaint" data-id="'+esc(x.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -465,7 +465,7 @@
     const add=canEdit('vehicles')?'<button class="small-primary" data-action="new-vehicle">＋ 車両登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'車両',add)+(data.items.length?'<div class="cards">'+data.items.map(v=>
       '<div class="record"><div><b>'+esc(v.car_no)+'号車</b><span>'+esc(v.model||v.service||'—')+'</span></div>'+
-      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span><button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
+      '<div class="record-meta"><span>'+esc(v.status)+'</span><span>車検 '+esc(fmtDate(v.inspection_due))+'</span><span>'+esc(v.primary_employee_name||'主担当なし')+'</span>'+(v.primary_employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(v.primary_employee_id)+'">担当社員</button>':'')+'<button class="record-action" data-action="edit-vehicle" data-id="'+esc(v.id)+'">開く</button></div></div>'
     ).join('')+'</div>':empty())
   }
 
@@ -476,7 +476,7 @@
     const add=canEdit('near_misses')?'<button class="small-primary" data-action="new-near-miss">＋ ヒヤリ登録</button>':'';
     $('content').innerHTML=listHeader(data.total,'ヒヤリ',add)+(data.items.length?'<div class="cards">'+data.items.map(x=>
       '<div class="record"><div><b>'+esc(x.report_no)+'</b><span>'+esc(x.employee_name||'')+' / '+esc(x.employee_no||'')+'</span><p>'+esc(x.summary)+'</p></div>'+
-      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+'</div></div>'
+      '<div class="record-meta"><span>'+esc(fmtDate(x.reported_on))+'</span><span>'+esc(x.risk_level||'未判定')+'</span><span>'+esc(x.car_no||'号車未設定')+'</span>'+(x.employee_id?'<button class="record-action" data-action="open-employee" data-id="'+esc(x.employee_id)+'">社員</button>':'')+(x.car_no?'<button class="record-action" data-action="open-filtered-view" data-id="vehicles" data-q="'+esc(x.car_no)+'">号車</button>':'')+'</div></div>'
     ).join('')+'</div>':empty())
   }
 
