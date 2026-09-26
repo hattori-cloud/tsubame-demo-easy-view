@@ -228,6 +228,20 @@ create table accidents (
   version integer not null default 1 check (version >= 1)
 );
 
+create table accident_documents (
+  id uuid primary key default gen_random_uuid(),
+  accident_id uuid not null references accidents(id) on delete cascade,
+  document_id uuid not null references documents(id),
+  role text not null
+    check (role in ('scene_photo','sketch','vehicle_damage','opponent_damage','police','estimate','other')),
+  report_placement text not null default 'auto'
+    check (report_placement in ('auto','none')),
+  display_order integer not null default 0 check (display_order >= 0),
+  created_by_user_id uuid references users(id),
+  created_at timestamptz not null default now(),
+  unique (accident_id, document_id)
+);
+
 create table near_misses (
   id uuid primary key default gen_random_uuid(),
   report_no text not null unique,
@@ -433,6 +447,8 @@ create index accidents_employee_date_idx on accidents (employee_id, occurred_on 
 create index accidents_phase_due_idx on accidents (phase, followup_due, id);
 create index accidents_owner_idx on accidents (owner_user_id, phase, followup_due);
 create index accidents_car_no_idx on accidents (car_no, occurred_on desc);
+create index accident_documents_accident_idx on accident_documents (accident_id, role, display_order, created_at);
+create index accident_documents_document_idx on accident_documents (document_id, accident_id);
 
 create index near_misses_employee_date_idx on near_misses (employee_id, reported_on desc, id);
 create index near_misses_source_idx on near_misses (source_type, reported_on desc, id);
