@@ -2,6 +2,7 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
+const network=require('../api/_lib/network-access');
 
 const root=path.join(__dirname,'..','api','v1');
 
@@ -80,4 +81,26 @@ test('single router blocks every production API except health until explicit act
   assert.ok(router.includes('!dbReady.runtime_role_ready'));
   assert.ok(router.includes("'PRODUCTION_NOT_ACTIVATED'"));
   assert.ok(router.includes("'PRODUCTION_DATABASE_NOT_READY'"));
+});
+
+
+test('production network gate allows only configured office LAN or corporate Wi-Fi egress CIDRs',()=>{
+  const old=process.env.TSUBAME_INTERNAL_NETWORK_CIDRS;
+  try{
+    process.env.TSUBAME_INTERNAL_NETWORK_CIDRS='203.0.113.0/24,198.51.100.44/32';
+    assert.equal(network.requestFromInternalNetwork({headers:{'x-forwarded-for':'203.0.113.10'}}),true);
+    assert.equal(network.requestFromInternalNetwork({headers:{'x-forwarded-for':'198.51.100.44'}}),true);
+    assert.equal(network.requestFromInternalNetwork({headers:{'x-forwarded-for':'192.0.2.9'}}),false);
+    assert.equal(network.requestFromInternalNetwork({headers:{}}),false);
+  }finally{
+    if(old===undefined)delete process.env.TSUBAME_INTERNAL_NETWORK_CIDRS;
+    else process.env.TSUBAME_INTERNAL_NETWORK_CIDRS=old
+  }
+});
+
+test('single router hides production health and business APIs outside internal network',()=>{
+  const router=fs.readFileSync(path.join(__dirname,'..','api','router.js'),'utf8');
+  assert.ok(router.includes('requestFromInternalNetwork'));
+  assert.ok(router.indexOf('requestFromInternalNetwork(req)')<router.indexOf("path!=='/health'"));
+  assert.ok(router.includes("return res.status(404).json(errorBody('NOT_FOUND'"));
 });
