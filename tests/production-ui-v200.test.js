@@ -28,7 +28,7 @@ test('production auth shell covers password, MFA and logout',()=>{
 });
 
 test('production shell covers primary server-backed operational views',()=>{
-  for(const p of ['/employees','/deadlines','/accidents','/complaints','/vehicles','/near-misses','/analysis/safety-summary','/users','/audit-logs'])assert.ok(js.includes(p),p);
+  for(const p of ['/employees','/deadlines','/accidents','/complaints','/vehicles','/near-misses','/analysis/management-summary','/users','/audit-logs'])assert.ok(js.includes(p),p);
   assert.equal(html.includes('1001'),false);
 });
 
@@ -142,11 +142,21 @@ test('management keeps work import in work flow and uses management for users an
   assert.ok(js.slice(workStart,workEnd).includes("hubButton('work-import'"));
 });
 
-test('analysis provides direct operational follow-up instead of ending at charts',()=>{
+test('analysis connects current management workload, safety history and operational follow-up',()=>{
+  assert.ok(js.includes("api('/analysis/management-summary'"));
+  assert.ok(js.includes('現在の人員状況'));
+  assert.ok(js.includes('今対応が必要なこと'));
+  assert.ok(js.includes('横断して確認する人数'));
+  assert.ok(js.includes('現在所属別の人員・対応状況'));
+  assert.ok(js.includes('安全分析'));
+  assert.ok(js.includes('安全記録 月別推移'));
+  assert.ok(js.includes('安全記録 部署別比較'));
   assert.ok(js.includes('分析から次の処理へ'));
-  assert.ok(js.includes("hubButton('accidents','事故を確認'"));
-  assert.ok(js.includes("hubButton('near-misses','ヒヤリを確認'"));
-  assert.ok(js.includes("hubButton('complaints','苦情を確認'"));
+  assert.ok(js.includes("hubButton('employees','社員を確認'"));
+  assert.ok(js.includes("hubButton('deadlines','期限を確認'"));
+  assert.ok(js.includes("hubButton('credentials','資格・書類を確認'"));
+  assert.ok(js.includes("hubButton('work-import','勤務を確認'"));
+  assert.ok(js.includes("hubButton('safety','運行・安全を確認'"));
 });
 
 
@@ -217,4 +227,25 @@ test('filtered navigation keeps the visible search box synchronized and clears s
   assert.ok(js.includes("Object.prototype.hasOwnProperty.call(opts,'q')"));
   assert.ok(js.includes("$('searchInput').value=String(opts.q||'')"));
   assert.ok(js.includes("previousView!==view||opts.resetPage"));
+});
+
+
+test('production analysis labels current-vs-historical aggregation bases to avoid false comparisons',()=>{
+  assert.ok(js.includes('安全は記録時所属、人員系は現在所属'));
+  assert.ok(js.includes("a.notes?.workforce_basis"));
+  assert.ok(js.includes("a.notes?.safety_basis"));
+  assert.ok(js.includes("a.notes?.cross_basis"));
+  assert.ok(js.includes('順位付けではなく業務確認用'));
+});
+
+test('production analysis only renders management modules that the API marks as accessible',()=>{
+  assert.ok(js.includes('const workforce=a.workforce||null'));
+  assert.ok(js.includes('if(deadlines)'));
+  assert.ok(js.includes('if(credentials)'));
+  assert.ok(js.includes('if(support)'));
+  assert.ok(js.includes('if(work)'));
+  assert.ok(js.includes('if(access.employees)'));
+  assert.ok(js.includes('if(access.deadlines)'));
+  assert.ok(js.includes('if(access.credentials)'));
+  assert.ok(js.includes('if(access.work_import)'));
 });
