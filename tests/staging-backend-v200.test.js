@@ -29,7 +29,8 @@ function envSnapshot(){
     TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN:process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN,
     TSUBAME_DOCUMENT_BACKUP_URL:process.env.TSUBAME_DOCUMENT_BACKUP_URL,
     TSUBAME_DOCUMENT_BACKUP_TOKEN:process.env.TSUBAME_DOCUMENT_BACKUP_TOKEN,
-    TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY:process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY
+    TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY:process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY,
+    TSUBAME_INTERNAL_NETWORK_CIDRS:process.env.TSUBAME_INTERNAL_NETWORK_CIDRS
   }
 }
 function restoreEnv(saved){
@@ -197,6 +198,36 @@ test('production activation remains closed without approved separate-failure-dom
     assert.equal(runtime.documentBackupReady(),false);
     process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN='1';
     assert.equal(runtime.documentBackupReady(),true);
+    process.env.TSUBAME_INTERNAL_NETWORK_CIDRS='203.0.113.0/24';
+    assert.equal(runtime.productionBusinessDataEnabled(),true)
+  }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
+});
+
+
+test('production activation remains closed without office LAN or corporate Wi-Fi CIDRs',()=>{
+  const saved=envSnapshot();
+  try{
+    process.env.VERCEL_ENV='production';
+    process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA='1';
+    process.env.DATABASE_URL='postgres://example.invalid/db';
+    process.env.TSUBAME_SESSION_SECRET='12345678901234567890123456789012';
+    process.env.TSUBAME_MFA_ENCRYPTION_KEY=Buffer.alloc(32,9).toString('base64');
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='storage-token-present';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_PROVIDER='private-https';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_APPROVED='1';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_URL='https://scanner.internal.example/scan';
+    process.env.TSUBAME_DOCUMENT_MALWARE_SCANNER_TOKEN='12345678901234567890123456789012';
+    process.env.TSUBAME_DOCUMENT_BACKUP_PROVIDER='private-https';
+    process.env.TSUBAME_DOCUMENT_BACKUP_APPROVED='1';
+    process.env.TSUBAME_DOCUMENT_BACKUP_SEPARATE_FAILURE_DOMAIN='1';
+    process.env.TSUBAME_DOCUMENT_BACKUP_URL='https://backup.internal.example/originals';
+    process.env.TSUBAME_DOCUMENT_BACKUP_TOKEN='12345678901234567890123456789012';
+    process.env.TSUBAME_DOCUMENT_BACKUP_ENCRYPTION_KEY=Buffer.alloc(32,12).toString('base64');
+    delete process.env.TSUBAME_INTERNAL_NETWORK_CIDRS;
+    assert.equal(runtime.productionBusinessDataEnabled(),false);
+    process.env.TSUBAME_INTERNAL_NETWORK_CIDRS='203.0.113.0/24,198.51.100.44/32';
     assert.equal(runtime.productionBusinessDataEnabled(),true)
   }finally{restoreEnv(saved);delete process.env.TSUBAME_ENABLE_PRODUCTION_BUSINESS_DATA}
 });
