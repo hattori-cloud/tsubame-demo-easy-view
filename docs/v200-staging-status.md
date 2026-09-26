@@ -316,3 +316,58 @@ GitHub Actions:
 ただし本番稼働承認は、上記「実環境接続が必要で未完了」の項目が完了するまで行わない。
 
 実社員情報・実PDF/画像/スキャン原本は引き続き投入禁止。
+
+
+## 2026-09-26 private原本ストレージ経路強化
+
+**コード先端:** `fb43c44b387a21bf374142f694dd2d996bead355`
+
+### private保管経路
+
+- Vercel Private Blob用provider `vercel-blob-private` を追加
+- `@vercel/blob 2.8.0` を固定
+- private signed URLによる短時間PUT / HEAD / GET
+- upload URLは単一pathname・単一operation・期限付き
+- MIME / 最大サイズを署名条件へ含める
+- `allowOverwrite=false` / `addRandomSuffix=false`
+- storage keyは社員番号・氏名・原本ファイル名を含まないopaqueな `quarantine/<random>`
+- 読取時は `useCache=false` とし、保存直後の原本確認で古いcacheを使用しない
+- finalize前にprivate Blob本体を読み戻してSHA-256を再計算
+- DBがactiveになるまではアプリからdownload authorizationを発行しない
+- static tokenだけでなく、Vercel OIDC token + Blob store IDの接続方式も受け入れる設計
+
+### 安全ゲート分離
+
+原本readinessを以下へ分離した。
+
+1. `document_storage_transport_ready`
+2. `document_malware_scanner_ready`
+3. `original_document_pipeline_ready`
+
+private Blob保管経路だけがreadyでも、production業務APIは有効化しない。
+現在production scanner adapterは未実装のため、`document_malware_scanner_ready=false`、
+`original_document_pipeline_ready=false` を維持する。
+
+このため、保存経路が実装された後も「保存できる = 安全確認済み」と誤判定しない。
+
+### 回帰確認
+
+- 旧回帰テストのstorage adapter単一判定を、新しいpipeline readiness判定へ更新
+- private Blob署名処理をnetwork不要のmockで実行
+- private PUT / 上書き禁止 / MIME・size制限 / private GET / cache bypassを確認
+- Blob読戻しSHA-256計算を確認
+- malware statusがscanner未接続時に `pending` のままであることを確認
+- 最新 `fb43c44b...` GitHub Actions: **success**
+- 直前 `eef4858d...` Vercel Preview: **READY**
+- 最新SHAのVercel自動配備はbuild rate limitにより未反映（コード失敗ではない）
+
+### 残る原本ブロッカー
+
+- 承認済みproduction malware scannerの選定・接続
+- scanner結果とSHA-256を結び付けたclean/blocked確定処理
+- blocked/error時の隔離継続・再試行・管理者通知
+- private Blob storeの実作成/接続とOIDC実接続確認
+- secondary backup先への原本backup / restore / SHA-256照合
+- 実PDF/画像を使わない架空原本でのend-to-end UAT
+
+実社員原本は、上記が完了するまで投入禁止を継続する。
