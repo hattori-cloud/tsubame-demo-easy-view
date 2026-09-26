@@ -185,6 +185,16 @@ async function updateNearMiss({user,id,body,expectedVersion,requestId}){
     const before=await scopedRecord(user,'near_misses',id,client,{forUpdate:true});assertVersion(before,expectedVersion);
     const patch=editablePatch(body,['occurred_on','occurred_time','reported_on','car_no','summary','prevention','education','risk_level','cause_side','location_tags','situation_tags','road_tags','target_tags','internal_factors','source_type','external_ref']);
     for(const k of ['location_tags','situation_tags','road_tags','target_tags','internal_factors'])if(k in patch)patch[k]=JSON.stringify(patch[k]||[]);
+    const nextSource=String(Object.prototype.hasOwnProperty.call(patch,'source_type')?(patch.source_type||'system'):(before.source_type||'system')).trim();
+    const nextRef=String(Object.prototype.hasOwnProperty.call(patch,'external_ref')?(patch.external_ref||''):(before.external_ref||'')).trim()||null;
+    if(!['system','google_form','paper'].includes(nextSource))throw problem(422,'SOURCE_TYPE_INVALID','入力経路を確認してください');
+    if(nextSource!=='system'&&!nextRef)throw problem(422,'EXTERNAL_REF_REQUIRED','Googleフォーム・紙の取込には受付番号を入力してください');
+    if(nextRef){
+      const dup=await query(`select id from near_misses where source_type=$1 and external_ref=$2 and archived_at is null and id<>$3 limit 1`,[nextSource,nextRef,id],client);
+      if(dup.rows[0])throw problem(409,'DUPLICATE_EXTERNAL_REF','同じ入力経路・受付番号のヒヤリが既に登録されています');
+    }
+    if('source_type' in patch)patch.source_type=nextSource;
+    if('external_ref' in patch)patch.external_ref=nextRef;
     const keys=Object.keys(patch);if(!keys.length)return before;
     const params=[id],sets=keys.map(k=>{params.push(patch[k]);return `${k}=$${params.length}${k.endsWith('_tags')||k==='internal_factors'?'::jsonb':''}`});
     const after=(await query(`update near_misses set ${sets.join(',')},updated_at=now(),version=version+1 where id=$1 returning *`,params,client)).rows[0];
