@@ -862,6 +862,7 @@
       if(action==='open-employee-accidents'){$('detailDialog').close();return loadView('accidents',{q:d.record.employee_no})}
       if(action==='open-employee-complaints'){$('detailDialog').close();return loadView('complaints',{q:d.record.employee_no})}
       if(action==='open-employee-near'){$('detailDialog').close();return loadView('near-misses',{q:d.record.employee_no})}
+      if(action==='edit-vehicle-assignments')return editVehicleAssignments(d.record);
       if(action==='edit-employee')return editEmployee(d.record);
       if(action==='create-user-for-employee')return createUserForEmployee(d.record);
       if(action==='new-training')return newTrainingForEmployee(d.record);
@@ -1189,22 +1190,61 @@
     })
   }
 
+  async function resolveEmployeeReference(reference){
+    const value=String(reference||'').trim();
+    if(!value)return null;
+    const {data}=await api('/employees?page_size=20&q='+encodeURIComponent(value));
+    const items=data.items||[];
+    const exact=items.filter(e=>String(e.employee_no||'')===value||String(e.name||'')===value);
+    if(exact.length===1)return exact[0];
+    if(!exact.length&&items.length===1)return items[0];
+    const err=new Error(exact.length>1?'同名社員が複数います。社員番号で入力してください':'社員が特定できません。「社員番号」または正確な氏名で入力してください');
+    err.code='EMPLOYEE_REFERENCE_AMBIGUOUS';
+    throw err
+  }
+
+  async function editVehicleAssignments(vehicle){
+    const {data}=await api('/vehicles/'+encodeURIComponent(vehicle.id)),v=data.vehicle;
+    const primary=(v.users||[]).find(x=>x.role==='primary');
+    const additional=(v.users||[]).filter(x=>x.role==='additional');
+    const fields=
+      formSelect('assignment_mode','車両区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
+      formField('primary_employee','主担当（社員番号または氏名）',primary?.employee_no||v.primary_employee_no||'','text','placeholder="例：1001 または 安芸太郎"')+
+      formArea('additional_employees','追加担当（1行1名・社員番号推奨）',additional.map(x=>x.employee_no||x.name).join('\n'),'placeholder="1002&#10;1015"');
+    state.dialog={type:'vehicle',record:v};
+    openRecordForm('車両 '+v.car_no+'号車｜担当乗務員',fields,async fd=>{
+      const mode=fdText(fd,'assignment_mode');
+      const primaryRef=fdText(fd,'primary_employee');
+      if(mode==='dedicated'&&!primaryRef){const err=new Error('専属車には主担当乗務員を入力してください');err.code='PRIMARY_EMPLOYEE_REQUIRED';throw err}
+      const primaryEmployee=primaryRef?await resolveEmployeeReference(primaryRef):null;
+      const refs=String(fd.get('additional_employees')||'').split(/\r?\n|,/).map(x=>x.trim()).filter(Boolean);
+      const resolved=await Promise.all(refs.map(resolveEmployeeReference));
+      const additionalIds=[...new Set(resolved.map(e=>String(e.id)).filter(id=>!primaryEmployee||id!==String(primaryEmployee.id)))];
+      await api('/vehicles/'+encodeURIComponent(v.id)+'/assignments',{
+        method:'POST',
+        body:{assignment_mode:mode,primary_employee_id:primaryEmployee?.id||null,additional_employee_ids:additionalIds},
+        headers:{'If-Match':'"'+v.version+'"'}
+      })
+    })
+  }
+
   async function editVehicle(id){
     const {data}=await api('/vehicles/'+encodeURIComponent(id));const v=data.vehicle;state.dialog={type:'vehicle',record:v};
     if(!canEdit('vehicles'))return openReadOnlyDialog('車両 '+v.car_no+'号車',[
       ['車種',v.model],['用途',v.service],['状態',v.status],['区分',v.assignment_mode],
+      ['主担当',v.primary_employee_name?((v.primary_employee_no||'')+' '+v.primary_employee_name):'未設定'],
       ['車検期限',fmtDate(v.inspection_due)],['次回整備',fmtDate(v.next_maintenance_due)],['整備メモ',v.maintenance_note]
     ]);
     const fields=formField('model','車種',v.model)+formField('service','用途',v.service)+
       formSelect('status','状態',[['active','稼働'],['maintenance','整備'],['inactive','停止']],v.status||'active')+
-      formSelect('assignment_mode','区分',[['spare','予備'],['shared','共用'],['dedicated','専属'],['loaner','貸出']],v.assignment_mode||'spare')+
       formField('inspection_due','車検期限',fmtDate(v.inspection_due)==='—'?'':fmtDate(v.inspection_due),'date','required')+
       formField('next_maintenance_due','次回整備',fmtDate(v.next_maintenance_due)==='—'?'':fmtDate(v.next_maintenance_due),'date')+
       formArea('maintenance_note','整備メモ',v.maintenance_note);
+    const actions='<button type="button" class="ghost light" data-dialog-action="edit-vehicle-assignments">担当乗務員・区分を変更</button>';
     openRecordForm('車両 '+v.car_no+'号車',fields,async fd=>{
-      const body={};for(const k of ['model','service','status','assignment_mode','inspection_due','next_maintenance_due','maintenance_note'])body[k]=nullable(fdText(fd,k));
+      const body={};for(const k of ['model','service','status','inspection_due','next_maintenance_due','maintenance_note'])body[k]=nullable(fdText(fd,k));
       await api('/vehicles/'+encodeURIComponent(v.id),{method:'PATCH',body,headers:{'If-Match':'"'+v.version+'"'}})
-    })
+    },{actions})
   }
 
   window.addEventListener('DOMContentLoaded',boot);
