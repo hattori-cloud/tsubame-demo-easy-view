@@ -8089,10 +8089,10 @@ function openAccidentEdit(id){
  <div class="employee-form-section"><h4>事故調査票</h4><p>現在の紙の「事故報告・調査票」を仕上げるための項目です。社員・車両台帳から分かる内容は再入力しません。</p></div>
  <div class="field"><label>天候</label><select id="faeweather"><option>未設定</option><option>晴</option><option>曇</option><option>雨</option><option>雪</option><option>その他</option></select></div>
  <div class="field"><label>警察対応</label><select id="faepolice"><option>未確認</option><option>届出済</option><option>現場臨場</option><option>届出不要・対象外</option></select></div>
- <div class="field wide"><label>相手方・関係者の概要</label><textarea id="faeopponent" placeholder="相手方の種別、連絡先確認状況など。必要以上の個人情報は入力しません。">\${esc(a.opponentSummary||'')}</textarea></div>
- <div class="field wide"><label>事故発生時に取った措置</label><textarea id="faeonsite" placeholder="停止、安全確保、負傷者確認、警察連絡、会社連絡など">\${esc(a.onsiteActions||'')}</textarea></div>
- <div class="field wide"><label>道路・現場状況</label><textarea id="faeroad" placeholder="交差点・道路幅・路面・信号・見通しなど">\${esc(a.roadCondition||'')}</textarea></div>
- <div class="field wide"><label>負傷・損傷状況</label><textarea id="faedamage" placeholder="人の負傷、相手車両・自社車両・工作物などの損傷">\${esc(a.damageInjurySummary||'')}</textarea></div>
+ <div class="field wide"><label>相手方・関係者の概要</label><textarea id="faeopponent" placeholder="相手方の種別、連絡先確認状況など。必要以上の個人情報は入力しません。">${esc(a.opponentSummary||'')}</textarea></div>
+ <div class="field wide"><label>事故発生時に取った措置</label><textarea id="faeonsite" placeholder="停止、安全確保、負傷者確認、警察連絡、会社連絡など">${esc(a.onsiteActions||'')}</textarea></div>
+ <div class="field wide"><label>道路・現場状況</label><textarea id="faeroad" placeholder="交差点・道路幅・路面・信号・見通しなど">${esc(a.roadCondition||'')}</textarea></div>
+ <div class="field wide"><label>負傷・損傷状況</label><textarea id="faedamage" placeholder="人の負傷、相手車両・自社車両・工作物などの損傷">${esc(a.damageInjurySummary||'')}</textarea></div>
  <div class="field"><label>写真・見取図</label><select id="faeevidence"><option>未確認</option><option>あり</option><option>なし</option><option>後日追加</option></select><div class="mini">共有デモでは実ファイルは保存せず、有無だけ管理します。</div></div>
  <div class="field"><label>調査票の仕上がり</label><select id="faereportstatus"><option>未着手</option><option>作成中</option><option>確認待ち</option><option>完成</option></select></div>
 
