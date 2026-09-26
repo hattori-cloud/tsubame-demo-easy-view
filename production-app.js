@@ -1332,11 +1332,14 @@
 
   async function editAccident(id){
     const {data}=await api('/accidents/'+encodeURIComponent(id));const a=data.accident;state.dialog={type:'accident',record:a};
-    if(!canEdit('accidents'))return openReadOnlyDialog('事故 '+(a.accident_no||''),[
-      ['発生日',fmtDate(a.occurred_on)],['状態',a.phase],['号車',a.car_no],['場所',a.address],
-      ['事故内容',a.summary],['原因',a.cause],['再発防止',a.prevention],['対応履歴',a.response_history],
-      ['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)]
-    ]);
+    if(!canEdit('accidents')){
+      const quick=canEdit('handoffs')?'<button type="button" class="ghost light" data-dialog-action="handoff-accident">引継ぎ</button>':'';
+      return openReadOnlyDialog('事故 '+(a.accident_no||''),[
+        ['発生日',fmtDate(a.occurred_on)],['状態',a.phase],['号車',a.car_no],['場所',a.address],
+        ['事故内容',a.summary],['原因',a.cause],['再発防止',a.prevention],['対応履歴',a.response_history],
+        ['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)]
+      ],{actions:quick})
+    }
     const terminal=a.phase==='completed';
     const fields=formField('occurred_on','発生日',fmtDate(a.occurred_on),'date','required')+formField('car_no','号車',a.car_no)+
       formField('address','場所',a.address,'text','required')+formArea('summary','事故内容',a.summary,'required')+
@@ -1377,10 +1380,13 @@
 
   async function editComplaint(id){
     const {data}=await api('/complaints/'+encodeURIComponent(id));const a=data.complaint;state.dialog={type:'complaint',record:a};
-    if(!canEdit('complaints'))return openReadOnlyDialog('苦情 '+(a.complaint_no||''),[
-      ['対応日',fmtDate(a.responded_on)],['状態',a.status],['ランク',a.rank],['苦情内容',a.summary],
-      ['指導内容',a.guidance_content],['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)],['完了',fmtDate(a.completed_at)]
-    ]);
+    if(!canEdit('complaints')){
+      const quick=canEdit('handoffs')?'<button type="button" class="ghost light" data-dialog-action="handoff-complaint">引継ぎ</button>':'';
+      return openReadOnlyDialog('苦情 '+(a.complaint_no||''),[
+        ['対応日',fmtDate(a.responded_on)],['状態',a.status],['ランク',a.rank],['苦情内容',a.summary],
+        ['指導内容',a.guidance_content],['次回対応',a.next_action],['フォロー期限',fmtDate(a.followup_due)],['完了',fmtDate(a.completed_at)]
+      ],{actions:quick})
+    }
     const terminal=a.status==='completed';
     const fields=formField('responded_on','対応日',fmtDate(a.responded_on),'date','required')+
       formArea('summary','苦情内容',a.summary,'required')+
