@@ -39,3 +39,9 @@ test('analysis filters are intersected with snapshot scope and do not grant wide
   assert.ok(store.includes('snapshotScopeSql(user,p'));
   assert.ok(store.includes('addSnapshotFilters'));
 });
+
+
+test('monthly safety trend uses a PostgreSQL-safe quoted month alias',()=>{
+  assert.ok(store.includes('as \\"month\\"'));
+  assert.equal(store.includes(",'YYYY-MM') month,count"),false);
+});
