@@ -134,3 +134,68 @@ test('stored original signature must match declared PDF/JPEG/PNG type',()=>{
   assert.throws(()=>mod.validateStoredContentSignature(Buffer.from('not-a-pdf'),'application/pdf'),e=>e?.code==='DOCUMENT_CONTENT_SIGNATURE_MISMATCH');
   assert.throws(()=>mod.validateStoredContentSignature(pdf,'image/png'),e=>e?.code==='DOCUMENT_CONTENT_SIGNATURE_MISMATCH');
 });
+
+
+test('storage authorization or provider failures are never treated as missing objects',async()=>{
+  const saved={
+    VERCEL_ENV:process.env.VERCEL_ENV,
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER,
+    TSUBAME_DOCUMENT_TICKET_SECRET:process.env.TSUBAME_DOCUMENT_TICKET_SECRET,
+    BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN
+  };
+  const mod=require('../api/_lib/document-storage');
+  try{
+    process.env.VERCEL_ENV='production';
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='test-private-token';
+    mod._test.setBlobSdk({
+      async issueSignedToken(){return {delegationToken:'d',clientSigningToken:'s'}},
+      async presignUrl(_token,options){return {presignedUrl:'https://blob.invalid/'+options.operation}}
+    });
+    mod._test.setFetch(async(url)=>{
+      if(String(url).endsWith('/head'))return {ok:false,status:403,headers:{get(){return null}}};
+      throw new Error('unexpected '+url)
+    });
+    const adapter=mod.getDocumentStorageAdapter();
+    await assert.rejects(
+      adapter.readObjectForBackup('quarantine/88888888888888888888888888888888'),
+      e=>e?.code==='DOCUMENT_STORAGE_READ_FAILED'&&e?.status===503
+    );
+  }finally{
+    mod._test.resetTestOverrides();
+    for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v}
+  }
+});
+
+test('only real 404 is treated as a missing primary original',async()=>{
+  const saved={
+    VERCEL_ENV:process.env.VERCEL_ENV,
+    TSUBAME_DOCUMENT_STORAGE_PROVIDER:process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER,
+    TSUBAME_DOCUMENT_TICKET_SECRET:process.env.TSUBAME_DOCUMENT_TICKET_SECRET,
+    BLOB_READ_WRITE_TOKEN:process.env.BLOB_READ_WRITE_TOKEN
+  };
+  const mod=require('../api/_lib/document-storage');
+  try{
+    process.env.VERCEL_ENV='production';
+    process.env.TSUBAME_DOCUMENT_STORAGE_PROVIDER='vercel-blob-private';
+    process.env.TSUBAME_DOCUMENT_TICKET_SECRET='12345678901234567890123456789012';
+    process.env.BLOB_READ_WRITE_TOKEN='test-private-token';
+    mod._test.setBlobSdk({
+      async issueSignedToken(){return {delegationToken:'d',clientSigningToken:'s'}},
+      async presignUrl(_token,options){return {presignedUrl:'https://blob.invalid/'+options.operation}}
+    });
+    mod._test.setFetch(async(url)=>{
+      if(String(url).endsWith('/head'))return {ok:false,status:404,headers:{get(){return null}}};
+      throw new Error('unexpected '+url)
+    });
+    const adapter=mod.getDocumentStorageAdapter();
+    await assert.rejects(
+      adapter.readObjectForBackup('quarantine/99999999999999999999999999999999'),
+      e=>e?.code==='DOCUMENT_QUARANTINE_OBJECT_MISSING'&&e?.status===409
+    )
+  }finally{
+    mod._test.resetTestOverrides();
+    for(const [k,v] of Object.entries(saved)){if(v===undefined)delete process.env[k];else process.env[k]=v}
+  }
+});
