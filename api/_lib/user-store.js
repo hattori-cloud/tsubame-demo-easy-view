@@ -106,7 +106,8 @@ async function setUserState({actor,userId,state,expectedVersion,reason,requestId
 }
 async function issuePasswordReset({actor,userId,tokenHash,requestId}){
   assertFullAdmin(actor);return withTransaction(async client=>{
-    const u=(await query('select id,employee_id,state from users where id=$1 for update',[userId],client)).rows[0];if(!u)throw problem(404,'USER_NOT_FOUND','対象利用者が見つかりません');
+    const u=(await query(`select u.id,u.employee_id,u.state,e.lifecycle_status from users u join employees e on e.id=u.employee_id where u.id=$1 for update of u`,[userId],client)).rows[0];if(!u)throw problem(404,'USER_NOT_FOUND','対象利用者が見つかりません');
+    if(u.state!=='active'||u.lifecycle_status==='retired')throw problem(409,'USER_NOT_ACTIVE','停止中または退職済みの利用者には再設定を発行できません');
     await query(`update password_reset_tokens set used_at=now() where user_id=$1 and used_at is null`,[userId],client);
     await query(`update mfa_challenges set verified_at=now() where user_id=$1 and verified_at is null`,[userId],client);
     const token=(await query(`insert into password_reset_tokens(user_id,token_hash,requested_by_user_id,expires_at) values($1,$2,$3,now()+interval '20 minutes') returning id,expires_at`,[userId,tokenHash,actor.id],client)).rows[0];
@@ -116,7 +117,7 @@ async function issuePasswordReset({actor,userId,tokenHash,requestId}){
 }
 async function completePasswordReset({tokenHash,passwordHash,requestId}){
   return withTransaction(async client=>{
-    const t=(await query(`select p.*,u.employee_id from password_reset_tokens p join users u on u.id=p.user_id where p.token_hash=$1 and p.used_at is null and p.expires_at>now() for update`,[tokenHash],client)).rows[0];
+    const t=(await query(`select p.*,u.employee_id from password_reset_tokens p join users u on u.id=p.user_id join employees e on e.id=u.employee_id where p.token_hash=$1 and p.used_at is null and p.expires_at>now() and u.state='active' and e.lifecycle_status<>'retired' for update of p`,[tokenHash],client)).rows[0];
     if(!t)throw problem(401,'RESET_TOKEN_INVALID','再設定リンクが無効または期限切れです');
     await query('select id from users where id=$1 for update',[t.user_id],client);
     await query(`update users set password_hash=$2,password_changed_at=now(),failed_login_count=0,locked_until=null,updated_at=now(),version=version+1 where id=$1`,[t.user_id,passwordHash],client);
