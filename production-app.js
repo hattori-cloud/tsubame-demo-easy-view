@@ -1,7 +1,7 @@
 (() => {
   'use strict';
 
-  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null};
+  const state={me:null,view:'home',challenge:null,enrollment:null,loading:false,lastRequestId:'',dialog:null,credentialEmployeeId:null};
   const $=id=>document.getElementById(id);
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const fmtDate=v=>v?String(v).slice(0,10):'—';
@@ -278,6 +278,43 @@
     ).join('')+'</div>':empty())
   }
 
+  async function renderCredentials(q){
+    if(state.me?.role_level==='self'){
+      state.credentialEmployeeId=state.me.employee_id;
+      return renderCredentialEmployee(state.credentialEmployeeId)
+    }
+    if(state.credentialEmployeeId)return renderCredentialEmployee(state.credentialEmployeeId);
+    const sp=new URLSearchParams({page_size:'50'});if(q)sp.set('q',q);
+    const {data}=await api('/employees?'+sp);
+    $('content').innerHTML=listHeader(data.total,'資格・書類の対象社員')+(data.items.length?'<div class="cards">'+data.items.map(e=>
+      '<div class="record"><div><b>'+esc(e.name)+'</b><span>社員番号 '+esc(e.employee_no)+'</span></div>'+
+      '<div class="record-meta"><span>'+esc(e.office||'—')+'</span><span>'+esc(e.department||'—')+'</span><button class="record-action" data-action="show-credentials" data-id="'+esc(e.id)+'">資格・書類を見る</button></div></div>'
+    ).join('')+'</div>':empty())
+  }
+
+  async function renderCredentialEmployee(employeeId){
+    const {data}=await api('/credentials?employee_id='+encodeURIComponent(employeeId));
+    state.credentialEmployeeId=employeeId;
+    const manager=state.me?.role_level==='full'||state.me?.role_level==='scoped';
+    const actions=manager
+      ?'<button class="small-primary" data-action="new-qualification">＋ 資格登録</button><button class="small-primary" data-action="new-document">＋ 書類登録</button>'
+      :'';
+    const back=state.me?.role_level==='self'?'':'<button class="ghost light" data-action="back-credentials">← 社員選択へ</button>';
+    const qs=data.qualifications||[],docs=data.documents||[];
+    $('content').innerHTML=
+      '<div class="hero"><div><span class="eyebrow">資格・書類</span><h2>'+esc(data.employee.name)+'</h2><p>社員番号 '+esc(data.employee.employee_no)+'</p></div><div class="dialog-actions">'+back+actions+'</div></div>'+
+      '<section class="panel"><div class="list-head"><div><b>資格</b><span>'+esc(qs.length)+'件</span></div></div>'+
+      (qs.length?'<div class="cards">'+qs.map(q=>
+        '<div class="record"><div><b>'+esc(q.name)+'</b><span>'+esc(q.certificate_no||'証明番号なし')+'</span></div>'+
+        '<div class="record-meta"><span>'+esc(q.status||'active')+'</span><span>期限 '+esc(fmtDate(q.expiry))+'</span><span>証憑 '+esc(q.evidence_requirement||'unset')+'</span></div></div>'
+      ).join('')+'</div>':empty())+'</section>'+
+      '<section class="panel"><div class="list-head"><div><b>書類</b><span>'+esc(docs.length)+'件</span></div></div>'+
+      (docs.length?'<div class="cards">'+docs.map(d=>
+        '<div class="record"><div><b>'+esc(d.name)+'</b><span>'+esc(d.category)+'</span></div>'+
+        '<div class="record-meta"><span>'+esc(d.status)+'</span><span>期限 '+esc(fmtDate(d.expiry))+'</span><span>'+esc(d.original_handling)+'</span><span>'+esc(d.storage_state||'not_uploaded')+'</span></div></div>'
+      ).join('')+'</div>':empty())+'</section>'
+  }
+
   function formField(name,label,value='',type='text',extra=''){
     return '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+extra+'></label>'
   }
@@ -315,7 +352,9 @@
       if(action==='edit-complaint')return editComplaint(id);
       if(action==='new-vehicle')return newVehicle();
       if(action==='edit-vehicle')return editVehicle(id);
-      if(action==='new-near-miss')return newNearMiss()
+      if(action==='new-near-miss')return newNearMiss();
+      if(action==='show-credentials'){state.credentialEmployeeId=id;return renderCredentialEmployee(id)}
+      if(action==='back-credentials'){state.credentialEmployeeId=null;return renderCredentials($('searchInput').value.trim())}
     }catch(err){showError(err,'操作')}
   }
   async function handleDialogAction(action){
