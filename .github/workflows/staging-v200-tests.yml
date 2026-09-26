@@ -47,6 +47,9 @@ jobs:
       - name: Apply and verify production PostgreSQL schema
         run: node scripts/verify-production-db-v200.js
 
+      - name: Verify management analysis SQL
+        run: node scripts/verify-management-analysis-v200.js
+
       - name: Verify selected-user workflow permission migration
         run: node scripts/verify-selected-user-workflow-migration-v200.js
 
