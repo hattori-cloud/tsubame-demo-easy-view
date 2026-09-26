@@ -278,7 +278,7 @@ test('employee and vehicle context is carried into new safety records without re
   assert.ok(js.includes('async function newNearMiss(context={})'));
   assert.ok(js.includes('async function newGuidance(context={})'));
   assert.ok(js.includes("const employee=knownEmployee||await resolveEmployeeReference"));
-  assert.ok(js.includes("formField('car_no','号車',context.carNo||'')"));
+  assert.ok(js.includes("formField('car_no','号車',context.carNo||p.car_no||'')"));
   assert.ok(js.includes("cars.length===1?'担当号車 '"));
 });
 
