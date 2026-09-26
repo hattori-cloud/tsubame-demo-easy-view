@@ -243,9 +243,18 @@ test('production analysis only renders management modules that the API marks as 
   assert.ok(js.includes('if(deadlines)'));
   assert.ok(js.includes('if(credentials)'));
   assert.ok(js.includes('if(support)'));
+  assert.ok(js.includes('if(vehicles)'));
   assert.ok(js.includes('if(work)'));
   assert.ok(js.includes('if(access.employees)'));
   assert.ok(js.includes('if(access.deadlines)'));
   assert.ok(js.includes('if(access.credentials)'));
+  assert.ok(js.includes('if(access.vehicles)'));
   assert.ok(js.includes('if(access.work_import)'));
+});
+
+
+test('management analysis connects vehicle inspection and maintenance workload to the vehicle view',()=>{
+  assert.ok(js.includes('車検超過'));
+  assert.ok(js.includes('整備予定超過'));
+  assert.ok(js.includes("hubButton('vehicles','車両を確認'"));
 });
