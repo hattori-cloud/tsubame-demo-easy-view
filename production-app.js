@@ -952,6 +952,24 @@
     await renderWorkImport()
   }
 
+  async function loadSafetyDraft(kind){
+    try{return (await api('/drafts/'+encodeURIComponent(kind))).data.draft}
+    catch(err){if(err.status===404)return null;throw err}
+  }
+  async function deleteSafetyDraft(kind){
+    try{await api('/drafts/'+encodeURIComponent(kind),{method:'DELETE'})}
+    catch(err){if(err.status!==404)throw err}
+  }
+  function draftPayloadForContext(draft,employee){
+    const p=draft?.payload||{};
+    if(!employee)return p;
+    if(!p.employee_id||String(p.employee_id)!==String(employee.id))return {};
+    return p
+  }
+  function draftExtraForEmployee(employee){
+    return employee?{employee_id:employee.id,employee_no:employee.employee_no||'',employee_name:employee.name||''}:{}
+  }
+
   function formField(name,label,value='',type='text',extra=''){
     return '<label>'+esc(label)+'<input name="'+esc(name)+'" type="'+esc(type)+'" value="'+esc(value??'')+'" '+extra+'></label>'
   }
@@ -971,14 +989,31 @@
     $('detailDialog').showModal()
   }
 
-  function openRecordForm(title,fields,onSubmit,{actions=''}={}){
+  function openRecordForm(title,fields,onSubmit,{actions='',draft=null}={}){
     $('dialogTitle').textContent=title;
-    $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+actions+'<button type="button" class="ghost light" data-dialog-close>キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
+    const draftButton=draft?'<button type="button" class="ghost light" data-draft-save>下書き保存</button>':'';
+    $('dialogBody').innerHTML='<form id="recordForm" class="edit-form"><div class="edit-grid">'+fields+'</div><div class="dialog-actions">'+draftButton+actions+'<button type="button" class="ghost light" data-dialog-close>キャンセル</button><button class="small-primary" type="submit">保存</button></div></form>';
     const form=$('recordForm');
+    let draftState=draft?.existing||null;
+    const draftSave=form.querySelector('[data-draft-save]');
+    if(draftSave)draftSave.onclick=async()=>{
+      draftSave.disabled=true;clearError();
+      try{
+        const payload=Object.fromEntries([...new FormData(form).entries()].filter(([,v])=>typeof v==='string'));
+        Object.assign(payload,draft?.extra||{});
+        const headers=draftState?{'If-Match':'"'+draftState.version+'"'}:{};
+        const {data}=await api('/drafts/'+encodeURIComponent(draft.kind),{method:'PUT',body:{payload},headers});
+        draftState=data.draft;draftSave.textContent='下書き保存済み'
+      }catch(err){showError(err,'下書き保存')}finally{draftSave.disabled=false}
+    };
     form.onsubmit=async e=>{
       e.preventDefault();clearError();
       const submit=form.querySelector('[type="submit"]');submit.disabled=true;
-      try{await onSubmit(new FormData(form));$('detailDialog').close();await loadView(state.view,{q:$('searchInput').value.trim()})}
+      try{
+        await onSubmit(new FormData(form));
+        if(draft?.kind)try{await deleteSafetyDraft(draft.kind)}catch(_){}
+        $('detailDialog').close();await loadView(state.view,{q:$('searchInput').value.trim()})
+      }
       catch(err){showError(err,'保存')}finally{submit.disabled=false}
     };
     $('detailDialog').showModal()
@@ -1311,23 +1346,25 @@
   }
 
   async function newAccident(context={}){
-    const knownEmployee=context.employee||null;
+    const knownEmployee=context.employee||null,draft=await loadSafetyDraft('accident'),p=draftPayloadForContext(draft,knownEmployee);
+    const compatible=!knownEmployee||!draft||String(draft.payload?.employee_id||'')===String(knownEmployee.id);
     const employeeField=knownEmployee
       ?formField('employee_display','対象社員',(knownEmployee.employee_no||'')+' '+(knownEmployee.name||''),'text','readonly')
-      :formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"');
+      :formField('employee_ref','対象社員（社員番号または氏名）',p.employee_no||p.employee_ref||'','text','required placeholder="例：1001 または 安芸太郎"');
     const fields=employeeField+
-      formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
-      formField('car_no','号車',context.carNo||'')+formField('address','場所','','text','required')+
-      formArea('summary','事故内容','','required')+formArea('cause','原因')+formArea('prevention','再発防止')+
-      formArea('response_history','対応履歴')+formField('followup_due','フォロー期限','','date');
-    openRecordForm(knownEmployee?'事故登録｜'+knownEmployee.name:'事故登録',fields,async fd=>{
+      formField('occurred_on','発生日',p.occurred_on||new Date().toISOString().slice(0,10),'date','required')+
+      formField('car_no','号車',context.carNo||p.car_no||'')+formField('address','場所',p.address||'','text','required')+
+      formArea('summary','事故内容',p.summary||'','required')+formArea('cause','原因',p.cause||'')+formArea('prevention','再発防止',p.prevention||'')+
+      formArea('response_history','対応履歴',p.response_history||'')+formField('followup_due','フォロー期限',p.followup_due||'','date');
+    const title=(knownEmployee?'事故登録｜'+knownEmployee.name:'事故登録')+(compatible&&draft?'｜下書き復元':'');
+    openRecordForm(title,fields,async fd=>{
       const employee=knownEmployee||await resolveEmployeeReference(fdText(fd,'employee_ref'));
       await api('/accidents',{method:'POST',body:{
         employee_id:employee.id,occurred_on:fdText(fd,'occurred_on'),car_no:nullable(fdText(fd,'car_no')),
         address:fdText(fd,'address'),summary:fdText(fd,'summary'),cause:nullable(fdText(fd,'cause')),
         prevention:nullable(fdText(fd,'prevention')),response_history:nullable(fdText(fd,'response_history')),followup_due:nullable(fdText(fd,'followup_due'))
       }})
-    })
+    },{draft:compatible?{kind:'accident',existing:draft,extra:draftExtraForEmployee(knownEmployee)}:null})
   }
 
   async function editAccident(id){
@@ -1359,23 +1396,25 @@
   }
 
   async function newComplaint(context={}){
-    const knownEmployee=context.employee||null;
+    const knownEmployee=context.employee||null,draft=await loadSafetyDraft('complaint'),p=draftPayloadForContext(draft,knownEmployee);
+    const compatible=!knownEmployee||!draft||String(draft.payload?.employee_id||'')===String(knownEmployee.id);
     const employeeField=knownEmployee
       ?formField('employee_display','対象社員',(knownEmployee.employee_no||'')+' '+(knownEmployee.name||''),'text','readonly')
-      :formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"');
+      :formField('employee_ref','対象社員（社員番号または氏名）',p.employee_no||p.employee_ref||'','text','required placeholder="例：1001 または 安芸太郎"');
     const fields=employeeField+
-      formField('responded_on','対応日',new Date().toISOString().slice(0,10),'date','required')+
-      formArea('summary','苦情内容','','required')+
-      formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],'unrated')+
-      formArea('guidance_content','指導内容')+formArea('next_action','次回対応')+formField('followup_due','フォロー期限','','date');
-    openRecordForm(knownEmployee?'苦情登録｜'+knownEmployee.name:'苦情登録',fields,async fd=>{
+      formField('responded_on','対応日',p.responded_on||new Date().toISOString().slice(0,10),'date','required')+
+      formArea('summary','苦情内容',p.summary||'','required')+
+      formSelect('rank','ランク',[['unrated','未判定'],['A','A'],['B','B'],['C','C']],p.rank||'unrated')+
+      formArea('guidance_content','指導内容',p.guidance_content||'')+formArea('next_action','次回対応',p.next_action||'')+formField('followup_due','フォロー期限',p.followup_due||'','date');
+    const title=(knownEmployee?'苦情登録｜'+knownEmployee.name:'苦情登録')+(compatible&&draft?'｜下書き復元':'');
+    openRecordForm(title,fields,async fd=>{
       const employee=knownEmployee||await resolveEmployeeReference(fdText(fd,'employee_ref'));
       await api('/complaints',{method:'POST',body:{
         employee_id:employee.id,responded_on:fdText(fd,'responded_on'),summary:fdText(fd,'summary'),
         rank:fdText(fd,'rank'),guidance_content:nullable(fdText(fd,'guidance_content')),
         next_action:nullable(fdText(fd,'next_action')),followup_due:nullable(fdText(fd,'followup_due'))
       }})
-    })
+    },{draft:compatible?{kind:'complaint',existing:draft,extra:draftExtraForEmployee(knownEmployee)}:null})
   }
 
   async function editComplaint(id){
@@ -1422,22 +1461,24 @@
   }
 
   async function newNearMiss(context={}){
-    const manager=canEdit('near_misses'),knownEmployee=context.employee||null;
+    const manager=canEdit('near_misses'),knownEmployee=context.employee||null,draft=await loadSafetyDraft('near_miss'),p=draftPayloadForContext(draft,knownEmployee);
+    const compatible=!knownEmployee||!draft||String(draft.payload?.employee_id||'')===String(knownEmployee.id);
     let fields='';
     if(manager){
       fields+=knownEmployee
         ?formField('employee_display','対象社員',(knownEmployee.employee_no||'')+' '+(knownEmployee.name||''),'text','readonly')
-        :formField('employee_ref','対象社員（社員番号または氏名）','','text','required placeholder="例：1001 または 安芸太郎"')
+        :formField('employee_ref','対象社員（社員番号または氏名）',p.employee_no||p.employee_ref||'','text','required placeholder="例：1001 または 安芸太郎"')
     }
-    fields+=formField('occurred_on','発生日',new Date().toISOString().slice(0,10),'date','required')+
-      formField('occurred_time','発生時刻','','time')+
-      formField('reported_on','報告日',new Date().toISOString().slice(0,10),'date','required')+
-      formField('car_no','号車',context.carNo||'')+
-      formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']], '')+
-      formArea('summary','内容','','required')+
-      formArea('prevention','再発防止')+
-      formArea('education','指導・教育');
-    openRecordForm('ヒヤリ登録',fields,async fd=>{
+    fields+=formField('occurred_on','発生日',p.occurred_on||new Date().toISOString().slice(0,10),'date','required')+
+      formField('occurred_time','発生時刻',p.occurred_time||'','time')+
+      formField('reported_on','報告日',p.reported_on||new Date().toISOString().slice(0,10),'date','required')+
+      formField('car_no','号車',context.carNo||p.car_no||'')+
+      formSelect('risk_level','リスク',[['','未判定'],['low','低'],['medium','中'],['high','高']],p.risk_level||'')+
+      formArea('summary','内容',p.summary||'','required')+
+      formArea('prevention','再発防止',p.prevention||'')+
+      formArea('education','指導・教育',p.education||'');
+    const title='ヒヤリ登録'+(compatible&&draft?'｜下書き復元':'');
+    openRecordForm(title,fields,async fd=>{
       const body={
         occurred_on:fdText(fd,'occurred_on'),
         occurred_time:nullable(fdText(fd,'occurred_time')),
@@ -1453,7 +1494,7 @@
         body.employee_id=employee.id
       }
       await api('/near-misses',{method:'POST',body})
-    })
+    },{draft:compatible?{kind:'near_miss',existing:draft,extra:draftExtraForEmployee(knownEmployee)}:null})
   }
 
   async function newVehicle(){
